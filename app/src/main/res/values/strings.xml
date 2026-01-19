@@ -1,5 +1,6 @@
 <resources>
-    <string name="app_name" translatable="false">mpvEx</string>
+    <string name="app_name" translatable="false">mpvRex</string>
+    <string name="author_name" translatable="false">Sakhawat</string>
 
     <string name="generic_reset">Reset</string>
     <string name="generic_share">Share</string>
@@ -149,7 +150,7 @@
     <string name="pref_player_controls_display_volume_as_percentage">Display volume as percentage</string>
     <string name="pref_player_controls_show_loading_circle">Show loading circle</string>
     <string name="pref_player_display_show_status_bar">Show system status bar with controls</string>
-    
+
     <string name="pref_player_display">Display</string>
     <string name="pref_player_display_panel_opacity">Panel opacity</string>
     <string name="pref_player_display_panel_transparency_summary" translatable="false">%d%%</string>
@@ -237,7 +238,7 @@
     <string name="pref_advanced_cleared_fonts_cache">Cleared cached fonts</string>
     <string name="pref_advanced_enable_recently_played_title">Recently Played</string>
     <string name="pref_advanced_enable_recently_played_summary">Track and display recently played videos and playlists</string>
-    
+
     <string name="pref_advanced_features_tooltip">Enable experimental or advanced features like statistics page and Anime4K upscaling.</string>
     <string name="pref_anime4k_title">Anime4K upscaling (Experimental)</string>
     <string name="pref_anime4k_summary">Enable Anime4K upscaling filter</string>
@@ -383,7 +384,7 @@
 
     <string name="value_percentage_int" translatable="false">%d%%</string>
 
-    <string name="github_repo_url" translatable="false">https://github.com/marlboro-advance/mpvex</string>
+    <string name="github_repo_url" translatable="false">https://github.com/sfsakhawat999/mpvRex</string>
     <string name="swap_the_volume_and_brightness_slider">Swap volume and brightness slider</string>
     <string name="pref_player_display_reduce_player_animation">Reduce player animation</string>
     <string name="pref_player_display_hide_player_control_time">Hide player control time</string>

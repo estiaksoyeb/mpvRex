@@ -25,11 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MonetizationOn
-import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,7 +36,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,16 +50,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshotFlow
-import android.widget.Toast
 import androidx.core.net.toUri
-import androidx.lifecycle.viewmodel.compose.viewModel
 import app.marlboroadvance.mpvex.BuildConfig
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.crash.CrashActivity.Companion.collectDeviceInfo
-import app.marlboroadvance.mpvex.ui.UpdateViewModel
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import kotlinx.serialization.Serializable
@@ -80,20 +70,8 @@ object AboutScreen : Screen {
     val clipboardManager = LocalClipboardManager.current
     val packageManager: PackageManager = context.packageManager
     val packageInfo = packageManager.getPackageInfo(context.packageName, 0)
-    val versionName = packageInfo.versionName?.substringBefore('-') ?: packageInfo.versionName ?: BuildConfig.VERSION_NAME
+    val versionName = packageInfo.versionName?.substringBefore('-') ?: packageInfo.versionName
     val buildType = BuildConfig.BUILD_TYPE
-
-    val updateViewModel: UpdateViewModel = viewModel(context as androidx.activity.ComponentActivity)
-    val updateState by updateViewModel.updateState.collectAsState()
-
-    // Show toast when no update is available after manual check
-    LaunchedEffect(updateState) {
-        if (updateState is UpdateViewModel.UpdateState.NoUpdate) {
-            Toast.makeText(context, "Already using latest version", Toast.LENGTH_SHORT).show()
-            updateViewModel.dismissNoUpdate()
-        }
-    }
-
     Scaffold(
       topBar = {
         TopAppBar(
@@ -119,7 +97,7 @@ object AboutScreen : Screen {
     ) { paddingValues ->
       val cs = MaterialTheme.colorScheme
       val colorPrimary = cs.primaryContainer
-      val colorTertiary = cs.tertiaryContainer
+      val colorSecondary = cs.secondaryContainer
       val transition = rememberInfiniteTransition()
       val fraction by transition.animateFloat(
         initialValue = 0f,
@@ -131,7 +109,7 @@ object AboutScreen : Screen {
           ),
       )
       val cornerRadius = 28.dp
-      
+
       Column(
         modifier =
           Modifier
@@ -148,7 +126,7 @@ object AboutScreen : Screen {
 
                   val gradient =
                     Brush.radialGradient(
-                      colors = listOf(colorPrimary, colorTertiary),
+                      colors = listOf(colorPrimary, colorSecondary),
                       center = Offset(cx, cy),
                       radius = 800f,
                     )
@@ -183,7 +161,7 @@ object AboutScreen : Screen {
 
                 Column(modifier = Modifier.weight(1f)) {
                   Text(
-                    text = "mpvExtended",
+                    text = "mpvRex",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = cs.onPrimaryContainer,
@@ -291,181 +269,7 @@ object AboutScreen : Screen {
           }
         }
 
-        Spacer(Modifier.height(8.dp))
-
-        // Updates Section
-        PreferenceSectionHeader(title = "Updates")
-        PreferenceCard {
-              val isAutoUpdateEnabled by updateViewModel.isAutoUpdateEnabled.collectAsState()
-              Column {
-                  Row(
-                      modifier = Modifier
-                          .fillMaxWidth()
-                          .clickable { updateViewModel.toggleAutoUpdate(!isAutoUpdateEnabled) }
-                          .padding(16.dp),
-                      verticalAlignment = Alignment.CenterVertically,
-                      horizontalArrangement = Arrangement.SpaceBetween
-                  ) {
-                      Column(
-                          modifier = Modifier.weight(1f)
-                      ) {
-                          Text(
-                              text = "Auto Check for Updates",
-                              style = MaterialTheme.typography.titleMedium,
-                              fontWeight = FontWeight.SemiBold,
-                              color = cs.onSurface
-                          )
-                          Spacer(modifier = Modifier.height(2.dp))
-                          Text(
-                              text = "Check on startup",
-                              style = MaterialTheme.typography.bodyMedium,
-                              color = cs.outline
-                          )
-                      }
-                      androidx.compose.material3.Switch(
-                          checked = isAutoUpdateEnabled,
-                          onCheckedChange = { updateViewModel.toggleAutoUpdate(it) }
-                      )
-                  }
-                  
-                  PreferenceDivider()
-                  
-                  Column(modifier = Modifier.padding(16.dp)) {
-                      Button(
-                          onClick = { updateViewModel.checkForUpdate(manual = true) },
-                          modifier = Modifier.fillMaxWidth().height(50.dp),
-                          shape = RoundedCornerShape(12.dp),
-                          colors = ButtonDefaults.buttonColors(
-                              containerColor = cs.secondaryContainer, 
-                              contentColor = cs.onSecondaryContainer
-                          ),
-                          elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                      ) {
-                           Icon(Icons.Default.Update, null, modifier = Modifier.size(18.dp))
-                           Spacer(Modifier.width(8.dp))
-                           Text("Check for Updates Now", fontWeight = FontWeight.SemiBold)
-                      }
-                  }
-              }
-        }
-
-        // Donate Section
-        PreferenceSectionHeader(
-          title = stringResource(id = R.string.pref_about_donate_title)
-        )
-
-        PreferenceCard {
-          // Ko-fi
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .clickable {
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW,
-                    context.getString(R.string.pref_about_donate_kofi_url).toUri(),
-                  ),
-                )
-              }
-              .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Icon(
-              imageVector = Icons.Filled.MonetizationOn,
-              contentDescription = null,
-              modifier = Modifier.size(24.dp),
-              tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_kofi),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-              )
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_kofi_summary),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-              )
-            }
-          }
-
-          PreferenceDivider()
-
-          // PayPal
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .clickable {
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW,
-                    context.getString(R.string.pref_about_donate_paypal_url).toUri(),
-                  ),
-                )
-              }
-              .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Icon(
-              imageVector = Icons.Filled.AccountBalance,
-              contentDescription = null,
-              modifier = Modifier.size(24.dp),
-              tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_paypal),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-              )
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_paypal_summary),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-              )
-            }
-          }
-
-          PreferenceDivider()
-
-          // UPI
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .clickable {
-                clipboardManager.setText(
-                  AnnotatedString(context.getString(R.string.pref_about_donate_upi_id)),
-                )
-              }
-              .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Icon(
-              imageVector = Icons.Filled.CurrencyRupee,
-              contentDescription = null,
-              modifier = Modifier.size(24.dp),
-              tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_upi),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-              )
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_upi_id),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-              )
-            }
-          }
-        }
-
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
       }
     }
   }

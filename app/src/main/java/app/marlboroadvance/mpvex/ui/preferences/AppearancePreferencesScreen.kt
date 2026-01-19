@@ -1,8 +1,9 @@
 package app.marlboroadvance.mpvex.ui.preferences
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,9 +27,9 @@ import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.MultiChoiceSegmentedButton
+import app.marlboroadvance.mpvex.ui.preferences.components.ThemePicker
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
-import app.marlboroadvance.mpvex.ui.preferences.components.ThemePicker
 import app.marlboroadvance.mpvex.ui.theme.DarkMode
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import kotlinx.collections.immutable.persistentListOf
@@ -136,6 +138,36 @@ object AppearancePreferencesScreen : Screen {
                                     )
                                 },
                                 enabled = darkMode != DarkMode.Light
+                            )
+
+                            PreferenceDivider()
+
+                            val hidePlayerButtonsBackground by preferences.hidePlayerButtonsBackground.collectAsState()
+                            SwitchPreference(
+                                value = hidePlayerButtonsBackground,
+                                onValueChange = { preferences.hidePlayerButtonsBackground.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_summary),
+                                    )
+                                },
+                            )
+
+                            val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
+                            SwitchPreference(
+                                value = playerAlwaysDarkMode,
+                                onValueChange = { preferences.playerAlwaysDarkMode.set(it) },
+                                title = {
+                                    Text(text = "Player always dark mode")
+                                },
+                                summary = {
+                                    Text(text = "Keep player controls in dark theme regardless of app theme")
+                                },
                             )
                         }
                     }

@@ -262,6 +262,68 @@ fun MpvexTheme(content: @Composable () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun MpvexPlayerTheme(content: @Composable () -> Unit) {
+    val preferences = koinInject<AppearancePreferences>()
+    val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
+    val darkMode by preferences.darkMode.collectAsState()
+    val amoledMode by preferences.amoledMode.collectAsState()
+    val appTheme by preferences.appTheme.collectAsState()
+    val darkTheme = isSystemInDarkTheme()
+    val context = LocalContext.current
+
+    val useDarkTheme = if (playerAlwaysDarkMode) {
+        true
+    } else {
+        when (darkMode) {
+            DarkMode.Dark -> true
+            DarkMode.Light -> false
+            DarkMode.System -> darkTheme
+        }
+    }
+
+    val colorScheme = when {
+        appTheme.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            when {
+                useDarkTheme && amoledMode -> {
+                    dynamicDarkColorScheme(context).copy(
+                        background = backgroundPureBlack,
+                        surface = surfacePureBlack,
+                        surfaceDim = surfaceDimPureBlack,
+                        surfaceBright = surfaceBrightPureBlack,
+                        surfaceContainerLowest = surfaceContainerLowestPureBlack,
+                        surfaceContainerLow = surfaceContainerLowPureBlack,
+                        surfaceContainer = surfaceContainerPureBlack,
+                        surfaceContainerHigh = surfaceContainerHighPureBlack,
+                        surfaceContainerHighest = surfaceContainerHighestPureBlack,
+                    )
+                }
+                useDarkTheme -> dynamicDarkColorScheme(context)
+                else -> dynamicLightColorScheme(context)
+            }
+        }
+        useDarkTheme && amoledMode -> appTheme.getAmoledColorScheme()
+        useDarkTheme -> appTheme.getDarkColorScheme()
+        else -> appTheme.getLightColorScheme()
+    }
+
+    // Provide theme transition state first, OUTSIDE MaterialTheme
+    CompositionLocalProvider(
+        LocalSpacing provides Spacing(),
+        LocalThemeTransitionState provides rememberThemeTransitionState(),
+    ) {
+        ThemeTransitionContent {
+            MaterialTheme(
+                colorScheme = colorScheme,
+                typography = AppTypography,
+                content = content,
+                motionScheme = MotionScheme.expressive(),
+            )
+        }
+    }
+}
+
 enum class DarkMode(
     @StringRes val titleRes: Int,
 ) {

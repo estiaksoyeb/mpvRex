@@ -133,6 +133,7 @@ fun GestureHandler(
   var lastTapRegion by remember { mutableStateOf<String?>(null) }
   var pendingSingleTapRegion by remember { mutableStateOf<String?>(null) }
   var pendingSingleTapPosition by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
+  var pendingTapInExclusionZone by remember { mutableStateOf(false) }
   val doubleTapTimeout = 250L
   val multiTapContinueWindow = 650L
 
@@ -142,13 +143,13 @@ fun GestureHandler(
 
   // Auto-reset tap count on timeout and execute single tap if no double tap detected
   LaunchedEffect(tapCount, longPressTriggeredDuringTouch) {
-    if (tapCount == 1 && pendingSingleTapRegion != null) {
+    if (tapCount == 1) {
       delay(doubleTapTimeout)
       // Timeout occurred, execute single tap action only if not double-tap seeking and not triggered by long press
       if (tapCount == 1 && pendingSingleTapRegion != null && !isDoubleTapSeeking && !longPressTriggeredDuringTouch) {
         val region = pendingSingleTapRegion!!
         val isCenterTap = region == "center"
-        if (useSingleTapForCenter && isCenterTap) {
+        if (useSingleTapForCenter && isCenterTap && !pendingTapInExclusionZone) {
           viewModel.handleCenterSingleTap()
         } else {
           if (panelShown != Panels.None && !allowGesturesInPanels) {
@@ -317,7 +318,23 @@ fun GestureHandler(
                   pendingSingleTapPosition = downPosition
                   wasConsumedByTapGesture = true
                   pointer.consume()
-                  // Don't execute single tap action yet - wait to see if second tap comes
+                  
+                  // Instant single tap for center if enabled and not in exclusion zones
+                  if (region == "center" && useSingleTapForCenter) {
+                    val exclusionZoneHeight = size.height * 0.25f // 25% from top and bottom
+                    val inExclusionZone = downPosition.y < exclusionZoneHeight || 
+                                          downPosition.y > size.height - exclusionZoneHeight
+                    
+                    pendingTapInExclusionZone = inExclusionZone // Store for delayed execution check
+
+                    if (!inExclusionZone) {
+                       viewModel.handleCenterSingleTap()
+                       // Prevent delayed execution
+                       pendingSingleTapRegion = null 
+                    }
+                  } else {
+                    pendingTapInExclusionZone = false
+                  }
                 }
               }
               break

@@ -507,6 +507,11 @@ fun PlayerControls(
               TextPlayerUpdate(text)
             }
 
+            is PlayerUpdates.HorizontalSeek -> {
+              val update = currentPlayerUpdate as PlayerUpdates.HorizontalSeek
+              TextPlayerUpdate("${update.currentTime} (${update.seekDelta})")
+            }
+
             else -> {}
           }
         }
@@ -826,7 +831,12 @@ fun PlayerControls(
               .constrainAs(seekbar) {
                 if (bottomControlsBelowSeekbar && !isPortrait) {
                   // When bottom controls are below seekbar, position seekbar above them
-                  bottom.linkTo(bottomLeftControls.top, spacing.small)
+                  // But only if controls are actually shown! If hidden (e.g. seeking), anchor to bottom
+                  if (controlsShown && !areControlsLocked) {
+                    bottom.linkTo(bottomLeftControls.top, spacing.small)
+                  } else {
+                    bottom.linkTo(parent.bottom, 45.dp + spacing.medium + spacing.small)
+                  }
                 } else {
                   // Normal positioning at parent bottom
                   bottom.linkTo(parent.bottom, if (isPortrait) 64.dp else spacing.small)

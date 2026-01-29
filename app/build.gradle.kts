@@ -46,8 +46,22 @@ android {
     }
   }
 
+  signingConfigs {
+    create("release") {
+      if (project.hasProperty("releaseKeyStore")) {
+        storeFile = file(project.property("releaseKeyStore") as String)
+        storePassword = project.property("releaseKeyStorePassword") as String
+        keyAlias = project.property("releaseKeyAlias") as String
+        keyPassword = project.property("releaseKeyPassword") as String
+      }
+    }
+  }
+
   buildTypes {
     named("release") {
+      if (project.hasProperty("releaseKeyStore")) {
+        signingConfig = signingConfigs.getByName("release")
+      }
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(

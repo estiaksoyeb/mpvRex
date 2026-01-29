@@ -878,6 +878,30 @@ class PlayerViewModel(
     }
   }
 
+  fun handleLeftSingleTap() {
+    when (gesturePreferences.leftSingleActionGesture.get()) {
+      SingleActionGesture.Seek -> leftSeek()
+      SingleActionGesture.SubSeek -> leftSubSeek()
+      SingleActionGesture.PlayPause -> pauseUnpause()
+      SingleActionGesture.Custom -> viewModelScope.launch(Dispatchers.IO) {
+        MPVLib.command("keypress", CustomKeyCodes.DoubleTapLeft.keyCode)
+      }
+      SingleActionGesture.None -> {}
+    }
+  }
+
+  fun handleRightSingleTap() {
+    when (gesturePreferences.rightSingleActionGesture.get()) {
+      SingleActionGesture.Seek -> rightSeek()
+      SingleActionGesture.SubSeek -> rightSubSeek()
+      SingleActionGesture.PlayPause -> pauseUnpause()
+      SingleActionGesture.Custom -> viewModelScope.launch(Dispatchers.IO) {
+        MPVLib.command("keypress", CustomKeyCodes.DoubleTapRight.keyCode)
+      }
+      SingleActionGesture.None -> {}
+    }
+  }
+
   fun handleRightDoubleTap() {
     when (gesturePreferences.rightSingleActionGesture.get()) {
       SingleActionGesture.Seek -> rightSeek()

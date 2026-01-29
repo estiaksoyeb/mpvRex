@@ -20,5 +20,5 @@ mpvRex adds the following features on top of the upstream mpvEx (**feel free to 
 - **Bottom Controls Layout** ([aff35d1](https://github.com/sfsakhawat999/mpvRex/commit/aff35d1e5b411faa0eede9a532bc24d23eed576c)): Option to place playback controls below the seekbar implementation.
 - **Accidental Tap Prevention** ([e305c26](https://github.com/sfsakhawat999/mpvRex/commit/e305c26b2a332805151633ac179b709b5a50c6ce)): Preference to ignore single taps on the seekbar to prevent accidental seeks.
 - **Relative Seeking** ([e305c26](https://github.com/sfsakhawat999/mpvRex/commit/e305c26b2a332805151633ac179b709b5a50c6ce)): Drag on the seekbar seeks relative to the start position rather than absolute position.
-- **Instant Single Tap** ([2719ccf](https://github.com/sfsakhawat999/mpvRex/commit/2719ccf541d5ed7f57513a3029e5c510b23ecf41)): Instant single tap logic with exclusion zones for play/pause if enabled.
 - **Reverse Double Tap Gestures** ([50cb8f1](https://github.com/sfsakhawat999/mpvRex/commit/50cb8f1c9d28686c17def515d0ea590d7f5a766e)): Option to reverse left and right double tap gestures.
+- **Single Tap Gestures** ([0ffa87e](https://github.com/sfsakhawat999/mpvRex/commit/0ffa87eb31a618edc553b1f2facc05d40271e441)): Add single tap gesture support for left and right regions.

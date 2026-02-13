@@ -220,6 +220,7 @@ class PlayerActivity :
   private lateinit var pipHelper: MPVPipHelper
 
   private var isReady = false // Single flag: true when video loaded and ready
+  private var isOrientationRestored = false // Track if orientation was restored from DB
   private var isUserFinishing = false
   private var noisyReceiverRegistered = false
   private var mpvInitialized = false // Track MPV initialization state
@@ -395,9 +396,10 @@ class PlayerActivity :
 
     getPlayableUri(intent)?.let(player::playFile)
 
-    // Only set orientation immediately if NOT in Video mode
-    // For Video mode, wait for video-params/aspect to become available
-    if (playerPreferences.orientation.get() != PlayerOrientation.Video) {
+    // Only set orientation immediately if NOT in Video or Smart mode
+    // For these modes, wait for video-params/aspect to become available
+    val orient = playerPreferences.orientation.get()
+    if (orient != PlayerOrientation.Video && orient != PlayerOrientation.Smart) {
       setOrientation()
     }
 
@@ -1583,6 +1585,7 @@ class PlayerActivity :
    */
   @OptIn(DelicateCoroutinesApi::class)
   private fun handleFileLoaded() {
+    isOrientationRestored = false
     // Extract fileName from intent only if not already set
     // This preserves fileName set in onNewIntent or onCreate
     if (fileName.isBlank()) {
@@ -1632,18 +1635,19 @@ class PlayerActivity :
       }
     }
 
-    // Only set orientation immediately if NOT in Video mode
-    // For Video mode, wait for video-params/aspect to become available
-    if (playerPreferences.orientation.get() != PlayerOrientation.Video) {
+    // Only set orientation immediately if NOT in Video or Smart mode
+    // For these modes, wait for video-params/aspect to become available
+    val orientation = playerPreferences.orientation.get()
+    if (orientation != PlayerOrientation.Video && orientation != PlayerOrientation.Smart) {
       setOrientation()
     } else {
-      // For Video mode, try to set orientation after a short delay to ensure
+      // For Video and Smart mode, try to set orientation after a short delay to ensure
       // video dimensions are available
       lifecycleScope.launch {
         kotlinx.coroutines.delay(100)
         if (mpvInitialized && !player.isExiting && !isFinishing) {
           val aspect = player.getVideoOutAspect()
-          Log.d(TAG, "handleFileLoaded - Video mode, aspect after delay: $aspect")
+          Log.d(TAG, "handleFileLoaded - ${if (orientation == PlayerOrientation.Smart) "Smart" else "Video"} mode, aspect after delay: $aspect")
           if (aspect != null && aspect > 0) {
             setOrientation()
           }
@@ -2027,6 +2031,7 @@ class PlayerActivity :
     if (playerPreferences.orientation.get() == PlayerOrientation.Smart && state.savedOrientation != null) {
       withContext(Dispatchers.Main) {
         requestedOrientation = state.savedOrientation
+        isOrientationRestored = true
         Log.d(TAG, "Restored orientation for Smart mode: ${state.savedOrientation}")
       }
     }
@@ -2346,12 +2351,11 @@ class PlayerActivity :
         PlayerOrientation.Free -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
         PlayerOrientation.Smart, PlayerOrientation.Video -> {
           // For Smart mode, check if orientation was already restored from database
-          // requestedOrientation is updated in applyPlaybackState for Smart mode
           val isSmartMode = orientationPref == PlayerOrientation.Smart
           
-          // If in Smart mode and we've already set a specific orientation (not sensor landscape default),
+          // If in Smart mode and we've already restored a choice from the database,
           // keep using it and don't re-calculate from aspect ratio.
-          if (isSmartMode && requestedOrientation != ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE) {
+          if (isSmartMode && isOrientationRestored) {
              Log.d(TAG, "setOrientation - Smart mode: using restored orientation $requestedOrientation")
              return
           }

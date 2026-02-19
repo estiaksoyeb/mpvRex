@@ -17,7 +17,7 @@ android {
   compileSdk = 36
 
   defaultConfig {
-    applicationId = "xyz.mpv.rex"
+    applicationId = "app.mpv.rex"
     minSdk = 26
     targetSdk = 36
     versionCode = 129

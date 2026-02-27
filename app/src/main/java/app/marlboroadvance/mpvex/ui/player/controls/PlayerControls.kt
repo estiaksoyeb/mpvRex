@@ -565,11 +565,6 @@ fun PlayerControls(
               TextPlayerUpdate(text)
             }
 
-            is PlayerUpdates.HorizontalSeek -> {
-              val update = currentPlayerUpdate as PlayerUpdates.HorizontalSeek
-              TextPlayerUpdate("${update.currentTime} (${update.seekDelta})")
-            }
-
             else -> {}
           }
         }
@@ -1113,6 +1108,7 @@ fun PlayerControls(
                   // Use a stable margin to prevent jumping when controls are hiding
                   val bottomMargin = if (isPortrait) 96.dp else 45.dp + spacing.medium + spacing.small
                   bottom.linkTo(parent.bottom, bottomMargin)
+                } else {
                   bottom.linkTo(parent.bottom, if (isPortrait) 64.dp else spacing.extraSmall)
                 }
                 start.linkTo(parent.start, spacing.medium)

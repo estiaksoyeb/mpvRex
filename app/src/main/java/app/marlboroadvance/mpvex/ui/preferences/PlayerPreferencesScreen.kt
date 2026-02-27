@@ -32,6 +32,7 @@ import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
 import me.zhanghai.compose.preference.SwitchPreference
 import org.koin.compose.koinInject
+import kotlin.math.roundToInt
 
 @Serializable
 object PlayerPreferencesScreen : Screen {
@@ -170,6 +171,24 @@ object PlayerPreferencesScreen : Screen {
                   )
                 },
               )
+
+              PreferenceDivider()
+
+              val keepScreenOnWhenPaused by preferences.keepScreenOnWhenPaused.collectAsState()
+              SwitchPreference(
+                value = keepScreenOnWhenPaused,
+                onValueChange = preferences.keepScreenOnWhenPaused::set,
+                title = { Text("Keep screen on when paused") },
+                summary = {
+                  Text(
+                    text = if (keepScreenOnWhenPaused)
+                      "Screen stays awake while video is paused"
+                    else
+                      "Screen can turn off while video is paused",
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
             }
           }
           // Seeking Section
@@ -202,6 +221,25 @@ object PlayerPreferencesScreen : Screen {
                 value = usePreciseSeeking,
                 onValueChange = preferences.usePreciseSeeking::set,
                 title = { Text(stringResource(R.string.pref_player_use_precise_seeking)) },
+              )
+              
+              PreferenceDivider()
+              
+              val customSkipDuration by preferences.customSkipDuration.collectAsState()
+              SliderPreference(
+                value = customSkipDuration.toFloat(),
+                onValueChange = { preferences.customSkipDuration.set(it.roundToInt()) },
+                title = { Text(stringResource(R.string.pref_player_custom_skip_duration_title)) },
+                valueRange = 5f..180f,
+                summary = {
+                   val summaryText = stringResource(R.string.pref_player_custom_skip_duration_summary)
+                   Text(
+                     "$summaryText ($customSkipDuration s)",
+                     color = MaterialTheme.colorScheme.outline,
+                   )
+                },
+                onSliderValueChange = { preferences.customSkipDuration.set(it.roundToInt()) },
+                sliderValue = customSkipDuration.toFloat(),
               )
             }
           }
@@ -307,7 +345,7 @@ object PlayerPreferencesScreen : Screen {
           item {
             PreferenceSectionHeader(title = stringResource(R.string.pref_player_controls))
           }
-          
+
           item {
             PreferenceCard {
               val allowGesturesInPanels by preferences.allowGesturesInPanels.collectAsState()

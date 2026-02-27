@@ -31,8 +31,12 @@ class AppearancePreferences(
   val showUnplayedOldVideoLabel = preferenceStore.getBoolean("show_unplayed_old_video_label", true)
   val unplayedOldVideoDays = preferenceStore.getInt("unplayed_old_video_days", 7)
   val showNetworkThumbnails = preferenceStore.getBoolean("show_network_thumbnails", false)
+<<<<<<< HEAD
   val seekbarStyle = preferenceStore.getEnum("seekbar_style", SeekbarStyle.Wavy)
   val playerAlwaysDarkMode = preferenceStore.getBoolean("player_always_dark_mode", true)
+=======
+  val seekbarStyle = preferenceStore.getEnum("seekbar_style", SeekbarStyle.Thick)
+>>>>>>> upstream/master
 
   val topLeftControls =
     preferenceStore.getString(
@@ -43,7 +47,7 @@ class AppearancePreferences(
   val topRightControls =
     preferenceStore.getString(
       "top_right_controls",
-      "DECODER,AUDIO_TRACK,SUBTITLES,MORE_OPTIONS",
+      "CURRENT_CHAPTER,DECODER,AUDIO_TRACK,SUBTITLES,MORE_OPTIONS",
     )
 
   val bottomRightControls =
@@ -55,7 +59,7 @@ class AppearancePreferences(
   val bottomLeftControls =
     preferenceStore.getString(
       "bottom_left_controls",
-      "LOCK_CONTROLS,SCREEN_ROTATION,PLAYBACK_SPEED,REPEAT_MODE,SHUFFLE,CURRENT_CHAPTER",
+      "LOCK_CONTROLS,SCREEN_ROTATION,PLAYBACK_SPEED,REPEAT_MODE,SHUFFLE,AB_LOOP",
     )
 
   val portraitBottomControls =

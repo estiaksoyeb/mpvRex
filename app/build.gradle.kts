@@ -75,7 +75,8 @@ android {
     create("preview") {
       initWith(getByName("release"))
 
-      signingConfig = signingConfigs["debug"]
+      // Explicitly disable signing to produce unsigned APKs for CI
+      signingConfig = null
       applicationIdSuffix = ".preview"
       versionNameSuffix = "-${getCommitCount()}"
     }
@@ -197,7 +198,7 @@ dependencies {
   implementation(libs.truetype.parser)
   implementation(libs.fsaf)
   implementation(libs.mediainfo.lib)
-  implementation(files("libs/mpv-android-lib-v0.0.3.aar"))
+  implementation(files("libs/mpv-android-lib-v0.0.1.aar"))
 
   // Network protocol libraries
   implementation(libs.smbj) // SMB/CIFS

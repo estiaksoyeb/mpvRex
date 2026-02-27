@@ -96,6 +96,12 @@ class MPVView(
 
   override fun initOptions() {
     setVo(if (decoderPreferences.gpuNext.get()) "gpu-next" else "gpu")
+    
+    // Set GPU API context (Vulkan or OpenGL)
+    if (decoderPreferences.useVulkan.get()) {
+      MPVLib.setOptionString("gpu-context", "androidvk")
+    }
+    
     MPVLib.setOptionString("profile", "fast")
 
     // Set hwdec with fallback order: HW+ (mediacodec) -> HW (mediacodec-copy) -> SW (no)
@@ -217,9 +223,12 @@ class MPVView(
     )
 
   private fun setupAudioOptions() {
-    // Disable MPV's automatic audio selection
-    // App will handle track selection manually via TrackSelector to respect user choices
-    MPVLib.setOptionString("alang", "")
+    val preferredLangs = audioPreferences.preferredLanguages.get()
+    if (preferredLangs.isNotBlank()) {
+      MPVLib.setOptionString("alang", preferredLangs)
+      MPVLib.setPropertyString("alang", preferredLangs)
+    }
+
     MPVLib.setOptionString("audio-delay", (audioPreferences.defaultAudioDelay.get() / 1000.0).toString())
     MPVLib.setOptionString("audio-pitch-correction", audioPreferences.audioPitchCorrection.get().toString())
     MPVLib.setOptionString("volume-max", (audioPreferences.volumeBoostCap.get() + 100).toString())
@@ -232,12 +241,16 @@ class MPVView(
 
   // Setup
   private fun setupSubtitlesOptions() {
-    // Disable MPV's automatic subtitle selection
-    // App will handle track selection manually via TrackSelector to respect user choices
-    MPVLib.setOptionString("slang", "")
-    MPVLib.setOptionString("sub-auto", "no")
+    val preferredLangs = subtitlesPreferences.preferredLanguages.get()
+    if (preferredLangs.isNotBlank()) {
+      MPVLib.setOptionString("slang", preferredLangs)
+      MPVLib.setPropertyString("slang", preferredLangs)
+    }
+
+    // Default to 'all' for discovery but let TrackSelector handle selection
+    MPVLib.setOptionString("sub-auto", "all")
     MPVLib.setOptionString("sub-file-paths", "")
-    MPVLib.setOptionString("subs-fallback", "no")
+    MPVLib.setOptionString("subs-fallback", "yes")
 
     val fontsDirPath = "${context.filesDir.path}/fonts/"
     MPVLib.setOptionString("sub-fonts-dir", fontsDirPath)
@@ -277,7 +290,8 @@ class MPVView(
     val borderSize = subtitlesPreferences.borderSize.get().toString()
     val borderStyle = subtitlesPreferences.borderStyle.get().value
     val shadowOffset = subtitlesPreferences.shadowOffset.get().toString()
-    val subPos = subtitlesPreferences.subPos.get().toString()
+    val subPosInt = subtitlesPreferences.subPos.get()
+    val subPos = subPosInt.toString()
     val subScale = subtitlesPreferences.subScale.get().toString()
 
     MPVLib.setOptionString("sub-font-size", fontSize)
@@ -293,6 +307,8 @@ class MPVView(
     MPVLib.setOptionString("sub-scale", subScale)
     MPVLib.setOptionString("sub-pos", subPos)
     
+    val secondarySubPos = if (subPosInt >= 50) "5" else "95"
+
     MPVLib.setOptionString("secondary-sub-font-size", fontSize)
     MPVLib.setOptionString("secondary-sub-bold", bold)
     MPVLib.setOptionString("secondary-sub-italic", italic)
@@ -304,7 +320,7 @@ class MPVView(
     MPVLib.setOptionString("secondary-sub-border-style", borderStyle)
     MPVLib.setOptionString("secondary-sub-shadow-offset", shadowOffset)
     MPVLib.setOptionString("secondary-sub-scale", subScale)
-    MPVLib.setOptionString("secondary-sub-pos", subPos)
+    MPVLib.setOptionString("secondary-sub-pos", secondarySubPos)
 
     val scaleByWindow = if (subtitlesPreferences.scaleByWindow.get()) "yes" else "no"
     MPVLib.setOptionString("sub-scale-by-window", scaleByWindow)
@@ -314,10 +330,20 @@ class MPVView(
   }
 
 
-  private fun applyAnime4KShaders() {
+  internal fun applyAnime4KShaders() {
     runCatching {
       val enabled = decoderPreferences.enableAnime4K.get()
       if (!enabled) {
+        MPVLib.setOptionString("glsl-shaders", "")
+        return
+      }
+      
+      // Auto-disable for 4K/8K content (performance & quality)
+      val width = MPVLib.getPropertyInt("video-params/w") ?: 0
+      val height = MPVLib.getPropertyInt("video-params/h") ?: 0
+      if (width >= 3840 || height >= 2160) {
+        android.util.Log.d(TAG, "Video is 4K+ (${width}x${height}), disabling Anime4K")
+        MPVLib.setOptionString("glsl-shaders", "")
         return
       }
       
@@ -337,6 +363,7 @@ class MPVView(
       
       // Check if mode is OFF - if so, don't apply any shaders
       if (modeStr == "OFF") {
+        MPVLib.setOptionString("glsl-shaders", "")
         return  // Exit early - user wants it OFF
       }
       
@@ -365,6 +392,8 @@ class MPVView(
         
         // Apply shaders (MUST use setOptionString in initOptions!)
         MPVLib.setOptionString("glsl-shaders", shaderChain)
+      } else {
+        MPVLib.setOptionString("glsl-shaders", "")
       }
     }.onFailure {
       // Don't crash - just continue without shaders

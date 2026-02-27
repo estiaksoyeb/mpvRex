@@ -18,6 +18,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import android.content.res.Configuration.ORIENTATION_PORTRAIT
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.Image
@@ -26,6 +31,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -34,6 +40,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,6 +79,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -96,6 +106,7 @@ import app.marlboroadvance.mpvex.ui.player.controls.components.BrightnessSlider
 import app.marlboroadvance.mpvex.ui.player.controls.components.CompactSpeedIndicator
 import app.marlboroadvance.mpvex.ui.player.controls.components.ControlsButton
 import app.marlboroadvance.mpvex.ui.player.controls.components.MultipleSpeedPlayerUpdate
+import app.marlboroadvance.mpvex.ui.player.controls.components.SeekPlayerUpdate
 import app.marlboroadvance.mpvex.ui.player.controls.components.SeekbarWithTimers
 import app.marlboroadvance.mpvex.ui.player.controls.components.SpeedControlSlider
 import app.marlboroadvance.mpvex.ui.player.controls.components.TextPlayerUpdate
@@ -132,6 +143,7 @@ fun <T> playerControlsEnterAnimationSpec(): FiniteAnimationSpec<T> =
   ExperimentalAnimationGraphicsApi::class,
   ExperimentalMaterial3Api::class,
   ExperimentalMaterial3ExpressiveApi::class,
+  ExperimentalFoundationApi::class,
 )
 @Composable
 @Suppress("CyclomaticComplexMethod", "ViewModelForwarding")
@@ -158,6 +170,8 @@ fun PlayerControls(
   val position by MPVLib.propInt["time-pos"].collectAsState()
   val demuxerCacheDuration by MPVLib.propFloat["demuxer-cache-duration"].collectAsState()
   val cacheBufferingState by MPVLib.propInt["cache-buffering-state"].collectAsState()
+  val precisePosition by viewModel.precisePosition.collectAsState()
+  val preciseDuration by viewModel.preciseDuration.collectAsState()
   val playbackSpeed by MPVLib.propFloat["speed"].collectAsState()
 
   val doubleTapSeekAmount by viewModel.doubleTapSeekAmount.collectAsState()
@@ -175,6 +189,12 @@ fun PlayerControls(
   val playerTimeToDisappear by playerPreferences.playerTimeToDisappear.collectAsState()
   val chapters by viewModel.chapters.collectAsState(persistentListOf())
   val playlistMode by playerPreferences.playlistMode.collectAsState()
+    val haptic = LocalHapticFeedback.current
+
+    val customButtons by viewModel.customButtons.collectAsState()
+    
+  val abLoopA by viewModel.abLoopA.collectAsState()
+  val abLoopB by viewModel.abLoopB.collectAsState()
 
   val onOpenSheet: (Sheets) -> Unit = {
     viewModel.sheetShown.update { _ -> it }
@@ -277,6 +297,7 @@ fun PlayerControls(
         val playerPauseButton = createRef()
         val seekbar = createRef()
         val (playerUpdates) = createRefs()
+        val (customLeftButtonsRef, customRightButtonsRef, customPortraitButtonsRef) = createRefs()
 
         val bottomControlsBelowSeekbar by playerPreferences.bottomControlsBelowSeekbar.collectAsState()
 
@@ -342,7 +363,15 @@ fun PlayerControls(
               fadeOut(playerControlsExitAnimationSpec())
             },
           modifier =
-            Modifier.constrainAs(brightnessSlider) {
+            Modifier
+              .then(
+                if (showSystemStatusBar) {
+                  Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                } else {
+                  Modifier
+                }
+              )
+              .constrainAs(brightnessSlider) {
               if (swapVolumeAndBrightness) {
                 start.linkTo(parent.start, spacing.extraLarge)
               } else {
@@ -372,7 +401,15 @@ fun PlayerControls(
               fadeOut(playerControlsExitAnimationSpec())
             },
           modifier =
-            Modifier.constrainAs(volumeSlider) {
+            Modifier
+              .then(
+                if (showSystemStatusBar) {
+                  Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                } else {
+                  Modifier
+                }
+              )
+              .constrainAs(volumeSlider) {
               if (swapVolumeAndBrightness) {
                 end.linkTo(parent.end, spacing.extraLarge)
               } else {
@@ -420,9 +457,17 @@ fun PlayerControls(
           enter = fadeIn(playerControlsEnterAnimationSpec()),
           exit = fadeOut(playerControlsExitAnimationSpec()),
           modifier =
-            Modifier.constrainAs(playerUpdates) {
+            Modifier
+              .then(
+                if (showSystemStatusBar) {
+                  Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                } else {
+                  Modifier
+                }
+              )
+              .constrainAs(playerUpdates) {
               linkTo(parent.start, parent.end)
-              linkTo(parent.top, parent.bottom, bias = 0.2f)
+              top.linkTo(parent.top, if (isPortrait) 104.dp else 64.dp)
             },
         ) {
           when (currentPlayerUpdate) {
@@ -461,13 +506,25 @@ fun PlayerControls(
             is PlayerUpdates.ShowText ->
               TextPlayerUpdate(
                 (currentPlayerUpdate as PlayerUpdates.ShowText).value,
+                modifier = Modifier.widthIn(min = 120.dp),
               )
 
             is PlayerUpdates.VideoZoom -> {
               val zoomPercentage = (videoZoom * 100).toInt()
-              TextPlayerUpdate("Zoom: $zoomPercentage%")
+              TextPlayerUpdate(
+                text = String.format("Zoom:%3d%%", zoomPercentage), 
+                modifier = Modifier.width(160.dp),
+              )
             }
 
+            is PlayerUpdates.HorizontalSeek -> {
+              val seekUpdate = currentPlayerUpdate as PlayerUpdates.HorizontalSeek
+              SeekPlayerUpdate(
+                currentTime = seekUpdate.currentTime,
+                seekDelta = "[${seekUpdate.seekDelta}]",
+                modifier = Modifier, // Let content size determine width
+              )
+            }
             is PlayerUpdates.RepeatMode -> {
               val mode = (currentPlayerUpdate as PlayerUpdates.RepeatMode).mode
               val text = when (mode) {
@@ -517,6 +574,216 @@ fun PlayerControls(
           }
         }
 
+        val areButtonsVisible = controlsShown && !areControlsLocked && !areSlidersShown
+
+        AnimatedVisibility(
+            visible = areButtonsVisible && !isPortrait,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .then(
+                  if (showSystemNavigationBar) {
+                    val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+                    Modifier.padding(
+                      start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                      end = navBarPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
+                    )
+                  } else {
+                    Modifier
+                  }
+                )
+                .constrainAs(customLeftButtonsRef) {
+                start.linkTo(parent.start, spacing.medium)
+                top.linkTo(parent.top)
+                bottom.linkTo(parent.bottom)
+                verticalBias = 0.65f
+                width = Dimension.preferredWrapContent
+                height = Dimension.wrapContent
+            }
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                customButtons.filter { it.isLeft }.forEach { button ->
+                    val buttonInteractionSource = remember { MutableInteractionSource() }
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .combinedClickable(
+                                interactionSource = buttonInteractionSource,
+                                indication = ripple(),
+                                onClick = {
+                                    resetControlsTimestamp = System.currentTimeMillis()
+                                    viewModel.callCustomButton(button.id)
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    resetControlsTimestamp = System.currentTimeMillis()
+                                    viewModel.callCustomButtonLongPress(button.id)
+                                }
+                            )
+                    ) {
+                        Text(
+                            text = button.label,
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .basicMarquee(),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = areButtonsVisible && !isPortrait,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .then(
+                  if (showSystemNavigationBar) {
+                    val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+                    Modifier.padding(
+                      start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                      end = navBarPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
+                    )
+                  } else {
+                    Modifier
+                  }
+                )
+                .constrainAs(customRightButtonsRef) {
+                end.linkTo(parent.end, spacing.medium)
+                top.linkTo(parent.top)
+                bottom.linkTo(parent.bottom)
+                verticalBias = 0.65f
+                width = Dimension.preferredWrapContent
+                height = Dimension.wrapContent
+            }
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .horizontalScroll(rememberScrollState(), reverseScrolling = true)
+            ) {
+                customButtons.filter { !it.isLeft }.forEach { button ->
+                    val buttonInteractionSource = remember { MutableInteractionSource() }
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .combinedClickable(
+                                interactionSource = buttonInteractionSource,
+                                indication = ripple(),
+                                onClick = {
+                                    resetControlsTimestamp = System.currentTimeMillis()
+                                    viewModel.callCustomButton(button.id)
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    resetControlsTimestamp = System.currentTimeMillis()
+                                    viewModel.callCustomButtonLongPress(button.id)
+                                }
+                            )
+                    ) {
+                        Text(
+                            text = button.label,
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .basicMarquee(),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+        }
+        
+        AnimatedVisibility(
+            visible = areButtonsVisible && isPortrait,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .then(
+                  if (showSystemNavigationBar) {
+                    val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+                    Modifier.padding(
+                      start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                      end = navBarPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
+                    )
+                  } else {
+                    Modifier
+                  }
+                )
+                .constrainAs(customPortraitButtonsRef) {
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                top.linkTo(parent.top)
+                bottom.linkTo(parent.bottom)
+                verticalBias = 0.72f
+                width = Dimension.preferredWrapContent
+                height = Dimension.wrapContent
+            }
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                customButtons.forEach { button ->
+                    val buttonInteractionSource = remember { MutableInteractionSource() }
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .combinedClickable(
+                                interactionSource = buttonInteractionSource,
+                                indication = ripple(),
+                                onClick = {
+                                    resetControlsTimestamp = System.currentTimeMillis()
+                                    viewModel.callCustomButton(button.id)
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    resetControlsTimestamp = System.currentTimeMillis()
+                                    viewModel.callCustomButtonLongPress(button.id)
+                                }
+                            )
+                    ) {
+                        Text(
+                            text = button.label,
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .basicMarquee(),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+        }
+
         AnimatedVisibility(
           visible = controlsShown && areControlsLocked,
           enter = fadeIn(),
@@ -526,6 +793,17 @@ fun PlayerControls(
               .then(
                 if (showSystemStatusBar) {
                   Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                } else {
+                  Modifier
+                }
+              )
+              .then(
+                if (showSystemNavigationBar) {
+                  val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+                  Modifier.padding(
+                    start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                    end = navBarPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
+                  )
                 } else {
                   Modifier
                 }
@@ -836,8 +1114,12 @@ fun PlayerControls(
                   val bottomMargin = if (isPortrait) 96.dp else 45.dp + spacing.medium + spacing.small
                   bottom.linkTo(parent.bottom, bottomMargin)
                 } else {
+<<<<<<< HEAD
                   // Normal positioning at parent bottom
                   bottom.linkTo(parent.bottom, if (isPortrait) 64.dp else spacing.small)
+=======
+                  bottom.linkTo(parent.bottom, spacing.extraSmall)
+>>>>>>> upstream/master
                 }
                 start.linkTo(parent.start, spacing.medium)
                 end.linkTo(parent.end, spacing.medium)
@@ -869,8 +1151,8 @@ fun PlayerControls(
           }
 
           SeekbarWithTimers(
-            position = position?.toFloat() ?: 0f,
-            duration = duration?.toFloat() ?: 0f,
+            position = precisePosition,
+            duration = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f,
             onValueChange = {
               isSeeking = true
               resetControlsTimestamp = System.currentTimeMillis()
@@ -892,6 +1174,8 @@ fun PlayerControls(
             paused = paused ?: false,
             readAheadValue = readAheadPosition,
             seekbarStyle = seekbarStyle,
+            loopStart = abLoopA?.toFloat(),
+            loopEnd = abLoopB?.toFloat(),
           )
         }
 

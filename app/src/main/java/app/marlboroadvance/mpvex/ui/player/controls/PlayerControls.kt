@@ -1113,13 +1113,7 @@ fun PlayerControls(
                   // Use a stable margin to prevent jumping when controls are hiding
                   val bottomMargin = if (isPortrait) 96.dp else 45.dp + spacing.medium + spacing.small
                   bottom.linkTo(parent.bottom, bottomMargin)
-                } else {
-<<<<<<< HEAD
-                  // Normal positioning at parent bottom
-                  bottom.linkTo(parent.bottom, if (isPortrait) 64.dp else spacing.small)
-=======
-                  bottom.linkTo(parent.bottom, spacing.extraSmall)
->>>>>>> upstream/master
+                  bottom.linkTo(parent.bottom, if (isPortrait) 64.dp else spacing.extraSmall)
                 }
                 start.linkTo(parent.start, spacing.medium)
                 end.linkTo(parent.end, spacing.medium)

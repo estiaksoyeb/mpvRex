@@ -193,7 +193,7 @@ object PlayerControlsPreferencesScreen : Screen {
           }
 
           item {
-            val seekbarStyle by appearancePrefs.seekbarStyle.collectAsState()
+            val currentSeekbarStyle by appearancePrefs.seekbarStyle.collectAsState()
             
             PreferenceCard {
               SeekbarStyle.entries.forEachIndexed { index, style ->
@@ -209,7 +209,7 @@ object PlayerControlsPreferencesScreen : Screen {
                   },
                   trailingContent = {
                     RadioButton(
-                      selected = seekbarStyle == style,
+                      selected = currentSeekbarStyle == style,
                       onClick = null
                     )
                   },

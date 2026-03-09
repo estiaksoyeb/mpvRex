@@ -22,6 +22,7 @@ class PlayerPreferences(
   val volumeGesture = preferenceStore.getBoolean("volume_brightness", true)
   val pinchToZoomGesture = preferenceStore.getBoolean("pinch_to_zoom_gesture", true)
   val horizontalSwipeToSeek = preferenceStore.getBoolean("horizontal_swipe_to_seek", true)
+  val swipeToSubtitleSeek = preferenceStore.getBoolean("swipe_to_subtitle_seek", false)
   val horizontalSwipeSensitivity = preferenceStore.getFloat("horizontal_swipe_sensitivity", 0.05f)
 
   val customAspectRatios = preferenceStore.getStringSet("custom_aspect_ratios", emptySet())

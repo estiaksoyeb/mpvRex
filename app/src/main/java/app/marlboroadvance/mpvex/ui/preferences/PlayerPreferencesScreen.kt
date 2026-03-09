@@ -285,6 +285,16 @@ object PlayerPreferencesScreen : Screen {
               )
               
               PreferenceDivider()
+
+              val swipeToSubtitleSeek by preferences.swipeToSubtitleSeek.collectAsState()
+              SwitchPreference(
+                value = swipeToSubtitleSeek,
+                onValueChange = preferences.swipeToSubtitleSeek::set,
+                title = { Text(stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_title)) },
+                summary = { Text(stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_summary)) },
+              )
+              
+              PreferenceDivider()
               
               val horizontalSwipeSensitivity by preferences.horizontalSwipeSensitivity.collectAsState()
               SliderPreference(

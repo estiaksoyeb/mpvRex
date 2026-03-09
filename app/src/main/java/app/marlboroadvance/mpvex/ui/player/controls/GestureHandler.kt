@@ -896,8 +896,10 @@ fun GestureHandler(
                       hasStartedSeeking = true
                       initialVideoPosition = position?.toFloat() ?: 0f
                       
-                      // Show seekbar and start seeking mode (same as seekbar scrubbing)
-                      viewModel.showSeekBar()
+                      // Show seekbar if preference enabled
+                      if (playerPreferences.showSeekBarWhenSeeking.get()) {
+                        viewModel.showSeekBar()
+                      }
                     }
                     
                     if (gestureType != null) {

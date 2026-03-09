@@ -476,6 +476,8 @@
     <!-- Media Info Activity -->
 
     <string name="pref_player_use_precise_seeking">Use precise seeking</string>
+    <string name="pref_player_show_seekbar_when_seeking_title">Show seekbar when seeking</string>
+    <string name="pref_player_show_seekbar_when_seeking_summary">Display the video progress bar during gesture seeking</string>
 
     <!-- Folders Preferences -->
     <string name="pref_folders_title">Folders</string>

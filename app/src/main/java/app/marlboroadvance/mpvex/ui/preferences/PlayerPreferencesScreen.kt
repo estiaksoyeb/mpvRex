@@ -224,6 +224,16 @@ object PlayerPreferencesScreen : Screen {
               )
               
               PreferenceDivider()
+
+              val showSeekBarWhenSeeking by preferences.showSeekBarWhenSeeking.collectAsState()
+              SwitchPreference(
+                value = showSeekBarWhenSeeking,
+                onValueChange = preferences.showSeekBarWhenSeeking::set,
+                title = { Text(stringResource(R.string.pref_player_show_seekbar_when_seeking_title)) },
+                summary = { Text(stringResource(R.string.pref_player_show_seekbar_when_seeking_summary)) },
+              )
+              
+              PreferenceDivider()
               
               val customSkipDuration by preferences.customSkipDuration.collectAsState()
               SliderPreference(

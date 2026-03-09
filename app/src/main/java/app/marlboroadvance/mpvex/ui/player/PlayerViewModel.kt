@@ -1146,6 +1146,7 @@ class PlayerViewModel(
     }
     _isSeekingForwards.value = false
     seekBy(-doubleTapToSeekDuration)
+    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
   }
 
   fun rightSeek() {
@@ -1154,6 +1155,7 @@ class PlayerViewModel(
     }
     _isSeekingForwards.value = true
     seekBy(doubleTapToSeekDuration)
+    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
   }
 
   fun leftSubSeek() {

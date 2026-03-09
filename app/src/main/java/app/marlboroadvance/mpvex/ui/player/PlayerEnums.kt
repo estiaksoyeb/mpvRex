@@ -72,6 +72,25 @@ enum class Debanding(
   GPU(R.string.player_sheets_deband_gpu),
 }
 
+enum class MPVProfile(
+  val displayName: String,
+  val value: String,
+) {
+  Fast("Fast", "fast"),
+  Default("Default", "default"),
+  HighQuality("High Quality", "high-quality"),
+  GpuHQ("GPU HQ", "gpu-hq"),
+  LowLatency("Low Latency", "low-latency"),
+  SwFast("SW Fast", "sw-fast"),
+  ;
+
+  override fun toString(): String = displayName
+
+  companion object {
+    fun fromValue(value: String): MPVProfile = entries.firstOrNull { it.value == value } ?: Fast
+  }
+}
+
 enum class Sheets {
   None,
   PlaybackSpeed,
@@ -83,8 +102,9 @@ enum class Sheets {
   More,
   VideoZoom,
   AspectRatios,
-  FrameNavigation,
   Playlist,
+  AmbientConfig,
+  FrameNavigation,
 }
 
 enum class Panels {
@@ -93,7 +113,6 @@ enum class Panels {
   SubtitleDelay,
   AudioDelay,
   VideoFilters,
-  LuaScripts,
 }
 
 sealed class PlayerUpdates {

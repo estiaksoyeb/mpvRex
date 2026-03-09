@@ -1,5 +1,6 @@
 package app.marlboroadvance.mpvex.ui.player.controls.components.sheets
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -75,12 +76,57 @@ fun OnlineSubtitleSearchSheet(
     onDismissRequest = onDismissRequest,
     header = {
       val keyboardController = LocalSoftwareKeyboardController.current
-      var searchQuery by remember { mutableStateOf("") }
       val mediaInfo = remember(mediaTitle) { MediaInfoParser.parse(mediaTitle) }
+      var searchQuery by remember { mutableStateOf(mediaInfo.title) }
+
+      // Build the detected info string for display
+      val detectedInfo = remember(mediaInfo) {
+        buildString {
+          append(mediaInfo.title)
+          if (mediaInfo.season != null || mediaInfo.episode != null) {
+            append(" • ")
+            if (mediaInfo.season != null) append("S${String.format("%02d", mediaInfo.season)}")
+            if (mediaInfo.episode != null) append("E${String.format("%02d", mediaInfo.episode)}")
+          }
+          mediaInfo.year?.let { append(" ($it)") }
+        }
+      }
+
+      // Auto-trigger search on open
+      LaunchedEffect(mediaInfo) {
+        if (mediaInfo.title.isNotBlank()) {
+          onSearchMedia(mediaInfo.title)
+        }
+      }
       
       Column(
         modifier = Modifier.padding(top = MaterialTheme.spacing.medium)
       ) {
+        // Detected info chip
+        if (detectedInfo.isNotBlank() && mediaInfo.title.isNotBlank()) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = MaterialTheme.spacing.medium)
+              .padding(bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Icon(
+              Icons.Default.AutoFixHigh,
+              contentDescription = null,
+              modifier = Modifier.size(14.dp),
+              tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+              text = detectedInfo,
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+              maxLines = 1,
+              modifier = Modifier.basicMarquee()
+            )
+          }
+        }
         OutlinedTextField(
           value = searchQuery,
           onValueChange = { 
@@ -339,26 +385,35 @@ fun SeriesDetailsSection(
                 // Season Dropdown
                 val seasonDropdownExpanded = remember { mutableStateOf(false) }
                 Box {
-                  OutlinedButton(
+                  FilledTonalButton(
                       onClick = { seasonDropdownExpanded.value = true },
-                      contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                      modifier = Modifier.height(32.dp)
+                      contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                      modifier = Modifier.height(38.dp),
+                      shape = RoundedCornerShape(8.dp)
                   ) {
                       Text(
                           text = selectedSeason?.let { "S${it.season_number}" } ?: "Season",
-                          style = MaterialTheme.typography.bodySmall,
+                          style = MaterialTheme.typography.labelLarge,
+                          fontWeight = FontWeight.Bold,
                           maxLines = 1
                       )
-                      Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                      Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(20.dp))
                   }
                   DropdownMenu(
                       expanded = seasonDropdownExpanded.value,
                       onDismissRequest = { seasonDropdownExpanded.value = false },
-                      modifier = Modifier.heightIn(max = 300.dp)
+                      modifier = Modifier.heightIn(max = 300.dp),
+                      shape = RoundedCornerShape(12.dp),
+                      containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                   ) {
                       tvShow.seasons.forEach { season ->
                           DropdownMenuItem(
-                              text = { Text("Season ${season.season_number}") },
+                              text = { 
+                                Text(
+                                  "Season ${season.season_number}",
+                                  style = MaterialTheme.typography.bodyLarge
+                                ) 
+                              },
                               onClick = {
                                   onSelectSeason(season)
                                   seasonDropdownExpanded.value = false
@@ -371,31 +426,56 @@ fun SeriesDetailsSection(
                 // Episode Dropdown
                 val episodeDropdownExpanded = remember { mutableStateOf(false) }
                 Box {
-                  OutlinedButton(
+                  FilledTonalButton(
                       onClick = { episodeDropdownExpanded.value = true },
                       enabled = selectedSeason != null && !isFetchingEpisodes,
-                      contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                      modifier = Modifier.height(32.dp)
+                      contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                      modifier = Modifier.height(38.dp),
+                      shape = RoundedCornerShape(8.dp)
                   ) {
                       if (isFetchingEpisodes) {
-                          CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
-                          Spacer(Modifier.width(4.dp))
+                          CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp), 
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                          )
+                          Spacer(Modifier.width(6.dp))
                       }
                       Text(
                           text = selectedEpisode?.let { "E${it.episode_number}" } ?: "Ep",
-                          style = MaterialTheme.typography.bodySmall,
+                          style = MaterialTheme.typography.labelLarge,
+                          fontWeight = FontWeight.Bold,
                           maxLines = 1
                       )
-                      Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                      Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(20.dp))
                   }
                   DropdownMenu(
                       expanded = episodeDropdownExpanded.value,
                       onDismissRequest = { episodeDropdownExpanded.value = false },
-                      modifier = Modifier.heightIn(max = 300.dp)
+                      modifier = Modifier.heightIn(max = 300.dp).widthIn(min = 200.dp),
+                      shape = RoundedCornerShape(12.dp),
+                      containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                   ) {
                       episodes.forEach { episode ->
                           DropdownMenuItem(
-                              text = { Text("Ep ${episode.episode_number}: ${episode.name}") },
+                              text = { 
+                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                  Text(
+                                    "Ep ${episode.episode_number}", 
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold
+                                  )
+                                  episode.name?.let { 
+                                    Text(
+                                      it, 
+                                      style = MaterialTheme.typography.bodySmall,
+                                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                      maxLines = 1,
+                                      modifier = Modifier.basicMarquee()
+                                    ) 
+                                  }
+                                }
+                              },
                               onClick = {
                                   onSelectEpisode(episode)
                                   episodeDropdownExpanded.value = false

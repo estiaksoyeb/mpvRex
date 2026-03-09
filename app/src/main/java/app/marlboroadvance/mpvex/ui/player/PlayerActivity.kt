@@ -49,7 +49,8 @@ import app.marlboroadvance.mpvex.ui.theme.MpvexPlayerTheme
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
 import app.marlboroadvance.mpvex.utils.media.HttpUtils
 import app.marlboroadvance.mpvex.utils.media.SubtitleOps
-import app.marlboroadvance.mpvex.utils.storage.StorageScanUtils
+import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
+import app.marlboroadvance.mpvex.utils.storage.FileFilterUtils
 import com.github.k1rakishou.fsaf.FileManager
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
@@ -227,6 +228,7 @@ class PlayerActivity :
   private var isReady = false // Single flag: true when video loaded and ready
   private var isOrientationRestored = false // Track if orientation was restored from DB
   private var isUserFinishing = false
+  private var isManualBackgroundPlayback = false // Track manual background playback trigger
   private var noisyReceiverRegistered = false
   private var mpvInitialized = false // Track MPV initialization state
   private var savePlaybackStateJob: kotlinx.coroutines.Job? = null // Track ongoing save job
@@ -339,6 +341,7 @@ class PlayerActivity :
     setContentView(binding.root)
 
     setupMPV()
+    viewModel.onMpvCoreInitialized()
     MediaPlaybackService.createNotificationChannel(this)
     setupAudio()
     setupBackPressHandler()
@@ -481,11 +484,6 @@ class PlayerActivity :
       return
     }
 
-    if (!viewModel.controlsShown.value) {
-      viewModel.showControls()
-      return
-    }
-
     // Check if auto PIP is enabled - enter PIP mode instead of finishing
     if (playerPreferences.autoPiPOnNavigation.get() && isReady) {
       pipHelper.enterPipMode()
@@ -521,7 +519,11 @@ class PlayerActivity :
 
   private fun setupAudio() {
     audioPreferences.audioChannels.get().let {
-      MPVLib.setPropertyString(it.property, it.value)
+      runCatching {
+        MPVLib.setPropertyString(it.property, it.value)
+      }.onFailure { e ->
+        Log.e(TAG, "Error setting audio channels: ${it.property}=${it.value}", e)
+      }
     }
 
     if (!serviceBound) {
@@ -579,7 +581,8 @@ class PlayerActivity :
     Log.d(TAG, "PlayerActivity onDestroy")
 
     runCatching {
-      if (isUserFinishing || isFinishing) {
+      // Only stop the service if we're not doing manual background playback
+      if ((isUserFinishing || isFinishing) && !isManualBackgroundPlayback) {
         if (serviceBound) {
           runCatching { unbindService(serviceConnection) }
           serviceBound = false
@@ -619,7 +622,11 @@ class PlayerActivity :
 
     player.isExiting = true
 
-    if (!isFinishing) return
+    // Stop media notification service when activity is destroyed
+    endBackgroundPlayback()
+
+    // Don't cleanup MPV if we're doing manual background playback
+    if (!isFinishing || isManualBackgroundPlayback) return
 
     runCatching {
       MPVLib.removeObserver(playerObserver)
@@ -671,7 +678,8 @@ class PlayerActivity :
   override fun onPause() {
     runCatching {
       val isInPip = isInPictureInPictureMode
-      val shouldPause = !audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing
+      val shouldPause = (!audioPreferences.automaticBackgroundPlayback.get() && !isManualBackgroundPlayback) || 
+                        (isUserFinishing && !isManualBackgroundPlayback)
 
       if (!isInPip && shouldPause) {
         wasPlayingBeforePause = !(viewModel.paused ?: true)
@@ -690,6 +698,12 @@ class PlayerActivity :
   override fun finish() {
     runCatching {
       isReady = false
+      
+      // Clean up service when finishing
+      if (serviceBound || mediaPlaybackService != null) {
+        endBackgroundPlayback()
+      }
+      
       setReturnIntent()
       if (!isInPictureInPictureMode) {
         overridePendingTransition(0, android.R.anim.fade_out)
@@ -706,6 +720,12 @@ class PlayerActivity :
     runCatching {
       isReady = false
       isUserFinishing = true
+      
+      // Clean up service when finishing
+      if (serviceBound || mediaPlaybackService != null) {
+        endBackgroundPlayback()
+      }
+      
       setReturnIntent()
       if (!isInPictureInPictureMode) {
         overridePendingTransition(0, android.R.anim.fade_out)
@@ -727,19 +747,13 @@ class PlayerActivity :
         noisyReceiverRegistered = false
       }
 
-      // Don't start background playback if activity is finishing or user is leaving
-      if (!serviceBound && audioPreferences.automaticBackgroundPlayback.get() && !isUserFinishing && !isFinishing) {
-        startBackgroundPlayback()
-      } else {
-        if (!audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing || isFinishing) {
-          viewModel.pause()
-        }
-        if (serviceBound) {
-          runCatching {
-            unbindService(serviceConnection)
-            serviceBound = false
-          }
-        }
+      // Handle background playback based on preferences
+      val shouldAllowBackgroundPlayback = isManualBackgroundPlayback || 
+                                          audioPreferences.automaticBackgroundPlayback.get()
+      
+      // Pause playback if background playback is not enabled and user is finishing
+      if (!shouldAllowBackgroundPlayback && (isUserFinishing || isFinishing)) {
+        viewModel.pause()
       }
     }.onFailure { e ->
       Log.e(TAG, "Error during onStop", e)
@@ -768,10 +782,9 @@ class PlayerActivity :
           viewModel.changeBrightnessTo(brightness)
         }
       }
-
-      if (serviceBound) {
-        endBackgroundPlayback()
-      }
+      
+      // Reset manual background playback flag when returning to foreground
+      isManualBackgroundPlayback = false
     }.onFailure { e ->
       Log.e(TAG, "Error during onStart", e)
     }
@@ -1031,12 +1044,12 @@ class PlayerActivity :
   /**
    * Syncs shader files (.glsl, .hook, .comp) from the user's MPV directory.
    * Looks in shaders/ subfolder first (case-insensitive), falls back to root.
-   * Saves to shaders/user/ to avoid conflicts with built-in Anime4K shaders.
+   * Saves to shaders/ (same as non-Play Store) so Lua scripts can find them at ~~/shaders/
    */
   private fun syncShaders(tree: DocumentFile) {
-    val userShadersDir = File(filesDir, "shaders/user")
-    userShadersDir.mkdirs()
-    userShadersDir.listFiles()?.forEach { it.delete() }
+    // Use shaders/ directory directly for compatibility with existing Lua scripts
+    val shadersDir = File(filesDir, "shaders")
+    shadersDir.mkdirs()
 
     val shadersSubdir = findSubdirCaseInsensitive(tree, "shaders")
     val sourceDir = shadersSubdir ?: tree
@@ -1051,7 +1064,7 @@ class PlayerActivity :
 
       runCatching {
         contentResolver.openInputStream(file.uri)?.use { input ->
-          File(userShadersDir, name).outputStream().use { output ->
+          File(shadersDir, name).outputStream().use { output ->
             input.copyTo(output)
           }
           count++
@@ -1567,6 +1580,8 @@ class PlayerActivity :
    */
   override fun onConfigurationChanged(newConfig: Configuration) {
     super.onConfigurationChanged(newConfig)
+    val isPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT
+    viewModel.onOrientationChanged(isPortrait)
     if (isReady) {
       handleConfigurationChange()
     }
@@ -1577,7 +1592,7 @@ class PlayerActivity :
    */
   private fun handleConfigurationChange() {
     if (!isInPictureInPictureMode) {
-      viewModel.changeVideoAspect(playerPreferences.videoAspect.get(), showUpdate = false)
+      // Configuration changes don't affect aspect ratio
     } else {
       viewModel.hideControls()
     }
@@ -1610,9 +1625,12 @@ class PlayerActivity :
         if (playerPreferences.orientation.get() == PlayerOrientation.Video && aspect != null) {
           setOrientation()
         }
-        
+
         // Re-apply Anime4K shaders (check for resolution limit)
         player.applyAnime4KShaders()
+
+        // Re-check ambient stretch — handles portrait videos and new content
+        viewModel.updateAmbientStretch()
       }
     }
   }
@@ -1774,7 +1792,12 @@ class PlayerActivity :
         Log.d(TAG, "video-params/aspect changed: $aspect")
         pipHelper.updatePictureInPictureParams()
         // Update orientation when video aspect ratio changes (fixes Video orientation mode)
-        if (playerPreferences.orientation.get() == PlayerOrientation.Video && aspect != null) {
+        // BUT: Don't update if aspect is being overridden (stretch/custom aspect mode)
+        // to prevent infinite orientation switching loop
+        val aspectOverride = MPVLib.getPropertyDouble("video-aspect-override") ?: -1.0
+        if (playerPreferences.orientation.get() == PlayerOrientation.Video && 
+            aspect != null && 
+            aspectOverride <= 0.0) {
           setOrientation()
         }
       }
@@ -1835,6 +1858,15 @@ class PlayerActivity :
       mediaIdentifier = getMediaIdentifier(intent, fileName)
     }
 
+    // Start media notification service (like YouTube - always show notification)
+    startBackgroundPlayback()
+
+    // Reset AB loop values when video changes
+    viewModel.clearABLoop()
+
+    // Reset ambient mode to OFF when a new video starts
+    viewModel.resetAmbientMode()
+
     setIntentExtras(intent.extras)
 
     lifecycleScope.launch(Dispatchers.IO) {
@@ -1891,8 +1923,6 @@ class PlayerActivity :
     }
 
     applySubtitlePreferences()
-    viewModel.changeVideoAspect(playerPreferences.videoAspect.get(), showUpdate = false)
-    viewModel.restoreCustomAspectRatio()
 
     // Don't force media-title for m3u/m3u8 streams - let MPV provide it
     if (!isCurrentStreamM3U()) {
@@ -2866,14 +2896,7 @@ class PlayerActivity :
         val binder = service as? MediaPlaybackService.MediaPlaybackBinder ?: return
         mediaPlaybackService = binder.getService()
         serviceBound = true
-
-        Log.d(TAG, "Service connected, setting media info for: $fileName")
-
-        if (fileName.isNotBlank()) {
-          val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
-          val thumbnail = runCatching { MPVLib.grabThumbnail(1080) }.getOrNull()
-          mediaPlaybackService?.setMediaInfo(title = fileName, artist = artist, thumbnail = thumbnail)
-        }
+        Log.d(TAG, "Service connected")
       }
 
       override fun onServiceDisconnected(name: ComponentName?) {
@@ -2891,31 +2914,98 @@ class PlayerActivity :
    * handles background playback.
    */
   private fun startBackgroundPlayback() {
-    if (fileName.isBlank() || !isReady) return
+    if (fileName.isBlank() || !isReady) {
+      Log.w(TAG, "Cannot start background playback: video not ready")
+      return
+    }
 
-    Log.d(TAG, "Starting background playback")
-    val intent = Intent(this, MediaPlaybackService::class.java)
-    startForegroundService(intent)
-    bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+    // Prevent starting service multiple times
+    if (serviceBound) {
+      Log.d(TAG, "Service already bound, skipping start")
+      return
+    }
+
+    Log.d(TAG, "Starting background playback for: $fileName")
+    
+    // Ensure notification channel exists
+    MediaPlaybackService.createNotificationChannel(this)
+    
+    // Get media info before starting service
+    val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
+    val thumbnail = runCatching { MPVLib.grabThumbnail(1080) }.getOrNull()
+    
+    // Pass media info via intent extras
+    val intent = Intent(this, MediaPlaybackService::class.java).apply {
+      putExtra("media_title", fileName)
+      putExtra("media_artist", artist)
+    }
+    
+    // Store thumbnail in companion object for service to access
+    MediaPlaybackService.thumbnail = thumbnail
+    
+    try {
+      startForegroundService(intent)
+      bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+      Log.d(TAG, "Service start and bind initiated")
+    } catch (e: Exception) {
+      Log.e(TAG, "Error starting/binding service", e)
+    }
   }
 
   /**
    * Stops the background playback service and unbinds from it.
    *
-   * Ensures that the background service is properly stopped when no longer needed,
-   * such as when playback ends or the user leaves the activity.
+   * Called when the activity is destroyed to remove the notification.
    */
   private fun endBackgroundPlayback() {
+    Log.d(TAG, "Ending background playback service")
+    
     if (serviceBound) {
       try {
         unbindService(serviceConnection)
+        Log.d(TAG, "Service unbound successfully")
       } catch (e: Exception) {
         Log.e(TAG, "Error unbinding service", e)
       }
       serviceBound = false
     }
-    stopService(Intent(this, MediaPlaybackService::class.java))
+    
+    // Stop the service which will trigger its onDestroy and cleanup
+    try {
+      stopService(Intent(this, MediaPlaybackService::class.java))
+      Log.d(TAG, "Stop service command sent")
+    } catch (e: Exception) {
+      Log.e(TAG, "Error stopping service", e)
+    }
+    
     mediaPlaybackService = null
+  }
+
+  /**
+   * Manually triggers background playback when the user clicks the background playback button.
+   * This works independently of the automaticBackgroundPlayback preference.
+   */
+  @RequiresApi(Build.VERSION_CODES.P)
+  fun triggerBackgroundPlayback() {
+    if (fileName.isBlank() || !isReady) {
+      Log.w(TAG, "Cannot trigger background playback: video not ready")
+      return
+    }
+
+    Log.d(TAG, "User triggered background playback")
+    
+    // Set flag to enable background playback (same logic as automatic)
+    isManualBackgroundPlayback = true
+    
+    // Restore system UI before going to background
+    restoreSystemUI()
+    
+    // Move to background by going to home screen (same behavior as automatic)
+    val intent = Intent(Intent.ACTION_MAIN).apply {
+      addCategory(Intent.CATEGORY_HOME)
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    startActivity(intent)
   }
 
   // ==================== PlayerHost ====================
@@ -3373,13 +3463,12 @@ class PlayerActivity :
 
         val parentFolder = currentFile.parentFile ?: return@runCatching
 
-        val videoExtensions = StorageScanUtils.VIDEO_EXTENSIONS
-        val showHiddenFiles = appearancePreferences.showHiddenFiles.get()
+        val videoExtensions = FileTypeUtils.VIDEO_EXTENSIONS
 
         val files = parentFolder.listFiles { file ->
           file.isFile &&
-            StorageScanUtils.isVideoFile(file) &&
-            !StorageScanUtils.shouldSkipFile(file, showHiddenFiles)
+            FileTypeUtils.isVideoFile(file) &&
+            !FileFilterUtils.shouldSkipFile(file)
         } ?: return@runCatching
 
         val launchSource = intent.getStringExtra("launch_source") ?: ""

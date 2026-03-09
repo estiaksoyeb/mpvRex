@@ -3,8 +3,11 @@ package app.marlboroadvance.mpvex.ui.browser.videolist
 import android.content.Intent
 import android.os.Environment
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import app.marlboroadvance.mpvex.utils.media.OpenDocumentTreeContract
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -80,6 +83,7 @@ import app.marlboroadvance.mpvex.preferences.VideoSortType
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
+import app.marlboroadvance.mpvex.BuildConfig
 import app.marlboroadvance.mpvex.ui.browser.cards.VideoCard
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserBottomBar
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
@@ -177,6 +181,34 @@ data class VideoListScreen(
     val operationType = remember { mutableStateOf<CopyPasteOps.OperationType?>(null) }
     val progressDialogOpen = rememberSaveable { mutableStateOf(false) }
     val operationProgress by CopyPasteOps.operationProgress.collectAsState()
+    val treePickerLauncher =
+      rememberLauncherForActivityResult(OpenDocumentTreeContract()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val selectedVideos = selectionManager.getSelectedItems()
+        if (selectedVideos.isEmpty() || operationType.value == null) return@rememberLauncherForActivityResult
+
+        runCatching {
+          context.contentResolver.takePersistableUriPermission(
+            uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+          )
+        }
+
+        progressDialogOpen.value = true
+        coroutineScope.launch {
+          when (operationType.value) {
+            is CopyPasteOps.OperationType.Copy -> {
+              CopyPasteOps.copyFilesToTreeUri(context, selectedVideos, uri)
+            }
+
+            is CopyPasteOps.OperationType.Move -> {
+              CopyPasteOps.moveFilesToTreeUri(context, selectedVideos, uri)
+            }
+
+            else -> {}
+          }
+        }
+      }
 
     // Private space state
     val movingToPrivateSpace = rememberSaveable { mutableStateOf(false) }
@@ -259,6 +291,9 @@ data class VideoListScreen(
           onSelectAll = { selectionManager.selectAll() },
           onInvertSelection = { selectionManager.invertSelection() },
           onDeselectAll = { selectionManager.clear() },
+          onAddToPlaylistClick = if (!BuildConfig.ENABLE_UPDATE_FEATURE) {
+            { addToPlaylistDialogOpen.value = true }
+          } else null,
         )
       },
       floatingActionButton = {
@@ -329,6 +364,7 @@ data class VideoListScreen(
         )
         
         // Floating Material 3 Button Group overlay with animation
+        // Play Store gating is intentionally bypassed here.
         AnimatedVisibility(
           visible = showFloatingBottomBar,
           enter = slideInVertically(
@@ -345,11 +381,19 @@ data class VideoListScreen(
             isSelectionMode = true,
             onCopyClick = {
               operationType.value = CopyPasteOps.OperationType.Copy
-              folderPickerOpen.value = true
+              if (CopyPasteOps.canUseDirectFileOperations()) {
+                folderPickerOpen.value = true
+              } else {
+                treePickerLauncher.launch(null)
+              }
             },
             onMoveClick = {
               operationType.value = CopyPasteOps.OperationType.Move
-              folderPickerOpen.value = true
+              if (CopyPasteOps.canUseDirectFileOperations()) {
+                folderPickerOpen.value = true
+              } else {
+                treePickerLauncher.launch(null)
+              }
             },
             onRenameClick = { renameDialogOpen.value = true },
             onDeleteClick = { deleteDialogOpen.value = true },

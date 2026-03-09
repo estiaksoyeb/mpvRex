@@ -1,3 +1,4 @@
+
 package app.marlboroadvance.mpvex.preferences
 
 import app.marlboroadvance.mpvex.preferences.preference.PreferenceStore
@@ -23,9 +24,7 @@ class PlayerPreferences(
   val horizontalSwipeToSeek = preferenceStore.getBoolean("horizontal_swipe_to_seek", true)
   val horizontalSwipeSensitivity = preferenceStore.getFloat("horizontal_swipe_sensitivity", 0.05f)
 
-  val videoAspect = preferenceStore.getEnum("video_aspect", VideoAspect.Fit)
   val customAspectRatios = preferenceStore.getStringSet("custom_aspect_ratios", emptySet())
-  val currentAspectRatio = preferenceStore.getFloat("current_aspect_ratio", -1f)
 
   val defaultSpeed = preferenceStore.getFloat("default_speed", 1f)
   val speedPresets =
@@ -76,4 +75,17 @@ class PlayerPreferences(
 
   // Custom Buttons - JSON List
   val customButtons = preferenceStore.getString("custom_buttons_json", "[]")
+
+  // Ambience Mode
+  val ambientBlurSamples = preferenceStore.getInt("ambient_blur_samples", 24)
+  val ambientMaxRadius = preferenceStore.getFloat("ambient_max_radius", 0.18f)
+  val ambientGlowIntensity = preferenceStore.getFloat("ambient_glow_intensity", 1.4f)
+  val ambientSatBoost = preferenceStore.getFloat("ambient_sat_boost", 1.2f)
+  val ambientDitherNoise = preferenceStore.getFloat("ambient_dither_noise", 0.0f)
+  val ambientBezelDepth = preferenceStore.getFloat("ambient_bezel_depth", 0.0f)
+  val ambientVignetteStrength = preferenceStore.getFloat("ambient_vignette_strength", 0.5f)
+  val ambientWarmth = preferenceStore.getFloat("ambient_warmth", 0.0f)
+  val ambientEdgeSmooth = preferenceStore.getFloat("ambient_edge_smooth", 0.02f)
+  val ambientFadeCurve = preferenceStore.getFloat("ambient_fade_curve", 1.5f)
+  val ambientOpacity = preferenceStore.getFloat("ambient_opacity", 1.0f)
 }

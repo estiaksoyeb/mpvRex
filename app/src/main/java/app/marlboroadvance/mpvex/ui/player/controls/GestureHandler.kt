@@ -122,6 +122,7 @@ fun GestureHandler(
   var lastAppliedSpeed by remember { mutableStateOf(2f) }
   var hasSwipedEnough by remember { mutableStateOf(false) }
   var longPressTriggeredDuringTouch by remember { mutableStateOf(false) }
+  var isVerticalGestureActive by remember { mutableStateOf(false) }
   val currentVolume by viewModel.currentVolume.collectAsState()
   val currentMPVVolume by MPVLib.propInt["volume"].collectAsState()
   val currentBrightness by viewModel.currentBrightness.collectAsState()
@@ -205,6 +206,7 @@ fun GestureHandler(
       .padding(horizontal = 16.dp, vertical = 16.dp)
       .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap) {
         // Isolated double-tap detection that doesn't interfere with other gestures
+        if (isVerticalGestureActive) return@pointerInput
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
           val downPosition = down.position
@@ -479,6 +481,7 @@ fun GestureHandler(
                       }
                       "vertical" -> {
                         if ((brightnessGesture || volumeGesture) && !isLongPressing) {
+                          isVerticalGestureActive = true
                           startingY = 0f
                           mpvVolumeStartingY = 0f
                           originalVolume = currentVolume
@@ -625,6 +628,7 @@ fun GestureHandler(
                 when (gestureType) {
                   "vertical" -> {
                     if (brightnessGesture || volumeGesture) {
+                      isVerticalGestureActive = false
                       startingY = 0f
                       lastVolumeValue = currentVolume
                       lastMPVVolumeValue = currentMPVVolume ?: 100
@@ -664,6 +668,7 @@ fun GestureHandler(
           when (gestureType) {
             "vertical" -> {
               if (brightnessGesture || volumeGesture) {
+                isVerticalGestureActive = false
                 startingY = 0f
                 lastVolumeValue = currentVolume
                 lastMPVVolumeValue = currentMPVVolume ?: 100
@@ -673,8 +678,8 @@ fun GestureHandler(
           }
         }
       }
-      .pointerInput(pinchToZoomGesture, panAndZoomEnabled, areControlsLocked) {
-        if (!pinchToZoomGesture || areControlsLocked) return@pointerInput
+      .pointerInput(pinchToZoomGesture, panAndZoomEnabled, areControlsLocked, isVerticalGestureActive) {
+        if (!pinchToZoomGesture || areControlsLocked || isVerticalGestureActive) return@pointerInput
 
         // Helper: get video display dimensions at 1x (how mpv fits the video to screen)
         fun videoDisplaySize(): Pair<Float, Float> {
@@ -773,8 +778,8 @@ fun GestureHandler(
         }
       }
       // Single-finger pan (only when Pan & Zoom enabled and zoomed in)
-      .pointerInput(panAndZoomEnabled, pinchToZoomGesture, areControlsLocked) {
-        if (!panAndZoomEnabled || !pinchToZoomGesture || areControlsLocked) return@pointerInput
+      .pointerInput(panAndZoomEnabled, pinchToZoomGesture, areControlsLocked, isVerticalGestureActive) {
+        if (!panAndZoomEnabled || !pinchToZoomGesture || areControlsLocked || isVerticalGestureActive) return@pointerInput
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
@@ -841,8 +846,8 @@ fun GestureHandler(
           } while (event.changes.any { it.pressed })
         }
       }
-      .pointerInput(horizontalSwipeToSeek, areControlsLocked, gesturePreferences) {
-        if (!horizontalSwipeToSeek || areControlsLocked) return@pointerInput
+      .pointerInput(horizontalSwipeToSeek, areControlsLocked, gesturePreferences, isVerticalGestureActive) {
+        if (!horizontalSwipeToSeek || areControlsLocked || isVerticalGestureActive) return@pointerInput
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)

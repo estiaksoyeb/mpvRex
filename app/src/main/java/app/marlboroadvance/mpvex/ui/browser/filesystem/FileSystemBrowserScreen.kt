@@ -10,6 +10,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import app.marlboroadvance.mpvex.utils.media.OpenDocumentTreeContract
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.marlboroadvance.mpvex.BuildConfig
 import app.marlboroadvance.mpvex.domain.browser.FileSystemItem
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
@@ -251,6 +253,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
 
   // Update bottom bar visibility with optimized animation sequencing
   LaunchedEffect(isInSelectionMode, videoSelectionManager.isInSelectionMode, isMixedSelection) {
+    // Show floating bar and hide bottom navigation when appropriate.
+    // Play Store gating is intentionally bypassed here.
     val shouldShowFloatingBar = isInSelectionMode && videoSelectionManager.isInSelectionMode && !isMixedSelection
     
     if (shouldShowFloatingBar) {
@@ -325,6 +329,37 @@ fun FileSystemBrowserScreen(path: String? = null) {
         )
       }
       MediaUtils.playFile(it.toString(), context, "open_file")
+    }
+  }
+
+  // Tree picker for Play Store-safe copy/move destinations
+  val treePickerLauncher = rememberLauncherForActivityResult(
+    contract = OpenDocumentTreeContract(),
+  ) { uri ->
+    if (uri == null) return@rememberLauncherForActivityResult
+    val selectedVideos = videoSelectionManager.getSelectedItems()
+    if (selectedVideos.isEmpty() || operationType.value == null) return@rememberLauncherForActivityResult
+
+    runCatching {
+      context.contentResolver.takePersistableUriPermission(
+        uri,
+        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+      )
+    }
+
+    progressDialogOpen.value = true
+    coroutineScope.launch {
+      when (operationType.value) {
+        is CopyPasteOps.OperationType.Copy -> {
+          CopyPasteOps.copyFilesToTreeUri(context, selectedVideos, uri)
+        }
+
+        is CopyPasteOps.OperationType.Move -> {
+          CopyPasteOps.moveFilesToTreeUri(context, selectedVideos, uri)
+        }
+
+        else -> {}
+      }
     }
   }
 
@@ -532,6 +567,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
             },
             onDeleteClick = if (videoSelectionManager.isInSelectionMode && !isMixedSelection) {
               null
+            } else if (!BuildConfig.ENABLE_UPDATE_FEATURE && folderSelectionManager.isInSelectionMode) {
+              // Hide delete button for folders in Play Store build
+              null
             } else {
               { deleteDialogOpen.value = true }
             },
@@ -650,6 +688,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
               folderSelectionManager.clear()
               videoSelectionManager.clear()
             },
+            onAddToPlaylistClick = if (!BuildConfig.ENABLE_UPDATE_FEATURE && videoSelectionManager.isInSelectionMode && !folderSelectionManager.isInSelectionMode) {
+              { addToPlaylistDialogOpen.value = true }
+            } else null,
           )
         }
       },
@@ -836,6 +877,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
     }
 
     // Independent Floating Bottom Bar - positioned at absolute bottom
+    // Play Store gating is intentionally bypassed here.
     AnimatedVisibility(
       visible = showFloatingBottomBar,
       enter = slideInVertically(
@@ -852,11 +894,19 @@ fun FileSystemBrowserScreen(path: String? = null) {
         isSelectionMode = true,
         onCopyClick = {
           operationType.value = CopyPasteOps.OperationType.Copy
-          folderPickerOpen.value = true
+          if (CopyPasteOps.canUseDirectFileOperations()) {
+            folderPickerOpen.value = true
+          } else {
+            treePickerLauncher.launch(null)
+          }
         },
         onMoveClick = {
           operationType.value = CopyPasteOps.OperationType.Move
-          folderPickerOpen.value = true
+          if (CopyPasteOps.canUseDirectFileOperations()) {
+            folderPickerOpen.value = true
+          } else {
+            treePickerLauncher.launch(null)
+          }
         },
         onRenameClick = { renameDialogOpen.value = true },
         onDeleteClick = { deleteDialogOpen.value = true },
@@ -995,7 +1045,7 @@ suspend fun searchRecursively(
     Log.d("FileSystemBrowserScreen", "Scanning directory: $directoryPath for query: $query")
     // Scan the current directory
     val items = app.marlboroadvance.mpvex.repository.MediaFileRepository
-      .scanDirectory(context, directoryPath, showAllFileTypes = false, showHiddenFiles = false)
+      .scanDirectory(context, directoryPath, showAllFileTypes = false)
       .getOrNull() ?: emptyList()
 
     Log.d("FileSystemBrowserScreen", "Found ${items.size} items in $directoryPath")
@@ -1045,7 +1095,7 @@ private suspend fun collectVideosRecursively(
   try {
     // Scan the current directory using MediaFileRepository
     val items = app.marlboroadvance.mpvex.repository.MediaFileRepository
-      .scanDirectory(context, folderPath, showAllFileTypes = false, showHiddenFiles = false)
+      .scanDirectory(context, folderPath, showAllFileTypes = false)
       .getOrNull() ?: emptyList()
 
     // Add videos from current folder

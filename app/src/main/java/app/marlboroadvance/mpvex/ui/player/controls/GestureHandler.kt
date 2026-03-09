@@ -114,6 +114,7 @@ fun GestureHandler(
   val pinchToZoomGesture by playerPreferences.pinchToZoomGesture.collectAsState()
   val panAndZoomEnabled by playerPreferences.panAndZoomEnabled.collectAsState()
   val horizontalSwipeToSeek by playerPreferences.horizontalSwipeToSeek.collectAsState()
+  val swipeToSubtitleSeek by playerPreferences.swipeToSubtitleSeek.collectAsState()
   val horizontalSwipeSensitivity by playerPreferences.horizontalSwipeSensitivity.collectAsState()
   var isLongPressing by remember { mutableStateOf(false) }
   var isDynamicSpeedControlActive by remember { mutableStateOf(false) }
@@ -122,6 +123,7 @@ fun GestureHandler(
   var lastAppliedSpeed by remember { mutableStateOf(2f) }
   var hasSwipedEnough by remember { mutableStateOf(false) }
   var longPressTriggeredDuringTouch by remember { mutableStateOf(false) }
+  var isVerticalGestureActive by remember { mutableStateOf(false) }
   val currentVolume by viewModel.currentVolume.collectAsState()
   val currentMPVVolume by MPVLib.propInt["volume"].collectAsState()
   val currentBrightness by viewModel.currentBrightness.collectAsState()
@@ -205,6 +207,7 @@ fun GestureHandler(
       .padding(horizontal = 16.dp, vertical = 16.dp)
       .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap) {
         // Isolated double-tap detection that doesn't interfere with other gestures
+        if (isVerticalGestureActive) return@pointerInput
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
           val downPosition = down.position
@@ -479,6 +482,7 @@ fun GestureHandler(
                       }
                       "vertical" -> {
                         if ((brightnessGesture || volumeGesture) && !isLongPressing) {
+                          isVerticalGestureActive = true
                           startingY = 0f
                           mpvVolumeStartingY = 0f
                           originalVolume = currentVolume
@@ -625,6 +629,7 @@ fun GestureHandler(
                 when (gestureType) {
                   "vertical" -> {
                     if (brightnessGesture || volumeGesture) {
+                      isVerticalGestureActive = false
                       startingY = 0f
                       lastVolumeValue = currentVolume
                       lastMPVVolumeValue = currentMPVVolume ?: 100
@@ -664,6 +669,7 @@ fun GestureHandler(
           when (gestureType) {
             "vertical" -> {
               if (brightnessGesture || volumeGesture) {
+                isVerticalGestureActive = false
                 startingY = 0f
                 lastVolumeValue = currentVolume
                 lastMPVVolumeValue = currentMPVVolume ?: 100
@@ -673,8 +679,8 @@ fun GestureHandler(
           }
         }
       }
-      .pointerInput(pinchToZoomGesture, panAndZoomEnabled, areControlsLocked) {
-        if (!pinchToZoomGesture || areControlsLocked) return@pointerInput
+      .pointerInput(pinchToZoomGesture, panAndZoomEnabled, areControlsLocked, isVerticalGestureActive) {
+        if (!pinchToZoomGesture || areControlsLocked || isVerticalGestureActive) return@pointerInput
 
         // Helper: get video display dimensions at 1x (how mpv fits the video to screen)
         fun videoDisplaySize(): Pair<Float, Float> {
@@ -773,8 +779,8 @@ fun GestureHandler(
         }
       }
       // Single-finger pan (only when Pan & Zoom enabled and zoomed in)
-      .pointerInput(panAndZoomEnabled, pinchToZoomGesture, areControlsLocked) {
-        if (!panAndZoomEnabled || !pinchToZoomGesture || areControlsLocked) return@pointerInput
+      .pointerInput(panAndZoomEnabled, pinchToZoomGesture, areControlsLocked, isVerticalGestureActive) {
+        if (!panAndZoomEnabled || !pinchToZoomGesture || areControlsLocked || isVerticalGestureActive) return@pointerInput
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
@@ -841,8 +847,8 @@ fun GestureHandler(
           } while (event.changes.any { it.pressed })
         }
       }
-      .pointerInput(horizontalSwipeToSeek, areControlsLocked, gesturePreferences) {
-        if (!horizontalSwipeToSeek || areControlsLocked) return@pointerInput
+      .pointerInput(horizontalSwipeToSeek, swipeToSubtitleSeek, areControlsLocked, gesturePreferences, isVerticalGestureActive) {
+        if ((!horizontalSwipeToSeek && !swipeToSubtitleSeek) || areControlsLocked || isVerticalGestureActive) return@pointerInput
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
@@ -851,6 +857,7 @@ fun GestureHandler(
           
           var gestureType: String? = null
           var hasStartedSeeking = false
+          var hasTriggeredSubSeek = false
           var initialVideoPosition = 0f
           // Use the sensitivity preference instead of hardcoded value
           val seekSensitivity = horizontalSwipeSensitivity
@@ -867,6 +874,11 @@ fun GestureHandler(
                   val deltaY = currentPosition.y - startPosition.y
                   val timeSinceStart = System.currentTimeMillis() - startTime
 
+                  // Exclusion zone check (25% from top and bottom)
+                  val exclusionZoneHeight = size.height * 0.25f
+                  val inExclusionZone = startPosition.y < exclusionZoneHeight || 
+                                        startPosition.y > size.height - exclusionZoneHeight
+
                   // Only activate if this is clearly a horizontal gesture
                   // and not conflicting with other gestures
                   if (gestureType == null && 
@@ -877,13 +889,22 @@ fun GestureHandler(
                       !isDynamicSpeedControlActive && // Don't conflict with speed control
                       panelShown == Panels.None) { // Only when no panels are shown
                     
-                    gestureType = "horizontal_seek"
-                    hasStartedSeeking = true
-                    initialVideoPosition = position?.toFloat() ?: 0f
+                    if (swipeToSubtitleSeek && inExclusionZone) {
+                      gestureType = "subtitle_seek"
+                    } else if (horizontalSwipeToSeek && !inExclusionZone) {
+                      gestureType = "horizontal_seek"
+                      hasStartedSeeking = true
+                      initialVideoPosition = position?.toFloat() ?: 0f
+                      
+                      // Show seekbar if preference enabled
+                      if (playerPreferences.showSeekBarWhenSeeking.get()) {
+                        viewModel.showSeekBar()
+                      }
+                    }
                     
-                    // Show seekbar and start seeking mode (same as seekbar scrubbing)
-                    viewModel.showSeekBar()
-                    change.consume()
+                    if (gestureType != null) {
+                      change.consume()
+                    }
                   }
 
                   if (gestureType == "horizontal_seek" && hasStartedSeeking) {
@@ -916,6 +937,21 @@ fun GestureHandler(
                     }
                     
                     change.consume()
+                  } else if (gestureType == "subtitle_seek" && !hasTriggeredSubSeek) {
+                    // Trigger subtitle seek based on direction
+                    // Threshold for triggering sub seek (e.g., 50 pixels)
+                    if (abs(deltaX) > 50f) {
+                      if (deltaX > 0) {
+                        // Swipe Right -> Previous Subtitle
+                        viewModel.leftSubSeek()
+                      } else {
+                        // Swipe Left -> Next Subtitle
+                        viewModel.rightSubSeek()
+                      }
+                      hasTriggeredSubSeek = true
+                      haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                      change.consume()
+                    }
                   }
                 }
               }

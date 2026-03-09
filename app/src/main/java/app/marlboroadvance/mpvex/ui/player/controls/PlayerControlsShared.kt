@@ -48,6 +48,10 @@ import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOutMap
 import androidx.compose.material.icons.filled.Flip
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Headset
+import androidx.compose.material.icons.filled.BlurOn
+import androidx.compose.material.icons.outlined.BlurOn
 import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -532,9 +536,9 @@ fun RenderPlayerButton(
           },
         onClick = {
           when (aspect) {
-            VideoAspect.Fit -> viewModel.changeVideoAspect(VideoAspect.Crop)
-            VideoAspect.Crop -> viewModel.changeVideoAspect(VideoAspect.Stretch)
-            VideoAspect.Stretch -> viewModel.changeVideoAspect(VideoAspect.Fit)
+            VideoAspect.Fit -> viewModel.changeVideoAspect(VideoAspect.Stretch)
+            VideoAspect.Stretch -> viewModel.changeVideoAspect(VideoAspect.Crop)
+            VideoAspect.Crop -> viewModel.changeVideoAspect(VideoAspect.Fit)
           }
         },
         onLongClick = { onOpenSheet(Sheets.AspectRatios) },
@@ -737,7 +741,7 @@ fun RenderPlayerButton(
                   Text(
                     text = if (loopA != null) viewModel.formatTimestamp(loopA!!) else "A",
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (loopA != null) MaterialTheme.colorScheme.onTertiaryContainer else controlColor,
+                    color = if (loopA != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = if (loopA != null) 8.dp else 0.dp),
                   )
                 }
@@ -780,7 +784,7 @@ fun RenderPlayerButton(
                   Text(
                     text = if (loopB != null) viewModel.formatTimestamp(loopB!!) else "B",
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (loopB != null) MaterialTheme.colorScheme.onTertiaryContainer else controlColor,
+                    color = if (loopB != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = if (loopB != null) 8.dp else 0.dp),
                   )
                 }
@@ -803,16 +807,60 @@ fun RenderPlayerButton(
                 text = "AB",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                color = if (hideBackground) {
-                  if (loopA != null && loopB != null) MaterialTheme.colorScheme.primary else controlColor
-                } else {
-                  if (loopA != null && loopB != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                },
+                color = if (loopA != null && loopB != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
               )
             }
           }
         }
       }
+    }
+
+    PlayerButton.BACKGROUND_PLAYBACK -> {
+      ControlsButton(
+        icon = Icons.Default.Headset,
+        onClick = { activity.triggerBackgroundPlayback() },
+        color = if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.size(buttonSize),
+      )
+    }
+
+    PlayerButton.AMBIENT_MODE -> {
+        val isAmbientEnabled by viewModel.isAmbientEnabled.collectAsState()
+        @OptIn(ExperimentalFoundationApi::class)
+        Surface(
+          shape = CircleShape,
+          color = if (hideBackground) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
+          contentColor = if (isAmbientEnabled) {
+               MaterialTheme.colorScheme.primary
+            } else {
+               if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
+            },
+          border = if (hideBackground) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+          modifier = Modifier
+            .size(buttonSize)
+            .clip(CircleShape)
+            .combinedClickable(
+              interactionSource = remember { MutableInteractionSource() },
+              indication = ripple(bounded = true),
+              onClick = { 
+                clickEvent()
+                viewModel.toggleAmbientMode() 
+              },
+              onLongClick = {
+                clickEvent()
+                onOpenSheet(Sheets.AmbientConfig)
+              }
+            ),
+        ) {
+          Box(contentAlignment = Alignment.Center) {
+            Icon(
+              imageVector = if (isAmbientEnabled) Icons.Filled.BlurOn else Icons.Outlined.BlurOn,
+              contentDescription = "Ambience Mode",
+              tint = if (isAmbientEnabled) MaterialTheme.colorScheme.primary else (if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface),
+              modifier = Modifier.size(24.dp)
+            )
+          }
+        }
     }
 
     PlayerButton.NONE -> { /* Do nothing */

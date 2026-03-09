@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
+import app.marlboroadvance.mpvex.utils.media.ChecksumUtils
 import app.marlboroadvance.mpvex.utils.media.MediaInfoParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -210,14 +211,22 @@ class WyzieSearchRepository(
     suspend fun search(
         query: String,
         season: Int? = null,
-        episode: Int? = null
+        episode: Int? = null,
+        year: String? = null
     ): Result<List<WyzieSubtitle>> = withContext(Dispatchers.IO) {
         try {
             var searchId = query
             if (!query.startsWith("tt", ignoreCase = true) && !query.all { it.isDigit() }) {
                 val tmdbResults = tmdbSearch(query)
                 if (tmdbResults.isNotEmpty()) {
-                    val result = tmdbResults[0]
+                    // If year is provided, prefer match with matching release year
+                    val result = if (year != null) {
+                        tmdbResults.firstOrNull { it.releaseYear == year }
+                            ?: tmdbResults.firstOrNull { it.releaseYear?.startsWith(year.take(3)) == true }
+                            ?: tmdbResults[0]
+                    } else {
+                        tmdbResults[0]
+                    }
                     searchId = result.id.toString()
                 } else {
                     return@withContext Result.failure(Exception("Could not find media ID for '$query'"))
@@ -355,15 +364,19 @@ class WyzieSearchRepository(
             val extension = subtitle.format?.lowercase() ?: urlExtension.takeIf { it.isNotEmpty() } ?: "srt"
             
             val saveFolderUri = preferences.subtitleSaveFolder.get()
-            val sanitizedTitle = MediaInfoParser.parse(mediaTitle).title
-            val fileName = "${subtitle.displayName}_${subtitle.displayLanguage}.$extension"
+            // Use CRC32 checksum of mediaTitle for the folder name
+            val folderName = ChecksumUtils.getCRC32(mediaTitle)
+            val fullTitle = mediaTitle.substringBeforeLast(".")
+            val langCode = subtitle.language ?: "en"
+            val subFileName = "${fullTitle}.${langCode}.$extension"
 
             if (saveFolderUri.isNotBlank()) {
                 val parentDir = DocumentFile.fromTreeUri(context, Uri.parse(saveFolderUri))
                 if (parentDir?.exists() == true) {
-                    var movieDir = parentDir.findFile(sanitizedTitle) ?: parentDir.createDirectory(sanitizedTitle)
+                    var movieDir = parentDir.findFile(folderName) ?: parentDir.createDirectory(folderName)
                     if (movieDir != null) {
-                        val subFile = movieDir.findFile(fileName) ?: movieDir.createFile("application/octet-stream", fileName)
+                        // Check for existing file or create new one
+                        val subFile = movieDir.findFile(subFileName) ?: movieDir.createFile("application/octet-stream", subFileName)
                         if (subFile != null) {
                             context.contentResolver.openOutputStream(subFile.uri)?.use { it.write(bytes) }
                             return@withContext Result.success(subFile.uri)
@@ -373,8 +386,8 @@ class WyzieSearchRepository(
             }
 
             val internalMoviesDir = File(context.getExternalFilesDir(null), "Movies")
-            val movieDir = File(internalMoviesDir, sanitizedTitle).apply { if (!exists()) mkdirs() }
-            val file = File(movieDir, fileName)
+            val movieDir = File(internalMoviesDir, folderName).apply { if (!exists()) mkdirs() }
+            val file = File(movieDir, subFileName)
             FileOutputStream(file).use { it.write(bytes) }
             Result.success(Uri.fromFile(file))
         } catch (e: Exception) {

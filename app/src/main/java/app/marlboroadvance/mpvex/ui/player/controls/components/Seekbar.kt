@@ -942,7 +942,6 @@ private fun PreviewSeekBar() {
     readAheadValue = 90f,
   )
 }
-
 @Composable
 fun SeekbarPreview(
   style: SeekbarStyle,

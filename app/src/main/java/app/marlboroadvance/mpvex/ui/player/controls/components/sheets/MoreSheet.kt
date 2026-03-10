@@ -66,6 +66,7 @@ fun MoreSheet(
   onStartTimer: (Int) -> Unit,
   onDismissRequest: () -> Unit,
   onEnterFiltersPanel: () -> Unit,
+  onAnime4KChanged: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val advancedPreferences = koinInject<AdvancedPreferences>()
@@ -78,6 +79,7 @@ fun MoreSheet(
   val anime4kMode by decoderPreferences.anime4kMode.collectAsState()
   val anime4kQuality by decoderPreferences.anime4kQuality.collectAsState()
   val gpuNext by decoderPreferences.gpuNext.collectAsState()
+  val useVulkan by decoderPreferences.useVulkan.collectAsState()
   
   val context = LocalContext.current
 val scope = rememberCoroutineScope()
@@ -197,18 +199,34 @@ if (infoDialogData != null) {
               advancedPreferences.enabledStatisticsPage.set(page)
             },
             selected = statisticsPage == page,
+            leadingIcon = null,
           )
         }
       }
       
       // Shaders Controls
-      if (enableAnime4K && !gpuNext) {
+      if (enableAnime4K && (!gpuNext || useVulkan)) {
+        // Auto-detect resolution to disable for 4K+
+        val width = MPVLib.getPropertyInt("video-params/w") ?: 0
+        val height = MPVLib.getPropertyInt("video-params/h") ?: 0
+        val isHighRes = width >= 3840 || height >= 2160
+
         // Presets (Mode) - Now on Top
         Text(
             text = stringResource(R.string.anime4k_mode_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
+        
+        if (isHighRes) {
+            Text(
+                text = "Not available for 4K/8K video",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+
         LazyRow(
           horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
         ) {
@@ -216,6 +234,8 @@ if (infoDialogData != null) {
             FilterChip(
               label = { Text(stringResource(mode.titleRes)) },
               selected = anime4kMode == mode.name,
+              enabled = !isHighRes,
+              leadingIcon = null,
               onClick = {
                 decoderPreferences.anime4kMode.set(mode.name)
                 
@@ -238,6 +258,8 @@ if (infoDialogData != null) {
 
                     // Use setPropertyString for runtime changes
                     MPVLib.setPropertyString("glsl-shaders", if (shaderChain.isNotEmpty()) shaderChain else "")
+                    // Restart ambient mode if it was ON (Anime4K reset wiped it)
+                    onAnime4KChanged()
                   }
                 }
               }
@@ -257,7 +279,8 @@ if (infoDialogData != null) {
              FilterChip(
               label = { Text(stringResource(quality.titleRes)) },
               selected = anime4kQuality == quality.name,
-              enabled = anime4kMode != "OFF",
+              enabled = anime4kMode != "OFF" && !isHighRes,
+              leadingIcon = null,
               onClick = {
                 decoderPreferences.anime4kQuality.set(quality.name)
 
@@ -280,6 +303,8 @@ if (infoDialogData != null) {
 
                     // Use setPropertyString for runtime changes
                     MPVLib.setPropertyString("glsl-shaders", if (shaderChain.isNotEmpty()) shaderChain else "")
+                    // Restart ambient mode if it was ON (Anime4K reset wiped it)
+                    onAnime4KChanged()
                   }
                 }
               }
@@ -369,7 +394,8 @@ fun TimePickerDialog(
                             onTimeSelect(minutes * 60)
                             onDismissRequest()
                         },
-                        label = { Text("${minutes}m") }
+                        label = { Text("${minutes}m") },
+                        leadingIcon = null,
                     )
                 }
             }

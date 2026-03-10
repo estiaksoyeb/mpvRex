@@ -95,8 +95,14 @@ class MPVView(
   var aid: Int by TrackDelegate("aid")
 
   override fun initOptions() {
+    val profile = decoderPreferences.profile.get()
+    MPVLib.setOptionString("profile", profile)
     setVo(if (decoderPreferences.gpuNext.get()) "gpu-next" else "gpu")
-    MPVLib.setOptionString("profile", "fast")
+    
+    // Set GPU API context (Vulkan or OpenGL)
+    if (decoderPreferences.useVulkan.get()) {
+      MPVLib.setOptionString("gpu-context", "androidvk")
+    }
 
     // Set hwdec with fallback order: HW+ (mediacodec) -> HW (mediacodec-copy) -> SW (no)
     MPVLib.setOptionString(
@@ -314,7 +320,7 @@ class MPVView(
   }
 
 
-  private fun applyAnime4KShaders() {
+  fun applyAnime4KShaders() {
     runCatching {
       val enabled = decoderPreferences.enableAnime4K.get()
       if (!enabled) {

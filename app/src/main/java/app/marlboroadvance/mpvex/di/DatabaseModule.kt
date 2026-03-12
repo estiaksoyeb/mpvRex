@@ -371,7 +371,7 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
       
       android.util.Log.d("Migration_8_9", "Existing columns: $existingColumns")
       
-      // Check if we have the wrong schema (secondarySubDelay instead of externalSubtitles)
+      // Check if we have the wrong schema
       val hasSecondarySubDelay = existingColumns.contains("secondarySubDelay")
       val hasExternalSubtitles = existingColumns.contains("externalSubtitles")
       val hasHasBeenWatched = existingColumns.contains("hasBeenWatched")
@@ -394,57 +394,47 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
             `subSpeed` REAL NOT NULL,
             `aid` INTEGER NOT NULL,
             `audioDelay` INTEGER NOT NULL,
-            `timeRemaining` INTEGER NOT NULL,
+            `timeRemaining` INTEGER NOT NULL DEFAULT 0,
             `savedOrientation` INTEGER,
-            `externalSubtitles` TEXT NOT NULL,
-            `hasBeenWatched` INTEGER NOT NULL,
+            `externalSubtitles` TEXT NOT NULL DEFAULT '',
+            `hasBeenWatched` INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY(`mediaTitle`)
           )
           """.trimIndent()
         )
         
         // Copy data from old table, handling missing columns
-        val columnsToSelect = mutableListOf<String>()
-        columnsToSelect.add("`mediaTitle`")
-        columnsToSelect.add("`lastPosition`")
-        columnsToSelect.add("`playbackSpeed`")
-        columnsToSelect.add("ifnull(`videoZoom`, 0.0)")
-        columnsToSelect.add("`sid`")
-        columnsToSelect.add("ifnull(`secondarySid`, -1)")
-        columnsToSelect.add("`subDelay`")
-        columnsToSelect.add("`subSpeed`")
-        columnsToSelect.add("`aid`")
-        columnsToSelect.add("`audioDelay`")
-        columnsToSelect.add("ifnull(`timeRemaining`, 0)")
+        val columns = mutableListOf("mediaTitle", "lastPosition", "playbackSpeed", "videoZoom", "sid", "secondarySid", "subDelay", "subSpeed", "aid", "audioDelay", "timeRemaining")
+        val select = mutableListOf("mediaTitle", "lastPosition", "playbackSpeed", "videoZoom", "sid", "secondarySid", "subDelay", "subSpeed", "aid", "audioDelay", "timeRemaining")
         
+        // Handle savedOrientation
+        columns.add("savedOrientation")
         if (hasSavedOrientation) {
-          columnsToSelect.add("`savedOrientation`")
+          select.add("savedOrientation")
         } else {
-          columnsToSelect.add("NULL")
+          select.add("NULL")
         }
         
+        // Handle externalSubtitles
+        columns.add("externalSubtitles")
         if (hasExternalSubtitles) {
-          columnsToSelect.add("`externalSubtitles`")
+          select.add("externalSubtitles")
         } else {
-          columnsToSelect.add("''")
+          select.add("''")
         }
         
+        // Handle hasBeenWatched
+        columns.add("hasBeenWatched")
         if (hasHasBeenWatched) {
-          columnsToSelect.add("`hasBeenWatched`")
+          select.add("hasBeenWatched")
         } else {
-          columnsToSelect.add("0")
+          select.add("0")
         }
-
-        val selectClause = columnsToSelect.joinToString(", ")
         
-        db.execSQL(
-          """
-          INSERT INTO `PlaybackStateEntity_new` 
-          (`mediaTitle`, `lastPosition`, `playbackSpeed`, `videoZoom`, `sid`, `secondarySid`, 
-           `subDelay`, `subSpeed`, `aid`, `audioDelay`, `timeRemaining`, `savedOrientation`, `externalSubtitles`, `hasBeenWatched`)
-          SELECT $selectClause FROM `PlaybackStateEntity`
-          """.trimIndent()
-        )
+        val columnsStr = columns.joinToString("`, `", "`", "`")
+        val selectStr = select.joinToString(", ")
+        
+        db.execSQL("INSERT INTO `PlaybackStateEntity_new` ($columnsStr) SELECT $selectStr FROM `PlaybackStateEntity`")
         
         // Drop old table and rename new one
         db.execSQL("DROP TABLE `PlaybackStateEntity`")

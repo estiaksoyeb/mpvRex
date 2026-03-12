@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 8,
-    "identityHash": "caf82727750789ddec985ea0deaa44ff",
+    "identityHash": "ea14e4e1db5975d92e229b0ce7d1ed3d",
     "entities": [
       {
         "tableName": "PlaybackStateEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mediaTitle` TEXT NOT NULL, `lastPosition` INTEGER NOT NULL, `playbackSpeed` REAL NOT NULL, `videoZoom` REAL NOT NULL, `sid` INTEGER NOT NULL, `secondarySid` INTEGER NOT NULL, `subDelay` INTEGER NOT NULL, `subSpeed` REAL NOT NULL, `aid` INTEGER NOT NULL, `audioDelay` INTEGER NOT NULL, `timeRemaining` INTEGER NOT NULL, `savedOrientation` INTEGER, `externalSubtitles` TEXT NOT NULL, `hasBeenWatched` INTEGER NOT NULL, PRIMARY KEY(`mediaTitle`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mediaTitle` TEXT NOT NULL, `lastPosition` INTEGER NOT NULL, `playbackSpeed` REAL NOT NULL, `videoZoom` REAL NOT NULL, `sid` INTEGER NOT NULL, `secondarySid` INTEGER NOT NULL, `subDelay` INTEGER NOT NULL, `subSpeed` REAL NOT NULL, `aid` INTEGER NOT NULL, `audioDelay` INTEGER NOT NULL, `timeRemaining` INTEGER NOT NULL, `externalSubtitles` TEXT NOT NULL, `hasBeenWatched` INTEGER NOT NULL, PRIMARY KEY(`mediaTitle`))",
         "fields": [
           {
             "fieldPath": "mediaTitle",
@@ -73,11 +73,6 @@
             "columnName": "timeRemaining",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "savedOrientation",
-            "columnName": "savedOrientation",
-            "affinity": "INTEGER"
           },
           {
             "fieldPath": "externalSubtitles",
@@ -470,7 +465,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'caf82727750789ddec985ea0deaa44ff')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ea14e4e1db5975d92e229b0ce7d1ed3d')"
     ]
   }
 }

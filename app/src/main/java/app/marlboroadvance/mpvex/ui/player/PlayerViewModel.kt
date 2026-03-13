@@ -1163,7 +1163,8 @@ class PlayerViewModel(
   }
 
   fun leftSubSeek() {
-    if (MPVLib.getPropertyInt("sid") != null) {
+    val sid = MPVLib.getPropertyInt("sid") ?: 0
+    if (sid != 0) {
       val pos1 = MPVLib.getPropertyDouble("time-pos") ?: 0.0
       MPVLib.command("sub-seek", "-1")
 
@@ -1178,7 +1179,8 @@ class PlayerViewModel(
   }
 
   fun rightSubSeek() {
-    if (MPVLib.getPropertyInt("sid") != null) {
+    val sid = MPVLib.getPropertyInt("sid") ?: 0
+    if (sid != 0) {
       val pos1 = MPVLib.getPropertyDouble("time-pos") ?: 0.0
       MPVLib.command("sub-seek", "1")
 

@@ -16,4 +16,7 @@ data class RecentlyPlayedEntity(
   val timestamp: Long,
   val launchSource: String? = null,
   val playlistId: Int? = null,
+  val isAudio: Boolean = false,
+  val artist: String = "",
+  val album: String = "",
 )

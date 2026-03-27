@@ -174,13 +174,17 @@ object TreeViewScanner {
     }
     
     /**
-     * Scan MediaStore for all videos and build folder map (recursive counts)
+     * Scan MediaStore for all videos and audio, and build folder map (recursive counts)
      */
     private fun scanMediaStoreRecursive(
         context: Context,
         folders: MutableMap<String, FolderData>
     ) {
-        val projection = arrayOf(
+        // Collect media by folder
+        val mediaByFolder = mutableMapOf<String, MutableList<VideoInfo>>()
+
+        // Step 1: Scan Videos
+        val videoProjection = arrayOf(
             MediaStore.Video.Media.DATA,
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.DURATION,
@@ -190,7 +194,7 @@ object TreeViewScanner {
         try {
             context.contentResolver.query(
                 MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                projection,
+                videoProjection,
                 null,
                 null,
                 null
@@ -200,13 +204,9 @@ object TreeViewScanner {
                 val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
                 val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
                 
-                // Collect videos by folder
-                val videosByFolder = mutableMapOf<String, MutableList<VideoInfo>>()
-                
                 while (cursor.moveToNext()) {
-                    val videoPath = cursor.getString(dataColumn)
-                    val file = File(videoPath)
-                    
+                    val path = cursor.getString(dataColumn) ?: continue
+                    val file = File(path)
                     if (!file.exists()) continue
                     
                     val folderPath = file.parent ?: continue
@@ -214,51 +214,91 @@ object TreeViewScanner {
                     val duration = cursor.getLong(durationColumn)
                     val dateModified = cursor.getLong(dateColumn)
                     
-                    videosByFolder.getOrPut(folderPath) { mutableListOf() }.add(
+                    mediaByFolder.getOrPut(folderPath) { mutableListOf() }.add(
                         VideoInfo(size, duration, dateModified)
                     )
                 }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "MediaStore video scan error", e)
+        }
+
+        // Step 2: Scan Audio
+        val audioProjection = arrayOf(
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.SIZE,
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.DATE_MODIFIED
+        )
+        
+        try {
+            context.contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                audioProjection,
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
                 
-                // Build folder data with recursive counts
-                for ((folderPath, _) in videosByFolder) {
-                    var totalCount = 0
-                    var totalSize = 0L
-                    var totalDuration = 0L
-                    var lastModified = 0L
-                    var hasSubfolders = false
+                while (cursor.moveToNext()) {
+                    val path = cursor.getString(dataColumn) ?: continue
+                    val file = File(path)
+                    if (!file.exists()) continue
                     
-                    // Count all videos in this folder and subdirectories
-                    for ((otherPath, videos) in videosByFolder) {
-                        if (otherPath == folderPath || otherPath.startsWith("$folderPath${File.separator}")) {
-                            totalCount += videos.size
-                            for (video in videos) {
-                                totalSize += video.size
-                                totalDuration += video.duration
-                                if (video.dateModified > lastModified) {
-                                    lastModified = video.dateModified
-                                }
-                            }
-                            if (otherPath != folderPath) {
-                                hasSubfolders = true
-                            }
-                        }
-                    }
+                    val folderPath = file.parent ?: continue
+                    val size = cursor.getLong(sizeColumn)
+                    val duration = cursor.getLong(durationColumn)
+                    val dateModified = cursor.getLong(dateColumn)
                     
-                    if (totalCount > 0) {
-                        folders[folderPath] = FolderData(
-                            path = folderPath,
-                            name = File(folderPath).name,
-                            videoCount = totalCount,
-                            totalSize = totalSize,
-                            totalDuration = totalDuration,
-                            lastModified = lastModified,
-                            hasSubfolders = hasSubfolders
-                        )
-                    }
+                    mediaByFolder.getOrPut(folderPath) { mutableListOf() }.add(
+                        VideoInfo(size, duration, dateModified)
+                    )
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "MediaStore scan error", e)
+            Log.e(TAG, "MediaStore audio scan error", e)
+        }
+        
+        // Build folder data with recursive counts
+        for ((folderPath, _) in mediaByFolder) {
+            var totalCount = 0
+            var totalSize = 0L
+            var totalDuration = 0L
+            var lastModified = 0L
+            var hasSubfolders = false
+            
+            // Count all media in this folder and subdirectories
+            for ((otherPath, items) in mediaByFolder) {
+                if (otherPath == folderPath || otherPath.startsWith("$folderPath${File.separator}")) {
+                    totalCount += items.size
+                    for (item in items) {
+                        totalSize += item.size
+                        totalDuration += item.duration
+                        if (item.dateModified > lastModified) {
+                            lastModified = item.dateModified
+                        }
+                    }
+                    if (otherPath != folderPath) {
+                        hasSubfolders = true
+                    }
+                }
+            }
+            
+            if (totalCount > 0) {
+                folders[folderPath] = FolderData(
+                    path = folderPath,
+                    name = File(folderPath).name,
+                    videoCount = totalCount,
+                    totalSize = totalSize,
+                    totalDuration = totalDuration,
+                    lastModified = lastModified,
+                    hasSubfolders = hasSubfolders
+                )
+            }
         }
     }
     
@@ -309,7 +349,7 @@ object TreeViewScanner {
         try {
             val files = directory.listFiles() ?: return
             
-            val videoFiles = mutableListOf<File>()
+            val mediaFiles = mutableListOf<File>()
             val subdirectories = mutableListOf<File>()
             
             for (file in files) {
@@ -321,9 +361,8 @@ object TreeViewScanner {
                             }
                         }
                         file.isFile -> {
-                            val extension = file.extension.lowercase(Locale.getDefault())
-                            if (FileTypeUtils.VIDEO_EXTENSIONS.contains(extension)) {
-                                videoFiles.add(file)
+                            if (FileTypeUtils.isMediaFile(file)) {
+                                mediaFiles.add(file)
                             }
                         }
                     }
@@ -332,8 +371,8 @@ object TreeViewScanner {
                 }
             }
             
-            // Add folder if it has videos
-            if (videoFiles.isNotEmpty()) {
+            // Add folder if it has media files
+            if (mediaFiles.isNotEmpty()) {
                 val folderPath = directory.absolutePath
                 
                 // Skip if already from MediaStore
@@ -341,9 +380,9 @@ object TreeViewScanner {
                     var totalSize = 0L
                     var lastModified = 0L
                     
-                    for (video in videoFiles) {
-                        totalSize += video.length()
-                        val modified = video.lastModified()
+                    for (media in mediaFiles) {
+                        totalSize += media.length()
+                        val modified = media.lastModified()
                         if (modified > lastModified) {
                             lastModified = modified
                         }
@@ -352,7 +391,7 @@ object TreeViewScanner {
                     folders[folderPath] = FolderData(
                         path = folderPath,
                         name = directory.name,
-                        videoCount = videoFiles.size,
+                        videoCount = mediaFiles.size,
                         totalSize = totalSize,
                         totalDuration = 0L, // Duration not available from filesystem
                         lastModified = lastModified / 1000,

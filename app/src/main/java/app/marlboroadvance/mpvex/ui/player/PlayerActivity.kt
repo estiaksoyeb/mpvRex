@@ -2414,6 +2414,11 @@ class PlayerActivity :
         MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
       }.getOrDefault(0)
 
+      val artist = MPVLib.getPropertyString("metadata/by-key/performer") ?: 
+                   MPVLib.getPropertyString("metadata/by-key/artist") ?: ""
+      val album = MPVLib.getPropertyString("metadata/by-key/album") ?: ""
+      val isAudio = height <= 0
+
       RecentlyPlayedOps.addRecentlyPlayed(
         filePath = filePath,
         fileName = fileName,
@@ -2423,8 +2428,10 @@ class PlayerActivity :
         width = width,
         height = height,
         launchSource = launchSource,
+        isAudio = isAudio,
+        artist = artist,
+        album = album,
       )
-
       Log.d(TAG, "Saved recently played: $filePath")
       Log.d(TAG, "  - fileName: $fileName")
       Log.d(TAG, "  - videoTitle: $videoTitle")
@@ -3384,6 +3391,11 @@ class PlayerActivity :
         MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
       }.getOrDefault(0)
 
+      val artist = MPVLib.getPropertyString("metadata/by-key/performer") ?: 
+                   MPVLib.getPropertyString("metadata/by-key/artist") ?: ""
+      val album = MPVLib.getPropertyString("metadata/by-key/album") ?: ""
+      val isAudio = height <= 0
+
       RecentlyPlayedOps.addRecentlyPlayed(
         filePath = filePath,
         fileName = name,
@@ -3394,8 +3406,10 @@ class PlayerActivity :
         height = height,
         launchSource = "playlist",
         playlistId = playlistId,
+        isAudio = isAudio,
+        artist = artist,
+        album = album,
       )
-
       Log.d(TAG, "Saved recently played (playlist): $filePath")
       Log.d(TAG, "  - fileName: $name")
       Log.d(TAG, "  - videoTitle: $videoTitle")

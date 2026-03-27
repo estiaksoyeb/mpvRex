@@ -56,6 +56,8 @@ class VideoMetadataCacheRepository(
           fps = cached.fps,
           hasEmbeddedSubtitles = cached.hasEmbeddedSubtitles,
           subtitleCodec = cached.subtitleCodec,
+          artist = cached.artist,
+          album = cached.album,
         )
       }
 
@@ -76,6 +78,8 @@ class VideoMetadataCacheRepository(
             fps = metadata.fps,
             hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
             subtitleCodec = metadata.subtitleCodec,
+            artist = metadata.artist,
+            album = metadata.album,
             lastScanned = System.currentTimeMillis(),
           ),
         )
@@ -135,6 +139,8 @@ class VideoMetadataCacheRepository(
           fps = cached.fps,
           hasEmbeddedSubtitles = cached.hasEmbeddedSubtitles,
           subtitleCodec = cached.subtitleCodec,
+          artist = cached.artist,
+          album = cached.album,
         )
       }
 
@@ -165,6 +171,8 @@ class VideoMetadataCacheRepository(
                           fps = metadata.fps,
                           hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
                           subtitleCodec = metadata.subtitleCodec,
+                          artist = metadata.artist,
+                          album = metadata.album,
                           lastScanned = System.currentTimeMillis(),
                         ),
                       )

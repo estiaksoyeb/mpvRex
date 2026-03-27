@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -178,16 +180,16 @@ fun VideoCard(
               )
             } ?: run {
               Icon(
-                Icons.Filled.PlayArrow,
-                contentDescription = "Play",
+                if (video.isAudio) Icons.Filled.MusicNote else Icons.Filled.PlayArrow,
+                contentDescription = if (video.isAudio) "Audio" else "Play",
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.secondary,
               )
             }
           } else {
             Icon(
-              Icons.Filled.PlayArrow,
-              contentDescription = "Play",
+              if (video.isAudio) Icons.Filled.MusicNote else Icons.Filled.PlayArrow,
+              contentDescription = if (video.isAudio) "Audio" else "Play",
               modifier = Modifier.size(48.dp),
               tint = MaterialTheme.colorScheme.secondary,
             )
@@ -285,6 +287,24 @@ fun VideoCard(
             if (gridColumns == 1) TextAlign.Start else TextAlign.Center
           },
         )
+        
+        if (video.isAudio && (video.artist.isNotBlank() || video.album.isNotBlank())) {
+          val audioInfo = when {
+            video.artist.isNotBlank() && video.album.isNotBlank() -> "${video.artist} • ${video.album}"
+            video.artist.isNotBlank() -> video.artist
+            else -> video.album
+          }
+          Text(
+            text = audioInfo,
+            style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = if (gridColumns == 1) TextAlign.Start else TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+        
         if (gridColumns == 1) {
           Spacer(modifier = Modifier.height(4.dp))
           FlowRow(
@@ -455,16 +475,16 @@ fun VideoCard(
               )
             } ?: run {
               Icon(
-                Icons.Filled.PlayArrow,
-                contentDescription = "Play",
+                if (video.isAudio) Icons.Filled.MusicNote else Icons.Filled.PlayArrow,
+                contentDescription = if (video.isAudio) "Audio" else "Play",
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.secondary,
               )
             }
           } else {
             Icon(
-              Icons.Filled.PlayArrow,
-              contentDescription = "Play",
+              if (video.isAudio) Icons.Filled.MusicNote else Icons.Filled.PlayArrow,
+              contentDescription = if (video.isAudio) "Audio" else "Play",
               modifier = Modifier.size(48.dp),
               tint = MaterialTheme.colorScheme.secondary,
             )
@@ -567,6 +587,23 @@ fun VideoCard(
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
           )
+          
+          if (video.isAudio && (video.artist.isNotBlank() || video.album.isNotBlank())) {
+            val audioInfo = when {
+              video.artist.isNotBlank() && video.album.isNotBlank() -> "${video.artist} • ${video.album}"
+              video.artist.isNotBlank() -> video.artist
+              else -> video.album
+            }
+            Text(
+              text = audioInfo,
+              style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
+              color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.padding(top = 2.dp)
+            )
+          }
+          
           Spacer(modifier = Modifier.height(4.dp))
           FlowRow(
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),

@@ -1687,6 +1687,9 @@ class PlayerActivity :
    */
   private fun handleEndOfFile(isEof: Boolean) {
     if (isEof) {
+      // Save state immediately when EOF is reached
+      saveVideoPlaybackState(fileName)
+
       // Check if we should repeat the current file
       if (viewModel.shouldRepeatCurrentFile()) {
         MPVLib.command("seek", "0", "absolute")
@@ -2219,7 +2222,7 @@ class PlayerActivity :
    * Calculates the position to save based on user preferences.
    *
    * If "savePositionOnQuit" is not enabled, returns the previous saved position or 0.
-   * If enabled, saves the current playback position unless at end of video.
+   * If enabled, saves the current playback position unless playback has reached the watched threshold.
    *
    * @param oldState Previous playback state if it exists
    * @return Position in seconds to save
@@ -2231,7 +2234,17 @@ class PlayerActivity :
 
     val pos = viewModel.pos ?: 0
     val duration = viewModel.duration ?: 0
-    return if (pos < duration - 1) pos else 0
+    if (duration <= 0) return pos
+
+    val watchedThreshold = browserPreferences.watchedThreshold.get()
+    val progress = pos.toFloat() / duration.toFloat()
+    
+    // If we've reached the threshold or are within 1 second of the end, restart from beginning
+    return if (progress < (watchedThreshold / 100f) && pos < duration - 1) {
+      pos
+    } else {
+      0
+    }
   }
 
   /**

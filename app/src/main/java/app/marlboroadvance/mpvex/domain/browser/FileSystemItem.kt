@@ -14,11 +14,13 @@ sealed class FileSystemItem {
     override val name: String,
     override val path: String,
     override val lastModified: Long,
-    val videoCount: Int = 0,
+    val videoCount: Int,
+    val audioCount: Int = 0,
     val totalSize: Long = 0L,
     val totalDuration: Long = 0L,
     val hasSubfolders: Boolean = false,
   ) : FileSystemItem()
+
 
   data class VideoFile(
     override val name: String,

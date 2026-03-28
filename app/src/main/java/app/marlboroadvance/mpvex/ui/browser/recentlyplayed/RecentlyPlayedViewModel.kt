@@ -230,6 +230,9 @@ class RecentlyPlayedViewModel(application: Application) : AndroidViewModel(appli
         height = height,
         fps = fps,
         resolution = formatResolution(width, height),
+        isAudio = metadata?.artist?.isNotBlank() == true || metadata?.album?.isNotBlank() == true || (height <= 0 && width <= 0), // Heuristic
+        artist = metadata?.artist ?: "",
+        album = metadata?.album ?: "",
       )
     } catch (e: Exception) {
       Log.e("RecentlyPlayedViewModel", "Error creating video from path: $filePath", e)
@@ -297,6 +300,9 @@ class RecentlyPlayedViewModel(application: Application) : AndroidViewModel(appli
       height = height,
       fps = 0f, // Network videos typically don't have fps metadata stored
       resolution = formatResolution(width, height),
+      isAudio = entity?.isAudio ?: (height <= 0),
+      artist = entity?.artist ?: "",
+      album = entity?.album ?: "",
     )
   }
 

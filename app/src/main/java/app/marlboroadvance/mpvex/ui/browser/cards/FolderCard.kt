@@ -62,6 +62,15 @@ fun FolderCard(
   val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
   val showDateChip by browserPreferences.showDateChip.collectAsState()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
+  val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
+  
+  val totalCount = if (showAudioFiles) folder.videoCount + folder.audioCount else folder.videoCount
+  val countLabel = if (showAudioFiles) {
+    if (totalCount == 1) "1 Item" else "$totalCount Items"
+  } else {
+    if (totalCount == 1) "1 Video" else "$totalCount Videos"
+  }
+  
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
 
   // Remove the redundant folder name from the path
@@ -177,9 +186,9 @@ fun FolderCard(
           textAlign = androidx.compose.ui. text.style.TextAlign.Center,
         )
 
-        if (showTotalVideosChip && folder.videoCount > 0) {
+        if (showTotalVideosChip && totalCount > 0) {
           Text(
-            if (folder.videoCount == 1) "1 Video" else "${folder.videoCount} Videos",
+            countLabel,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme. onSurfaceVariant,
           )
@@ -272,10 +281,10 @@ fun FolderCard(
             hasChip = true
           }
 
-          // Hide chips at storage root level (when videoCount is 0)
-            if (showTotalVideosChip && folder.videoCount > 0) {
+          // Hide chips at storage root level (when totalCount is 0)
+            if (showTotalVideosChip && totalCount > 0) {
               Text(
-                if (folder.videoCount == 1) "1 Video" else "${folder.videoCount} Videos",
+                countLabel,
                 style = MaterialTheme.typography.labelSmall,
                 modifier =
                   Modifier

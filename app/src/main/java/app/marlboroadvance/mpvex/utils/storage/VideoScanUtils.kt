@@ -33,10 +33,12 @@ object VideoScanUtils {
         val mimeType: String,
         val width: Int = 0,
         val height: Int = 0,
+        val artist: String = "",
+        val album: String = "",
     )
     
     /**
-     * Get all videos in a specific folder
+     * Get all videos and audio in a specific folder
      * MediaStore first, filesystem fallback for external devices
      */
     suspend fun getVideosInFolder(
@@ -47,11 +49,12 @@ object VideoScanUtils {
         
         // Try MediaStore first (fast)
         scanVideosFromMediaStore(context, folderPath, videosMap)
+        scanAudioFromMediaStore(context, folderPath, videosMap)
         
         // Fallback to filesystem if MediaStore returned nothing
         val folder = File(folderPath)
         if (folder.exists() && folder.canRead() && videosMap.isEmpty()) {
-            scanVideosFromFileSystem(context, folder, videosMap)
+            scanMediaFromFileSystem(context, folder, videosMap)
         }
         
         videosMap.values.sortedBy { it.displayName.lowercase(Locale.getDefault()) }
@@ -144,7 +147,8 @@ object VideoScanUtils {
                         fps = 0f,
                         resolution = formatResolution(width, height),
                         hasEmbeddedSubtitles = false,
-                        subtitleCodec = ""
+                        subtitleCodec = "",
+                        isAudio = false
                     )
                 }
             }
@@ -153,11 +157,111 @@ object VideoScanUtils {
             Log.e(TAG, "MediaStore video scan error", e)
         }
     }
+
+    /**
+     * Scan audio from MediaStore
+     */
+    private fun scanAudioFromMediaStore(
+        context: Context,
+        folderPath: String,
+        videosMap: MutableMap<String, Video>
+    ) {
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.DISPLAY_NAME,
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.SIZE,
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.DATE_MODIFIED,
+            MediaStore.Audio.Media.DATE_ADDED,
+            MediaStore.Audio.Media.MIME_TYPE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ALBUM
+        )
+        
+        val selection = "${MediaStore.Audio.Media.DATA} LIKE ?"
+        val selectionArgs = arrayOf("$folderPath/%")
+        
+        try {
+            context.contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                "${MediaStore.Audio.Media.DISPLAY_NAME} ASC"
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+                val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
+                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+                val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.MIME_TYPE)
+                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+                
+                while (cursor.moveToNext()) {
+                    val path = cursor.getString(dataColumn)
+                    val file = File(path)
+                    
+                    // Only direct children
+                    if (file.parent != folderPath) continue
+                    if (!file.exists()) continue
+                    
+                    val id = cursor.getLong(idColumn)
+                    val displayName = cursor.getString(nameColumn)
+                    val title = file.nameWithoutExtension
+                    val size = cursor.getLong(sizeColumn)
+                    val duration = cursor.getLong(durationColumn)
+                    val dateModified = cursor.getLong(dateModifiedColumn)
+                    val dateAdded = cursor.getLong(dateAddedColumn)
+                    val mimeType = cursor.getString(mimeTypeColumn) ?: "audio/*"
+                    val artist = cursor.getString(artistColumn) ?: "Unknown Artist"
+                    val album = cursor.getString(albumColumn) ?: "Unknown Album"
+                    
+                    val uri = Uri.withAppendedPath(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        id.toString()
+                    )
+                    
+                    videosMap[path] = Video(
+                        id = id,
+                        title = title,
+                        displayName = displayName,
+                        path = path,
+                        uri = uri,
+                        duration = duration,
+                        durationFormatted = formatDuration(duration),
+                        size = size,
+                        sizeFormatted = formatFileSize(size),
+                        dateModified = dateModified,
+                        dateAdded = dateAdded,
+                        mimeType = mimeType,
+                        bucketId = folderPath,
+                        bucketDisplayName = File(folderPath).name,
+                        width = 0,
+                        height = 0,
+                        fps = 0f,
+                        resolution = "",
+                        hasEmbeddedSubtitles = false,
+                        subtitleCodec = "",
+                        isAudio = true,
+                        artist = artist,
+                        album = album
+                    )
+                }
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "MediaStore audio scan error", e)
+        }
+    }
     
     /**
-     * Scan videos from filesystem (fallback)
+     * Scan media from filesystem (fallback)
      */
-    private fun scanVideosFromFileSystem(
+    private fun scanMediaFromFileSystem(
         context: Context,
         folder: File,
         videosMap: MutableMap<String, Video>
@@ -169,8 +273,10 @@ object VideoScanUtils {
                 try {
                     if (!file.isFile) continue
                     
-                    val extension = file.extension.lowercase(Locale.getDefault())
-                    if (!FileTypeUtils.VIDEO_EXTENSIONS.contains(extension)) continue
+                    val isVideo = FileTypeUtils.isVideoFile(file)
+                    val isAudio = FileTypeUtils.isAudioFile(file)
+                    
+                    if (!isVideo && !isAudio) continue
                     
                     val path = file.absolutePath
                     if (videosMap.containsKey(path)) continue
@@ -202,9 +308,12 @@ object VideoScanUtils {
                         width = metadata.width,
                         height = metadata.height,
                         fps = 0f,
-                        resolution = formatResolution(metadata.width, metadata.height),
+                        resolution = if (isAudio) "" else formatResolution(metadata.width, metadata.height),
                         hasEmbeddedSubtitles = false,
-                        subtitleCodec = ""
+                        subtitleCodec = "",
+                        isAudio = isAudio,
+                        artist = metadata.artist,
+                        album = metadata.album
                     )
                 } catch (e: Exception) {
                     Log.w(TAG, "Error processing file: ${file.absolutePath}", e)
@@ -213,7 +322,7 @@ object VideoScanUtils {
             }
             
         } catch (e: Exception) {
-            Log.e(TAG, "Filesystem video scan error", e)
+            Log.e(TAG, "Filesystem media scan error", e)
         }
     }
     
@@ -228,6 +337,8 @@ object VideoScanUtils {
         var mimeType = "video/*"
         var width = 0
         var height = 0
+        var artist = ""
+        var album = ""
         
         try {
             val uri = Uri.fromFile(file)
@@ -239,6 +350,8 @@ object VideoScanUtils {
                 duration = metadata.durationMs
                 width = metadata.width
                 height = metadata.height
+                artist = metadata.artist
+                album = metadata.album
                 mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase())
             }.onFailure { e ->
                 Log.w(TAG, "Could not extract metadata for ${file.absolutePath}, using fallback", e)
@@ -249,7 +362,7 @@ object VideoScanUtils {
             mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase())
         }
         
-        return VideoMetadata(duration, mimeType, width, height)
+        return VideoMetadata(duration, mimeType, width, height, artist, album)
     }
     
     // Formatting utilities
@@ -311,6 +424,12 @@ object FileTypeUtils {
         "f4v", "rm", "rmvb", "asf"
     )
 
+    // Audio file extensions
+    val AUDIO_EXTENSIONS = setOf(
+        "mp3", "flac", "wav", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac",
+        "dsd", "dff", "dsf", "pcm", "mka"
+    )
+
   /**
      * Checks if a file is a video based on extension
      */
@@ -319,11 +438,26 @@ object FileTypeUtils {
         return VIDEO_EXTENSIONS.contains(extension)
     }
 
+    /**
+     * Checks if a file is an audio file based on extension
+     */
+    fun isAudioFile(file: File): Boolean {
+        val extension = file.extension.lowercase(Locale.getDefault())
+        return AUDIO_EXTENSIONS.contains(extension)
+    }
+
+    /**
+     * Checks if a file is either video or audio
+     */
+    fun isMediaFile(file: File): Boolean {
+        return isVideoFile(file) || isAudioFile(file)
+    }
+
   /**
      * Gets MIME type from file extension
      */
     fun getMimeTypeFromExtension(extension: String): String =
-        when (extension.lowercase()) {
+        when (val ext = extension.lowercase()) {
             "mp4" -> "video/mp4"
             "mkv" -> "video/x-matroska"
             "avi" -> "video/x-msvideo"
@@ -334,7 +468,14 @@ object FileTypeUtils {
             "m4v" -> "video/x-m4v"
             "3gp" -> "video/3gpp"
             "mpg", "mpeg" -> "video/mpeg"
-            else -> "video/*"
+            // Audio
+            "mp3" -> "audio/mpeg"
+            "flac" -> "audio/flac"
+            "wav" -> "audio/wav"
+            "m4a" -> "audio/mp4"
+            "ogg", "opus" -> "audio/ogg"
+            "mka" -> "audio/x-matroska"
+            else -> if (VIDEO_EXTENSIONS.contains(ext)) "video/*" else if (AUDIO_EXTENSIONS.contains(ext)) "audio/*" else "*/*"
         }
 }
 

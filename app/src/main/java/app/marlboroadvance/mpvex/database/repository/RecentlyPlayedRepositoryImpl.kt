@@ -18,6 +18,9 @@ class RecentlyPlayedRepositoryImpl(
     height: Int,
     launchSource: String?,
     playlistId: Int?,
+    isAudio: Boolean,
+    artist: String,
+    album: String,
   ) {
     // Check if there's an existing entry for this file
     val existingEntry = recentlyPlayedDao.getByFilePath(filePath)
@@ -37,6 +40,9 @@ class RecentlyPlayedRepositoryImpl(
         // Preserve the original launch source when reopening the same file
         launchSource = existingEntry.launchSource,
         playlistId = playlistId ?: existingEntry.playlistId,
+        isAudio = isAudio,
+        artist = if (artist.isNotBlank()) artist else existingEntry.artist,
+        album = if (album.isNotBlank()) album else existingEntry.album,
       )
       recentlyPlayedDao.insert(entity)
     } else {
@@ -52,6 +58,9 @@ class RecentlyPlayedRepositoryImpl(
         timestamp = System.currentTimeMillis(),
         launchSource = launchSource,
         playlistId = playlistId,
+        isAudio = isAudio,
+        artist = artist,
+        album = album,
       )
       recentlyPlayedDao.insert(entity)
     }

@@ -17,6 +17,7 @@ import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
 import app.marlboroadvance.mpvex.utils.media.MediaInfoOps
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.koin.core.context.GlobalContext
 import java.io.File
 import java.util.Locale
 import kotlin.math.log10
@@ -59,7 +60,11 @@ object MediaFileRepository {
   ): List<VideoFolder> =
     withContext(Dispatchers.IO) {
       try {
-        FolderViewScanner.getAllVideoFolders(context)
+        val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+        val isAudioEnabled = browserPreferences.showAudioFiles.get()
+        
+        val folders = FolderViewScanner.getAllVideoFolders(context)
+        folders.filter { folder -> isAudioEnabled || folder.videoCount > 0 }
       } catch (e: Exception) {
         Log.e(TAG, "Error scanning for video folders", e)
         emptyList()
@@ -326,33 +331,41 @@ object MediaFileRepository {
         val items = mutableListOf<FileSystemItem>()
 
         // Get folders using TreeViewScanner (instant from cache)
+        val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+        val isAudioEnabled = browserPreferences.showAudioFiles.get()
+
         val folders = TreeViewScanner.getFoldersInDirectory(context, path)
-        folders.forEach { folderData ->
-          items.add(
-            FileSystemItem.Folder(
-              name = folderData.name,
-              path = folderData.path,
-              lastModified = File(folderData.path).lastModified(),
-              videoCount = folderData.videoCount,
-              totalSize = folderData.totalSize,
-              totalDuration = folderData.totalDuration,
-              hasSubfolders = folderData.hasSubfolders,
-            ),
-          )
-        }
+        folders
+          .filter { data -> isAudioEnabled || data.videoCount > 0 }
+          .forEach { folderData ->
+            items.add(
+              FileSystemItem.Folder(
+                name = folderData.name,
+                path = folderData.path,
+                lastModified = File(folderData.path).lastModified(),
+                videoCount = folderData.videoCount,
+                audioCount = folderData.audioCount,
+                totalSize = folderData.totalSize,
+                totalDuration = folderData.totalDuration,
+                hasSubfolders = folderData.hasSubfolders,
+              ),
+            )
+          }
 
         // Get videos in current directory
         val videos = VideoScanUtils.getVideosInFolder(context, path)
-        videos.forEach { video ->
-          items.add(
-            FileSystemItem.VideoFile(
-              name = video.displayName,
-              path = video.path,
-              lastModified = File(video.path).lastModified(),
-              video = video,
-            ),
-          )
-        }
+        videos
+          .filter { video -> isAudioEnabled || !video.isAudio }
+          .forEach { video ->
+            items.add(
+              FileSystemItem.VideoFile(
+                name = video.displayName,
+                path = video.path,
+                lastModified = File(video.path).lastModified(),
+                video = video,
+              ),
+            )
+          }
 
         Result.success(items)
       } catch (e: SecurityException) {
@@ -386,6 +399,7 @@ object MediaFileRepository {
               path = primaryPath,
               lastModified = primaryStorage.lastModified(),
               videoCount = folderData?.videoCount ?: 0,
+              audioCount = folderData?.audioCount ?: 0,
               totalSize = folderData?.totalSize ?: 0L,
               totalDuration = folderData?.totalDuration ?: 0L,
               hasSubfolders = true,
@@ -411,6 +425,7 @@ object MediaFileRepository {
                   path = volumeDir.absolutePath,
                   lastModified = volumeDir.lastModified(),
                   videoCount = folderData?.videoCount ?: 0,
+                  audioCount = folderData?.audioCount ?: 0,
                   totalSize = folderData?.totalSize ?: 0L,
                   totalDuration = folderData?.totalDuration ?: 0L,
                   hasSubfolders = true,

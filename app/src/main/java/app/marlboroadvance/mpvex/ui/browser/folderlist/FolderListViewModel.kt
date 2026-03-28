@@ -108,10 +108,16 @@ class FolderListViewModel(
       }
     }
 
-    // Filter folders based on blacklist
+    // Filter folders based on blacklist and audio visibility
     viewModelScope.launch {
-      combine(_allVideoFolders, foldersPreferences.blacklistedFolders.changes()) { folders, blacklist ->
-        folders.filter { folder -> folder.path !in blacklist }
+      combine(
+        _allVideoFolders, 
+        foldersPreferences.blacklistedFolders.changes(),
+        browserPreferences.showAudioFiles.changes()
+      ) { folders, blacklist, showAudio ->
+        folders.filter { folder -> 
+          folder.path !in blacklist && (showAudio || folder.videoCount > 0)
+        }
       }.collectLatest { filteredFolders ->
         // Check if folders became empty after having folders
         if (previousFolderCount > 0 && filteredFolders.isEmpty()) {
@@ -437,6 +443,5 @@ class FolderListViewModel(
       }
     }
   }
-
 
 }

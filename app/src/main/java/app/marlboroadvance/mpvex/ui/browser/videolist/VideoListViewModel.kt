@@ -12,6 +12,7 @@ import app.marlboroadvance.mpvex.ui.browser.base.BaseBrowserViewModel
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
 import app.marlboroadvance.mpvex.utils.media.MediaLibraryEvents
 import app.marlboroadvance.mpvex.utils.media.MetadataRetrieval
+import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
 import app.marlboroadvance.mpvex.utils.storage.FolderViewScanner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -125,6 +126,11 @@ class VideoListViewModel(
       try {
         // First attempt to load videos (basic info from MediaStore)
         var videoList = MediaFileRepository.getVideosInFolder(getApplication(), bucketId)
+        
+        // Filter out audio if disabled
+        if (!browserPreferences.showAudioFiles.get()) {
+          videoList = videoList.filterNot { it.isAudio }
+        }
 
         // Enrich with metadata only if chips are enabled
         if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
@@ -156,6 +162,11 @@ class VideoListViewModel(
           triggerMediaScan()
           delay(1000)
           var retryVideoList = MediaFileRepository.getVideosInFolder(getApplication(), bucketId)
+
+          // Filter out audio if disabled
+          if (!browserPreferences.showAudioFiles.get()) {
+            retryVideoList = retryVideoList.filterNot { it.isAudio }
+          }
 
           // Enrich retry list if needed
           if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
@@ -251,10 +262,11 @@ class VideoListViewModel(
       val folder = File(bucketId)
       
       if (folder.exists() && folder.isDirectory) {
-        // Scan all video files in the folder
+        // Scan all media files in the folder
         val videoFiles = folder.listFiles { file ->
-          file.isFile && file.extension.lowercase() in listOf(
-            "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "3gp", "mpg", "mpeg", "ts", "m2ts"
+          file.isFile && (
+            FileTypeUtils.isVideoFile(file) || 
+            (browserPreferences.showAudioFiles.get() && FileTypeUtils.isAudioFile(file))
           )
         }
         

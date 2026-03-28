@@ -3481,7 +3481,7 @@ class PlayerActivity :
 
         val files = parentFolder.listFiles { file ->
           file.isFile &&
-            FileTypeUtils.isVideoFile(file) &&
+            (FileTypeUtils.isVideoFile(file) || (browserPreferences.showAudioFiles.get() && FileTypeUtils.isAudioFile(file))) &&
             !FileFilterUtils.shouldSkipFile(file)
         } ?: return@runCatching
 

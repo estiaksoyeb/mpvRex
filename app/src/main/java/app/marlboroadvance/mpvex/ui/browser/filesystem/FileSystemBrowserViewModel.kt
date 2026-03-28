@@ -15,6 +15,7 @@ import app.marlboroadvance.mpvex.ui.browser.base.BaseBrowserViewModel
 import app.marlboroadvance.mpvex.utils.media.MediaLibraryEvents
 import app.marlboroadvance.mpvex.utils.media.MetadataRetrieval
 import app.marlboroadvance.mpvex.utils.sort.SortUtils
+import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
 import app.marlboroadvance.mpvex.utils.storage.FolderViewScanner
 import app.marlboroadvance.mpvex.utils.storage.TreeViewScanner
 import kotlinx.coroutines.Dispatchers
@@ -204,15 +205,16 @@ class FileSystemBrowserViewModel(
       val folder = File(path)
       
       if (folder.exists() && folder.isDirectory) {
-        // Scan all video files in the folder
-        val videoFiles = folder.listFiles { file ->
-          file.isFile && file.extension.lowercase() in listOf(
-            "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "3gp", "mpg", "mpeg", "ts", "m2ts"
+        // Scan all media files in the folder
+        val mediaFiles = folder.listFiles { file ->
+          file.isFile && (
+            FileTypeUtils.isVideoFile(file) || 
+            (browserPreferences.showAudioFiles.get() && FileTypeUtils.isAudioFile(file))
           )
         }
         
-        if (!videoFiles.isNullOrEmpty()) {
-          val filePaths = videoFiles.map { it.absolutePath }.toTypedArray()
+        if (!mediaFiles.isNullOrEmpty()) {
+          val filePaths = mediaFiles.map { it.absolutePath }.toTypedArray()
           
           android.media.MediaScannerConnection.scanFile(
             getApplication(),
@@ -365,14 +367,21 @@ class FileSystemBrowserViewModel(
 
               _unsortedItems.value = items
 
-              val folderCount = items.filterIsInstance<FileSystemItem.Folder>().size
-              val videoCount = items.filterIsInstance<FileSystemItem.VideoFile>().size
+              // Filter out audio items if disabled
+              val filteredItems = if (!browserPreferences.showAudioFiles.get()) {
+                items.filterNot { it is FileSystemItem.VideoFile && it.video.isAudio }
+              } else {
+                items
+              }
+
+              val folderCount = filteredItems.filterIsInstance<FileSystemItem.Folder>().size
+              val videoCount = filteredItems.filterIsInstance<FileSystemItem.VideoFile>().size
               Log.d(TAG, "Loaded directory: $path with $folderCount folders, $videoCount videos")
 
               // Enrich videos with metadata if chips are enabled
               val enrichedItems = if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
                 Log.d(TAG, "Metadata chips enabled, enriching $videoCount videos")
-                val videoFiles = items.filterIsInstance<FileSystemItem.VideoFile>()
+                val videoFiles = filteredItems.filterIsInstance<FileSystemItem.VideoFile>()
                 val videos = videoFiles.map { it.video }
                 val enrichedVideos = MetadataRetrieval.enrichVideosIfNeeded(
                   context = getApplication(),
@@ -383,7 +392,7 @@ class FileSystemBrowserViewModel(
                 
                 // Replace videos in items with enriched versions
                 val enrichedVideoMap = enrichedVideos.associateBy { it.id }
-                items.map { item ->
+                filteredItems.map { item ->
                   when (item) {
                     is FileSystemItem.VideoFile -> {
                       val enrichedVideo = enrichedVideoMap[item.video.id]
@@ -397,7 +406,7 @@ class FileSystemBrowserViewModel(
                   }
                 }
               } else {
-                items
+                filteredItems
               }
 
               _unsortedItems.value = enrichedItems

@@ -427,11 +427,17 @@ fun FileSystemBrowserScreen(path: String? = null) {
               }
             }
             
-            // Remove duplicates based on file path
+            // Remove duplicates based on file path and filter by audio preference
+            val isAudioFilesVisible = browserPreferences.showAudioFiles.get()
             val uniqueResults = allResults.distinctBy { item ->
               when (item) {
                 is FileSystemItem.VideoFile -> item.video.path
                 is FileSystemItem.Folder -> item.path
+              }
+            }.filter { item ->
+              when (item) {
+                is FileSystemItem.VideoFile -> isAudioFilesVisible || !item.video.isAudio
+                is FileSystemItem.Folder -> isAudioFilesVisible || item.videoCount > 0
               }
             }
             
@@ -1050,26 +1056,30 @@ suspend fun searchRecursively(
 
     Log.d("FileSystemBrowserScreen", "Found ${items.size} items in $directoryPath")
 
-    // Filter items that match the search query (case-insensitive)
+    // Filter items that match the search query (case-insensitive) and respect audio preference
+    val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+    val isAudioFilesVisible = browserPreferences.showAudioFiles.get()
     items.forEach { item ->
       when (item) {
         is FileSystemItem.VideoFile -> {
-          if (item.video.displayName.contains(query, ignoreCase = true)) {
+          if ((isAudioFilesVisible || !item.video.isAudio) && item.video.displayName.contains(query, ignoreCase = true)) {
             Log.d("FileSystemBrowserScreen", "Found matching video: ${item.video.displayName}")
             results.add(item)
           }
         }
         is FileSystemItem.Folder -> {
-          if (item.name.contains(query, ignoreCase = true)) {
+          if ((isAudioFilesVisible || item.videoCount > 0) && item.name.contains(query, ignoreCase = true)) {
             Log.d("FileSystemBrowserScreen", "Found matching folder: ${item.name}")
             results.add(item)
           }
-          // Recursively search in subdirectories
-          try {
-            val subResults = searchRecursively(context, item.path, query)
-            results.addAll(subResults)
-          } catch (e: Exception) {
-            Log.e("FileSystemBrowserScreen", "Error searching subdirectory ${item.path}", e)
+          // Recursively search in subdirectories if they have content we care about
+          if (isAudioFilesVisible || item.videoCount > 0) {
+            try {
+              val subResults = searchRecursively(context, item.path, query)
+              results.addAll(subResults)
+            } catch (e: Exception) {
+              Log.e("FileSystemBrowserScreen", "Error searching subdirectory ${item.path}", e)
+            }
           }
         }
       }
@@ -1098,15 +1108,21 @@ private suspend fun collectVideosRecursively(
       .scanDirectory(context, folderPath, showAllFileTypes = false)
       .getOrNull() ?: emptyList()
 
-    // Add videos from current folder
+    // Add videos from current folder respecting audio preference
+    val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+    val isAudioFilesVisible = browserPreferences.showAudioFiles.get()
     items.filterIsInstance<FileSystemItem.VideoFile>().forEach { videoFile ->
-      videos.add(videoFile.video)
+      if (isAudioFilesVisible || !videoFile.video.isAudio) {
+        videos.add(videoFile.video)
+      }
     }
 
-    // Recursively scan subfolders
+    // Recursively scan subfolders that have relevant content
     items.filterIsInstance<FileSystemItem.Folder>().forEach { folder ->
-      val subVideos = collectVideosRecursively(context, folder.path)
-      videos.addAll(subVideos)
+      if (isAudioFilesVisible || folder.videoCount > 0) {
+        val subVideos = collectVideosRecursively(context, folder.path)
+        videos.addAll(subVideos)
+      }
     }
   } catch (e: Exception) {
     Log.e("FileSystemBrowserScreen", "Error collecting videos from $folderPath", e)
@@ -1298,6 +1314,7 @@ private fun FileSystemBrowserContent(
                 name = folder.name,
                 path = folder.path,
                 videoCount = folder.videoCount,
+                audioCount = folder.audioCount,
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,
@@ -1480,6 +1497,7 @@ private fun FileSystemSearchContent(
                 name = folder.name,
                 path = folder.path,
                 videoCount = folder.videoCount,
+                audioCount = folder.audioCount,
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,

@@ -41,20 +41,23 @@ object FolderViewScanner {
         val path: String,
         val name: String,
         val videoCount: Int,
+        val audioCount: Int = 0,
         val totalSize: Long,
         val totalDuration: Long,
         val lastModified: Long,
         val hasSubfolders: Boolean = false
     )
-    
+
     /**
-     * Helper data class for video info during scanning
+     * Basic info for a single video file
      */
-    private data class VideoInfo(
+    data class VideoInfo(
         val size: Long,
         val duration: Long,
-        val dateModified: Long
+        val dateModified: Long,
+        val isAudio: Boolean = false
     )
+
     
     /**
      * Get all video folders for folder list view
@@ -86,6 +89,7 @@ object FolderViewScanner {
                 name = data.name,
                 path = data.path,
                 videoCount = data.videoCount,
+                audioCount = data.audioCount,
                 totalSize = data.totalSize,
                 totalDuration = data.totalDuration,
                 lastModified = data.lastModified
@@ -141,7 +145,7 @@ object FolderViewScanner {
                     val dateModified = cursor.getLong(dateColumn)
                     
                     mediaByFolder.getOrPut(folderPath) { mutableListOf() }.add(
-                        VideoInfo(size, duration, dateModified)
+                        VideoInfo(size, duration, dateModified, isAudio = false)
                     )
                 }
             }
@@ -181,7 +185,7 @@ object FolderViewScanner {
                     val dateModified = cursor.getLong(dateColumn)
                     
                     mediaByFolder.getOrPut(folderPath) { mutableListOf() }.add(
-                        VideoInfo(size, duration, dateModified)
+                        VideoInfo(size, duration, dateModified, isAudio = true)
                     )
                 }
             }
@@ -194,12 +198,19 @@ object FolderViewScanner {
             var totalSize = 0L
             var totalDuration = 0L
             var lastModified = 0L
+            var videoCount = 0
+            var audioCount = 0
             
             for (item in mediaItems) {
                 totalSize += item.size
                 totalDuration += item.duration
                 if (item.dateModified > lastModified) {
                     lastModified = item.dateModified
+                }
+                if (item.isAudio) {
+                    audioCount++
+                } else {
+                    videoCount++
                 }
             }
             
@@ -213,7 +224,8 @@ object FolderViewScanner {
             folders[folderPath] = FolderData(
                 path = folderPath,
                 name = File(folderPath).name,
-                videoCount = mediaItems.size,
+                videoCount = videoCount,
+                audioCount = audioCount,
                 totalSize = totalSize,
                 totalDuration = totalDuration,
                 lastModified = lastModified,
@@ -299,6 +311,8 @@ object FolderViewScanner {
                 if (!folders.containsKey(folderPath)) {
                     var totalSize = 0L
                     var lastModified = 0L
+                    var videoCount = 0
+                    var audioCount = 0
                     
                     for (media in mediaFiles) {
                         totalSize += media.length()
@@ -306,12 +320,18 @@ object FolderViewScanner {
                         if (modified > lastModified) {
                             lastModified = modified
                         }
+                        if (FileTypeUtils.isAudioFile(media)) {
+                            audioCount++
+                        } else {
+                            videoCount++
+                        }
                     }
                     
                     folders[folderPath] = FolderData(
                         path = folderPath,
                         name = directory.name,
-                        videoCount = mediaFiles.size,
+                        videoCount = videoCount,
+                        audioCount = audioCount,
                         totalSize = totalSize,
                         totalDuration = 0L, // Duration not available from filesystem
                         lastModified = lastModified / 1000,

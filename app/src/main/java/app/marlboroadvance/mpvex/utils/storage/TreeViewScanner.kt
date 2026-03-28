@@ -40,20 +40,23 @@ object TreeViewScanner {
         val path: String,
         val name: String,
         val videoCount: Int,
+        val audioCount: Int = 0,
         val totalSize: Long,
         val totalDuration: Long,
         val lastModified: Long,
         val hasSubfolders: Boolean = false
     )
-    
+
     /**
-     * Helper data class for video info during scanning
+     * Basic info for a single video file
      */
-    private data class VideoInfo(
+    data class VideoInfo(
         val size: Long,
         val duration: Long,
-        val dateModified: Long
+        val dateModified: Long,
+        val isAudio: Boolean = false
     )
+
     
     /**
      * Get direct child folders of a parent directory for tree view
@@ -215,7 +218,7 @@ object TreeViewScanner {
                     val dateModified = cursor.getLong(dateColumn)
                     
                     mediaByFolder.getOrPut(folderPath) { mutableListOf() }.add(
-                        VideoInfo(size, duration, dateModified)
+                        VideoInfo(size, duration, dateModified, isAudio = false)
                     )
                 }
             }
@@ -255,7 +258,7 @@ object TreeViewScanner {
                     val dateModified = cursor.getLong(dateColumn)
                     
                     mediaByFolder.getOrPut(folderPath) { mutableListOf() }.add(
-                        VideoInfo(size, duration, dateModified)
+                        VideoInfo(size, duration, dateModified, isAudio = true)
                     )
                 }
             }
@@ -265,7 +268,8 @@ object TreeViewScanner {
         
         // Build folder data with recursive counts
         for ((folderPath, _) in mediaByFolder) {
-            var totalCount = 0
+            var videoCount = 0
+            var audioCount = 0
             var totalSize = 0L
             var totalDuration = 0L
             var lastModified = 0L
@@ -274,12 +278,16 @@ object TreeViewScanner {
             // Count all media in this folder and subdirectories
             for ((otherPath, items) in mediaByFolder) {
                 if (otherPath == folderPath || otherPath.startsWith("$folderPath${File.separator}")) {
-                    totalCount += items.size
                     for (item in items) {
                         totalSize += item.size
                         totalDuration += item.duration
                         if (item.dateModified > lastModified) {
                             lastModified = item.dateModified
+                        }
+                        if (item.isAudio) {
+                            audioCount++
+                        } else {
+                            videoCount++
                         }
                     }
                     if (otherPath != folderPath) {
@@ -288,11 +296,12 @@ object TreeViewScanner {
                 }
             }
             
-            if (totalCount > 0) {
+            if (videoCount + audioCount > 0) {
                 folders[folderPath] = FolderData(
                     path = folderPath,
                     name = File(folderPath).name,
-                    videoCount = totalCount,
+                    videoCount = videoCount,
+                    audioCount = audioCount,
                     totalSize = totalSize,
                     totalDuration = totalDuration,
                     lastModified = lastModified,
@@ -379,6 +388,8 @@ object TreeViewScanner {
                 if (!folders.containsKey(folderPath)) {
                     var totalSize = 0L
                     var lastModified = 0L
+                    var videoCount = 0
+                    var audioCount = 0
                     
                     for (media in mediaFiles) {
                         totalSize += media.length()
@@ -386,12 +397,18 @@ object TreeViewScanner {
                         if (modified > lastModified) {
                             lastModified = modified
                         }
+                        if (FileTypeUtils.isAudioFile(media)) {
+                            audioCount++
+                        } else {
+                            videoCount++
+                        }
                     }
                     
                     folders[folderPath] = FolderData(
                         path = folderPath,
                         name = directory.name,
-                        videoCount = mediaFiles.size,
+                        videoCount = videoCount,
+                        audioCount = audioCount,
                         totalSize = totalSize,
                         totalDuration = 0L, // Duration not available from filesystem
                         lastModified = lastModified / 1000,

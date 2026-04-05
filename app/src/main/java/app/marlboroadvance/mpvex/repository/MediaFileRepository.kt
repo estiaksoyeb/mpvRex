@@ -9,11 +9,11 @@ import app.marlboroadvance.mpvex.domain.browser.FileSystemItem
 import app.marlboroadvance.mpvex.domain.browser.PathComponent
 import app.marlboroadvance.mpvex.domain.media.model.Video
 import app.marlboroadvance.mpvex.domain.media.model.VideoFolder
-import app.marlboroadvance.mpvex.utils.storage.FolderViewScanner
-import app.marlboroadvance.mpvex.utils.storage.TreeViewScanner
+import app.marlboroadvance.mpvex.utils.storage.CoreMediaScanner
 import app.marlboroadvance.mpvex.utils.storage.VideoScanUtils
 import app.marlboroadvance.mpvex.utils.storage.StorageVolumeUtils
 import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
+import app.marlboroadvance.mpvex.utils.media.MediaFormatter
 import app.marlboroadvance.mpvex.utils.media.MediaInfoOps
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -43,9 +43,8 @@ object MediaFileRepository {
    * Call this when media library changes are detected or when forcing a hard refresh
    */
   fun clearCache() {
-    Log.d(TAG, "Clearing all caches (FolderViewScanner + TreeViewScanner)")
-    FolderViewScanner.clearCache()
-    TreeViewScanner.clearCache()
+    Log.d(TAG, "Clearing all caches (CoreMediaScanner)")
+    CoreMediaScanner.clearCache()
   }
 
   // =============================================================================
@@ -63,8 +62,21 @@ object MediaFileRepository {
         val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
         val isAudioEnabled = browserPreferences.showAudioFiles.get()
         
-        val folders = FolderViewScanner.getAllVideoFolders(context)
-        folders.filter { folder -> isAudioEnabled || folder.videoCount > 0 }
+        val folders = CoreMediaScanner.getFlatMediaFolders(context)
+        folders
+          .filter { folder -> isAudioEnabled || folder.videoCount > 0 }
+          .map { folder ->
+            VideoFolder(
+              bucketId = folder.id,
+              name = folder.name,
+              path = folder.path,
+              videoCount = folder.videoCount,
+              audioCount = folder.audioCount,
+              totalSize = folder.totalSize,
+              totalDuration = folder.totalDuration,
+              lastModified = folder.lastModified
+            )
+          }
       } catch (e: Exception) {
         Log.e(TAG, "Error scanning for video folders", e)
         emptyList()
@@ -192,9 +204,9 @@ object MediaFileRepository {
       path = path,
       uri = uri,
       duration = duration,
-      durationFormatted = formatDuration(duration),
+      durationFormatted = MediaFormatter.formatDuration(duration),
       size = size,
-      sizeFormatted = formatFileSize(size),
+      sizeFormatted = MediaFormatter.formatFileSize(size),
       dateModified = dateModified,
       dateAdded = dateModified,
       mimeType = mimeType,
@@ -203,7 +215,7 @@ object MediaFileRepository {
       width = width,
       height = height,
       fps = fps,
-      resolution = formatResolutionWithFps(width, height, fps),
+      resolution = MediaFormatter.formatResolutionWithFps(width, height, fps),
       hasEmbeddedSubtitles = hasEmbeddedSubtitles,
       subtitleCodec = subtitleCodec,
     )
@@ -252,9 +264,9 @@ object MediaFileRepository {
       path = path,
       uri = uri,
       duration = duration,
-      durationFormatted = formatDuration(duration),
+      durationFormatted = MediaFormatter.formatDuration(duration),
       size = size,
-      sizeFormatted = formatFileSize(size),
+      sizeFormatted = MediaFormatter.formatFileSize(size),
       dateModified = dateModified,
       dateAdded = dateModified,
       mimeType = mimeType,
@@ -263,7 +275,7 @@ object MediaFileRepository {
       width = width,
       height = height,
       fps = fps,
-      resolution = formatResolutionWithFps(width, height, fps),
+      resolution = MediaFormatter.formatResolutionWithFps(width, height, fps),
       hasEmbeddedSubtitles = hasEmbeddedSubtitles,
       subtitleCodec = subtitleCodec,
     )
@@ -330,11 +342,11 @@ object MediaFileRepository {
 
         val items = mutableListOf<FileSystemItem>()
 
-        // Get folders using TreeViewScanner (instant from cache)
+        // Get folders using CoreMediaScanner (unified)
         val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
         val isAudioEnabled = browserPreferences.showAudioFiles.get()
 
-        val folders = TreeViewScanner.getFoldersInDirectory(context, path)
+        val folders = CoreMediaScanner.getFoldersInDirectory(context, path)
         folders
           .filter { data -> isAudioEnabled || data.videoCount > 0 }
           .forEach { folderData ->
@@ -342,7 +354,7 @@ object MediaFileRepository {
               FileSystemItem.Folder(
                 name = folderData.name,
                 path = folderData.path,
-                lastModified = File(folderData.path).lastModified(),
+                lastModified = folderData.lastModified,
                 videoCount = folderData.videoCount,
                 audioCount = folderData.audioCount,
                 totalSize = folderData.totalSize,
@@ -391,7 +403,7 @@ object MediaFileRepository {
           val primaryPath = primaryStorage.absolutePath
           
           // Get recursive count for this storage root
-          val folderData = TreeViewScanner.getFolderDataRecursive(context, primaryPath)
+          val folderData = CoreMediaScanner.getFolderRecursiveData(context, primaryPath)
           
           roots.add(
             FileSystemItem.Folder(
@@ -417,7 +429,7 @@ object MediaFileRepository {
               val volumeName = volume.getDescription(context)
               
               // Get recursive count for this storage root
-              val folderData = TreeViewScanner.getFolderDataRecursive(context, volumePath)
+              val folderData = CoreMediaScanner.getFolderRecursiveData(context, volumePath)
               
               roots.add(
                 FileSystemItem.Folder(
@@ -441,70 +453,4 @@ object MediaFileRepository {
       roots
     }
 
-  // =============================================================================
-  // FORMATTING UTILITIES
-  // =============================================================================
-
-  private fun formatDuration(durationMs: Long): String {
-    if (durationMs <= 0) return "0s"
-
-    val seconds = durationMs / 1000
-    val hours = seconds / 3600
-    val minutes = (seconds % 3600) / 60
-    val secs = seconds % 60
-
-    return when {
-      hours > 0 -> String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, secs)
-      minutes > 0 -> String.format(Locale.getDefault(), "%d:%02d", minutes, secs)
-      else -> "${secs}s"
-    }
-  }
-
-  private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val units = arrayOf("B", "KB", "MB", "GB", "TB")
-    val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
-    return String.format(
-      Locale.getDefault(),
-      "%.1f %s",
-      bytes / 1024.0.pow(digitGroups.toDouble()),
-      units[digitGroups],
-    )
-  }
-
-  private fun formatResolution(
-    width: Int,
-    height: Int,
-  ): String {
-    if (width <= 0 || height <= 0) return "--"
-
-    val label =
-      when {
-        width >= 7680 || height >= 4320 -> "4320p"
-        width >= 3840 || height >= 2160 -> "2160p"
-        width >= 2560 || height >= 1440 -> "1440p"
-        width >= 1920 || height >= 1080 -> "1080p"
-        width >= 1280 || height >= 720 -> "720p"
-        width >= 854 || height >= 480 -> "480p"
-        width >= 640 || height >= 360 -> "360p"
-        width >= 426 || height >= 240 -> "240p"
-        else -> "${height}p"
-      }
-
-    return label
-  }
-
-  private fun formatResolutionWithFps(
-    width: Int,
-    height: Int,
-    fps: Float,
-  ): String {
-    val baseResolution = formatResolution(width, height)
-    if (baseResolution == "--" || fps <= 0f) return baseResolution
-
-    // Show only the integer part for frame rates, without rounding
-    val fpsFormatted = fps.toInt().toString()
-
-    return "$baseResolution@$fpsFormatted"
-  }
 }

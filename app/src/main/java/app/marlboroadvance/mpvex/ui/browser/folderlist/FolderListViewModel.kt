@@ -14,7 +14,6 @@ import app.marlboroadvance.mpvex.preferences.FoldersPreferences
 import app.marlboroadvance.mpvex.ui.browser.base.BaseBrowserViewModel
 import app.marlboroadvance.mpvex.utils.media.MediaLibraryEvents
 import app.marlboroadvance.mpvex.utils.media.MetadataRetrieval
-import app.marlboroadvance.mpvex.utils.storage.FolderViewScanner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -267,7 +266,6 @@ class FolderListViewModel(
     
     // Clear all caches to force fresh data from filesystem
     MediaFileRepository.clearCache()
-    FolderViewScanner.clearCache()
     
     // Trigger media scan to ensure MediaStore is up-to-date
     triggerMediaScan()

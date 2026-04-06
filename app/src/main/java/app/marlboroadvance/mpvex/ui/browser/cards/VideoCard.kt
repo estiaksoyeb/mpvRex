@@ -115,6 +115,7 @@ fun VideoCard(
   BaseMediaCard(
     title = video.displayName,
     modifier = modifier,
+    thumbnailAspectRatio = 16f / 9f,
     thumbnail = if (uiSettings.showVideoThumbnails) thumbnail?.asImageBitmap() else null,
     thumbnailIcon = {
       Icon(

@@ -54,6 +54,7 @@ fun NetworkVideoCard(
   BaseMediaCard(
     title = file.name,
     modifier = modifier,
+    thumbnailAspectRatio = 16f / 9f,
     onClick = onClick,
     onLongClick = onLongClick,
     isSelected = isSelected,

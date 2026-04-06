@@ -54,6 +54,7 @@ fun M3UVideoCard(
   BaseMediaCard(
     title = title,
     modifier = modifier,
+    thumbnailAspectRatio = 16f / 9f,
     onClick = onClick,
     onLongClick = onLongClick,
     isSelected = isSelected,

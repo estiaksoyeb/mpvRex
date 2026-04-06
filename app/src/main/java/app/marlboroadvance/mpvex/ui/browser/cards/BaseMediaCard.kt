@@ -60,6 +60,7 @@ fun BaseMediaCard(
     progressPercentage: Float? = null,
     maxTitleLines: Int = 2,
     thumbnailSize: Dp = 64.dp,
+    thumbnailAspectRatio: Float = 16f / 9f,
     infoContent: @Composable (RowScope.() -> Unit)? = null,
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
@@ -89,7 +90,7 @@ fun BaseMediaCard(
                 Box(
                     modifier = Modifier
                         .then(if (gridColumns == 1) Modifier.width(160.dp) else Modifier.fillMaxWidth())
-                        .aspectRatio(16f / 9f)
+                        .aspectRatio(thumbnailAspectRatio)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                     contentAlignment = Alignment.Center
@@ -164,14 +165,15 @@ fun BaseMediaCard(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Thumbnail Box
-                Box(
-                    modifier = Modifier
-                        .size(thumbnailSize)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                    contentAlignment = Alignment.Center,
-                ) {
+        // Thumbnail Box
+        Box(
+          modifier = Modifier
+            .width(thumbnailSize)
+            .aspectRatio(thumbnailAspectRatio)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+          contentAlignment = Alignment.Center,
+        ) {
                     if (thumbnail != null) {
                         Image(
                             bitmap = thumbnail,
@@ -217,6 +219,16 @@ fun BaseMediaCard(
                         overflow = TextOverflow.Ellipsis,
                     )
 
+                    if (infoContent != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            infoContent()
+                        }
+                    }
+
                     if (chipsContent != null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         FlowRow(
@@ -224,11 +236,6 @@ fun BaseMediaCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             chipsContent()
-                        }
-                    } else if (infoContent != null) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            infoContent()
                         }
                     }
                 }

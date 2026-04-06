@@ -57,6 +57,8 @@ fun FolderCard(
   newVideoCount: Int = 0,
   customChipContent: @Composable (() -> Unit)? = null,
   isGridMode: Boolean = false,
+  thumbnailSize: androidx.compose.ui.unit.Dp = 64.dp,
+  thumbnailAspectRatio: Float = 1f,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
@@ -68,8 +70,8 @@ fun FolderCard(
   BaseMediaCard(
     title = folder.name,
     modifier = modifier,
-    thumbnailAspectRatio = 1f, // Always square for folders
-    thumbnailSize = 64.dp,
+    thumbnailAspectRatio = thumbnailAspectRatio,
+    thumbnailSize = thumbnailSize,
     thumbnailIcon = {
       Icon(
         customIcon ?: Icons.Filled.Folder,

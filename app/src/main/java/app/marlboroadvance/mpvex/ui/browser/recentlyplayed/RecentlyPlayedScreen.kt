@@ -72,6 +72,7 @@ import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.components.ConfirmDialog
 import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
 import app.marlboroadvance.mpvex.ui.browser.cards.FolderCard
+import app.marlboroadvance.mpvex.ui.browser.cards.PlaylistCard
 import app.marlboroadvance.mpvex.ui.browser.cards.VideoCard
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
 import app.marlboroadvance.mpvex.ui.browser.playlist.PlaylistDetailScreen
@@ -550,20 +551,14 @@ private fun RecentItemsContent(
                 }
 
                 is RecentlyPlayedItem.PlaylistItem -> {
-                  val folderModel = VideoFolder(
-                    bucketId = item.playlist.id.toString(),
-                    name = item.playlist.name,
-                    path = "",
-                    videoCount = item.videoCount,
-                    totalSize = 0,
-                    totalDuration = 0,
-                    lastModified = item.playlist.updatedAt / 1000,
-                  )
-                  FolderCard(
-                    folder = folderModel,
+                  PlaylistCard(
+                    playlist = item.playlist,
+                    itemCount = item.videoCount,
                     uiSettings = uiSettings,
+                    mostRecentVideoPath = item.mostRecentVideoPath,
+                    thumbnailSize = thumbWidthDp,
+                    thumbnailAspectRatio = 16f / 9f,
                     isSelected = selectionManager.isSelected(item),
-                    isRecentlyPlayed = false,
                     onClick = {
                       if (selectionManager.isInSelectionMode) {
                         selectionManager.toggle(item)
@@ -587,8 +582,6 @@ private fun RecentItemsContent(
                         }
                       }
                     },
-                    customIcon = Icons.AutoMirrored.Filled.PlaylistPlay,
-                    showDateModified = true,
                     isGridMode = true,
                   )
                 }
@@ -661,20 +654,14 @@ private fun RecentItemsContent(
                 }
 
                 is RecentlyPlayedItem.PlaylistItem -> {
-                  val folderModel = VideoFolder(
-                    bucketId = item.playlist.id.toString(),
-                    name = item.playlist.name,
-                    path = "",
-                    videoCount = item.videoCount,
-                    totalSize = 0,
-                    totalDuration = 0,
-                    lastModified = item.playlist.updatedAt / 1000,
-                  )
-                  FolderCard(
-                    folder = folderModel,
+                  PlaylistCard(
+                    playlist = item.playlist,
+                    itemCount = item.videoCount,
                     uiSettings = uiSettings,
+                    mostRecentVideoPath = item.mostRecentVideoPath,
+                    thumbnailSize = 128.dp, // Match VideoCard list size
+                    thumbnailAspectRatio = 16f / 9f,
                     isSelected = selectionManager.isSelected(item),
-                    isRecentlyPlayed = false,
                     onClick = {
                       if (selectionManager.isInSelectionMode) {
                         selectionManager.toggle(item)
@@ -698,8 +685,6 @@ private fun RecentItemsContent(
                         }
                       }
                     },
-                    customIcon = Icons.AutoMirrored.Filled.PlaylistPlay,
-                    showDateModified = true,
                     isGridMode = false,
                   )
                 }

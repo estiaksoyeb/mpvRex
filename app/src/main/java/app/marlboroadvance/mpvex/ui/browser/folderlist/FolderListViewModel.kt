@@ -84,21 +84,21 @@ class FolderListViewModel(
     // Load cached folders instantly for immediate display
     val hasCachedData = loadCachedFolders()
 
-    // If no cached data (first launch), scan immediately. Otherwise defer to not slow down app launch
-    if (!hasCachedData) {
-      loadData()
-    } else {
+    if (hasCachedData) {
+      // If we have cached data, show it immediately and refresh silently in background
+      _hasCompletedInitialLoad.value = true
+      _isLoading.value = false
       viewModelScope.launch(Dispatchers.IO) {
-        kotlinx.coroutines.delay(2000) // Wait 2 seconds before refreshing
-        loadData()
+        loadData() 
       }
+    } else {
+      // No cache, must show scanning UI
+      loadData()
     }
 
-    // Refresh folders on global media library changes
+    // Refresh folders on global media library changes (Silently in background)
     viewModelScope.launch(Dispatchers.IO) {
       MediaLibraryEvents.changes.collectLatest {
-        // Clear cache when media library changes
-        MediaFileRepository.clearCache()
         loadData()
       }
     }
@@ -210,13 +210,13 @@ class FolderListViewModel(
 
     currentScanJob = viewModelScope.launch(Dispatchers.IO) {
       try {
-        if (_allVideoFolders.value.isEmpty()) {
+        val isFirstLoad = _allVideoFolders.value.isEmpty()
+        if (isFirstLoad) {
           _isLoading.value = true
+          _scanStatus.value = "Scanning media..."
         }
         
-        _scanStatus.value = "Scanning media..."
         val startTime = System.currentTimeMillis()
-        
         var folders = MediaFileRepository.getAllVideoFolders(getApplication())
         
         val scanTime = System.currentTimeMillis() - startTime
@@ -224,8 +224,10 @@ class FolderListViewModel(
 
         // Enrich with metadata only if needed
         if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
-          _isEnriching.value = true
-          _scanStatus.value = "Extracting metadata..."
+          if (isFirstLoad) {
+            _isEnriching.value = true
+            _scanStatus.value = "Extracting metadata..."
+          }
           folders = MetadataRetrieval.enrichFoldersIfNeeded(
             context = getApplication(),
             folders = folders,

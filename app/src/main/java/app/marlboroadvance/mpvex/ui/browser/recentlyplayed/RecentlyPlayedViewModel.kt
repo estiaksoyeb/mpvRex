@@ -94,7 +94,7 @@ class RecentlyPlayedViewModel(application: Application) :
     }
   }
 
-  override fun refresh() {
+  override fun refresh(silent: Boolean) {
     loadData()
   }
 

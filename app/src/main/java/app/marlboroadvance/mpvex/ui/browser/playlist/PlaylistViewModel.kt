@@ -75,7 +75,7 @@ class PlaylistViewModel(
     }
   }
 
-  override fun refresh() {
+  override fun refresh(silent: Boolean) {
     loadData()
   }
 

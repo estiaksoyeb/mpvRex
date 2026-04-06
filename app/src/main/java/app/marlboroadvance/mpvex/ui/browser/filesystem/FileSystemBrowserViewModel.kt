@@ -130,14 +130,16 @@ class FileSystemBrowserViewModel(
     loadCurrentDirectory()
   }
 
-  override fun refresh() {
+  override fun refresh(silent: Boolean) {
     Log.d(TAG, "Hard refreshing current directory: ${_currentPath.value}")
     
     viewModelScope.launch(Dispatchers.IO) {
-      _isLoading.value = true
+      if (!silent) {
+        _isLoading.value = true
+      }
       MediaFileRepository.clearCache()
       triggerMediaScan()
-      delay(800)
+      delay(if (silent) 100 else 800)
       loadData()
     }
   }

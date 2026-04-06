@@ -69,7 +69,7 @@ class NetworkBrowserViewModel(
     }
   }
 
-  override fun refresh() {
+  override fun refresh(silent: Boolean) {
     loadData()
   }
 

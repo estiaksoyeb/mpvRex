@@ -62,19 +62,21 @@ abstract class BaseBrowserViewModel<T>(
   /**
    * Common hard refresh logic:
    * 1. Clear Cache
-   * 2. Set Loading State
+   * 2. Set Loading State (unless silent)
    * 3. Trigger Scan
    * 4. Reload after delay
    */
-  open fun refresh() {
+  open fun refresh(silent: Boolean = false) {
     viewModelScope.launch(Dispatchers.IO) {
-      _isLoading.value = true
+      if (!silent) {
+        _isLoading.value = true
+      }
       
       // Clear core media scanner cache
       MediaFileRepository.clearCache()
       
       // Delay to allow filesystem/MediaStore sync if needed
-      delay(500)
+      delay(if (silent) 100 else 500)
       
       loadData()
     }

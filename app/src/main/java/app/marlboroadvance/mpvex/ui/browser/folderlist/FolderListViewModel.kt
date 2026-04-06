@@ -103,17 +103,20 @@ class FolderListViewModel(
       }
     }
 
-    // Filter folders based on blacklist and audio visibility
+    // Filter folders based on blacklist, audio visibility, and playback status
     viewModelScope.launch {
       combine(
         _allVideoFolders, 
         foldersPreferences.blacklistedFolders.changes(),
-        browserPreferences.showAudioFiles.changes()
-      ) { folders, blacklist, showAudio ->
-        folders.filter { folder -> 
+        browserPreferences.showAudioFiles.changes(),
+        playbackStateRepository.observeAllPlaybackStates()
+      ) { folders, blacklist, showAudio, playbackStates ->
+        val filtered = folders.filter { folder -> 
           folder.path !in blacklist && (showAudio || folder.videoCount > 0)
         }
-      }.collectLatest { filteredFolders ->
+        // Bundle all data for processing
+        kotlin.Triple(filtered, folders, playbackStates)
+      }.collectLatest { (filteredFolders, allFolders, playbackStates) ->
         // Check if folders became empty after having folders
         if (previousFolderCount > 0 && filteredFolders.isEmpty()) {
           _foldersWereDeleted.value = true
@@ -128,10 +131,10 @@ class FolderListViewModel(
 
         _videoFolders.value = filteredFolders
         // Calculate new video counts for each folder
-        recalculateNewVideoCounts(filteredFolders)
+        recalculateNewVideoCounts(filteredFolders, playbackStates)
 
         // Save to cache for next app launch (save unfiltered list)
-        saveFoldersToCache(_allVideoFolders.value)
+        saveFoldersToCache(allFolders)
       }
     }
   }
@@ -250,18 +253,30 @@ class FolderListViewModel(
     }
   }
 
-  fun recalculateNewVideoCounts(folders: List<VideoFolder> = videoFolders.value) {
+  fun recalculateNewVideoCounts(
+    folders: List<VideoFolder> = videoFolders.value,
+    playbackStates: List<app.marlboroadvance.mpvex.database.entities.PlaybackStateEntity>? = null
+  ) {
     viewModelScope.launch(Dispatchers.Default) {
       try {
-        val recentlyPlayedList = playbackStateRepository.getAllPlaybackStates()
+        val currentTime = System.currentTimeMillis()
+        val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+        val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
+        
+        val currentStates = playbackStates ?: playbackStateRepository.getAllPlaybackStates()
+        
         val foldersWithCount = folders.map { folder ->
           val folderVideos = MediaFileRepository.getVideosInFolder(getApplication(), folder.path)
-          val unplayedCount = folderVideos.count { video ->
-            val state = recentlyPlayedList.find { it.mediaTitle == video.displayName }
-            // Video is unplayed if no playback state exists, or if it hasn't been finished (e.g. > 10s remaining)
-            state == null || state.timeRemaining > 10
+          val newVideoCount = folderVideos.count { video ->
+            val state = currentStates.find { it.mediaTitle == video.displayName }
+            val videoAge = currentTime - (video.dateModified * 1000)
+            
+            // A video is "NEW" if:
+            // 1. It has never been played (no playback state)
+            // 2. It was added/modified within the threshold days
+            state == null && videoAge <= thresholdMillis
           }
-          FolderWithNewCount(folder, unplayedCount)
+          FolderWithNewCount(folder, newVideoCount)
         }
         _foldersWithNewCount.value = foldersWithCount
       } catch (e: Exception) {

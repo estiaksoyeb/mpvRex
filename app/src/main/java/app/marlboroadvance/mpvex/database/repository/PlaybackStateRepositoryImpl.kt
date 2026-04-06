@@ -31,4 +31,7 @@ class PlaybackStateRepositoryImpl(
 
   override suspend fun getAllPlaybackStates(): List<PlaybackStateEntity> =
     database.videoDataDao().getAllPlaybackStates()
+
+  override fun observeAllPlaybackStates(): kotlinx.coroutines.flow.Flow<List<PlaybackStateEntity>> =
+    database.videoDataDao().observeAllPlaybackStates()
 }

@@ -89,7 +89,8 @@ class PlayerViewModel(
   private val subtitlesPreferences: SubtitlesPreferences by inject()
   private val advancedPreferences: AdvancedPreferences by inject()
   private val json: Json by inject()
-  private val playbackStateDao: app.marlboroadvance.mpvex.database.dao.PlaybackStateDao by inject()
+  private val playbackStateRepository: app.marlboroadvance.mpvex.domain.playbackstate.repository.PlaybackStateRepository by inject()
+  private val recentlyPlayedRepository: app.marlboroadvance.mpvex.domain.recentlyplayed.repository.RecentlyPlayedRepository by inject()
   private val wyzieRepository: WyzieSearchRepository by inject()
 
   /**
@@ -108,6 +109,18 @@ class PlayerViewModel(
     onShowToast = { showToast(it) }
   )
   val subtitleManager: SubtitleManager get() = _subtitleManager
+
+  /**
+   * Manager for history tracking and position saving.
+   */
+  private val _historyManager = app.marlboroadvance.mpvex.utils.history.HistoryManager(
+    context = host.context,
+    recentlyPlayedRepository = recentlyPlayedRepository,
+    playbackStateRepository = playbackStateRepository,
+    advancedPreferences = advancedPreferences,
+    scope = viewModelScope
+  )
+  val historyManager: app.marlboroadvance.mpvex.utils.history.HistoryManager get() = _historyManager
 
   /**
    * Manager for custom user-defined buttons.

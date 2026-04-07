@@ -1841,16 +1841,26 @@ class PlayerActivity :
     lifecycleScope.launch(Dispatchers.IO) {
       val playlist = viewModel.playlistManager.playlist.value
       val playlistIndex = viewModel.playlistManager.currentIndex.value
-      if (playlist.isNotEmpty()) {
-        // For playlist items, save using the current URI
-        if (playlistIndex >= 0 && playlistIndex < playlist.size) {
-          saveRecentlyPlayedForUri(playlist[playlistIndex], fileName)
-        } else {
-          Log.w(TAG, "Cannot save recently played: invalid playlist index $playlistIndex (playlist size: ${playlist.size})")
-        }
+      val currentUri = if (playlist.isNotEmpty() && playlistIndex >= 0 && playlistIndex < playlist.size) {
+        playlist[playlistIndex]
       } else {
-        // For non-playlist videos, use the original saveRecentlyPlayed
-        saveRecentlyPlayed()
+        extractUriFromIntent(intent)
+      }
+
+      if (currentUri != null) {
+        val launchSource = when {
+          intent.getStringExtra("launch_source") != null -> intent.getStringExtra("launch_source")!!
+          playlist.isNotEmpty() -> "playlist"
+          intent.action == Intent.ACTION_SEND -> "share"
+          else -> "normal"
+        }
+
+        viewModel.historyManager.recordPlaybackStart(
+          uri = currentUri,
+          fileName = fileName,
+          launchSource = launchSource,
+          playlistId = viewModel.playlistManager.playlistId
+        )
       }
     }
 
@@ -2033,23 +2043,8 @@ class PlayerActivity :
             MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
           }.getOrDefault(0)
 
-          // Update metadata without thumbnail
-          runCatching {
-            RecentlyPlayedOps.updateVideoMetadata(
-              filePath,
-              fileName,
-              updatedDuration,
-              updatedFileSize,
-              updatedWidth,
-              updatedHeight,
-            )
-            Log.d(
-              TAG,
-              "Updated recently played metadata: $fileName (duration: ${updatedDuration}ms, size: ${updatedFileSize}B, resolution: ${updatedWidth}x${updatedHeight}) for $filePath",
-            )
-          }.onFailure { e ->
-            Log.e(TAG, "Error updating video metadata in recently played", e)
-          }
+          // Update metadata in history
+          viewModel.historyManager.updateCurrentMediaMetadata(fileName)
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error fetching network stream title", e)
@@ -2300,112 +2295,6 @@ class PlayerActivity :
    *
    * Handles various URI schemes and infers launch source.
    */
-  private suspend fun saveRecentlyPlayed() {
-    runCatching {
-      val uri = extractUriFromIntent(intent)
-
-      if (uri == null) {
-        Log.w(TAG, "Cannot save recently played: URI is null")
-        return@runCatching
-      }
-
-      if (uri.scheme == null) {
-        Log.w(TAG, "Cannot save recently played: URI has null scheme: $uri")
-        return@runCatching
-      }
-
-      val filePath =
-        when (uri.scheme) {
-          "file" -> {
-            uri.path ?: uri.toString()
-          }
-
-          "content" -> {
-            contentResolver
-              .query(
-                uri,
-                arrayOf(MediaStore.MediaColumns.DATA),
-                null,
-                null,
-                null,
-              )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                  val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-                  if (columnIndex != -1) cursor.getString(columnIndex) else null
-                } else {
-                  null
-                }
-              } ?: uri.toString()
-          }
-
-          else -> {
-            uri.toString()
-          }
-        }
-
-      val launchSource =
-        when {
-          intent.getStringExtra("launch_source") != null -> intent.getStringExtra("launch_source")
-          intent.action == Intent.ACTION_SEND -> "share"
-          else -> "normal"
-        }
-
-      // Get parsed video title from MPV
-      val videoTitle = runCatching {
-        MPVLib.getPropertyString("media-title")
-      }.getOrNull()?.takeIf { it.isNotBlank() && it != fileName }
-
-      // Get duration and file size from MPV
-      val duration = runCatching {
-        (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
-      }.getOrDefault(0L)
-
-      val fileSize = runCatching {
-        // Try multiple properties to get file size
-        MPVLib.getPropertyDouble("file-size")?.toLong()
-          ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
-          ?: 0L
-      }.getOrDefault(0L)
-
-      // Get video resolution from MPV
-      val width = runCatching {
-        MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
-      }.getOrDefault(0)
-
-      val height = runCatching {
-        MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
-      }.getOrDefault(0)
-
-      val artist = MPVLib.getPropertyString("metadata/by-key/performer") ?: 
-                   MPVLib.getPropertyString("metadata/by-key/artist") ?: ""
-      val album = MPVLib.getPropertyString("metadata/by-key/album") ?: ""
-      val isAudio = height <= 0
-
-      RecentlyPlayedOps.addRecentlyPlayed(
-        filePath = filePath,
-        fileName = fileName,
-        videoTitle = videoTitle,
-        duration = duration,
-        fileSize = fileSize,
-        width = width,
-        height = height,
-        launchSource = launchSource,
-        isAudio = isAudio,
-        artist = artist,
-        album = album,
-      )
-      Log.d(TAG, "Saved recently played: $filePath")
-      Log.d(TAG, "  - fileName: $fileName")
-      Log.d(TAG, "  - videoTitle: $videoTitle")
-      Log.d(TAG, "  - duration: ${duration}ms")
-      Log.d(TAG, "  - size: ${fileSize}B")
-      Log.d(TAG, "  - resolution: ${width}x${height}")
-      Log.d(TAG, "  - source: $launchSource")
-    }.onFailure { e ->
-      Log.e(TAG, "Error saving recently played", e)
-    }
-  }
-
   // ==================== Intent and Result Management ====================
 
   /**
@@ -3196,91 +3085,12 @@ class PlayerActivity :
     uri: Uri,
     name: String,
   ) {
-    runCatching {
-      val filePath =
-        when (uri.scheme) {
-          "file" -> {
-            uri.path ?: uri.toString()
-          }
-
-          "content" -> {
-            contentResolver
-              .query(
-                uri,
-                arrayOf(MediaStore.MediaColumns.DATA),
-                null,
-                null,
-                null,
-              )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                  val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-                  if (columnIndex != -1) cursor.getString(columnIndex) else null
-                } else {
-                  null
-                }
-              } ?: uri.toString()
-          }
-
-          else -> {
-            uri.toString()
-          }
-        }
-
-      // Get parsed video title from MPV
-      val videoTitle = runCatching {
-        MPVLib.getPropertyString("media-title")
-      }.getOrNull()?.takeIf { it.isNotBlank() && it != name }
-
-      // Get duration and file size from MPV
-      val duration = runCatching {
-        (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
-      }.getOrDefault(0L)
-
-      val fileSize = runCatching {
-        // Try multiple properties to get file size
-        MPVLib.getPropertyDouble("file-size")?.toLong()
-          ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
-          ?: 0L
-      }.getOrDefault(0L)
-
-      // Get video resolution from MPV
-      val width = runCatching {
-        MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
-      }.getOrDefault(0)
-
-      val height = runCatching {
-        MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
-      }.getOrDefault(0)
-
-      val artist = MPVLib.getPropertyString("metadata/by-key/performer") ?: 
-                   MPVLib.getPropertyString("metadata/by-key/artist") ?: ""
-      val album = MPVLib.getPropertyString("metadata/by-key/album") ?: ""
-      val isAudio = height <= 0
-
-      RecentlyPlayedOps.addRecentlyPlayed(
-        filePath = filePath,
-        fileName = name,
-        videoTitle = videoTitle,
-        duration = duration,
-        fileSize = fileSize,
-        width = width,
-        height = height,
-        launchSource = "playlist",
-        playlistId = viewModel.playlistManager.playlistId,
-        isAudio = isAudio,
-        artist = artist,
-        album = album,
-      )
-      Log.d(TAG, "Saved recently played (playlist): $filePath")
-      Log.d(TAG, "  - fileName: $name")
-      Log.d(TAG, "  - videoTitle: $videoTitle")
-      Log.d(TAG, "  - duration: ${duration}ms")
-      Log.d(TAG, "  - size: ${fileSize}B")
-      Log.d(TAG, "  - resolution: ${width}x${height}")
-      Log.d(TAG, "  - playlistId: ${viewModel.playlistManager.playlistId}")
-    }.onFailure { e ->
-      Log.e(TAG, "Error saving recently played for playlist item", e)
-    }
+    viewModel.historyManager.recordPlaybackStart(
+      uri = uri,
+      fileName = name,
+      launchSource = "playlist",
+      playlistId = viewModel.playlistManager.playlistId
+    )
   }
 
   /**

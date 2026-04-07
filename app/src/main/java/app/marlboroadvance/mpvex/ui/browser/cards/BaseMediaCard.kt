@@ -57,6 +57,8 @@ fun BaseMediaCard(
     onLongClick: (() -> Unit)? = null,
     onThumbClick: (() -> Unit)? = null,
     isSelected: Boolean = false,
+    isRecentlyPlayed: Boolean = false,
+    isNeverPlayed: Boolean = false,
     isGridMode: Boolean = false,
     gridColumns: Int = 1,
     progressPercentage: Float? = null,
@@ -138,11 +140,15 @@ fun BaseMediaCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = when {
+                        isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                        isNeverPlayed -> MaterialTheme.colorScheme.onSurface
+                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    },
                     maxLines = maxTitleLines,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = if (gridColumns == 1) TextAlign.Start else TextAlign.Center,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = if (isRecentlyPlayed) FontWeight.Black else FontWeight.Medium,
                 )
                 
                 // Extra info row (if any)
@@ -218,9 +224,14 @@ fun BaseMediaCard(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = when {
+                            isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            isNeverPlayed -> MaterialTheme.colorScheme.onSurface
+                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        },
                         maxLines = maxTitleLines,
                         overflow = TextOverflow.Ellipsis,
+                        fontWeight = if (isRecentlyPlayed) FontWeight.Black else FontWeight.Normal,
                     )
 
                     if (infoContent != null) {

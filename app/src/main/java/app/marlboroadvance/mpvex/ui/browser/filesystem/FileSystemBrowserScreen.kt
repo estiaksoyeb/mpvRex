@@ -183,6 +183,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val playlistMode by playerPreferences.playlistMode.collectAsState()
   val itemsWereDeletedOrMoved by viewModel.itemsWereDeletedOrMoved.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
+  val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
 
   // Use standalone local states instead of CompositionLocal to avoid scroll issues with predictive back gesture
   val listState = remember { LazyListState() }
@@ -821,6 +822,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 playlistMode = playlistMode,
                 itemsWereDeletedOrMoved = itemsWereDeletedOrMoved,
                 showSubtitleIndicator = showSubtitleIndicator,
+                recentlyPlayedFilePath = recentlyPlayedFilePath,
                 navigationBarHeight = navigationBarHeight,
                 onRefresh = { viewModel.refresh() },
                 onFolderClick = { folder ->
@@ -1177,6 +1179,7 @@ private fun FileSystemBrowserContent(
   playlistMode: Boolean,
   itemsWereDeletedOrMoved: Boolean,
   showSubtitleIndicator: Boolean,
+  recentlyPlayedFilePath: String?,
   navigationBarHeight: Dp,
   onRefresh: suspend () -> Unit,
   onFolderClick: (FileSystemItem.Folder) -> Unit,
@@ -1335,7 +1338,7 @@ private fun FileSystemBrowserContent(
                 isSelected = folderSelectionManager.isSelected(folder),
                 newVideoCount = folder.newCount,
 
-                isRecentlyPlayed = false,
+                isRecentlyPlayed = recentlyPlayedFilePath?.let { it.startsWith(folder.path + "/") && folder.path != "/" } ?: false,
                 onClick = { onFolderClick(folder) },
                 onLongClick = { onFolderLongClick(folder) },
                 onThumbClick = if (tapThumbnailToSelect) {
@@ -1357,7 +1360,8 @@ private fun FileSystemBrowserContent(
                 uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                 isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
-                isRecentlyPlayed = false,
+                isRecentlyPlayed = recentlyPlayedFilePath == videoFile.video.path,
+                isNeverPlayed = videoFilesWithPlayback[videoFile.video.id] == null,
                 isSelected = videoSelectionManager.isSelected(videoFile.video),
                 onClick = { onVideoClick(videoFile.video) },
                 onLongClick = { onVideoLongClick(videoFile.video) },

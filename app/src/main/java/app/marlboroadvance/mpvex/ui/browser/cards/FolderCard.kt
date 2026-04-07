@@ -84,6 +84,7 @@ fun FolderCard(
     onLongClick = onLongClick,
     onThumbClick = onThumbClick,
     isSelected = isSelected,
+    isRecentlyPlayed = isRecentlyPlayed,
     isGridMode = isGridMode,
     maxTitleLines = maxLines,
     overlayContent = {

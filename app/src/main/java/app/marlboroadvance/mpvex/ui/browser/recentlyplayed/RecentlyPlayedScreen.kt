@@ -103,6 +103,7 @@ object RecentlyPlayedScreen : Screen {
     val recentItems by viewModel.recentItems.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val uiSettings by viewModel.uiSettings.collectAsState()
+    val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
     val deleteDialogOpen = rememberSaveable { mutableStateOf(false) }
     val deleteFilesCheckbox = rememberSaveable { mutableStateOf(false) }
     val advancedPreferences = koinInject<AdvancedPreferences>()
@@ -317,6 +318,7 @@ object RecentlyPlayedScreen : Screen {
             recentItems = recentItems,
             playlistRepository = playlistRepository,
             uiSettings = uiSettings,
+            recentlyPlayedFilePath = recentlyPlayedFilePath,
             selectionManager = selectionManager,
             onVideoClick = { video ->
               // Always play individual videos without creating a playlist
@@ -406,6 +408,7 @@ private fun RecentItemsContent(
   recentItems: List<RecentlyPlayedItem>,
   playlistRepository: PlaylistRepository,
   uiSettings: UiSettings,
+  recentlyPlayedFilePath: String?,
   selectionManager: app.marlboroadvance.mpvex.ui.browser.selection.SelectionManager<RecentlyPlayedItem, String>,
   onVideoClick: (Video) -> Unit,
   onPlaylistClick: suspend (RecentlyPlayedItem.PlaylistItem) -> Unit,
@@ -525,6 +528,7 @@ private fun RecentItemsContent(
                     uiSettings = uiSettings,
                     progressPercentage = null,
                     isSelected = selectionManager.isSelected(item),
+                    isRecentlyPlayed = recentlyPlayedFilePath == item.video.path,
                     onClick = {
                       if (selectionManager.isInSelectionMode) {
                         selectionManager.toggle(item)
@@ -629,6 +633,7 @@ private fun RecentItemsContent(
                     uiSettings = uiSettings,
                     progressPercentage = null,
                     isSelected = selectionManager.isSelected(item),
+                    isRecentlyPlayed = recentlyPlayedFilePath == item.video.path,
                     onClick = {
                       if (selectionManager.isInSelectionMode) {
                         selectionManager.toggle(item)

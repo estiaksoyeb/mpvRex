@@ -745,9 +745,8 @@ private fun GridContent(
     ) {
       items(folders.size) { index ->
         val folder = folders[index]
-        val isRecentlyPlayed = recentlyPlayedFilePath?.let { filePath ->
-          val file = File(filePath)
-          file.parent == folder.path
+        val isRecentlyPlayed = recentlyPlayedFilePath?.let {
+          java.io.File(it).parent == folder.path
         } ?: false
 
         val newCount = foldersWithNewCount
@@ -817,9 +816,8 @@ private fun ListContent(
       ),
     ) {
       items(folders) { folder ->
-        val isRecentlyPlayed = recentlyPlayedFilePath?.let { filePath ->
-          val file = File(filePath)
-          file.parent == folder.path
+        val isRecentlyPlayed = recentlyPlayedFilePath?.let {
+          java.io.File(it).parent == folder.path
         } ?: false
 
         val newCount = foldersWithNewCount

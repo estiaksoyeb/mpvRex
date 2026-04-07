@@ -3,8 +3,8 @@ package app.marlboroadvance.mpvex.utils.storage
 import android.content.Context
 import android.provider.MediaStore
 import android.util.Log
+import app.marlboroadvance.mpvex.database.entities.PlaybackStateEntity
 import app.marlboroadvance.mpvex.domain.media.model.MediaFolder
-import app.marlboroadvance.mpvex.domain.media.model.Video
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -42,6 +42,7 @@ object CoreMediaScanner {
         val name: String,
         val directVideoCount: Int = 0,
         val directAudioCount: Int = 0,
+        val directNewCount: Int = 0,
         val directSize: Long = 0L,
         val directDuration: Long = 0L,
         val lastModified: Long = 0L,
@@ -49,6 +50,7 @@ object CoreMediaScanner {
         // Recursive properties (will be calculated after scan)
         var recursiveVideoCount: Int = 0,
         var recursiveAudioCount: Int = 0,
+        var recursiveNewCount: Int = 0,
         var recursiveSize: Long = 0L,
         var recursiveDuration: Long = 0L,
         var latestModified: Long = 0L
@@ -58,6 +60,7 @@ object CoreMediaScanner {
      * Basic info for a single media item found during scan
      */
     private data class ScannedItem(
+        val name: String,
         val size: Long,
         val duration: Long,
         val dateModified: Long,
@@ -67,8 +70,12 @@ object CoreMediaScanner {
     /**
      * Get all folders that contain media files (flat list for Album View)
      */
-    suspend fun getFlatMediaFolders(context: Context): List<MediaFolder> = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context)
+    suspend fun getFlatMediaFolders(
+        context: Context,
+        playbackStates: List<PlaybackStateEntity> = emptyList(),
+        thresholdDays: Int = 7
+    ): List<MediaFolder> = withContext(Dispatchers.IO) {
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays)
         
         // Filter for folders that have DIRECT media files
         allNodes.values
@@ -84,7 +91,8 @@ object CoreMediaScanner {
                     totalDuration = node.directDuration,
                     lastModified = node.lastModified,
                     hasSubfolders = node.hasDirectSubfolders,
-                    isRecursive = false
+                    isRecursive = false,
+                    newCount = node.directNewCount
                 )
             }.sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
@@ -94,9 +102,11 @@ object CoreMediaScanner {
      */
     suspend fun getFoldersInDirectory(
         context: Context, 
-        parentPath: String
+        parentPath: String,
+        playbackStates: List<PlaybackStateEntity> = emptyList(),
+        thresholdDays: Int = 7
     ): List<MediaFolder> = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays)
         
         // Filter for direct subfolders of the parent
         allNodes.values.filter { node ->
@@ -114,7 +124,8 @@ object CoreMediaScanner {
                 totalDuration = node.recursiveDuration,
                 lastModified = node.latestModified,
                 hasSubfolders = node.hasDirectSubfolders,
-                isRecursive = true
+                isRecursive = true,
+                newCount = node.recursiveNewCount
             )
         }.sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
@@ -124,9 +135,11 @@ object CoreMediaScanner {
      */
     suspend fun getFolderRecursiveData(
         context: Context,
-        path: String
+        path: String,
+        playbackStates: List<PlaybackStateEntity> = emptyList(),
+        thresholdDays: Int = 7
     ): MediaFolder? = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays)
         allNodes[path]?.let { node ->
             MediaFolder(
                 id = node.path,
@@ -138,7 +151,8 @@ object CoreMediaScanner {
                 totalDuration = node.recursiveDuration,
                 lastModified = node.latestModified,
                 hasSubfolders = node.hasDirectSubfolders,
-                isRecursive = true
+                isRecursive = true,
+                newCount = node.recursiveNewCount
             )
         }
     }
@@ -146,7 +160,11 @@ object CoreMediaScanner {
     /**
      * Main entry point for the scanning engine
      */
-    private suspend fun getOrBuildMediaTree(context: Context): Map<String, FolderNode> {
+    private suspend fun getOrBuildMediaTree(
+        context: Context,
+        playbackStates: List<PlaybackStateEntity>,
+        thresholdDays: Int
+    ): Map<String, FolderNode> {
         val now = System.currentTimeMillis()
         cachedMediaData?.let { cached ->
             if (now - cacheTimestamp < CACHE_TTL_MS) {
@@ -154,7 +172,7 @@ object CoreMediaScanner {
             }
         }
         
-        val tree = buildFullMediaTree(context)
+        val tree = buildFullMediaTree(context, playbackStates, thresholdDays)
         cachedMediaData = tree
         cacheTimestamp = now
         return tree
@@ -163,21 +181,29 @@ object CoreMediaScanner {
     /**
      * Performs the actual scan and hierarchy calculation
      */
-    private suspend fun buildFullMediaTree(context: Context): Map<String, FolderNode> {
+    private suspend fun buildFullMediaTree(
+        context: Context,
+        playbackStates: List<PlaybackStateEntity>,
+        thresholdDays: Int
+    ): Map<String, FolderNode> {
         val allNodes = mutableMapOf<String, FolderNode>()
         val rawMediaByFolder = mutableMapOf<String, MutableList<ScannedItem>>()
 
-        // Step 1: MediaStore Scan (Multi-threaded if needed)
+        // Step 1: MediaStore Scan
         scanMediaStore(context, rawMediaByFolder)
         
         // Step 2: Filesystem Scan for external volumes
         scanExternalVolumes(context, rawMediaByFolder)
+
+        val currentTime = System.currentTimeMillis()
+        val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
 
         // Step 3: Build Nodes for folders with direct media
         for ((folderPath, items) in rawMediaByFolder) {
             val file = File(folderPath)
             var videoCount = 0
             var audioCount = 0
+            var newCount = 0
             var totalSize = 0L
             var totalDuration = 0L
             var latestModified = 0L
@@ -187,6 +213,13 @@ object CoreMediaScanner {
                 totalDuration += item.duration
                 if (item.dateModified > latestModified) latestModified = item.dateModified
                 if (item.isAudio) audioCount++ else videoCount++
+
+                // Calculate NEW status
+                val playbackState = playbackStates.find { it.mediaTitle == item.name }
+                val videoAge = currentTime - (item.dateModified * 1000)
+                if (playbackState == null && videoAge <= thresholdMillis) {
+                    newCount++
+                }
             }
             
             allNodes[folderPath] = FolderNode(
@@ -194,6 +227,7 @@ object CoreMediaScanner {
                 name = file.name,
                 directVideoCount = videoCount,
                 directAudioCount = audioCount,
+                directNewCount = newCount,
                 directSize = totalSize,
                 directDuration = totalDuration,
                 lastModified = latestModified
@@ -223,6 +257,7 @@ object CoreMediaScanner {
         rawMedia: MutableMap<String, MutableList<ScannedItem>>
     ) {
         val projection = arrayOf(
+            MediaStore.MediaColumns.DISPLAY_NAME,
             MediaStore.MediaColumns.DATA,
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.DURATION,
@@ -231,6 +266,7 @@ object CoreMediaScanner {
         
         try {
             context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                val nameIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
                 val dataIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
                 val sizeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
                 val durationIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DURATION)
@@ -244,6 +280,7 @@ object CoreMediaScanner {
                     val folderPath = file.parent ?: continue
                     rawMedia.getOrPut(folderPath) { mutableListOf() }.add(
                         ScannedItem(
+                            name = cursor.getString(nameIdx) ?: file.name,
                             size = cursor.getLong(sizeIdx),
                             duration = cursor.getLong(durationIdx),
                             dateModified = cursor.getLong(dateIdx),
@@ -291,12 +328,9 @@ object CoreMediaScanner {
                 }
             } else if (file.isFile) {
                 if (FileTypeUtils.isMediaFile(file)) {
-                    // Skip if already in MediaStore (assuming folder path is enough to check for now)
-                    // In a perfect world we'd check the exact file path, but checking if the folder exists in rawMedia
-                    // might be too broad. Let's do a basic existence check in rawMedia map if needed, 
-                    // but for now, we'll just add it and rely on the map's folder grouping.
                     itemsInFolder.add(
                         ScannedItem(
+                            name = file.name,
                             size = file.length(),
                             duration = 0, // Filesystem doesn't give duration
                             dateModified = file.lastModified() / 1000,
@@ -317,11 +351,11 @@ object CoreMediaScanner {
     }
 
     private fun buildHierarchy(nodes: MutableMap<String, FolderNode>) {
-        val paths = nodes.keys.toSet()
-        val allPathsNeeded = mutableSetOf<String>()
+        val sortedPaths = nodes.keys.sortedByDescending { it.length }
         
-        // Find all parent paths
-        for (path in paths) {
+        // Find all parent paths needed
+        val allPathsNeeded = mutableSetOf<String>()
+        for (path in nodes.keys) {
             var p = File(path).parent
             while (p != null && p.length > 1) {
                 allPathsNeeded.add(p)
@@ -336,27 +370,28 @@ object CoreMediaScanner {
             }
         }
         
-        // Sort paths by length (deepest first) to calculate recursive counts
-        val sortedPaths = nodes.keys.sortedByDescending { it.length }
+        // Recalculate sorted paths with new parent nodes
+        val finalSortedPaths = nodes.keys.sortedByDescending { it.length }
         
-        for (path in sortedPaths) {
+        for (path in finalSortedPaths) {
             val node = nodes[path]!!
             
             // Set initial recursive values from direct values
             node.recursiveVideoCount = node.directVideoCount
             node.recursiveAudioCount = node.directAudioCount
+            node.recursiveNewCount = node.directNewCount
             node.recursiveSize = node.directSize
             node.recursiveDuration = node.directDuration
             node.latestModified = node.lastModified
             
             // Accumulate from all children (nodes where this path is the direct parent)
-            // AND check if it has direct subfolders
             var hasSubfolders = false
             for (otherNode in nodes.values) {
                 if (File(otherNode.path).parent == path) {
                     hasSubfolders = true
                     node.recursiveVideoCount += otherNode.recursiveVideoCount
                     node.recursiveAudioCount += otherNode.recursiveAudioCount
+                    node.recursiveNewCount += otherNode.recursiveNewCount
                     node.recursiveSize += otherNode.recursiveSize
                     node.recursiveDuration += otherNode.recursiveDuration
                     if (otherNode.latestModified > node.latestModified) {
@@ -365,7 +400,8 @@ object CoreMediaScanner {
                 }
             }
             
-            // Re-wrap to update the property (since it's a data class)
+            // Update the property (direct modification of var in data class)
+            // But node is val in the loop, so I need to update the map
             nodes[path] = node.copy(hasDirectSubfolders = hasSubfolders)
         }
     }

@@ -94,6 +94,7 @@ import app.marlboroadvance.mpvex.preferences.MediaLayoutMode
 import app.marlboroadvance.mpvex.preferences.SortOrder
 import app.marlboroadvance.mpvex.preferences.UiSettings
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
+import app.marlboroadvance.mpvex.repository.MediaFileRepository
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
 import app.marlboroadvance.mpvex.ui.browser.LocalNavigationBarHeight
@@ -272,7 +273,7 @@ object FolderListScreen : Screen {
     DisposableEffect(lifecycleOwner) {
       val observer = LifecycleEventObserver { _, event ->
         if (event == Lifecycle.Event.ON_RESUME) {
-          viewModel.recalculateNewVideoCounts()
+          viewModel.loadData()
         }
       }
       lifecycleOwner.lifecycle.addObserver(observer)
@@ -1146,11 +1147,10 @@ private suspend fun searchFoldersAndVideos(
     Log.d("FolderListScreen", "Searching for: $query")
     
     // Get all video folders
-    val folders = app.marlboroadvance.mpvex.repository.MediaFileRepository
-      .getAllVideoFoldersFast(context)
+    val folders = MediaFileRepository.getAllVideoFoldersFast(context)
     
     // Search in folders
-    folders.forEach { folder ->
+    folders.forEach { folder: app.marlboroadvance.mpvex.domain.media.model.VideoFolder ->
       if (folder.name.contains(query, ignoreCase = true) || 
           folder.path.contains(query, ignoreCase = true)) {
         results.add(
@@ -1161,6 +1161,8 @@ private suspend fun searchFoldersAndVideos(
             videoCount = folder.videoCount,
             totalSize = folder.totalSize,
             totalDuration = folder.totalDuration,
+            hasSubfolders = false, // Not easily known during search
+            newCount = folder.newCount
           )
         )
       }

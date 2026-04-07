@@ -6,10 +6,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.marlboroadvance.mpvex.database.repository.VideoMetadataCacheRepository
 import app.marlboroadvance.mpvex.domain.media.model.Video
+import app.marlboroadvance.mpvex.domain.playbackstate.repository.PlaybackStateRepository
 import app.marlboroadvance.mpvex.preferences.UiPreferences
 import app.marlboroadvance.mpvex.preferences.UiSettings
 import app.marlboroadvance.mpvex.repository.MediaFileRepository
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
+import app.marlboroadvance.mpvex.utils.media.MediaLibraryEvents
 import app.marlboroadvance.mpvex.utils.permission.PermissionUtils.StorageOps
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
@@ -35,6 +38,7 @@ abstract class BaseBrowserViewModel<T>(
   
   protected val metadataCache: VideoMetadataCacheRepository by inject()
   protected val uiPreferences: UiPreferences by inject()
+  protected val playbackStateRepository: PlaybackStateRepository by inject()
   
   // Common UI States
   val uiSettings: StateFlow<UiSettings> = uiPreferences.observeUiSettings()
@@ -58,6 +62,29 @@ abstract class BaseBrowserViewModel<T>(
    * Abstract load method to be implemented by subclasses
    */
   abstract fun loadData()
+
+  init {
+    // Reactive Synchronization:
+    // Observe playback state changes and invalidate the media scanner cache.
+    // This ensures that 'NEW' counts are updated immediately across all views
+    // as soon as a video is watched.
+    viewModelScope.launch(Dispatchers.IO) {
+      playbackStateRepository.observeAllPlaybackStates().collectLatest {
+        Log.d("BaseBrowserViewModel", "Playback states changed, invalidating scanner cache")
+        MediaFileRepository.clearCache()
+        loadData()
+      }
+    }
+
+    // Observe global media library changes (e.g. from MediaScanReceiver)
+    viewModelScope.launch(Dispatchers.IO) {
+      MediaLibraryEvents.changes.collectLatest { _ ->
+        Log.d("BaseBrowserViewModel", "Media library changed, refreshing")
+        MediaFileRepository.clearCache()
+        loadData()
+      }
+    }
+  }
 
   /**
    * Common hard refresh logic:

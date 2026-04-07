@@ -37,7 +37,6 @@ class FileSystemBrowserViewModel(
   initialPath: String? = null,
 ) : BaseBrowserViewModel<FileSystemItem>(application),
   KoinComponent {
-  private val playbackStateRepository: PlaybackStateRepository by inject()
   private val browserPreferences: BrowserPreferences by inject()
   private val appearancePreferences: app.marlboroadvance.mpvex.preferences.AppearancePreferences by inject()
 
@@ -54,6 +53,10 @@ class FileSystemBrowserViewModel(
   // Video playback progress map
   private val _videoFilesWithPlayback = MutableStateFlow<Map<Long, Float>>(emptyMap())
   val videoFilesWithPlayback: StateFlow<Map<Long, Float>> = _videoFilesWithPlayback.asStateFlow()
+
+  // Set of video IDs that should show the "NEW" label
+  private val _newVideoIds = MutableStateFlow<Set<Long>>(emptySet())
+  val newVideoIds: StateFlow<Set<Long>> = _newVideoIds.asStateFlow()
 
   private val _error = MutableStateFlow<String?>(null)
   val error: StateFlow<String?> = _error.asStateFlow()
@@ -106,12 +109,7 @@ class FileSystemBrowserViewModel(
       loadData()
     }
 
-    viewModelScope.launch(Dispatchers.IO) {
-      MediaLibraryEvents.changes.collectLatest {
-        MediaFileRepository.clearCache()
-        loadData()
-      }
-    }
+    // Note: BaseBrowserViewModel handles reactive updates for media library and playback changes.
 
     viewModelScope.launch {
       combine(
@@ -282,20 +280,38 @@ class FileSystemBrowserViewModel(
   private fun loadPlaybackInfo(items: List<FileSystemItem>) {
     viewModelScope.launch(Dispatchers.IO) {
       val videoFiles = items.filterIsInstance<FileSystemItem.VideoFile>()
+      val playbackStates = playbackStateRepository.getAllPlaybackStates()
+      
       val playbackMap = mutableMapOf<Long, Float>()
+      val newIds = mutableSetOf<Long>()
+      
+      val currentTime = System.currentTimeMillis()
+      val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+      val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
+
       videoFiles.forEach { videoFile ->
         val video = videoFile.video
-        val playbackState = playbackStateRepository.getVideoDataByTitle(video.displayName)
-        if (playbackState != null && video.duration > 0) {
+        val state = playbackStates.find { it.mediaTitle == video.displayName }
+        
+        // Progress calculation
+        if (state != null && video.duration > 0) {
           val durationSeconds = video.duration / 1000
-          val watched = durationSeconds - playbackState.timeRemaining.toLong()
+          val watched = durationSeconds - state.timeRemaining.toLong()
           val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
           if (progressValue in 0.01f..0.99f) {
             playbackMap[video.id] = progressValue
           }
         }
+        
+        // NEW status calculation
+        val videoAge = currentTime - (video.dateModified * 1000)
+        if (state == null && videoAge <= thresholdMillis) {
+          newIds.add(video.id)
+        }
       }
+      
       _videoFilesWithPlayback.value = playbackMap
+      _newVideoIds.value = newIds
     }
   }
 }

@@ -174,6 +174,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val currentPath by viewModel.currentPath.collectAsState()
   val items by viewModel.items.collectAsState()
   val videoFilesWithPlayback by viewModel.videoFilesWithPlayback.collectAsState()
+  val newVideoIds by viewModel.newVideoIds.collectAsState()
   val isLoading by viewModel.isLoading.collectAsState()
   val uiSettings by viewModel.uiSettings.collectAsState()
   val error by viewModel.error.collectAsState()
@@ -789,6 +790,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 searchResults = searchResults,
                 isLoading = isSearchLoading,
                 videoFilesWithPlayback = videoFilesWithPlayback,
+                newVideoIds = newVideoIds,
                 uiSettings = uiSettings,
                 showSubtitleIndicator = showSubtitleIndicator,
                 isAtRoot = isAtRoot,
@@ -809,6 +811,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 listState = listState,
                 items = items,
                 videoFilesWithPlayback = videoFilesWithPlayback,
+                newVideoIds = newVideoIds,
                 isLoading = isLoading && items.isEmpty(),
                 uiSettings = uiSettings,
                 isRefreshing = isRefreshing,
@@ -1164,6 +1167,7 @@ private fun FileSystemBrowserContent(
   listState: LazyListState,
   items: List<FileSystemItem>,
   videoFilesWithPlayback: Map<Long, Float>,
+  newVideoIds: Set<Long>,
   isLoading: Boolean,
   uiSettings: UiSettings,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
@@ -1329,6 +1333,7 @@ private fun FileSystemBrowserContent(
                 folder = folderModel,
                 uiSettings = uiSettings,
                 isSelected = folderSelectionManager.isSelected(folder),
+                newVideoCount = folder.newCount,
 
                 isRecentlyPlayed = false,
                 onClick = { onFolderClick(folder) },
@@ -1351,6 +1356,7 @@ private fun FileSystemBrowserContent(
                 video = videoFile.video,
                 uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
+                isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
                 isRecentlyPlayed = false,
                 isSelected = videoSelectionManager.isSelected(videoFile.video),
                 onClick = { onVideoClick(videoFile.video) },
@@ -1396,6 +1402,7 @@ private fun FileSystemSearchContent(
   searchResults: List<FileSystemItem>,
   isLoading: Boolean,
   videoFilesWithPlayback: Map<Long, Float>,
+  newVideoIds: Set<Long>,
   uiSettings: UiSettings,
   showSubtitleIndicator: Boolean,
   isAtRoot: Boolean,
@@ -1515,6 +1522,7 @@ private fun FileSystemSearchContent(
                 uiSettings = uiSettings,
                 isSelected = false,
                 isRecentlyPlayed = false,
+                newVideoCount = folder.newCount,
                 onClick = { onFolderClick(folder) },
                 onLongClick = { },
                 onThumbClick = { onFolderClick(folder) },
@@ -1531,6 +1539,7 @@ private fun FileSystemSearchContent(
                 video = videoFile.video,
                 uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
+                isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
                 isRecentlyPlayed = false,
                 isSelected = false,
                 onClick = { onVideoClick(videoFile.video) },

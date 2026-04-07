@@ -19,6 +19,7 @@ sealed class FileSystemItem {
     val totalSize: Long = 0L,
     val totalDuration: Long = 0L,
     val hasSubfolders: Boolean = false,
+    val newCount: Int = 0,
   ) : FileSystemItem()
 
 

@@ -15,6 +15,8 @@ import app.marlboroadvance.mpvex.utils.storage.StorageVolumeUtils
 import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
 import app.marlboroadvance.mpvex.utils.media.MediaFormatter
 import app.marlboroadvance.mpvex.utils.media.MediaInfoOps
+import app.marlboroadvance.mpvex.domain.playbackstate.repository.PlaybackStateRepository
+import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
@@ -26,21 +28,12 @@ import kotlin.math.pow
 /**
  * Unified repository for ALL media file operations
  * Consolidates FileSystemRepository, VideoRepository functionality
- *
- * This repository handles:
- * - Video folder discovery (album view)
- * - File system browsing (tree view)
- * - Video file listing
- * - Metadata extraction
- * - Path operations
- * - Storage volume detection
  */
 object MediaFileRepository {
   private const val TAG = "MediaFileRepository"
 
   /**
    * Clears all caches
-   * Call this when media library changes are detected or when forcing a hard refresh
    */
   fun clearCache() {
     Log.d(TAG, "Clearing all caches (CoreMediaScanner)")
@@ -59,10 +52,16 @@ object MediaFileRepository {
   ): List<VideoFolder> =
     withContext(Dispatchers.IO) {
       try {
-        val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
-        val isAudioEnabled = browserPreferences.showAudioFiles.get()
+        val koin = org.koin.core.context.GlobalContext.get()
+        val browserPreferences = koin.get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+        val appearancePreferences = koin.get<AppearancePreferences>()
+        val playbackStateRepository = koin.get<PlaybackStateRepository>()
         
-        val folders = CoreMediaScanner.getFlatMediaFolders(context)
+        val isAudioEnabled = browserPreferences.showAudioFiles.get()
+        val playbackStates = playbackStateRepository.getAllPlaybackStates()
+        val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+        
+        val folders = CoreMediaScanner.getFlatMediaFolders(context, playbackStates, thresholdDays)
         folders
           .filter { folder -> isAudioEnabled || folder.videoCount > 0 }
           .map { folder ->
@@ -74,7 +73,8 @@ object MediaFileRepository {
               audioCount = folder.audioCount,
               totalSize = folder.totalSize,
               totalDuration = folder.totalDuration,
-              lastModified = folder.lastModified
+              lastModified = folder.lastModified,
+              newCount = folder.newCount
             )
           }
       } catch (e: Exception) {
@@ -92,23 +92,12 @@ object MediaFileRepository {
     onProgress: ((Int) -> Unit)? = null,
   ): List<VideoFolder> = getAllVideoFolders(context)
 
-  /**
-   * No-op enrichment - MediaStore already provides all metadata
-   * Kept for backward compatibility
-   */
-  suspend fun enrichVideoFolders(
-    context: Context,
-    folders: List<VideoFolder>,
-    onProgress: ((Int, Int) -> Unit)? = null,
-  ): List<VideoFolder> = folders
-
   // =============================================================================
   // VIDEO FILE OPERATIONS
   // =============================================================================
 
   /**
    * Gets all videos in a specific folder
-   * @param bucketId Folder path
    */
   suspend fun getVideosInFolder(
     context: Context,
@@ -125,7 +114,6 @@ object MediaFileRepository {
 
   /**
    * Gets videos from multiple folders
-   * Shows all videos including hidden ones.
    */
   suspend fun getVideosForBuckets(
     context: Context,
@@ -139,183 +127,29 @@ object MediaFileRepository {
       result
     }
 
-  /**
-   * Creates Video objects from a list of files
-   */
-  suspend fun getVideosFromFiles(
-    context: Context,
-    files: List<File>,
-  ): List<Video> =
-    withContext(Dispatchers.IO) {
-      files.mapNotNull { file ->
-        try {
-          val folderPath = file.parent ?: ""
-          val folderName = file.parentFile?.name ?: ""
-          createVideoFromFile(context, file, folderPath, folderName)
-        } catch (e: Exception) {
-          Log.w(TAG, "Error creating video from file: ${file.absolutePath}", e)
-          null
-        }
-      }
-    }
-
-  /**
-   * Creates a Video object from a file with full metadata extraction
-   */
-  private suspend fun createVideoFromFile(
-    context: Context,
-    file: File,
-    bucketId: String,
-    bucketDisplayName: String,
-  ): Video {
-    val path = file.absolutePath
-    val displayName = file.name
-    val title = file.nameWithoutExtension
-    val dateModified = file.lastModified() / 1000
-
-    val extension = file.extension.lowercase()
-    val mimeType = FileTypeUtils.getMimeTypeFromExtension(extension)
-    val uri = Uri.fromFile(file)
-
-    // Extract metadata directly (no cache)
-    var size = file.length()
-    var duration = 0L
-    var width = 0
-    var height = 0
-    var fps = 0f
-    var hasEmbeddedSubtitles = false
-    var subtitleCodec = ""
-
-    // Extract metadata using MediaInfo
-    MediaInfoOps.extractBasicMetadata(context, uri, displayName).onSuccess { metadata ->
-      if (metadata.sizeBytes > 0) size = metadata.sizeBytes
-      duration = metadata.durationMs
-      width = metadata.width
-      height = metadata.height
-      fps = metadata.fps
-      hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles
-      subtitleCodec = metadata.subtitleCodec
-    }
-
-    return Video(
-      id = path.hashCode().toLong(),
-      title = title,
-      displayName = displayName,
-      path = path,
-      uri = uri,
-      duration = duration,
-      durationFormatted = MediaFormatter.formatDuration(duration),
-      size = size,
-      sizeFormatted = MediaFormatter.formatFileSize(size),
-      dateModified = dateModified,
-      dateAdded = dateModified,
-      mimeType = mimeType,
-      bucketId = bucketId,
-      bucketDisplayName = bucketDisplayName,
-      width = width,
-      height = height,
-      fps = fps,
-      resolution = MediaFormatter.formatResolutionWithFps(width, height, fps),
-      hasEmbeddedSubtitles = hasEmbeddedSubtitles,
-      subtitleCodec = subtitleCodec,
-    )
-  }
-
-  /**
-   * Creates a Video object from a file with pre-fetched metadata
-   * Use this when metadata has already been batch-extracted
-   */
-  private fun createVideoFromFileWithMetadata(
-    file: File,
-    bucketId: String,
-    bucketDisplayName: String,
-    metadata: MediaInfoOps.VideoMetadata?,
-  ): Video {
-    val path = file.absolutePath
-    val displayName = file.name
-    val title = file.nameWithoutExtension
-    val dateModified = file.lastModified() / 1000
-
-    val extension = file.extension.lowercase()
-    val mimeType = FileTypeUtils.getMimeTypeFromExtension(extension)
-    val uri = Uri.fromFile(file)
-
-    // Use pre-fetched metadata
-    var size = file.length()
-    var duration = 0L
-    var width = 0
-    var height = 0
-    var fps = 0f
-
-    metadata?.let {
-      if (it.sizeBytes > 0) size = it.sizeBytes
-      duration = it.durationMs
-      width = it.width
-      height = it.height
-      fps = it.fps
-    }
-    val hasEmbeddedSubtitles = metadata?.hasEmbeddedSubtitles ?: false
-    val subtitleCodec = metadata?.subtitleCodec ?: ""
-
-    return Video(
-      id = path.hashCode().toLong(),
-      title = title,
-      displayName = displayName,
-      path = path,
-      uri = uri,
-      duration = duration,
-      durationFormatted = MediaFormatter.formatDuration(duration),
-      size = size,
-      sizeFormatted = MediaFormatter.formatFileSize(size),
-      dateModified = dateModified,
-      dateAdded = dateModified,
-      mimeType = mimeType,
-      bucketId = bucketId,
-      bucketDisplayName = bucketDisplayName,
-      width = width,
-      height = height,
-      fps = fps,
-      resolution = MediaFormatter.formatResolutionWithFps(width, height, fps),
-      hasEmbeddedSubtitles = hasEmbeddedSubtitles,
-      subtitleCodec = subtitleCodec,
-    )
-  }
-
   // =============================================================================
   // FILE SYSTEM BROWSING (Tree View)
   // =============================================================================
-
-  /**
-   * Gets the default root path for the filesystem browser
-   */
-  fun getDefaultRootPath(): String = Environment.getExternalStorageDirectory().absolutePath
 
   /**
    * Parses a path into breadcrumb components
    */
   fun getPathComponents(path: String): List<PathComponent> {
     if (path.isBlank()) return emptyList()
-
     val components = mutableListOf<PathComponent>()
     val normalizedPath = path.trimEnd('/')
     val parts = normalizedPath.split("/").filter { it.isNotEmpty() }
-
     components.add(PathComponent("Root", "/"))
-
     var currentPath = ""
     for (part in parts) {
       currentPath += "/$part"
       components.add(PathComponent(part, currentPath))
     }
-
     return components
   }
 
   /**
    * Scans a directory and returns its contents (folders and video files)
-   * OPTIMIZED: Uses UnifiedMediaScanner for fast, consistent results
-   * @param showAllFileTypes If true, shows all files. If false, shows only videos.
-   * @param useFastCount If true, uses fast shallow counting (immediate children only). If false, uses deep recursive counting.
    */
   suspend fun scanDirectory(
     context: Context,
@@ -326,27 +160,22 @@ object MediaFileRepository {
     withContext(Dispatchers.IO) {
       try {
         val directory = File(path)
-
-        // Validation checks
-        if (!directory.exists()) {
-          return@withContext Result.failure(Exception("Directory does not exist: $path"))
-        }
-
-        if (!directory.canRead()) {
-          return@withContext Result.failure(Exception("Cannot read directory: $path"))
-        }
-
-        if (!directory.isDirectory) {
-          return@withContext Result.failure(Exception("Path is not a directory: $path"))
+        if (!directory.exists() || !directory.canRead() || !directory.isDirectory) {
+          return@withContext Result.failure(Exception("Invalid directory: $path"))
         }
 
         val items = mutableListOf<FileSystemItem>()
+        val koin = org.koin.core.context.GlobalContext.get()
+        val browserPreferences = koin.get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+        val appearancePreferences = koin.get<AppearancePreferences>()
+        val playbackStateRepository = koin.get<PlaybackStateRepository>()
+        
+        val isAudioEnabled = browserPreferences.showAudioFiles.get()
+        val playbackStates = playbackStateRepository.getAllPlaybackStates()
+        val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
 
         // Get folders using CoreMediaScanner (unified)
-        val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
-        val isAudioEnabled = browserPreferences.showAudioFiles.get()
-
-        val folders = CoreMediaScanner.getFoldersInDirectory(context, path)
+        val folders = CoreMediaScanner.getFoldersInDirectory(context, path, playbackStates, thresholdDays)
         folders
           .filter { data -> isAudioEnabled || data.videoCount > 0 }
           .forEach { folderData ->
@@ -360,6 +189,7 @@ object MediaFileRepository {
                 totalSize = folderData.totalSize,
                 totalDuration = folderData.totalDuration,
                 hasSubfolders = folderData.hasSubfolders,
+                newCount = folderData.newCount
               ),
             )
           }
@@ -380,9 +210,6 @@ object MediaFileRepository {
           }
 
         Result.success(items)
-      } catch (e: SecurityException) {
-        Log.e(TAG, "Security exception scanning directory: $path", e)
-        Result.failure(Exception("Permission denied: ${e.message}"))
       } catch (e: Exception) {
         Log.e(TAG, "Error scanning directory: $path", e)
         Result.failure(e)
@@ -395,16 +222,19 @@ object MediaFileRepository {
   suspend fun getStorageRoots(context: Context): List<FileSystemItem.Folder> =
     withContext(Dispatchers.IO) {
       val roots = mutableListOf<FileSystemItem.Folder>()
-
       try {
-        // Primary storage (internal)
+        val koin = org.koin.core.context.GlobalContext.get()
+        val appearancePreferences = koin.get<AppearancePreferences>()
+        val playbackStateRepository = koin.get<PlaybackStateRepository>()
+        
+        val playbackStates = playbackStateRepository.getAllPlaybackStates()
+        val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+
+        // Primary storage
         val primaryStorage = Environment.getExternalStorageDirectory()
         if (primaryStorage.exists() && primaryStorage.canRead()) {
           val primaryPath = primaryStorage.absolutePath
-          
-          // Get recursive count for this storage root
-          val folderData = CoreMediaScanner.getFolderRecursiveData(context, primaryPath)
-          
+          val folderData = CoreMediaScanner.getFolderRecursiveData(context, primaryPath, playbackStates, thresholdDays)
           roots.add(
             FileSystemItem.Folder(
               name = "Internal Storage",
@@ -415,42 +245,36 @@ object MediaFileRepository {
               totalSize = folderData?.totalSize ?: 0L,
               totalDuration = folderData?.totalDuration ?: 0L,
               hasSubfolders = true,
+              newCount = folderData?.newCount ?: 0
             ),
           )
         }
 
-        // External volumes (SD cards, USB OTG)
+        // External volumes
         val externalVolumes = StorageVolumeUtils.getExternalStorageVolumes(context)
         for (volume in externalVolumes) {
-          val volumePath = StorageVolumeUtils.getVolumePath(volume)
-          if (volumePath != null) {
-            val volumeDir = File(volumePath)
-            if (volumeDir.exists() && volumeDir.canRead()) {
-              val volumeName = volume.getDescription(context)
-              
-              // Get recursive count for this storage root
-              val folderData = CoreMediaScanner.getFolderRecursiveData(context, volumePath)
-              
-              roots.add(
-                FileSystemItem.Folder(
-                  name = volumeName,
-                  path = volumeDir.absolutePath,
-                  lastModified = volumeDir.lastModified(),
-                  videoCount = folderData?.videoCount ?: 0,
-                  audioCount = folderData?.audioCount ?: 0,
-                  totalSize = folderData?.totalSize ?: 0L,
-                  totalDuration = folderData?.totalDuration ?: 0L,
-                  hasSubfolders = true,
-                ),
-              )
-            }
+          val volumePath = StorageVolumeUtils.getVolumePath(volume) ?: continue
+          val volumeDir = File(volumePath)
+          if (volumeDir.exists() && volumeDir.canRead()) {
+            val folderData = CoreMediaScanner.getFolderRecursiveData(context, volumePath, playbackStates, thresholdDays)
+            roots.add(
+              FileSystemItem.Folder(
+                name = volume.getDescription(context),
+                path = volumeDir.absolutePath,
+                lastModified = volumeDir.lastModified(),
+                videoCount = folderData?.videoCount ?: 0,
+                audioCount = folderData?.audioCount ?: 0,
+                totalSize = folderData?.totalSize ?: 0L,
+                totalDuration = folderData?.totalDuration ?: 0L,
+                hasSubfolders = true,
+                newCount = folderData?.newCount ?: 0
+              ),
+            )
           }
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error getting storage roots", e)
       }
-
       roots
     }
-
 }

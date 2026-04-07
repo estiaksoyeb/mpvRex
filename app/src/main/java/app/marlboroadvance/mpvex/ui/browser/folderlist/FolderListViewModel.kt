@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -38,7 +37,6 @@ class FolderListViewModel(
   private val foldersPreferences: FoldersPreferences by inject()
   private val appearancePreferences: AppearancePreferences by inject()
   private val browserPreferences: app.marlboroadvance.mpvex.preferences.BrowserPreferences by inject()
-  private val playbackStateRepository: PlaybackStateRepository by inject()
 
   private val _allVideoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
   private val _videoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
@@ -96,27 +94,19 @@ class FolderListViewModel(
       loadData()
     }
 
-    // Refresh folders on global media library changes (Silently in background)
-    viewModelScope.launch(Dispatchers.IO) {
-      MediaLibraryEvents.changes.collectLatest {
-        loadData()
-      }
-    }
+    // Note: BaseBrowserViewModel handles MediaLibraryEvents.changes and playback state observation centrally.
 
-    // Filter folders based on blacklist, audio visibility, and playback status
+    // Filter folders based on blacklist and audio visibility
     viewModelScope.launch {
       combine(
         _allVideoFolders, 
         foldersPreferences.blacklistedFolders.changes(),
-        browserPreferences.showAudioFiles.changes(),
-        playbackStateRepository.observeAllPlaybackStates()
-      ) { folders, blacklist, showAudio, playbackStates ->
-        val filtered = folders.filter { folder -> 
+        browserPreferences.showAudioFiles.changes()
+      ) { folders, blacklist, showAudio ->
+        folders.filter { folder -> 
           folder.path !in blacklist && (showAudio || folder.videoCount > 0)
         }
-        // Bundle all data for processing
-        kotlin.Triple(filtered, folders, playbackStates)
-      }.collectLatest { (filteredFolders, allFolders, playbackStates) ->
+      }.collectLatest { filteredFolders ->
         // Check if folders became empty after having folders
         if (previousFolderCount > 0 && filteredFolders.isEmpty()) {
           _foldersWereDeleted.value = true
@@ -130,11 +120,14 @@ class FolderListViewModel(
         previousFolderCount = filteredFolders.size
 
         _videoFolders.value = filteredFolders
-        // Calculate new video counts for each folder
-        recalculateNewVideoCounts(filteredFolders, playbackStates)
+        
+        // Map to FolderWithNewCount using the pre-calculated newCount from repository
+        _foldersWithNewCount.value = filteredFolders.map { 
+          FolderWithNewCount(it, it.newCount) 
+        }
 
         // Save to cache for next app launch (save unfiltered list)
-        saveFoldersToCache(allFolders)
+        saveFoldersToCache(_allVideoFolders.value)
       }
     }
   }
@@ -175,7 +168,7 @@ class FolderListViewModel(
   private fun serializeFoldersToJson(folders: List<VideoFolder>): String {
     // For now using a simple approach since we only cache basic info
     return folders.joinToString("|") { folder ->
-      "${folder.bucketId};${folder.name};${folder.path};${folder.videoCount};${folder.audioCount};${folder.totalSize};${folder.totalDuration};${folder.lastModified}"
+      "${folder.bucketId};${folder.name};${folder.path};${folder.videoCount};${folder.audioCount};${folder.totalSize};${folder.totalDuration};${folder.lastModified};${folder.newCount}"
     }
   }
 
@@ -192,7 +185,8 @@ class FolderListViewModel(
           audioCount = parts[4].toInt(),
           totalSize = parts[5].toLong(),
           totalDuration = parts[6].toLong(),
-          lastModified = parts[7].toLong()
+          lastModified = parts[7].toLong(),
+          newCount = if (parts.size > 8) parts[8].toInt() else 0
         )
       } catch (e: Exception) {
         null
@@ -249,38 +243,6 @@ class FolderListViewModel(
         _isLoading.value = false
         _hasCompletedInitialLoad.value = true
         _scanStatus.value = "Error loading folders"
-      }
-    }
-  }
-
-  fun recalculateNewVideoCounts(
-    folders: List<VideoFolder> = videoFolders.value,
-    playbackStates: List<app.marlboroadvance.mpvex.database.entities.PlaybackStateEntity>? = null
-  ) {
-    viewModelScope.launch(Dispatchers.Default) {
-      try {
-        val currentTime = System.currentTimeMillis()
-        val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
-        val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
-        
-        val currentStates = playbackStates ?: playbackStateRepository.getAllPlaybackStates()
-        
-        val foldersWithCount = folders.map { folder ->
-          val folderVideos = MediaFileRepository.getVideosInFolder(getApplication(), folder.path)
-          val newVideoCount = folderVideos.count { video ->
-            val state = currentStates.find { it.mediaTitle == video.displayName }
-            val videoAge = currentTime - (video.dateModified * 1000)
-            
-            // A video is "NEW" if:
-            // 1. It has never been played (no playback state)
-            // 2. It was added/modified within the threshold days
-            state == null && videoAge <= thresholdMillis
-          }
-          FolderWithNewCount(folder, newVideoCount)
-        }
-        _foldersWithNewCount.value = foldersWithCount
-      } catch (e: Exception) {
-        Log.e("FolderListViewModel", "Error calculating new video counts", e)
       }
     }
   }

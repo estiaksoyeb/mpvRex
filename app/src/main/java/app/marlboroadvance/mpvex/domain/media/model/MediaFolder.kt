@@ -28,4 +28,5 @@ data class MediaFolder(
   val lastModified: Long = 0L,
   val hasSubfolders: Boolean = false,
   val isRecursive: Boolean = false,
+  val newCount: Int = 0,
 )

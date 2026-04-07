@@ -69,6 +69,9 @@ object MediaUtils {
           val intent = Intent(Intent.ACTION_VIEW, videoUri)
           intent.setClass(context, PlayerActivity::class.java)
           intent.putExtra("internal_launch", true) // Enables subtitle autoload
+          intent.putExtra("width", source.width)
+          intent.putExtra("height", source.height)
+          source.savedOrientation?.let { intent.putExtra("saved_orientation", it) }
           launchSource?.let { intent.putExtra("launch_source", it) }
           
           // For playlist items, pass the title so it shows correctly in the player

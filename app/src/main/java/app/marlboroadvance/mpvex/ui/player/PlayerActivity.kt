@@ -44,6 +44,7 @@ import app.marlboroadvance.mpvex.preferences.AudioPreferences
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
+import app.marlboroadvance.mpvex.database.repository.VideoMetadataCacheRepository
 import app.marlboroadvance.mpvex.ui.player.controls.PlayerControls
 import app.marlboroadvance.mpvex.ui.theme.MpvexPlayerTheme
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
@@ -148,6 +149,11 @@ class PlayerActivity :
    * Manager for file operations.
    */
   private val fileManager: FileManager by inject()
+
+  /**
+   * Repository for video metadata cache.
+   */
+  private val metadataCache: VideoMetadataCacheRepository by inject()
 
   /**
    * Track selector for automatic audio/subtitle selection
@@ -374,11 +380,50 @@ class PlayerActivity :
 
     getPlayableUri(intent)?.let(player::playFile)
 
-    // Only set orientation immediately if NOT in Video or Smart mode
-    // For these modes, wait for video-params/aspect to become available
+    // Set orientation early if we have metadata in intent or cache (avoids jumpy transition for Video/Smart modes)
     val orient = playerPreferences.orientation.get()
     if (orient != PlayerOrientation.Video && orient != PlayerOrientation.Smart) {
       setOrientation()
+    } else {
+      // 1. Try to get saved orientation from intent extras first (priority for Smart mode)
+      val intentSavedOrientation = intent.getIntExtra("saved_orientation", ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+      if (orient == PlayerOrientation.Smart && intentSavedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+        requestedOrientation = intentSavedOrientation
+        isOrientationRestored = true
+        Log.d(TAG, "onCreate - Smart mode: using restored orientation $requestedOrientation from intent")
+      } else {
+        // 2. Try to get dimensions from intent extras (for Video mode or if no saved orientation)
+        val intentWidth = intent.getIntExtra("width", -1)
+        val intentHeight = intent.getIntExtra("height", -1)
+        if (intentWidth > 0 && intentHeight > 0) {
+          setOrientation(intentWidth, intentHeight)
+        } else {
+          // 3. Fallback: try to get saved orientation from DB or dimensions from cache
+          lifecycleScope.launch {
+            // Check for saved orientation in DB (as fallback for intent)
+            if (orient == PlayerOrientation.Smart) {
+              val state = playbackStateRepository.getVideoDataByTitle(fileName)
+              if (state?.savedOrientation != null && state.savedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+                requestedOrientation = state.savedOrientation!!
+                isOrientationRestored = true
+                Log.d(TAG, "onCreate - Smart mode: using restored orientation $requestedOrientation from DB")
+                return@launch
+              }
+            }
+
+            val path = parsePathFromIntent(intent)
+            if (path != null) {
+              val file = File(path)
+              if (file.exists()) {
+                val metadata = metadataCache.getOrExtractMetadata(file, intent.data ?: "".toUri(), fileName)
+                if (metadata != null) {
+                  setOrientation(metadata.width, metadata.height)
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     // Apply persisted shuffle state after playlist is loaded
@@ -1880,14 +1925,43 @@ class PlayerActivity :
     if (orientation != PlayerOrientation.Video && orientation != PlayerOrientation.Smart) {
       setOrientation()
     } else {
-      // For Video and Smart mode, try to set orientation after a short delay to ensure
-      // video dimensions are available
+      // For Video and Smart mode, try to get orientation from metadata cache first
+      // then fallback to video-params/aspect update
       lifecycleScope.launch {
+        // 1. Check for saved orientation first (for Smart mode)
+        if (orientation == PlayerOrientation.Smart) {
+          val state = playbackStateRepository.getVideoDataByTitle(fileName)
+          if (state?.savedOrientation != null && state.savedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+            requestedOrientation = state.savedOrientation!!
+            isOrientationRestored = true
+            Log.d(TAG, "handleFileLoaded - Smart mode: using restored orientation $requestedOrientation from DB")
+            return@launch
+          }
+        }
+
+        val path = parsePathFromIntent(intent)
+        var metadataWidth = -1
+        var metadataHeight = -1
+        
+        if (path != null) {
+          val file = File(path)
+          if (file.exists()) {
+            val metadata = metadataCache.getOrExtractMetadata(file, intent.data ?: "".toUri(), fileName)
+            if (metadata != null) {
+              metadataWidth = metadata.width
+              metadataHeight = metadata.height
+              setOrientation(metadataWidth, metadataHeight)
+            }
+          }
+        }
+
+        // Wait a bit for video-params/aspect to become available as a secondary check/fallback
         kotlinx.coroutines.delay(100)
         if (mpvInitialized && !player.isExiting && !isFinishing) {
           val aspect = player.getVideoOutAspect()
           Log.d(TAG, "handleFileLoaded - ${if (orientation == PlayerOrientation.Smart) "Smart" else "Video"} mode, aspect after delay: $aspect")
           if (aspect != null && aspect > 0) {
+            // Re-apply orientation if it might have changed or wasn't set by metadata
             setOrientation()
           }
         }
@@ -2492,8 +2566,11 @@ class PlayerActivity :
    *
    * For "Video" orientation mode, this will wait for video-params/aspect to update
    * to the correct orientation, starting with landscape as fallback.
+   *
+   * @param width Optional video width from metadata to set orientation before video loads
+   * @param height Optional video height from metadata to set orientation before video loads
    */
-  private fun setOrientation() {
+  private fun setOrientation(width: Int = -1, height: Int = -1) {
     val orientationPref = playerPreferences.orientation.get()
 
     requestedOrientation =
@@ -2510,23 +2587,34 @@ class PlayerActivity :
              return
           }
 
-          // For video orientation (or Smart mode fallback), check if aspect is available
-          val aspect = runCatching { player.getVideoOutAspect() }.getOrNull()
-          Log.d(TAG, "setOrientation - ${if (isSmartMode) "Smart (fallback)" else "Video"} mode: aspect=$aspect")
-          if (aspect == null || aspect <= 0.0) {
-            // Aspect not available yet - wait for video-params/aspect update
-            Log.d(TAG, "setOrientation - Aspect not available, defaulting to landscape")
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-          } else {
-            // Aspect available - set correct orientation now
-            val orientation = if (aspect > 1.0) {
-              Log.d(TAG, "setOrientation - Aspect $aspect > 1.0, setting landscape")
+          // 1. Try provided width/height from metadata first (to avoid jumpy transition)
+          if (width > 0 && height > 0) {
+            val aspect = width.toDouble() / height.toDouble()
+            Log.d(TAG, "setOrientation - Using metadata: ${width}x${height}, aspect=$aspect")
+            if (aspect > 1.0) {
               ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             } else {
-              Log.d(TAG, "setOrientation - Aspect $aspect <= 1.0, setting portrait")
               ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
             }
-            orientation
+          } else {
+            // 2. Fallback to current player aspect ratio
+            val aspect = runCatching { player.getVideoOutAspect() }.getOrNull()
+            Log.d(TAG, "setOrientation - ${if (isSmartMode) "Smart (fallback)" else "Video"} mode: aspect=$aspect")
+            if (aspect == null || aspect <= 0.0) {
+              // Aspect not available yet - wait for video-params/aspect update
+              Log.d(TAG, "setOrientation - Aspect not available, defaulting to landscape")
+              ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            } else {
+              // Aspect available - set correct orientation now
+              val orientation = if (aspect > 1.0) {
+                Log.d(TAG, "setOrientation - Aspect $aspect > 1.0, setting landscape")
+                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+              } else {
+                Log.d(TAG, "setOrientation - Aspect $aspect <= 1.0, setting portrait")
+                ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+              }
+              orientation
+            }
           }
         }
         PlayerOrientation.Portrait -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT

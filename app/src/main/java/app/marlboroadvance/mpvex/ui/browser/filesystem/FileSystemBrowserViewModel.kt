@@ -293,13 +293,33 @@ class FileSystemBrowserViewModel(
         val video = videoFile.video
         val state = playbackStates.find { it.mediaTitle == video.displayName }
         
-        // Progress calculation
-        if (state != null && video.duration > 0) {
-          val durationSeconds = video.duration / 1000
-          val watched = durationSeconds - state.timeRemaining.toLong()
-          val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
-          if (progressValue in 0.01f..0.99f) {
-            playbackMap[video.id] = progressValue
+        // Progress and orientation calculation
+        if (state != null) {
+          // Add saved orientation to video for smooth transition
+          val videoWithOrientation = if (state.savedOrientation != null) {
+            video.copy(savedOrientation = state.savedOrientation)
+          } else {
+            video
+          }
+          
+          if (video.duration > 0) {
+            val durationSeconds = video.duration / 1000
+            val watched = durationSeconds - state.timeRemaining.toLong()
+            val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+            if (progressValue in 0.01f..0.99f) {
+              playbackMap[video.id] = progressValue
+            }
+          }
+          
+          // Update the item in unsorted list if orientation changed
+          if (videoWithOrientation !== video) {
+            _unsortedItems.value = _unsortedItems.value.map { item ->
+              if (item is FileSystemItem.VideoFile && item.video.id == video.id) {
+                item.copy(video = videoWithOrientation)
+              } else {
+                item
+              }
+            }
           }
         }
         

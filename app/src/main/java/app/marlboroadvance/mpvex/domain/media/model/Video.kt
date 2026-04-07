@@ -28,4 +28,5 @@ data class Video(
   val isAudio: Boolean = false,
   val artist: String = "",
   val album: String = "",
+  val savedOrientation: Int? = null,
 )

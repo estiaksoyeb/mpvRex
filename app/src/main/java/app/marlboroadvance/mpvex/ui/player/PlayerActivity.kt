@@ -177,50 +177,6 @@ class PlayerActivity :
   private var mediaIdentifier = ""
 
   /**
-   * Playlist of URIs for sequential playback
-   */
-  internal var playlist: List<Uri> = emptyList()
-
-  /**
-   * Current index in the playlist
-   */
-  internal var playlistIndex: Int = 0
-
-  /**
-   * Shuffled order of playlist indices (when shuffle is enabled)
-   */
-  private var shuffledIndices: List<Int> = emptyList()
-
-  /**
-   * Current position in shuffled playlist (when shuffle is enabled)
-   */
-  private var shuffledPosition: Int = 0
-
-  /**
-   * Playlist ID for tracking play history (optional, only for custom playlists)
-   */
-  private var playlistId: Int? = null
-
-  /**
-   * Tracks the starting offset of the loaded playlist window in the full playlist.
-   * Used for windowed loading to prevent ANR with large playlists.
-   */
-  private var playlistWindowOffset: Int = 0
-
-  /**
-   * Total count of items in the full playlist (when using windowed loading).
-   * -1 means unknown or not using windowed loading.
-   */
-  var playlistTotalCount: Int = -1
-    private set
-
-  /**
-   * Indicates whether the current playlist is an M3U playlist sourced from database.
-   * Used to skip thumbnail/metadata extraction for network streams.
-   */
-  private var isM3uPlaylist: Boolean = false
-
-  /**
    * Helper for managing Picture-in-Picture mode.
    */
   private lateinit var pipHelper: MPVPipHelper
@@ -349,40 +305,48 @@ class PlayerActivity :
     setupPipHelper()
     setupMediaSession()
 
-    playlistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
-    playlistIndex = intent.getIntExtra("playlist_index", 0)
+    val playlistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
+    val playlistIndex = intent.getIntExtra("playlist_index", 0)
 
     // Load playlist from intent extras first (fast path - backward compatibility)
-    playlist = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+    val playlistFromIntent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
       intent.getParcelableArrayListExtra("playlist", Uri::class.java) ?: emptyList()
     } else {
       @Suppress("DEPRECATION")
       intent.getParcelableArrayListExtra("playlist") ?: emptyList()
     }
 
+    if (playlistFromIntent.isNotEmpty() || playlistId != null) {
+      viewModel.playlistManager.setPlaylist(
+        items = playlistFromIntent,
+        index = playlistIndex,
+        id = playlistId
+      )
+    }
+
     // If playlist is empty but playlist_id is provided, load asynchronously from database
     // Load all items - LazyColumn handles pagination/virtualization efficiently
-    if (playlist.isEmpty() && playlistId != null) {
+    if (viewModel.playlistManager.playlist.value.isEmpty() && playlistId != null) {
       lifecycleScope.launch(Dispatchers.IO) {
-        val pid = playlistId ?: return@launch
+        val pid = playlistId
         try {
           // Check if this is an M3U playlist
           val playlistEntity = playlistRepository.getPlaylistById(pid)
-          isM3uPlaylist = playlistEntity?.isM3uPlaylist ?: false
+          val isM3u = playlistEntity?.isM3uPlaylist ?: false
 
           // Load all items - LazyColumn will handle virtualization/pagination efficiently
           val items = playlistRepository.getPlaylistItemsAsUris(pid)
           val totalCount = items.size
 
           withContext(Dispatchers.Main) {
-            playlist = items
-            playlistWindowOffset = 0
-            playlistTotalCount = totalCount
-            Log.d(TAG, "Loaded all $totalCount items from playlist $pid (isM3U: $isM3uPlaylist)")
-            // Re-initialize shuffle now that playlist is available
-            if (viewModel.shuffleEnabled.value) {
-              onShuffleToggled(true)
-            }
+            viewModel.playlistManager.setPlaylist(
+              items = items,
+              index = playlistIndex,
+              id = pid,
+              totalCount = totalCount,
+              isM3u = isM3u
+            )
+            Log.d(TAG, "Loaded all $totalCount items from playlist $pid (isM3U: $isM3u)")
           }
         } catch (e: Exception) {
           Log.e(TAG, "Failed to load playlist from database", e)
@@ -391,7 +355,7 @@ class PlayerActivity :
     }
 
     // Only auto-generate playlist from folder if playlist mode is enabled and no playlist_id
-    if (playlist.isEmpty() && playlistId == null && playerPreferences.playlistMode.get()) {
+    if (viewModel.playlistManager.playlist.value.isEmpty() && playlistId == null && playerPreferences.playlistMode.get()) {
       val path = parsePathFromIntent(intent)
       if (path != null) {
         generatePlaylistFromFolder(path)
@@ -1513,7 +1477,7 @@ class PlayerActivity :
    * @param index The index of the playlist item to play
    */
   internal fun playPlaylistItem(index: Int) {
-    if (index in playlist.indices) {
+    if (index >= 0 && index < viewModel.playlistManager.playlist.value.size) {
       loadPlaylistItem(index)
     }
   }
@@ -1687,6 +1651,9 @@ class PlayerActivity :
    */
   private fun handleEndOfFile(isEof: Boolean) {
     if (isEof) {
+      // Save state immediately when EOF is reached
+      saveVideoPlaybackState(fileName)
+
       // Check if we should repeat the current file
       if (viewModel.shouldRepeatCurrentFile()) {
         MPVLib.command("seek", "0", "absolute")
@@ -1695,12 +1662,9 @@ class PlayerActivity :
       }
 
       // Handle playlist playback
+      val playlist = viewModel.playlistManager.playlist.value
       if (playlist.isNotEmpty()) {
-        val hasNextItem = if (viewModel.shuffleEnabled.value) {
-          shuffledPosition < shuffledIndices.size - 1
-        } else {
-          playlistIndex < playlist.size - 1
-        }
+        val hasNextItem = viewModel.playlistManager.hasNext(viewModel.shouldRepeatPlaylist())
 
         // Check if autoplay next video is enabled
         val autoplayEnabled = playerPreferences.autoplayNextVideo.get()
@@ -1708,19 +1672,6 @@ class PlayerActivity :
         if (hasNextItem && (autoplayEnabled || viewModel.shouldRepeatPlaylist())) {
           // Play next item in playlist
           playNext()
-        } else if (viewModel.shouldRepeatPlaylist()) {
-          // At end of playlist with repeat ALL: restart from beginning
-          if (viewModel.shuffleEnabled.value) {
-            // Regenerate shuffle order and start from beginning
-            generateShuffledIndices()
-            shuffledPosition = 0
-            playlistIndex = shuffledIndices[0]
-            loadPlaylistItem(playlistIndex)
-          } else {
-            // Normal mode: restart from index 0
-            playlistIndex = 0
-            loadPlaylistItem(0)
-          }
         } else if (playerPreferences.closeAfterReachingEndOfVideo.get()) {
           // No autoplay or no next item, end of playlist: close if setting is enabled
           finishAndRemoveTask()
@@ -1888,17 +1839,28 @@ class PlayerActivity :
 
     // Save to recently played when video actually loads and plays
     lifecycleScope.launch(Dispatchers.IO) {
-      if (playlist.isNotEmpty()) {
-        // For playlist items, save using the current URI
-        // All items are loaded, so playlistIndex is the direct index
-        if (playlistIndex >= 0 && playlistIndex < playlist.size) {
-          saveRecentlyPlayedForUri(playlist[playlistIndex], fileName)
-        } else {
-          Log.w(TAG, "Cannot save recently played: invalid playlist index $playlistIndex (playlist size: ${playlist.size})")
-        }
+      val playlist = viewModel.playlistManager.playlist.value
+      val playlistIndex = viewModel.playlistManager.currentIndex.value
+      val currentUri = if (playlist.isNotEmpty() && playlistIndex >= 0 && playlistIndex < playlist.size) {
+        playlist[playlistIndex]
       } else {
-        // For non-playlist videos, use the original saveRecentlyPlayed
-        saveRecentlyPlayed()
+        extractUriFromIntent(intent)
+      }
+
+      if (currentUri != null) {
+        val launchSource = when {
+          intent.getStringExtra("launch_source") != null -> intent.getStringExtra("launch_source")!!
+          playlist.isNotEmpty() -> "playlist"
+          intent.action == Intent.ACTION_SEND -> "share"
+          else -> "normal"
+        }
+
+        viewModel.historyManager.recordPlaybackStart(
+          uri = currentUri,
+          fileName = fileName,
+          launchSource = launchSource,
+          playlistId = viewModel.playlistManager.playlistId
+        )
       }
     }
 
@@ -2081,23 +2043,8 @@ class PlayerActivity :
             MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
           }.getOrDefault(0)
 
-          // Update metadata without thumbnail
-          runCatching {
-            RecentlyPlayedOps.updateVideoMetadata(
-              filePath,
-              fileName,
-              updatedDuration,
-              updatedFileSize,
-              updatedWidth,
-              updatedHeight,
-            )
-            Log.d(
-              TAG,
-              "Updated recently played metadata: $fileName (duration: ${updatedDuration}ms, size: ${updatedFileSize}B, resolution: ${updatedWidth}x${updatedHeight}) for $filePath",
-            )
-          }.onFailure { e ->
-            Log.e(TAG, "Error updating video metadata in recently played", e)
-          }
+          // Update metadata in history
+          viewModel.historyManager.updateCurrentMediaMetadata(fileName)
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error fetching network stream title", e)
@@ -2219,7 +2166,7 @@ class PlayerActivity :
    * Calculates the position to save based on user preferences.
    *
    * If "savePositionOnQuit" is not enabled, returns the previous saved position or 0.
-   * If enabled, saves the current playback position unless at end of video.
+   * If enabled, saves the current playback position unless playback has reached the watched threshold.
    *
    * @param oldState Previous playback state if it exists
    * @return Position in seconds to save
@@ -2231,7 +2178,17 @@ class PlayerActivity :
 
     val pos = viewModel.pos ?: 0
     val duration = viewModel.duration ?: 0
-    return if (pos < duration - 1) pos else 0
+    if (duration <= 0) return pos
+
+    val watchedThreshold = browserPreferences.watchedThreshold.get()
+    val progress = pos.toFloat() / duration.toFloat()
+    
+    // If we've reached the threshold or are within 1 second of the end, restart from beginning
+    return if (progress < (watchedThreshold / 100f) && pos < duration - 1) {
+      pos
+    } else {
+      0
+    }
   }
 
   /**
@@ -2338,105 +2295,6 @@ class PlayerActivity :
    *
    * Handles various URI schemes and infers launch source.
    */
-  private suspend fun saveRecentlyPlayed() {
-    runCatching {
-      val uri = extractUriFromIntent(intent)
-
-      if (uri == null) {
-        Log.w(TAG, "Cannot save recently played: URI is null")
-        return@runCatching
-      }
-
-      if (uri.scheme == null) {
-        Log.w(TAG, "Cannot save recently played: URI has null scheme: $uri")
-        return@runCatching
-      }
-
-      val filePath =
-        when (uri.scheme) {
-          "file" -> {
-            uri.path ?: uri.toString()
-          }
-
-          "content" -> {
-            contentResolver
-              .query(
-                uri,
-                arrayOf(MediaStore.MediaColumns.DATA),
-                null,
-                null,
-                null,
-              )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                  val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-                  if (columnIndex != -1) cursor.getString(columnIndex) else null
-                } else {
-                  null
-                }
-              } ?: uri.toString()
-          }
-
-          else -> {
-            uri.toString()
-          }
-        }
-
-      val launchSource =
-        when {
-          intent.getStringExtra("launch_source") != null -> intent.getStringExtra("launch_source")
-          intent.action == Intent.ACTION_SEND -> "share"
-          else -> "normal"
-        }
-
-      // Get parsed video title from MPV
-      val videoTitle = runCatching {
-        MPVLib.getPropertyString("media-title")
-      }.getOrNull()?.takeIf { it.isNotBlank() && it != fileName }
-
-      // Get duration and file size from MPV
-      val duration = runCatching {
-        (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
-      }.getOrDefault(0L)
-
-      val fileSize = runCatching {
-        // Try multiple properties to get file size
-        MPVLib.getPropertyDouble("file-size")?.toLong()
-          ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
-          ?: 0L
-      }.getOrDefault(0L)
-
-      // Get video resolution from MPV
-      val width = runCatching {
-        MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
-      }.getOrDefault(0)
-
-      val height = runCatching {
-        MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
-      }.getOrDefault(0)
-
-      RecentlyPlayedOps.addRecentlyPlayed(
-        filePath = filePath,
-        fileName = fileName,
-        videoTitle = videoTitle,
-        duration = duration,
-        fileSize = fileSize,
-        width = width,
-        height = height,
-        launchSource = launchSource,
-      )
-
-      Log.d(TAG, "Saved recently played: $filePath")
-      Log.d(TAG, "  - fileName: $fileName")
-      Log.d(TAG, "  - videoTitle: $videoTitle")
-      Log.d(TAG, "  - duration: ${duration}ms")
-      Log.d(TAG, "  - size: ${fileSize}B")
-      Log.d(TAG, "  - resolution: ${width}x${height}")
-      Log.d(TAG, "  - source: $launchSource")
-    }.onFailure { e ->
-      Log.e(TAG, "Error saving recently played", e)
-    }
-  }
-
   // ==================== Intent and Result Management ====================
 
   /**
@@ -2482,23 +2340,29 @@ class PlayerActivity :
     // This prevents losing the playlist when coming back from notification/PiP
     if (hasPlaylistExtras || playlistFromIntent.isNotEmpty()) {
       val newPlaylistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
-      playlistId = newPlaylistId
-      playlistIndex = intent.getIntExtra("playlist_index", 0)
-      playlistWindowOffset = 0
-      playlistTotalCount = -1
-      playlist = playlistFromIntent
+      val newPlaylistIndex = intent.getIntExtra("playlist_index", 0)
+      
+      viewModel.playlistManager.setPlaylist(
+        items = playlistFromIntent,
+        index = newPlaylistIndex,
+        id = newPlaylistId
+      )
     }
 
     // If playlist is empty but playlist_id is provided, load from database
-    if (playlist.isEmpty() && playlistId != null) {
+    if (viewModel.playlistManager.playlist.value.isEmpty() && viewModel.playlistManager.playlistId != null) {
       lifecycleScope.launch(Dispatchers.IO) {
-        val pid = playlistId ?: return@launch
+        val pid = viewModel.playlistManager.playlistId ?: return@launch
         try {
           val totalCount = playlistRepository.getPlaylistItemCount(pid)
           val items = playlistRepository.getPlaylistItemsAsUris(pid)
           withContext(Dispatchers.Main) {
-            playlist = items
-            playlistTotalCount = totalCount
+            viewModel.playlistManager.setPlaylist(
+              items = items,
+              index = viewModel.playlistManager.currentIndex.value,
+              id = pid,
+              totalCount = totalCount
+            )
             Log.d(TAG, "onNewIntent: Loaded ${items.size} items from playlist $pid")
           }
         } catch (e: Exception) {
@@ -2508,7 +2372,7 @@ class PlayerActivity :
     }
 
     // Auto-generate playlist from folder if playlist mode is enabled and no playlist_id
-    if (playlist.isEmpty() && playlistId == null && playerPreferences.playlistMode.get()) {
+    if (viewModel.playlistManager.playlist.value.isEmpty() && viewModel.playlistManager.playlistId == null && playerPreferences.playlistMode.get()) {
       val path = parsePathFromIntent(intent)
       if (path != null) {
         generatePlaylistFromFolder(path)
@@ -3032,102 +2896,20 @@ class PlayerActivity :
   /**
    * Check if there's a next video in the playlist
    */
-  fun hasNext(): Boolean {
-    if (playlist.isEmpty()) return false
-
-    // With repeat ALL, there's always a "next" (loops back to beginning)
-    if (viewModel.shouldRepeatPlaylist()) return true
-
-    // Use total count if we're doing windowed loading, otherwise use playlist size
-    val effectiveSize = if (playlistTotalCount > 0) playlistTotalCount else playlist.size
-
-    return if (viewModel.shuffleEnabled.value) {
-      shuffledPosition < shuffledIndices.size - 1
-    } else {
-      playlistIndex < effectiveSize - 1
-    }
-  }
+  fun hasNext(): Boolean = viewModel.playlistManager.hasNext(viewModel.shouldRepeatPlaylist())
 
   /**
    * Check if there's a previous video in the playlist
    */
-  fun hasPrevious(): Boolean {
-    if (playlist.isEmpty()) return false
-
-    // With repeat ALL, there's always a "previous" (loops back to end)
-    if (viewModel.shouldRepeatPlaylist()) return true
-
-    return if (viewModel.shuffleEnabled.value) {
-      shuffledPosition > 0
-    } else {
-      playlistIndex > 0
-    }
-  }
-
-  /**
-   * Generate shuffled indices for the playlist
-   */
-  private fun generateShuffledIndices() {
-    if (playlist.isEmpty()) return
-
-    // Create a list of all indices except the current one
-    val indices = playlist.indices.filter { it != playlistIndex }.toMutableList()
-    indices.shuffle()
-
-    // Put current index at the beginning
-    shuffledIndices = listOf(playlistIndex) + indices
-    shuffledPosition = 0
-  }
-
-  /**
-   * Called when shuffle is toggled on/off
-   */
-  fun onShuffleToggled(enabled: Boolean) {
-    if (enabled && playlist.isNotEmpty()) {
-      generateShuffledIndices()
-    } else {
-      shuffledIndices = emptyList()
-      shuffledPosition = 0
-    }
-  }
+  fun hasPrevious(): Boolean = viewModel.playlistManager.hasPrevious(viewModel.shouldRepeatPlaylist())
 
   /**
    * Play the next video in the playlist
    */
   fun playNext() {
-    if (playlist.isEmpty()) return
-
-    // Use total count if we're doing windowed loading, otherwise use playlist size
-    val effectiveSize = if (playlistTotalCount > 0) playlistTotalCount else playlist.size
-
-    if (viewModel.shuffleEnabled.value) {
-      // Initialize shuffle if not done yet
-      if (shuffledIndices.isEmpty()) {
-        generateShuffledIndices()
-      }
-
-      // Move to next position
-      if (shuffledPosition < shuffledIndices.size - 1) {
-        shuffledPosition++
-        playlistIndex = shuffledIndices[shuffledPosition]
-        loadPlaylistItem(playlistIndex)
-      } else if (viewModel.shouldRepeatPlaylist()) {
-        // At end of shuffled playlist with repeat ALL: regenerate and restart
-        generateShuffledIndices()
-        shuffledPosition = 0
-        playlistIndex = shuffledIndices[0]
-        loadPlaylistItem(playlistIndex)
-      }
-    } else {
-      // Normal sequential playback
-      if (playlistIndex < effectiveSize - 1) {
-        playlistIndex++
-        loadPlaylistItem(playlistIndex)
-      } else if (viewModel.shouldRepeatPlaylist()) {
-        // At end of playlist with repeat ALL: restart from beginning
-        playlistIndex = 0
-        loadPlaylistItem(0)
-      }
+    val nextIndex = viewModel.playlistManager.getNextIndex(viewModel.shouldRepeatPlaylist())
+    if (nextIndex != null) {
+      loadPlaylistItem(nextIndex)
     }
   }
 
@@ -3135,45 +2917,17 @@ class PlayerActivity :
    * Play the previous video in the playlist
    */
   fun playPrevious() {
-    if (playlist.isEmpty()) return
-
-    // Use total count if we're doing windowed loading, otherwise use playlist size
-    val effectiveSize = if (playlistTotalCount > 0) playlistTotalCount else playlist.size
-
-    if (viewModel.shuffleEnabled.value) {
-      // Initialize shuffle if not done yet
-      if (shuffledIndices.isEmpty()) {
-        generateShuffledIndices()
-      }
-
-      // Move to previous position
-      if (shuffledPosition > 0) {
-        shuffledPosition--
-        playlistIndex = shuffledIndices[shuffledPosition]
-        loadPlaylistItem(playlistIndex)
-      } else if (viewModel.shouldRepeatPlaylist()) {
-        // At beginning of shuffled playlist with repeat ALL: go to end
-        shuffledPosition = shuffledIndices.size - 1
-        playlistIndex = shuffledIndices[shuffledPosition]
-        loadPlaylistItem(playlistIndex)
-      }
-    } else {
-      // Normal sequential playback
-      if (playlistIndex > 0) {
-        playlistIndex--
-        loadPlaylistItem(playlistIndex)
-      } else if (viewModel.shouldRepeatPlaylist()) {
-        // At beginning of playlist with repeat ALL: go to last item
-        playlistIndex = effectiveSize - 1
-        loadPlaylistItem(playlistIndex)
-      }
+    val prevIndex = viewModel.playlistManager.getPreviousIndex(viewModel.shouldRepeatPlaylist())
+    if (prevIndex != null) {
+      loadPlaylistItem(prevIndex)
     }
   }
 
   /**
    * Load a playlist item by index
    */
-  private fun loadPlaylistItem(index: Int) {
+  fun loadPlaylistItem(index: Int) {
+    val playlist = viewModel.playlistManager.playlist.value
     // All items are loaded - just validate index and load directly
     if (index < 0 || index >= playlist.size) {
       Log.e(TAG, "Invalid playlist index: $index (playlist size: ${playlist.size})")
@@ -3186,6 +2940,7 @@ class PlayerActivity :
    * Internal method to load a playlist item
    */
   private fun loadPlaylistItemInternal(index: Int) {
+    val playlist = viewModel.playlistManager.playlist.value
     if (index < 0 || index >= playlist.size) {
       Log.e(TAG, "Invalid playlist index: $index (playlist size: ${playlist.size})")
       return
@@ -3197,10 +2952,10 @@ class PlayerActivity :
     }
 
     val uri = playlist[index]
-    val playableUri = uri.openContentFd(this) ?: uri.toString()
+    val playableUri = uri.resolveUri(this) ?: uri.toString()
 
-    // Update playlist index
-    playlistIndex = index
+    // Update index in manager
+    viewModel.playlistManager.updateIndex(index)
 
     // Extract and set the new file name
     fileName = getFileNameFromUri(uri)
@@ -3211,7 +2966,7 @@ class PlayerActivity :
     setHttpHeadersForUri(uri)
 
     // Update playlist play history if this is a custom playlist
-    playlistId?.let { id ->
+    viewModel.playlistManager.playlistId?.let { id ->
       lifecycleScope.launch(Dispatchers.IO) {
         val filePath = when (uri.scheme) {
           "file" -> uri.path ?: uri.toString()
@@ -3305,6 +3060,8 @@ class PlayerActivity :
     }
 
     // Also check the current playlist item if playing from a playlist
+    val playlist = viewModel.playlistManager.playlist.value
+    val playlistIndex = viewModel.playlistManager.currentIndex.value
     if (playlist.isNotEmpty() && playlistIndex >= 0 && playlistIndex < playlist.size) {
       return isUriM3U(playlist[playlistIndex])
     }
@@ -3328,84 +3085,12 @@ class PlayerActivity :
     uri: Uri,
     name: String,
   ) {
-    runCatching {
-      val filePath =
-        when (uri.scheme) {
-          "file" -> {
-            uri.path ?: uri.toString()
-          }
-
-          "content" -> {
-            contentResolver
-              .query(
-                uri,
-                arrayOf(MediaStore.MediaColumns.DATA),
-                null,
-                null,
-                null,
-              )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                  val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-                  if (columnIndex != -1) cursor.getString(columnIndex) else null
-                } else {
-                  null
-                }
-              } ?: uri.toString()
-          }
-
-          else -> {
-            uri.toString()
-          }
-        }
-
-      // Get parsed video title from MPV
-      val videoTitle = runCatching {
-        MPVLib.getPropertyString("media-title")
-      }.getOrNull()?.takeIf { it.isNotBlank() && it != name }
-
-      // Get duration and file size from MPV
-      val duration = runCatching {
-        (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
-      }.getOrDefault(0L)
-
-      val fileSize = runCatching {
-        // Try multiple properties to get file size
-        MPVLib.getPropertyDouble("file-size")?.toLong()
-          ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
-          ?: 0L
-      }.getOrDefault(0L)
-
-      // Get video resolution from MPV
-      val width = runCatching {
-        MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
-      }.getOrDefault(0)
-
-      val height = runCatching {
-        MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
-      }.getOrDefault(0)
-
-      RecentlyPlayedOps.addRecentlyPlayed(
-        filePath = filePath,
-        fileName = name,
-        videoTitle = videoTitle,
-        duration = duration,
-        fileSize = fileSize,
-        width = width,
-        height = height,
-        launchSource = "playlist",
-        playlistId = playlistId,
-      )
-
-      Log.d(TAG, "Saved recently played (playlist): $filePath")
-      Log.d(TAG, "  - fileName: $name")
-      Log.d(TAG, "  - videoTitle: $videoTitle")
-      Log.d(TAG, "  - duration: ${duration}ms")
-      Log.d(TAG, "  - size: ${fileSize}B")
-      Log.d(TAG, "  - resolution: ${width}x${height}")
-      Log.d(TAG, "  - playlistId: $playlistId")
-    }.onFailure { e ->
-      Log.e(TAG, "Error saving recently played for playlist item", e)
-    }
+    viewModel.historyManager.recordPlaybackStart(
+      uri = uri,
+      fileName = name,
+      launchSource = "playlist",
+      playlistId = viewModel.playlistManager.playlistId
+    )
   }
 
   /**
@@ -3467,7 +3152,7 @@ class PlayerActivity :
 
         val files = parentFolder.listFiles { file ->
           file.isFile &&
-            FileTypeUtils.isVideoFile(file) &&
+            (FileTypeUtils.isVideoFile(file) || (browserPreferences.showAudioFiles.get() && FileTypeUtils.isAudioFile(file))) &&
             !FileFilterUtils.shouldSkipFile(file)
         } ?: return@runCatching
 
@@ -3495,13 +3180,11 @@ class PlayerActivity :
 
         if (newIndex != -1) {
           withContext(Dispatchers.Main) {
-            playlist = newPlaylist
-            playlistIndex = newIndex
-            Log.d(TAG, "Auto-playlist generated: ${playlist.size} videos")
-            // Re-initialize shuffle now that playlist is available
-            if (viewModel.shuffleEnabled.value) {
-              onShuffleToggled(true)
-            }
+            viewModel.playlistManager.setPlaylist(
+              items = newPlaylist,
+              index = newIndex
+            )
+            Log.d(TAG, "Auto-playlist generated: ${newPlaylist.size} videos")
           }
         }
       }.onFailure { e ->
@@ -3513,7 +3196,9 @@ class PlayerActivity :
   /**
    * Check if the current playlist is an M3U playlist (sourced from database).
    */
-  fun isCurrentPlaylistM3U(): Boolean = isM3uPlaylist
+  fun isCurrentPlaylistM3U(): Boolean = viewModel.playlistManager.isM3uPlaylist
+
+  fun getPlaylistWindowOffset(): Int = viewModel.playlistManager.playlistWindowOffset
 
 
   companion object {

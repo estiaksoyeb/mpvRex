@@ -56,7 +56,17 @@ object MediaUtils {
     val uri =
       when (source) {
         is Video -> {
-          val intent = Intent(Intent.ACTION_VIEW, source.uri)
+          val videoUri = if (source.uri.scheme == null) {
+            if (source.path.startsWith("/") || source.path.startsWith("file://")) {
+              val path = if (source.path.startsWith("file://")) source.path.removePrefix("file://") else source.path
+              Uri.fromFile(File(path))
+            } else {
+              source.uri
+            }
+          } else {
+            source.uri
+          }
+          val intent = Intent(Intent.ACTION_VIEW, videoUri)
           intent.setClass(context, PlayerActivity::class.java)
           intent.putExtra("internal_launch", true) // Enables subtitle autoload
           launchSource?.let { intent.putExtra("launch_source", it) }

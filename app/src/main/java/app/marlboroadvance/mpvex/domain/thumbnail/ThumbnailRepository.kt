@@ -76,6 +76,9 @@ class ThumbnailRepository(
     heightPx: Int,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
+      if (video.isAudio) {
+        return@withContext null
+      }
       val key = thumbnailKey(video, widthPx, heightPx)
 
       if (isNetworkUrl(video.path) && !appearancePreferences.showNetworkThumbnails.get()) {
@@ -144,6 +147,9 @@ class ThumbnailRepository(
     heightPx: Int,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
+      if (video.isAudio) {
+        return@withContext null
+      }
       if (isNetworkUrl(video.path) && !appearancePreferences.showNetworkThumbnails.get()) {
         return@withContext null
       }
@@ -162,6 +168,9 @@ class ThumbnailRepository(
     widthPx: Int,
     heightPx: Int,
   ): Bitmap? {
+    if (video.isAudio) {
+      return null
+    }
     if (isNetworkUrl(video.path) && !appearancePreferences.showNetworkThumbnails.get()) {
       return null
     }
@@ -194,10 +203,12 @@ class ThumbnailRepository(
     widthPx: Int,
     heightPx: Int,
   ) {
-    val filteredVideos = if (appearancePreferences.showNetworkThumbnails.get()) {
-      videos
-    } else {
-      videos.filterNot { isNetworkUrl(it.path) }
+    val filteredVideos = videos.filterNot { it.isAudio }.let {
+      if (appearancePreferences.showNetworkThumbnails.get()) {
+        it
+      } else {
+        it.filterNot { v -> isNetworkUrl(v.path) }
+      }
     }
     
     if (filteredVideos.isEmpty()) return

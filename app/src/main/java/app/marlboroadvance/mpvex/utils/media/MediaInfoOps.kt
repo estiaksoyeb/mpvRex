@@ -107,6 +107,8 @@ object MediaInfoOps {
       overallBitRate = mi.getInfo(MediaInfo.Stream.General, 0, "OverallBitRate/String"),
       frameRate = mi.getInfo(MediaInfo.Stream.General, 0, "FrameRate/String"),
       title = mi.getInfo(MediaInfo.Stream.General, 0, "Title"),
+      performer = mi.getInfo(MediaInfo.Stream.General, 0, "Performer"),
+      album = mi.getInfo(MediaInfo.Stream.General, 0, "Album"),
       encodedDate = mi.getInfo(MediaInfo.Stream.General, 0, "Encoded_Date"),
       writingApplication = mi.getInfo(MediaInfo.Stream.General, 0, "Encoded_Application/String"),
       writingLibrary = mi.getInfo(MediaInfo.Stream.General, 0, "Encoded_Library/String"),
@@ -219,6 +221,8 @@ object MediaInfoOps {
     val overallBitRate: String = "",
     val frameRate: String = "",
     val title: String = "",
+    val performer: String = "",
+    val album: String = "",
     val encodedDate: String = "",
     val writingApplication: String = "",
     val writingLibrary: String = "",
@@ -325,6 +329,10 @@ object MediaInfoOps {
           val durationStr = mi.getInfo(MediaInfo.Stream.General, 0, "Duration")
           val duration = durationStr.toDoubleOrNull()?.toLong() ?: 0L
 
+          // Extract tags
+          val artist = mi.getInfo(MediaInfo.Stream.General, 0, "Performer")
+          val album = mi.getInfo(MediaInfo.Stream.General, 0, "Album")
+
           // Extract video resolution (width and height)
           val widthStr = mi.getInfo(MediaInfo.Stream.Video, 0, "Width")
           val width = widthStr.toIntOrNull() ?: 0
@@ -369,7 +377,7 @@ object MediaInfoOps {
             codecs.joinToString(" ")
           } else ""
 
-          VideoMetadata(fileSize, duration, width, height, fps, hasEmbeddedSubtitles, subtitleCodec)
+          VideoMetadata(fileSize, duration, width, height, fps, hasEmbeddedSubtitles, subtitleCodec, artist, album)
         } finally {
           mi.Close()
           pfd.close()
@@ -388,6 +396,8 @@ object MediaInfoOps {
     val fps: Float,
     val hasEmbeddedSubtitles: Boolean,
     val subtitleCodec: String = "",
+    val artist: String = "",
+    val album: String = "",
   )
 
   /**

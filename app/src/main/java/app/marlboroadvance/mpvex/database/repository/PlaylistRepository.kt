@@ -126,7 +126,14 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
 
   // Helper to get playlist items as URIs for playback
   suspend fun getPlaylistItemsAsUris(playlistId: Int): List<Uri> {
-    return getPlaylistItems(playlistId).map { Uri.parse(it.filePath) }
+    return getPlaylistItems(playlistId).map { item ->
+      if (item.filePath.startsWith("/") || item.filePath.startsWith("file://")) {
+        val path = if (item.filePath.startsWith("file://")) item.filePath.removePrefix("file://") else item.filePath
+        Uri.fromFile(java.io.File(path))
+      } else {
+        Uri.parse(item.filePath)
+      }
+    }
   }
 
   /**
@@ -158,7 +165,14 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
     
     // Get items in range
     return playlistDao.getPlaylistItemsInRange(playlistId, startPosition, endPosition)
-      .map { Uri.parse(it.filePath) }
+      .map { item ->
+        if (item.filePath.startsWith("/") || item.filePath.startsWith("file://")) {
+          val path = if (item.filePath.startsWith("file://")) item.filePath.removePrefix("file://") else item.filePath
+          Uri.fromFile(java.io.File(path))
+        } else {
+          Uri.parse(item.filePath)
+        }
+      }
   }
 
   // Play history operations

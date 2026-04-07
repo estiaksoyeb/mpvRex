@@ -28,4 +28,10 @@ class PlaybackStateRepositoryImpl(
   ) {
     database.videoDataDao().updateMediaTitle(oldTitle, newTitle)
   }
+
+  override suspend fun getAllPlaybackStates(): List<PlaybackStateEntity> =
+    database.videoDataDao().getAllPlaybackStates()
+
+  override fun observeAllPlaybackStates(): kotlinx.coroutines.flow.Flow<List<PlaybackStateEntity>> =
+    database.videoDataDao().observeAllPlaybackStates()
 }

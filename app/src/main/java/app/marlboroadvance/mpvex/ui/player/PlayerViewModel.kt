@@ -89,56 +89,79 @@ class PlayerViewModel(
   private val subtitlesPreferences: SubtitlesPreferences by inject()
   private val advancedPreferences: AdvancedPreferences by inject()
   private val json: Json by inject()
-  private val playbackStateDao: app.marlboroadvance.mpvex.database.dao.PlaybackStateDao by inject()
+  private val playbackStateRepository: app.marlboroadvance.mpvex.domain.playbackstate.repository.PlaybackStateRepository by inject()
+  private val recentlyPlayedRepository: app.marlboroadvance.mpvex.domain.recentlyplayed.repository.RecentlyPlayedRepository by inject()
   private val wyzieRepository: WyzieSearchRepository by inject()
+
+  /**
+   * Manager for playlist state and logic.
+   */
+  private val _playlistManager = PlaylistManager()
+  val playlistManager: PlaylistManager get() = _playlistManager
+
+  /**
+   * Manager for subtitle state and operations.
+   */
+  private val _subtitleManager = SubtitleManager(
+    context = host.context,
+    wyzieRepository = wyzieRepository,
+    scope = viewModelScope,
+    onShowToast = { showToast(it) }
+  )
+  val subtitleManager: SubtitleManager get() = _subtitleManager
+
+  /**
+   * Manager for history tracking and position saving.
+   */
+  private val _historyManager = app.marlboroadvance.mpvex.utils.history.HistoryManager(
+    context = host.context,
+    recentlyPlayedRepository = recentlyPlayedRepository,
+    playbackStateRepository = playbackStateRepository,
+    advancedPreferences = advancedPreferences,
+    scope = viewModelScope
+  )
+  val historyManager: app.marlboroadvance.mpvex.utils.history.HistoryManager get() = _historyManager
+
+  /**
+   * Manager for custom user-defined buttons.
+   */
+  private val _customButtonManager = CustomButtonManager(
+    context = host.context,
+    playerPreferences = playerPreferences,
+    advancedPreferences = advancedPreferences,
+    json = json,
+    scope = viewModelScope
+  )
+  val customButtonManager: CustomButtonManager get() = _customButtonManager
+
+  /**
+   * Manager for playback operations (seeking, speed).
+   */
+  private val _playbackManager = PlaybackManager(
+    playerPreferences = playerPreferences,
+    scope = viewModelScope
+  )
+  val playbackManager: PlaybackManager get() = _playbackManager
+
+  // Subtitle state delegates
+  val isDownloadingSub = _subtitleManager.isDownloadingSub
+  val isSearchingSub = _subtitleManager.isSearchingSub
+  val isOnlineSectionExpanded = _subtitleManager.isOnlineSectionExpanded
+  val wyzieSearchResults = _subtitleManager.wyzieSearchResults
+  val mediaSearchResults = _subtitleManager.mediaSearchResults
+  val isSearchingMedia = _subtitleManager.isSearchingMedia
+  val selectedTvShow = _subtitleManager.selectedTvShow
+  val isFetchingTvDetails = _subtitleManager.isFetchingTvDetails
+  val selectedSeason = _subtitleManager.selectedSeason
+  val seasonEpisodes = _subtitleManager.seasonEpisodes
+  val isFetchingEpisodes = _subtitleManager.isFetchingEpisodes
+  val selectedEpisode = _subtitleManager.selectedEpisode
 
   // Playlist items for the playlist sheet
   private val _playlistItems = kotlinx.coroutines.flow.MutableStateFlow<List<app.marlboroadvance.mpvex.ui.player.controls.components.sheets.PlaylistItem>>(emptyList())
   val playlistItems: kotlinx.coroutines.flow.StateFlow<List<app.marlboroadvance.mpvex.ui.player.controls.components.sheets.PlaylistItem>> = _playlistItems.asStateFlow()
 
-  // Wyzie Search Results
-  private val _wyzieSearchResults = MutableStateFlow<List<WyzieSubtitle>>(emptyList())
-  val wyzieSearchResults: StateFlow<List<WyzieSubtitle>> = _wyzieSearchResults.asStateFlow()
-
-  private val _isDownloadingSub = MutableStateFlow(false)
-  val isDownloadingSub: StateFlow<Boolean> = _isDownloadingSub.asStateFlow()
-
-  private val _isSearchingSub = MutableStateFlow(false)
-  val isSearchingSub: StateFlow<Boolean> = _isSearchingSub.asStateFlow()
-
-  private val _isOnlineSectionExpanded = MutableStateFlow(true)
-  val isOnlineSectionExpanded: StateFlow<Boolean> = _isOnlineSectionExpanded.asStateFlow()
-
-  // Media Search / Autocomplete
-  private val _mediaSearchResults = MutableStateFlow<List<app.marlboroadvance.mpvex.repository.wyzie.WyzieTmdbResult>>(emptyList())
-  val mediaSearchResults: StateFlow<List<app.marlboroadvance.mpvex.repository.wyzie.WyzieTmdbResult>> = _mediaSearchResults.asStateFlow()
-
-  private val _isSearchingMedia = MutableStateFlow(false)
-  val isSearchingMedia: StateFlow<Boolean> = _isSearchingMedia.asStateFlow()
-
-  // TV Show Details
-  private val _selectedTvShow = MutableStateFlow<app.marlboroadvance.mpvex.repository.wyzie.WyzieTvShowDetails?>(null)
-  val selectedTvShow: StateFlow<app.marlboroadvance.mpvex.repository.wyzie.WyzieTvShowDetails?> = _selectedTvShow.asStateFlow()
-
-  private val _isFetchingTvDetails = MutableStateFlow(false)
-  val isFetchingTvDetails: StateFlow<Boolean> = _isFetchingTvDetails.asStateFlow()
-
-  // Season / Episode
-  private val _selectedSeason = MutableStateFlow<app.marlboroadvance.mpvex.repository.wyzie.WyzieSeason?>(null)
-  val selectedSeason: StateFlow<app.marlboroadvance.mpvex.repository.wyzie.WyzieSeason?> = _selectedSeason.asStateFlow()
-
-  private val _seasonEpisodes = MutableStateFlow<List<app.marlboroadvance.mpvex.repository.wyzie.WyzieEpisode>>(emptyList())
-  val seasonEpisodes: StateFlow<List<app.marlboroadvance.mpvex.repository.wyzie.WyzieEpisode>> = _seasonEpisodes.asStateFlow()
-
-  private val _isFetchingEpisodes = MutableStateFlow(false)
-  val isFetchingEpisodes: StateFlow<Boolean> = _isFetchingEpisodes.asStateFlow()
-
-  private val _selectedEpisode = MutableStateFlow<app.marlboroadvance.mpvex.repository.wyzie.WyzieEpisode?>(null)
-  val selectedEpisode: StateFlow<app.marlboroadvance.mpvex.repository.wyzie.WyzieEpisode?> = _selectedEpisode.asStateFlow()
-
-  fun toggleOnlineSection() {
-      _isOnlineSectionExpanded.value = !_isOnlineSectionExpanded.value
-  }
+  fun toggleOnlineSection() = _subtitleManager.toggleOnlineSection()
 
   // Cache for video metadata to avoid re-extracting — LruCache handles bounds + thread-safety
   private val metadataCache = object : android.util.LruCache<String, Pair<String, String>>(100) {}
@@ -197,25 +220,18 @@ class PlayerViewModel(
   val maxVolume = host.audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
   val subtitleTracks: StateFlow<List<TrackNode>> =
-    MPVLib.propNode["track-list"]
-      .map { node ->
-        node?.toObject<List<TrackNode>>(json)?.filter { it.isSubtitle }?.toImmutableList()
-          ?: persistentListOf()
-      }.stateIn(viewModelScope, SharingStarted.Lazily, persistentListOf())
+    observeTracks(json)
+      .map { it.filter { t -> t.isSubtitle } }
+      .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
   val audioTracks: StateFlow<List<TrackNode>> =
-    MPVLib.propNode["track-list"]
-      .map { node ->
-        node?.toObject<List<TrackNode>>(json)?.filter { it.isAudio }?.toImmutableList()
-          ?: persistentListOf()
-      }.stateIn(viewModelScope, SharingStarted.Lazily, persistentListOf())
+    observeTracks(json)
+      .map { it.filter { t -> t.isAudio } }
+      .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
   val chapters: StateFlow<List<dev.vivvvek.seeker.Segment>> =
-    MPVLib.propNode["chapter-list"]
-      .map { node ->
-        node?.toObject<List<ChapterNode>>(json)?.map { it.toSegment() }?.toImmutableList()
-          ?: persistentListOf()
-      }.stateIn(viewModelScope, SharingStarted.Lazily, persistentListOf())
+    observeChapters(json)
+      .stateIn(viewModelScope, SharingStarted.Lazily, persistentListOf())
 
   // UI state
   private val _controlsShown = MutableStateFlow(false)
@@ -384,208 +400,24 @@ class PlayerViewModel(
         advancedPreferences.enableLuaScripts.changes().drop(1),
         playerPreferences.customButtons.changes().drop(1)
       ) { _, _ -> }.collect {
-        setupCustomButtons()
+        _customButtonManager.setup()
       }
     }
 
-    setupCustomButtons()
+    _customButtonManager.setup()
+  }
+
+  fun onMpvCoreInitialized() {
+    _customButtonManager.onMpvInitialized()
   }
 
   // ==================== Custom Buttons ====================
 
-  data class CustomButtonState(
-    val id: String,
-    val label: String,
-    val isLeft: Boolean,
-  )
+    val customButtons = _customButtonManager.customButtons
 
-  private val _customButtons = MutableStateFlow<List<CustomButtonState>>(emptyList())
-  val customButtons: StateFlow<List<CustomButtonState>> = _customButtons.asStateFlow()
-  private var customButtonsSetupJob: Job? = null
-  private val customButtonsLoadMutex = Mutex()
-  @Volatile
-  private var isMpvReadyForCustomButtons = false
-  @Volatile
-  private var customButtonsScriptPath: String? = null
-  private val customButtonsLoadedFlagProperty = "user-data/mpvex/custombuttons_loaded"
+    fun callCustomButton(id: String) = _customButtonManager.callButton(id)
 
-  fun onMpvCoreInitialized() {
-    isMpvReadyForCustomButtons = true
-    reloadCustomButtonsScript("mpv_core_initialized")
-  }
-
-  private fun setupCustomButtons() {
-    customButtonsSetupJob?.cancel()
-    customButtonsSetupJob = viewModelScope.launch(Dispatchers.IO) {
-      try {
-        val buttons = mutableListOf<CustomButtonState>()
-        if (!advancedPreferences.enableLuaScripts.get()) {
-          _customButtons.value = buttons
-          customButtonsScriptPath = null
-          runCatching { MPVLib.setPropertyString(customButtonsLoadedFlagProperty, "0") }
-          return@launch
-        }
-
-        val scriptContent = buildString {
-          val jsonString = playerPreferences.customButtons.get()
-          if (jsonString.isNotBlank()) {
-            try {
-               // Try new slot-based format first
-               val slotsData = json.decodeFromString<app.marlboroadvance.mpvex.ui.preferences.CustomButtonSlots>(jsonString)
-               slotsData.slots.forEachIndexed { index, btn ->
-                 if (btn != null && btn.enabled) {   // skip disabled buttons
-                   val safeId = btn.id.replace("-", "_")
-                   val isLeft = index < 4 // Slots 0-3 are left, 4-7 are right
-                   processButton(btn.id, safeId, btn.title, btn.content, btn.longPressContent, btn.onStartup, isLeft, buttons)
-                 }
-               }
-            } catch (e: Exception) {
-               // Fallback to old format for backward compatibility
-               try {
-                 val customButtonsList = json.decodeFromString<List<app.marlboroadvance.mpvex.ui.preferences.CustomButton>>(jsonString)
-                 customButtonsList.forEachIndexed { index, btn ->
-                   val safeId = btn.id.replace("-", "_")
-                   val isLeft = index < 4 // First 4 are left buttons, rest are right
-                   processButton(btn.id, safeId, btn.title, btn.content, btn.longPressContent, btn.onStartup, isLeft, buttons)
-                 }
-               } catch (e2: Exception) {
-                 e2.printStackTrace()
-               }
-            }
-          }
-
-          if (buttons.isNotEmpty()) {
-            append("mp.set_property_native('$customButtonsLoadedFlagProperty', '1')\n")
-          }
-        }
-
-        _customButtons.value = buttons
-
-        if (scriptContent.isNotEmpty()) {
-          val scriptsDir = File(host.context.filesDir, "scripts")
-          if (!scriptsDir.exists()) scriptsDir.mkdirs()
-          
-          val file = File(scriptsDir, "custombuttons.lua")
-          file.writeText(scriptContent)
-          customButtonsScriptPath = file.absolutePath
-
-          if (isMpvReadyForCustomButtons) {
-            val loaded = loadCustomButtonsScript(file)
-            if (!loaded) {
-              android.util.Log.w("PlayerViewModel", "Failed to load custombuttons.lua")
-            }
-          } else {
-            android.util.Log.d("PlayerViewModel", "Deferring custombuttons.lua load until MPV is ready")
-          }
-        } else {
-          customButtonsScriptPath = null
-          runCatching { MPVLib.setPropertyString(customButtonsLoadedFlagProperty, "0") }
-        }
-      } catch (e: Exception) {
-        android.util.Log.e("PlayerViewModel", "Error setting up custom buttons", e)
-      }
-    }
-  }
-
-  private fun reloadCustomButtonsScript(reason: String) {
-    if (!isMpvReadyForCustomButtons) return
-
-    viewModelScope.launch(Dispatchers.IO) {
-      customButtonsLoadMutex.withLock {
-        if (!advancedPreferences.enableLuaScripts.get()) return@withLock
-
-        val scriptPath = customButtonsScriptPath
-        if (scriptPath.isNullOrBlank()) return@withLock
-        if (isCustomButtonsScriptLoaded()) return@withLock
-
-        val file = File(scriptPath)
-        if (!file.exists()) {
-          android.util.Log.w("PlayerViewModel", "custombuttons.lua missing during $reason, rebuilding")
-          setupCustomButtons()
-          return@withLock
-        }
-
-        val loaded = loadCustomButtonsScript(file)
-        if (!loaded) {
-          android.util.Log.w("PlayerViewModel", "custombuttons.lua load failed during $reason")
-        }
-      }
-    }
-  }
-
-  private fun isCustomButtonsScriptLoaded(): Boolean =
-    runCatching { MPVLib.getPropertyString(customButtonsLoadedFlagProperty) == "1" }
-      .getOrDefault(false)
-
-  private fun loadCustomButtonsScript(file: File): Boolean {
-    runCatching { MPVLib.setPropertyString(customButtonsLoadedFlagProperty, "0") }
-
-    return runCatching {
-      MPVLib.command("load-script", file.absolutePath)
-      true
-    }.getOrElse {
-      android.util.Log.w("PlayerViewModel", "load-script failed: ${it.message}")
-      false
-    }
-  }
-
-  fun callCustomButton(id: String) {
-    val safeId = id.replace("-", "_")
-    MPVLib.command("script-message", "call_button_$safeId")
-  }
-  
-  fun callCustomButtonLongPress(id: String) {
-    val safeId = id.replace("-", "_")
-    MPVLib.command("script-message", "call_button_long_$safeId")
-  }
-
-  private fun StringBuilder.processButton(
-    originalId: String,
-    safeId: String,
-    label: String,
-    command: String,
-    longPressCommand: String,
-    onStartup: String,
-    isLeft: Boolean,
-    uiList: MutableList<CustomButtonState>
-  ) {
-    if (label.isNotBlank()) {
-      uiList.add(CustomButtonState(originalId, label, isLeft))
-      
-      // On Startup Code
-      if (onStartup.isNotBlank()) {
-          append(onStartup)
-          append("\n")
-      }
-
-      // Click Handler
-      if (command.isNotBlank()) {
-        append(
-          """
-          function button_${safeId}()
-              ${command}
-          end
-          mp.register_script_message('call_button_${safeId}', button_${safeId})
-          """.trimIndent()
-        )
-        append("\n")
-      }
-      
-      // Long Press Handler
-      if (longPressCommand.isNotBlank()) {
-        append(
-          """
-          function button_long_${safeId}()
-              ${longPressCommand}
-          end
-          mp.register_script_message('call_button_long_${safeId}', button_long_${safeId})
-          """.trimIndent()
-        )
-        append("\n")
-      }
-    }
-
-  }
+    fun callCustomButtonLongPress(id: String) = _customButtonManager.callButtonLongPress(id)
 
   // Cached values
   private val doubleTapToSeekDuration by lazy { gesturePreferences.doubleTapToSeekDuration.get() }
@@ -665,65 +497,7 @@ class PlayerViewModel(
     }
   }
 
-  fun addSubtitle(uri: Uri, select: Boolean = true, silent: Boolean = false) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val uriString = uri.toString()
-      if (_externalSubtitles.contains(uriString)) {
-        android.util.Log.d("PlayerViewModel", "Subtitle already tracked, skipping: $uriString")
-        return@launch
-      }
-
-      runCatching {
-        val fileName = getFileNameFromUri(uri) ?: "subtitle.srt"
-
-        if (!isValidSubtitleFile(fileName)) {
-          return@launch withContext(Dispatchers.Main) {
-            showToast("Invalid subtitle file format")
-          }
-        }
-
-        // Take persistent URI permission for content:// URIs
-        if (uri.scheme == "content") {
-          try {
-            host.context.contentResolver.takePersistableUriPermission(
-              uri,
-              Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-          } catch (e: SecurityException) {
-            // Permission already granted, not available, or not needed (e.g. from tree).
-            android.util.Log.i("PlayerViewModel", "Persistent permission not taken for $uri (may already have it via tree)")
-          }
-        }
-
-        val mpvPath = uri.resolveUri(host.context) ?: uri.toString()
-        val mode = if (select) "select" else "auto"
-        
-        // Store mapping for reliable physical deletion later
-        mpvPathToUriMap[mpvPath] = uri.toString()
-        
-        MPVLib.command("sub-add", mpvPath, mode)
-
-        // Track external subtitle URI for persistence
-        val uriString = uri.toString()
-        if (!_externalSubtitles.contains(uriString)) {
-          _externalSubtitles.add(uriString)
-        }
-
-        val displayName = fileName.take(30).let { if (fileName.length > 30) "$it..." else it }
-        if (!silent) {
-          withContext(Dispatchers.Main) {
-            showToast("$displayName added")
-          }
-        }
-      }.onFailure {
-        if (!silent) {
-          withContext(Dispatchers.Main) {
-            showToast("Failed to load subtitle")
-          }
-        }
-      }
-    }
-  }
+  fun addSubtitle(uri: Uri, select: Boolean = true, silent: Boolean = false) = _subtitleManager.addSubtitle(uri, select, silent)
 
   private fun scanLocalSubtitles(mediaTitle: String) {
     viewModelScope.launch(Dispatchers.IO) {
@@ -741,7 +515,12 @@ class PlayerViewModel(
           val movieDir = parentDir.findFile(folderName) ?: return@forEach
           if (movieDir.isDirectory) {
             movieDir.listFiles().forEach { file ->
-              if (file.isFile && isValidSubtitleFile(file.name ?: "")) {
+              val fileName = file.name ?: ""
+              val lower = fileName.lowercase()
+              val isValid = lower.endsWith(".srt") || lower.endsWith(".vtt") ||
+                            lower.endsWith(".ssa") || lower.endsWith(".ass")
+              
+              if (file.isFile && isValid) {
                 withContext(Dispatchers.Main) {
                   // Don't auto-select during scan, just make available
                   addSubtitle(file.uri, select = false, silent = true)
@@ -761,7 +540,7 @@ class PlayerViewModel(
       currentMediaTitle = mediaTitle
       lastAutoSelectedMediaTitle = null
       // Clear external subtitles when media changes
-      _externalSubtitles.clear()
+      _subtitleManager.clearExternalSubtitles()
       // Scan for previously downloaded/added subtitles
       scanLocalSubtitles(mediaTitle)
 
@@ -795,149 +574,24 @@ class PlayerViewModel(
   }
 
 
-  fun removeSubtitle(id: Int) {
-    viewModelScope.launch(Dispatchers.IO) {
-      // Find the subtitle track info before removing
-      val tracks = subtitleTracks.value
-      val trackToRemove = tracks.firstOrNull { it.id == id }
-      
-      // If it's external, physically delete the file if we can find its URI
-      if (trackToRemove?.external == true && trackToRemove.externalFilename != null) {
-        val mpvPath = trackToRemove.externalFilename
-        val originalUriString = mpvPathToUriMap[mpvPath] ?: mpvPath
-        val uri = Uri.parse(originalUriString)
-        
-        val deleted = wyzieRepository.deleteSubtitleFile(uri)
-        
-        if (deleted) {
-          _externalSubtitles.remove(originalUriString)
-          mpvPathToUriMap.remove(mpvPath)
-          withContext(Dispatchers.Main) {
-            showToast("Subtitle deleted")
-          }
-        }
-      }
-      
-        MPVLib.command("sub-remove", id.toString())
-    }
-  }
+  fun removeSubtitle(id: Int) = _subtitleManager.removeSubtitle(id, subtitleTracks.value)
 
   // --- Media Search and Series Management ---
 
-  private var mediaSearchJob: Job? = null
+  fun searchMedia(query: String) = _subtitleManager.searchMedia(query)
 
-  fun searchMedia(query: String) {
-    mediaSearchJob?.cancel()
-    if (query.isBlank()) {
-      _mediaSearchResults.value = emptyList()
-      return
-    }
+  fun selectMedia(result: app.marlboroadvance.mpvex.repository.wyzie.WyzieTmdbResult) = _subtitleManager.selectMedia(result)
 
-    mediaSearchJob = viewModelScope.launch {
-      delay(300) // Debounce
-      _isSearchingMedia.value = true
-      wyzieRepository.searchMedia(query)
-        .onSuccess { results ->
-          _mediaSearchResults.value = results
-        }
-        .onFailure {
-          // Silent failure for autocomplete, or optionally show toast(if someone is reading this if u need u can impelmen this in future )
-        }
-      _isSearchingMedia.value = false
-    }
-  }
+  fun selectSeason(season: app.marlboroadvance.mpvex.repository.wyzie.WyzieSeason) = _subtitleManager.selectSeason(season)
 
-  fun selectMedia(result: app.marlboroadvance.mpvex.repository.wyzie.WyzieTmdbResult) {
-    _mediaSearchResults.value = emptyList() // Clear results after selection
-    _wyzieSearchResults.value = emptyList() // Clear old subtitle results
-    
-    if (result.mediaType == "tv") {
-      fetchTvShowDetails(result.id)
-    } else {
-      // For movies, just search subtitles directly with the TMDB ID
-      searchSubtitles(result.title)
-      // Ideally we should pass the TMDB ID to searchSubtitles too if the API supports it
-    }
-  }
+  fun selectEpisode(episode: app.marlboroadvance.mpvex.repository.wyzie.WyzieEpisode) = _subtitleManager.selectEpisode(episode, currentMediaTitle)
 
-  private fun fetchTvShowDetails(id: Int) {
-    viewModelScope.launch {
-      _isFetchingTvDetails.value = true
-      wyzieRepository.getTvShowDetails(id)
-        .onSuccess { details ->
-          val validSeasons = details.seasons.filter { it.season_number > 0 }.sortedBy { it.season_number }
-          _selectedTvShow.value = details.copy(seasons = validSeasons)
-          _selectedSeason.value = null
-          _seasonEpisodes.value = emptyList()
-        }
-        .onFailure {
-          showToast("Failed to load series details: ${it.message}")
-        }
-      _isFetchingTvDetails.value = false
-    }
-  }
-
-  fun selectSeason(season: app.marlboroadvance.mpvex.repository.wyzie.WyzieSeason) {
-    val tvShowId = _selectedTvShow.value?.id ?: return
-    _selectedSeason.value = season
-    
-    viewModelScope.launch {
-      _isFetchingEpisodes.value = true
-      wyzieRepository.getSeasonEpisodes(tvShowId, season.season_number)
-        .onSuccess { episodes ->
-          val validEpisodes = episodes.filter { it.episode_number > 0 }.sortedBy { it.episode_number }
-          _seasonEpisodes.value = validEpisodes
-          _selectedEpisode.value = null
-        }
-        .onFailure {
-          showToast("Failed to load episodes: ${it.message}")
-        }
-      _isFetchingEpisodes.value = false
-    }
-  }
-
-  fun selectEpisode(episode: app.marlboroadvance.mpvex.repository.wyzie.WyzieEpisode) {
-    _selectedEpisode.value = episode
-    val tvShowName = _selectedTvShow.value?.name ?: currentMediaTitle
-    searchSubtitles(tvShowName, episode.season_number, episode.episode_number)
-  }
-
-  fun clearMediaSelection() {
-    _selectedTvShow.value = null
-    _selectedSeason.value = null
-    _seasonEpisodes.value = emptyList()
-    _selectedEpisode.value = null
-    _mediaSearchResults.value = emptyList()
-  }
+  fun clearMediaSelection() = _subtitleManager.clearMediaSelection()
 
   // --- Subtitle Search ---
-  fun searchSubtitles(query: String, season: Int? = null, episode: Int? = null, year: String? = null) {
-     viewModelScope.launch {
-         _isSearchingSub.value = true
-         wyzieRepository.search(query, season, episode, year)
-             .onSuccess { results ->
-                 _wyzieSearchResults.value = results
-             }
-             .onFailure {
-                 showToast("Search failed: ${it.message}")
-             }
-         _isSearchingSub.value = false
-     }
-  }
+  fun searchSubtitles(query: String, season: Int? = null, episode: Int? = null, year: String? = null) = _subtitleManager.searchSubtitles(query, season, episode, year)
 
-  fun downloadSubtitle(subtitle: WyzieSubtitle) {
-      viewModelScope.launch {
-          _isDownloadingSub.value = true
-          wyzieRepository.download(subtitle, currentMediaTitle)
-              .onSuccess { uri ->
-                  addSubtitle(uri)
-              }
-              .onFailure {
-                  showToast("Download failed: ${it.message}")
-              }
-          _isDownloadingSub.value = false
-      }
-  }
+  fun downloadSubtitle(subtitle: WyzieSubtitle) = _subtitleManager.downloadSubtitle(subtitle, currentMediaTitle)
 
 
   fun toggleSubtitle(id: Int) {
@@ -1088,60 +742,23 @@ class PlayerViewModel(
   // ==================== Seeking ====================
 
   fun seekBy(offset: Int) {
-    coalesceSeek(offset)
+    _playbackManager.seekBy(offset)
   }
 
   fun seekTo(position: Int) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val maxDuration = MPVLib.getPropertyInt("duration") ?: 0
-      var clampedPosition = position.coerceIn(0, maxDuration)
-
-      // Clamp within AB loop if active
-      val loopA = _abLoopA.value
-      val loopB = _abLoopB.value
-      if (loopA != null && loopB != null) {
-        val min = minOf(loopA.toInt(), loopB.toInt())
-        val max = maxOf(loopA.toInt(), loopB.toInt())
-        clampedPosition = clampedPosition.coerceIn(min, max)
-      }
-
-      if (clampedPosition !in 0..maxDuration) return@launch
-
-      // Cancel pending relative seek before absolute seek
-      seekCoalesceJob?.cancel()
-      pendingSeekOffset = 0
-      
-      // Use precise seeking for videos shorter than 2 minutes (120 seconds) or if preference is enabled
-      val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || maxDuration < 120
-      val seekMode = if (shouldUsePreciseSeeking) "absolute+exact" else "absolute+keyframes"
-      MPVLib.command("seek", clampedPosition.toString(), seekMode)
-    }
+    _playbackManager.seekTo(position, _abLoopA.value, _abLoopB.value)
   }
 
-  private fun coalesceSeek(offset: Int) {
-    pendingSeekOffset += offset
-    seekCoalesceJob?.cancel()
-    seekCoalesceJob =
-      viewModelScope.launch(Dispatchers.IO) {
-        delay(SEEK_COALESCE_DELAY_MS)
-        val toApply = pendingSeekOffset
-        pendingSeekOffset = 0
-        
-        if (toApply != 0) {
-          val duration = MPVLib.getPropertyInt("duration") ?: 0
-          val currentPos = MPVLib.getPropertyInt("time-pos") ?: 0
-          
-          if (duration > 0 && currentPos + toApply >= duration) {
-              // If seeking past the end, force seek to 100% absolute to ensure EOF is triggered
-              MPVLib.command("seek", "100", "absolute-percent+exact")
-          } else {
-              // Use precise seeking for videos shorter than 2 minutes (120 seconds) or if preference is enabled
-              val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || duration < 120
-              val seekMode = if (shouldUsePreciseSeeking) "relative+exact" else "relative+keyframes"
-              MPVLib.command("seek", toApply.toString(), seekMode)
-          }
-        }
-      }
+  fun setPlaybackSpeed(speed: Float) {
+    _playbackManager.setSpeed(speed)
+  }
+
+  fun resetPlaybackSpeed() {
+    _playbackManager.resetSpeed()
+  }
+
+  fun setSubtitleSpeed(speed: Double) {
+    _playbackManager.setSubSpeed(speed)
   }
 
   fun leftSeek() {
@@ -1163,7 +780,8 @@ class PlayerViewModel(
   }
 
   fun leftSubSeek() {
-    if (MPVLib.getPropertyInt("sid") != null) {
+    val sid = MPVLib.getPropertyInt("sid") ?: 0
+    if (sid != 0) {
       val pos1 = MPVLib.getPropertyDouble("time-pos") ?: 0.0
       MPVLib.command("sub-seek", "-1")
 
@@ -1178,7 +796,8 @@ class PlayerViewModel(
   }
 
   fun rightSubSeek() {
-    if (MPVLib.getPropertyInt("sid") != null) {
+    val sid = MPVLib.getPropertyInt("sid") ?: 0
+    if (sid != 0) {
       val pos1 = MPVLib.getPropertyDouble("time-pos") ?: 0.0
       MPVLib.command("sub-seek", "1")
 
@@ -1761,30 +1380,28 @@ class PlayerViewModel(
 
   fun hasPlaylistSupport(): Boolean {
     val playlistModeEnabled = playerPreferences.playlistMode.get()
-    return playlistModeEnabled && ((host as? PlayerActivity)?.playlist?.isNotEmpty() ?: false)
+    return playlistModeEnabled && _playlistManager.playlist.value.isNotEmpty()
   }
 
   fun getPlaylistInfo(): String? {
-    val activity = host as? PlayerActivity ?: return null
-    if (activity.playlist.isEmpty()) return null
+    if (_playlistManager.playlist.value.isEmpty()) return null
 
     val totalCount = getPlaylistTotalCount()
-    return "${activity.playlistIndex + 1}/$totalCount"
+    return "${_playlistManager.currentIndex.value + 1}/$totalCount"
   }
 
   fun isPlaylistM3U(): Boolean {
-    val activity = host as? PlayerActivity ?: return false
-    return activity.isCurrentPlaylistM3U()
+    return _playlistManager.isM3uPlaylist
   }
 
   fun getPlaylistTotalCount(): Int {
-    val activity = host as? PlayerActivity ?: return 0
-    return activity.playlist.size
+    val totalCount = _playlistManager.playlistTotalCount
+    return if (totalCount > 0) totalCount else _playlistManager.playlist.value.size
   }
 
   fun getPlaylistData(): List<app.marlboroadvance.mpvex.ui.player.controls.components.sheets.PlaylistItem>? {
     val activity = host as? PlayerActivity ?: return null
-    if (activity.playlist.isEmpty()) return null
+    if (_playlistManager.playlist.value.isEmpty()) return null
 
     // Get current video progress
     val currentPos = pos ?: 0
@@ -1793,12 +1410,12 @@ class PlayerViewModel(
       ((currentPos.toFloat() / currentDuration.toFloat()) * 100f).coerceIn(0f, 100f)
     } else 0f
 
-    return activity.playlist.mapIndexed { index, uri ->
+    return _playlistManager.playlist.value.mapIndexed { index, uri ->
       val title = activity.getPlaylistItemTitle(uri)
       // Path is not used for thumbnail loading - thumbnails are loaded directly from URI
       // Keep it for cache key compatibility
       val path = uri.toString()
-      val isCurrentlyPlaying = index == activity.playlistIndex
+      val isCurrentlyPlaying = index == _playlistManager.currentIndex.value
 
       // Try to get from cache first (synchronized access)
       val cacheKey = uri.toString()
@@ -1807,7 +1424,7 @@ class PlayerViewModel(
       app.marlboroadvance.mpvex.ui.player.controls.components.sheets.PlaylistItem(
         uri = uri,
         title = title,
-        index = index,
+        index = index + _playlistManager.playlistWindowOffset,
         isPlaying = isCurrentlyPlaying,
         path = path,
         progressPercent = if (isCurrentlyPlaying) currentProgress else 0f,
@@ -2085,29 +1702,34 @@ class PlayerViewModel(
     }
   }
 
-  fun hasNext(): Boolean = (host as? PlayerActivity)?.hasNext() ?: false
+  fun hasNext(): Boolean = _playlistManager.hasNext(shouldRepeatPlaylist())
 
-  fun hasPrevious(): Boolean = (host as? PlayerActivity)?.hasPrevious() ?: false
+  fun hasPrevious(): Boolean = _playlistManager.hasPrevious(shouldRepeatPlaylist())
 
   fun playNext() {
-    (host as? PlayerActivity)?.playNext()
+    val nextIndex = _playlistManager.getNextIndex(shouldRepeatPlaylist())
+    if (nextIndex != null) {
+      (host as? PlayerActivity)?.loadPlaylistItem(nextIndex)
+    }
   }
 
   fun playPrevious() {
-    (host as? PlayerActivity)?.playPrevious()
+    val prevIndex = _playlistManager.getPreviousIndex(shouldRepeatPlaylist())
+    if (prevIndex != null) {
+      (host as? PlayerActivity)?.loadPlaylistItem(prevIndex)
+    }
   }
 
   // ==================== Repeat and Shuffle ====================
 
   fun applyPersistedShuffleState() {
     if (_shuffleEnabled.value) {
-      val activity = host as? PlayerActivity
-      activity?.onShuffleToggled(true)
+      _playlistManager.setShuffleEnabled(true)
     }
   }
 
   fun cycleRepeatMode() {
-    val hasPlaylist = (host as? PlayerActivity)?.playlist?.isNotEmpty() == true
+    val hasPlaylist = _playlistManager.playlist.value.isNotEmpty()
 
     _repeatMode.value = when (_repeatMode.value) {
       RepeatMode.OFF -> RepeatMode.ONE
@@ -2124,13 +1746,12 @@ class PlayerViewModel(
 
   fun toggleShuffle() {
     _shuffleEnabled.value = !_shuffleEnabled.value
-    val activity = host as? PlayerActivity
 
     // Persist the shuffle state
     playerPreferences.shuffleEnabled.set(_shuffleEnabled.value)
 
-    // Notify activity to handle shuffle state change
-    activity?.onShuffleToggled(_shuffleEnabled.value)
+    // Notify manager to handle shuffle state change
+    _playlistManager.setShuffleEnabled(_shuffleEnabled.value)
 
     // Show overlay update instead of toast
     playerUpdate.value = PlayerUpdates.Shuffle(_shuffleEnabled.value)
@@ -2138,11 +1759,11 @@ class PlayerViewModel(
 
   fun shouldRepeatCurrentFile(): Boolean {
     return _repeatMode.value == RepeatMode.ONE ||
-      (_repeatMode.value == RepeatMode.ALL && (host as? PlayerActivity)?.playlist?.isEmpty() == true)
+      (_repeatMode.value == RepeatMode.ALL && _playlistManager.playlist.value.isEmpty())
   }
 
   fun shouldRepeatPlaylist(): Boolean {
-    return _repeatMode.value == RepeatMode.ALL && (host as? PlayerActivity)?.playlist?.isNotEmpty() == true
+    return _repeatMode.value == RepeatMode.ALL && _playlistManager.playlist.value.isNotEmpty()
   }
 
   // ==================== A-B Loop ====================

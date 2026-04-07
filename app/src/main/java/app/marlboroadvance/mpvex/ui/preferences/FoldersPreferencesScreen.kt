@@ -482,9 +482,6 @@ private fun AddFolderDialog(
  */
 private suspend fun scanAllVideoFolders(context: Application): List<VideoFolder> {
   // Use fast optimized scanning - 5-10x faster for large libraries
-  return app.marlboroadvance.mpvex.repository.MediaFileRepository
-    .getAllVideoFoldersFast(
-      context = context
-    )
+  return app.marlboroadvance.mpvex.repository.MediaFileRepository.getAllVideoFoldersFast(context)
 }
 

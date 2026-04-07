@@ -15,4 +15,8 @@ interface PlaybackStateRepository {
     oldTitle: String,
     newTitle: String,
   )
+
+  suspend fun getAllPlaybackStates(): List<PlaybackStateEntity>
+
+  fun observeAllPlaybackStates(): kotlinx.coroutines.flow.Flow<List<PlaybackStateEntity>>
 }

@@ -889,9 +889,10 @@ fun GestureHandler(
                       !isDynamicSpeedControlActive && // Don't conflict with speed control
                       panelShown == Panels.None) { // Only when no panels are shown
                     
-                    if (swipeToSubtitleSeek && inExclusionZone) {
+                    val hasActiveSubtitle = (MPVLib.getPropertyInt("sid") ?: 0) != 0
+                    if (swipeToSubtitleSeek && inExclusionZone && hasActiveSubtitle) {
                       gestureType = "subtitle_seek"
-                    } else if (horizontalSwipeToSeek && !inExclusionZone) {
+                    } else if (horizontalSwipeToSeek) {
                       gestureType = "horizontal_seek"
                       hasStartedSeeking = true
                       initialVideoPosition = position?.toFloat() ?: 0f

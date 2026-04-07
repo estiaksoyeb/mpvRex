@@ -80,6 +80,7 @@ import app.marlboroadvance.mpvex.preferences.MediaLayoutMode
 import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.SortOrder
 import app.marlboroadvance.mpvex.preferences.VideoSortType
+import app.marlboroadvance.mpvex.preferences.UiSettings
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
@@ -141,6 +142,7 @@ data class VideoListScreen(
     val videos by viewModel.videos.collectAsState()
     val videosWithPlaybackInfo by viewModel.videosWithPlaybackInfo.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val uiSettings by viewModel.uiSettings.collectAsState()
     val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
     val lastPlayedInFolderPath by viewModel.lastPlayedInFolderPath.collectAsState()
     val playlistMode by playerPreferences.playlistMode.collectAsState()
@@ -341,6 +343,7 @@ data class VideoListScreen(
           folderId = bucketId,
           videosWithInfo = sortedVideosWithInfo,
           isLoading = isLoading && videos.isEmpty(),
+          uiSettings = uiSettings,
           isRefreshing = isRefreshing,
           recentlyPlayedFilePath = lastPlayedInFolderPath ?: recentlyPlayedFilePath,
           videosWereDeletedOrMoved = videosWereDeletedOrMoved,
@@ -547,6 +550,7 @@ private fun VideoListContent(
   folderId: String,
   videosWithInfo: List<VideoWithPlaybackInfo>,
   isLoading: Boolean,
+  uiSettings: UiSettings,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
   recentlyPlayedFilePath: String?,
   videosWereDeletedOrMoved: Boolean,
@@ -745,6 +749,7 @@ private fun VideoListContent(
 
               VideoCard(
                 video = videoWithInfo.video,
+                uiSettings = uiSettings,
                 progressPercentage = videoWithInfo.progressPercentage,
                 isRecentlyPlayed = isRecentlyPlayed,
                 isSelected = selectionManager.isSelected(videoWithInfo.video),
@@ -797,6 +802,7 @@ private fun VideoListContent(
 
                 VideoCard(
                   video = videoWithInfo.video,
+                  uiSettings = uiSettings,
                   progressPercentage = videoWithInfo.progressPercentage,
                   isRecentlyPlayed = isRecentlyPlayed,
                   isSelected = selectionManager.isSelected(videoWithInfo.video),

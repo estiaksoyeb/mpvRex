@@ -75,6 +75,7 @@ fun PlayLinkSheet(
           filePath = url,
           fileName = name,
           launchSource = "play_link",
+          isAudio = false, // Assume video for links unless we probe
         )
       }
       onPlayLink(url)

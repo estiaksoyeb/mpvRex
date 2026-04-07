@@ -88,6 +88,7 @@ import app.marlboroadvance.mpvex.domain.browser.FileSystemItem
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.MediaLayoutMode
+import app.marlboroadvance.mpvex.preferences.UiSettings
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
 import app.marlboroadvance.mpvex.ui.browser.cards.FolderCard
@@ -173,7 +174,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val currentPath by viewModel.currentPath.collectAsState()
   val items by viewModel.items.collectAsState()
   val videoFilesWithPlayback by viewModel.videoFilesWithPlayback.collectAsState()
+  val newVideoIds by viewModel.newVideoIds.collectAsState()
   val isLoading by viewModel.isLoading.collectAsState()
+  val uiSettings by viewModel.uiSettings.collectAsState()
   val error by viewModel.error.collectAsState()
   val isAtRoot by viewModel.isAtRoot.collectAsState()
   val breadcrumbs by viewModel.breadcrumbs.collectAsState()
@@ -427,11 +430,17 @@ fun FileSystemBrowserScreen(path: String? = null) {
               }
             }
             
-            // Remove duplicates based on file path
+            // Remove duplicates based on file path and filter by audio preference
+            val isAudioFilesVisible = browserPreferences.showAudioFiles.get()
             val uniqueResults = allResults.distinctBy { item ->
               when (item) {
                 is FileSystemItem.VideoFile -> item.video.path
                 is FileSystemItem.Folder -> item.path
+              }
+            }.filter { item ->
+              when (item) {
+                is FileSystemItem.VideoFile -> isAudioFilesVisible || !item.video.isAudio
+                is FileSystemItem.Folder -> isAudioFilesVisible || item.videoCount > 0
               }
             }
             
@@ -781,6 +790,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 searchResults = searchResults,
                 isLoading = isSearchLoading,
                 videoFilesWithPlayback = videoFilesWithPlayback,
+                newVideoIds = newVideoIds,
+                uiSettings = uiSettings,
                 showSubtitleIndicator = showSubtitleIndicator,
                 isAtRoot = isAtRoot,
                 navigationBarHeight = navigationBarHeight,
@@ -800,7 +811,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 listState = listState,
                 items = items,
                 videoFilesWithPlayback = videoFilesWithPlayback,
+                newVideoIds = newVideoIds,
                 isLoading = isLoading && items.isEmpty(),
+                uiSettings = uiSettings,
                 isRefreshing = isRefreshing,
                 error = error,
                 isAtRoot = isAtRoot,
@@ -1050,26 +1063,30 @@ suspend fun searchRecursively(
 
     Log.d("FileSystemBrowserScreen", "Found ${items.size} items in $directoryPath")
 
-    // Filter items that match the search query (case-insensitive)
+    // Filter items that match the search query (case-insensitive) and respect audio preference
+    val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+    val isAudioFilesVisible = browserPreferences.showAudioFiles.get()
     items.forEach { item ->
       when (item) {
         is FileSystemItem.VideoFile -> {
-          if (item.video.displayName.contains(query, ignoreCase = true)) {
+          if ((isAudioFilesVisible || !item.video.isAudio) && item.video.displayName.contains(query, ignoreCase = true)) {
             Log.d("FileSystemBrowserScreen", "Found matching video: ${item.video.displayName}")
             results.add(item)
           }
         }
         is FileSystemItem.Folder -> {
-          if (item.name.contains(query, ignoreCase = true)) {
+          if ((isAudioFilesVisible || item.videoCount > 0) && item.name.contains(query, ignoreCase = true)) {
             Log.d("FileSystemBrowserScreen", "Found matching folder: ${item.name}")
             results.add(item)
           }
-          // Recursively search in subdirectories
-          try {
-            val subResults = searchRecursively(context, item.path, query)
-            results.addAll(subResults)
-          } catch (e: Exception) {
-            Log.e("FileSystemBrowserScreen", "Error searching subdirectory ${item.path}", e)
+          // Recursively search in subdirectories if they have content we care about
+          if (isAudioFilesVisible || item.videoCount > 0) {
+            try {
+              val subResults = searchRecursively(context, item.path, query)
+              results.addAll(subResults)
+            } catch (e: Exception) {
+              Log.e("FileSystemBrowserScreen", "Error searching subdirectory ${item.path}", e)
+            }
           }
         }
       }
@@ -1098,15 +1115,21 @@ private suspend fun collectVideosRecursively(
       .scanDirectory(context, folderPath, showAllFileTypes = false)
       .getOrNull() ?: emptyList()
 
-    // Add videos from current folder
+    // Add videos from current folder respecting audio preference
+    val browserPreferences = org.koin.core.context.GlobalContext.get().get<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+    val isAudioFilesVisible = browserPreferences.showAudioFiles.get()
     items.filterIsInstance<FileSystemItem.VideoFile>().forEach { videoFile ->
-      videos.add(videoFile.video)
+      if (isAudioFilesVisible || !videoFile.video.isAudio) {
+        videos.add(videoFile.video)
+      }
     }
 
-    // Recursively scan subfolders
+    // Recursively scan subfolders that have relevant content
     items.filterIsInstance<FileSystemItem.Folder>().forEach { folder ->
-      val subVideos = collectVideosRecursively(context, folder.path)
-      videos.addAll(subVideos)
+      if (isAudioFilesVisible || folder.videoCount > 0) {
+        val subVideos = collectVideosRecursively(context, folder.path)
+        videos.addAll(subVideos)
+      }
     }
   } catch (e: Exception) {
     Log.e("FileSystemBrowserScreen", "Error collecting videos from $folderPath", e)
@@ -1144,7 +1167,9 @@ private fun FileSystemBrowserContent(
   listState: LazyListState,
   items: List<FileSystemItem>,
   videoFilesWithPlayback: Map<Long, Float>,
+  newVideoIds: Set<Long>,
   isLoading: Boolean,
+  uiSettings: UiSettings,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
   error: String?,
   isAtRoot: Boolean,
@@ -1298,6 +1323,7 @@ private fun FileSystemBrowserContent(
                 name = folder.name,
                 path = folder.path,
                 videoCount = folder.videoCount,
+                audioCount = folder.audioCount,
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,
@@ -1305,7 +1331,10 @@ private fun FileSystemBrowserContent(
 
               FolderCard(
                 folder = folderModel,
+                uiSettings = uiSettings,
                 isSelected = folderSelectionManager.isSelected(folder),
+                newVideoCount = folder.newCount,
+
                 isRecentlyPlayed = false,
                 onClick = { onFolderClick(folder) },
                 onLongClick = { onFolderLongClick(folder) },
@@ -1325,7 +1354,9 @@ private fun FileSystemBrowserContent(
             ) { videoFile ->
               VideoCard(
                 video = videoFile.video,
+                uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
+                isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
                 isRecentlyPlayed = false,
                 isSelected = videoSelectionManager.isSelected(videoFile.video),
                 onClick = { onVideoClick(videoFile.video) },
@@ -1337,8 +1368,6 @@ private fun FileSystemBrowserContent(
                 },
                 isGridMode = false,
                 showSubtitleIndicator = showSubtitleIndicator,
-                overrideShowSizeChip = null,
-                overrideShowResolutionChip = null,
                 useFolderNameStyle = false,
               )
             }
@@ -1373,6 +1402,8 @@ private fun FileSystemSearchContent(
   searchResults: List<FileSystemItem>,
   isLoading: Boolean,
   videoFilesWithPlayback: Map<Long, Float>,
+  newVideoIds: Set<Long>,
+  uiSettings: UiSettings,
   showSubtitleIndicator: Boolean,
   isAtRoot: Boolean,
   navigationBarHeight: Dp,
@@ -1480,6 +1511,7 @@ private fun FileSystemSearchContent(
                 name = folder.name,
                 path = folder.path,
                 videoCount = folder.videoCount,
+                audioCount = folder.audioCount,
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,
@@ -1487,8 +1519,10 @@ private fun FileSystemSearchContent(
 
               FolderCard(
                 folder = folderModel,
+                uiSettings = uiSettings,
                 isSelected = false,
                 isRecentlyPlayed = false,
+                newVideoCount = folder.newCount,
                 onClick = { onFolderClick(folder) },
                 onLongClick = { },
                 onThumbClick = { onFolderClick(folder) },
@@ -1503,7 +1537,9 @@ private fun FileSystemSearchContent(
             ) { videoFile ->
               VideoCard(
                 video = videoFile.video,
+                uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
+                isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
                 isRecentlyPlayed = false,
                 isSelected = false,
                 onClick = { onVideoClick(videoFile.video) },
@@ -1511,8 +1547,6 @@ private fun FileSystemSearchContent(
                 onThumbClick = { onVideoClick(videoFile.video) },
                 isGridMode = false,
                 showSubtitleIndicator = showSubtitleIndicator,
-                overrideShowSizeChip = null,
-                overrideShowResolutionChip = null,
                 useFolderNameStyle = false,
               )
             }

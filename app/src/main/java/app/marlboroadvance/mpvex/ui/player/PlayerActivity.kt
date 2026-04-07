@@ -662,6 +662,11 @@ class PlayerActivity :
   override fun finish() {
     runCatching {
       isReady = false
+
+      // Restore UI immediately for responsive exit
+      if (!isInPictureInPictureMode) {
+        restoreSystemUI()
+      }
       
       // Clean up service when finishing
       if (serviceBound || mediaPlaybackService != null) {
@@ -684,6 +689,11 @@ class PlayerActivity :
     runCatching {
       isReady = false
       isUserFinishing = true
+      
+      // Restore UI immediately for responsive exit (same as finish())
+      if (!isInPictureInPictureMode) {
+        restoreSystemUI()
+      }
       
       // Clean up service when finishing
       if (serviceBound || mediaPlaybackService != null) {
@@ -799,7 +809,7 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   private fun restoreSystemUI() {
     // Clear flags first for immediate effect
-    window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+    // window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
     // Set cutout mode before showing bars for smoother transition
@@ -807,7 +817,7 @@ class PlayerActivity :
       WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
 
     // Update window insets configuration
-    WindowCompat.setDecorFitsSystemWindows(window, true)
+    // WindowCompat.setDecorFitsSystemWindows(window, true)
 
     // Restore default behavior and show bars in one go
     try {

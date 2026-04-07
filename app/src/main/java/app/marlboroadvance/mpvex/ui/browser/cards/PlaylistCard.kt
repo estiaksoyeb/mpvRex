@@ -79,7 +79,12 @@ fun PlaylistCard(
         title = "",
         displayName = "",
         path = mostRecentVideoPath,
-        uri = android.net.Uri.parse(mostRecentVideoPath),
+        uri = if (mostRecentVideoPath.startsWith("/") || mostRecentVideoPath.startsWith("file://")) {
+          val path = if (mostRecentVideoPath.startsWith("file://")) mostRecentVideoPath.removePrefix("file://") else mostRecentVideoPath
+          android.net.Uri.fromFile(java.io.File(path))
+        } else {
+          android.net.Uri.parse(mostRecentVideoPath)
+        },
         duration = 0,
         durationFormatted = "",
         size = 0,

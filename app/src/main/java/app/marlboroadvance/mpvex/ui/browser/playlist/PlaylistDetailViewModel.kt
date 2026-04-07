@@ -87,7 +87,12 @@ class PlaylistDetailViewModel(
                   title = item.fileName,
                   displayName = item.fileName,
                   path = item.filePath,
-                  uri = android.net.Uri.parse(item.filePath),
+                  uri = if (item.filePath.startsWith("/") || item.filePath.startsWith("file://")) {
+                    val path = if (item.filePath.startsWith("file://")) item.filePath.removePrefix("file://") else item.filePath
+                    android.net.Uri.fromFile(java.io.File(path))
+                  } else {
+                    android.net.Uri.parse(item.filePath)
+                  },
                   duration = 0L,
                   durationFormatted = "00:00",
                   size = 0L,

@@ -115,10 +115,15 @@ class RecentlyPlayedViewModel(application: Application) :
     
     return Video(
       id = filePath.hashCode().toLong(),
-      title = videoTitle ?: file.nameWithoutExtension,
+      title = videoTitle,
       displayName = displayName,
       path = filePath,
-      uri = Uri.parse(filePath),
+      uri = if (filePath.startsWith("/") || filePath.startsWith("file://")) {
+        val path = if (filePath.startsWith("file://")) filePath.removePrefix("file://") else filePath
+        Uri.fromFile(File(path))
+      } else {
+        Uri.parse(filePath)
+      },
       duration = duration,
       durationFormatted = MediaFormatter.formatDuration(duration),
       size = size,

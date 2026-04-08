@@ -47,6 +47,7 @@ object CoreMediaScanner {
         val directDuration: Long = 0L,
         val lastModified: Long = 0L,
         val hasDirectSubfolders: Boolean = false,
+        var isFlattened: Boolean = false,
         // Recursive properties (will be calculated after scan)
         var recursiveVideoCount: Int = 0,
         var recursiveAudioCount: Int = 0,
@@ -110,26 +111,44 @@ object CoreMediaScanner {
     ): List<MediaFolder> = withContext(Dispatchers.IO) {
         val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         
-        // Filter for direct subfolders of the parent
-        allNodes.values.filter { node ->
-            val parentFile = File(node.path).parent
+        getEffectiveChildren(parentPath, allNodes)
+            .map { node ->
+                // Use recursive counts for browser view
+                MediaFolder(
+                    id = node.path,
+                    name = node.name,
+                    path = node.path,
+                    videoCount = node.recursiveVideoCount,
+                    audioCount = node.recursiveAudioCount,
+                    totalSize = node.recursiveSize,
+                    totalDuration = node.recursiveDuration,
+                    lastModified = node.latestModified,
+                    hasSubfolders = node.hasDirectSubfolders,
+                    isRecursive = true,
+                    newCount = node.recursiveNewCount
+                )
+            }.sortedBy { it.name.lowercase(Locale.getDefault()) }
+    }
+
+    /**
+     * Helper to find effective children by bypassing flattened folders
+     */
+    private fun getEffectiveChildren(parentPath: String, allNodes: Map<String, FolderNode>): List<FolderNode> {
+        val directChildren = allNodes.values.filter { 
+            val parentFile = File(it.path).parent
             parentFile == parentPath
-        }.map { node ->
-            // Use recursive counts for browser view
-            MediaFolder(
-                id = node.path,
-                name = node.name,
-                path = node.path,
-                videoCount = node.recursiveVideoCount,
-                audioCount = node.recursiveAudioCount,
-                totalSize = node.recursiveSize,
-                totalDuration = node.recursiveDuration,
-                lastModified = node.latestModified,
-                hasSubfolders = node.hasDirectSubfolders,
-                isRecursive = true,
-                newCount = node.recursiveNewCount
-            )
-        }.sortedBy { it.name.lowercase(Locale.getDefault()) }
+        }
+        
+        val result = mutableListOf<FolderNode>()
+        for (child in directChildren) {
+            if (child.isFlattened) {
+                // If child is flattened, its children become our children
+                result.addAll(getEffectiveChildren(child.path, allNodes))
+            } else {
+                result.add(child)
+            }
+        }
+        return result
     }
 
     /**
@@ -415,9 +434,8 @@ object CoreMediaScanner {
         }
 
         // SMART TREE FLATTENING (User Logic)
-        // Logic: A folder should be hidden if it has NO direct media AND only has one child folder with media.
+        // Logic: A folder should be hidden (flattened) if it has NO direct media AND only has one child folder with media.
         // This avoids deep nesting of single folders in Tree View.
-        val pathsToRemove = mutableSetOf<String>()
         val sortedForFlattening = nodes.keys.sortedBy { it.length } // Shortest paths first to check from root down
         
         for (path in sortedForFlattening) {
@@ -431,21 +449,18 @@ object CoreMediaScanner {
                 File(it.path).parent == path && (it.recursiveVideoCount > 0 || it.recursiveAudioCount > 0)
             }
             
-            // Logic: Hide Music if it only has one media child (e.g. Music/Recordings)
+            // Logic: Mark as flattened if it only has one media child (e.g. Music/Recordings)
             // AND we are NOT at the storage root (roots should always be shown if they have media)
             if (childrenWithMedia.size < 2) {
                 // Determine if this is a storage root - they are special
                 val isStorageRoot = StorageVolumeUtils.isStorageRoot(context, path)
                 if (!isStorageRoot) {
-                    pathsToRemove.add(path)
+                    node.isFlattened = true
                 }
             }
         }
         
-        // Apply removals
-        pathsToRemove.forEach { nodes.remove(it) }
-        
         // Final pass to clean up empty folders that might have been left over
-        nodes.entries.removeIf { it.value.recursiveVideoCount == 0 && it.value.recursiveAudioCount == 0 }
+        nodes.entries.removeIf { it.value.recursiveVideoCount == 0 && it.value.recursiveAudioCount == 0 && !it.value.isFlattened }
     }
 }

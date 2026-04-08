@@ -19,7 +19,7 @@ object FileTypeUtils {
     // Audio file extensions
     val AUDIO_EXTENSIONS = setOf(
         "mp3", "flac", "wav", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac",
-        "dsd", "dff", "dsf", "pcm", "mka"
+        "dsd", "dff", "dsf", "pcm", "mka", "oga"
     )
 
     /**
@@ -65,7 +65,7 @@ object FileTypeUtils {
             "flac" -> "audio/flac"
             "wav" -> "audio/wav"
             "m4a" -> "audio/mp4"
-            "ogg", "opus" -> "audio/ogg"
+            "ogg", "opus", "oga" -> "audio/ogg"
             "mka" -> "audio/x-matroska"
             else -> if (VIDEO_EXTENSIONS.contains(ext)) "video/*" else if (AUDIO_EXTENSIONS.contains(ext)) "audio/*" else "*/*"
         }

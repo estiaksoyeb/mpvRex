@@ -97,7 +97,14 @@ fun BaseMediaCard(
                         .aspectRatio(thumbnailAspectRatio)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .then(if (onThumbClick != null) Modifier.clickable { onThumbClick() } else Modifier),
+                        .then(
+                            if (onThumbClick != null) {
+                                Modifier.combinedClickable(
+                                    onClick = { onThumbClick() },
+                                    onLongClick = onLongClick
+                                )
+                            } else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (thumbnail != null) {
@@ -181,7 +188,14 @@ fun BaseMediaCard(
             .aspectRatio(thumbnailAspectRatio)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .then(if (onThumbClick != null) Modifier.clickable { onThumbClick() } else Modifier),
+            .then(
+                if (onThumbClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = { onThumbClick() },
+                        onLongClick = onLongClick
+                    )
+                } else Modifier
+            ),
           contentAlignment = Alignment.Center,
         ) {
                     if (thumbnail != null) {

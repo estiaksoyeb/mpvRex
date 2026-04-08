@@ -79,11 +79,23 @@ object MediaFileRepository {
         val isAudioEnabled = browserPreferences.showAudioFiles.get()
         val playbackStates = playbackStateRepository.getAllPlaybackStates()
         val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+        
+        // Get blacklisted folders
+        val foldersPreferences = koin.get<app.marlboroadvance.mpvex.preferences.FoldersPreferences>()
+        val blacklistedFolders = foldersPreferences.blacklistedFolders.get()
 
         // Get folders using CoreMediaScanner
-        val folders = CoreMediaScanner.getFoldersInDirectory(context, path, playbackStates, thresholdDays)
+        val folders = CoreMediaScanner.getFoldersInDirectory(
+            context = context, 
+            parentPath = path, 
+            playbackStates = playbackStates, 
+            thresholdDays = thresholdDays,
+            blacklistedFolders = blacklistedFolders
+        )
         folders
-          .filter { data -> isAudioEnabled || data.videoCount > 0 }
+          .filter { data -> 
+            (isAudioEnabled || data.videoCount > 0) && data.path !in blacklistedFolders
+          }
           .forEach { folderData ->
             items.add(
               FileSystemItem.Folder(

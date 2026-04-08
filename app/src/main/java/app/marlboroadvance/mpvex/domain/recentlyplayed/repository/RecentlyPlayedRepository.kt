@@ -14,6 +14,9 @@ interface RecentlyPlayedRepository {
     height: Int = 0,
     launchSource: String? = null,
     playlistId: Int? = null,
+    isAudio: Boolean = false,
+    artist: String = "",
+    album: String = "",
   )
 
   suspend fun getLastPlayed(): RecentlyPlayedEntity?

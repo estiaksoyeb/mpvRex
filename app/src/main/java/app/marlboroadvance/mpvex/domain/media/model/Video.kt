@@ -24,5 +24,9 @@ data class Video(
   val fps: Float,
   val resolution: String,
   val hasEmbeddedSubtitles: Boolean = false,
-  val subtitleCodec:  String = "",
+  val subtitleCodec: String = "",
+  val isAudio: Boolean = false,
+  val artist: String = "",
+  val album: String = "",
+  val savedOrientation: Int? = null,
 )

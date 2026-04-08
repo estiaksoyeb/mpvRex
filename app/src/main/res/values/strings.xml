@@ -582,4 +582,8 @@
     <string name="no_storage_devices_found">No storage devices found</string>
     <string name="no_folders_or_supported_files">No folders or supported files</string>
     <string name="hello_world">Hello world</string>
+
+    <!-- Browser Preferences -->
+    <string name="pref_show_audio_files_title">Show audio files</string>
+    <string name="pref_show_audio_files_summary">Show and index audio files in the browser and playlists</string>
 </resources>

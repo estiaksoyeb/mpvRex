@@ -56,9 +56,22 @@ object MediaUtils {
     val uri =
       when (source) {
         is Video -> {
-          val intent = Intent(Intent.ACTION_VIEW, source.uri)
+          val videoUri = if (source.uri.scheme == null) {
+            if (source.path.startsWith("/") || source.path.startsWith("file://")) {
+              val path = if (source.path.startsWith("file://")) source.path.removePrefix("file://") else source.path
+              Uri.fromFile(File(path))
+            } else {
+              source.uri
+            }
+          } else {
+            source.uri
+          }
+          val intent = Intent(Intent.ACTION_VIEW, videoUri)
           intent.setClass(context, PlayerActivity::class.java)
           intent.putExtra("internal_launch", true) // Enables subtitle autoload
+          intent.putExtra("width", source.width)
+          intent.putExtra("height", source.height)
+          source.savedOrientation?.let { intent.putExtra("saved_orientation", it) }
           launchSource?.let { intent.putExtra("launch_source", it) }
           
           // For playlist items, pass the title so it shows correctly in the player

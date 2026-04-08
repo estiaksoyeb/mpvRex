@@ -34,6 +34,9 @@ interface PlaybackStateDao {
   @Query("SELECT * FROM PlaybackStateEntity")
   suspend fun getAllPlaybackStates(): List<PlaybackStateEntity>
 
+  @Query("SELECT * FROM PlaybackStateEntity")
+  fun observeAllPlaybackStates(): kotlinx.coroutines.flow.Flow<List<PlaybackStateEntity>>
+
   @Upsert
   suspend fun upsertAll(playbackStates: List<PlaybackStateEntity>)
 }

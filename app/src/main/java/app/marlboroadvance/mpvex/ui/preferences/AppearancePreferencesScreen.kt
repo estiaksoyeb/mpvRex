@@ -312,6 +312,25 @@ object AppearancePreferencesScreen : Screen {
                                     )
                                 }
                             )
+
+                            PreferenceDivider()
+
+                            val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
+                            SwitchPreference(
+                                value = showAudioFiles,
+                                onValueChange = { browserPreferences.showAudioFiles.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_show_audio_files_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_show_audio_files_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            )
                         }
                     }
 

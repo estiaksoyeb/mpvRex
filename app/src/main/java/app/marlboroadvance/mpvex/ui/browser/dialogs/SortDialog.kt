@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -231,8 +232,16 @@ private fun SortTypeSelector(
                     if (selected) {
                       MaterialTheme.colorScheme.primaryContainer
                     } else {
-                      MaterialTheme.colorScheme.surfaceContainerHighest
+                      Color.Transparent
                     },
+                )
+                .then(
+                  if (!selected) {
+                    Modifier.background(
+                      MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f),
+                      shape
+                    )
+                  } else Modifier
                 )
                 .clickable(
                   onClick = { onSortTypeChange(type) },
@@ -257,12 +266,12 @@ private fun SortTypeSelector(
           Text(
             text = type,
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             color =
               if (selected) {
-                MaterialTheme.colorScheme.onSurface
+                MaterialTheme.colorScheme.primary
               } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                MaterialTheme.colorScheme.onSurface
               },
           )
         }
@@ -347,6 +356,10 @@ private fun ViewModeSelectorComponent(
           verticalArrangement = Arrangement.spacedBy(6.dp),
           modifier = Modifier
             .clip(shape)
+            .background(
+              if (selected && enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+              else Color.Transparent
+            )
             .clickable(enabled = enabled) { 
               if (enabled) {
                 viewModeSelector.onViewModeChange(index == 0)
@@ -362,9 +375,9 @@ private fun ViewModeSelectorComponent(
                 color = if (selected && enabled) {
                   MaterialTheme.colorScheme.primaryContainer
                 } else if (enabled) {
-                  MaterialTheme.colorScheme.surfaceContainerHighest
+                  MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f)
                 } else {
-                  MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.38f)
+                  MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.2f)
                 },
               ),
             contentAlignment = Alignment.Center,
@@ -386,13 +399,13 @@ private fun ViewModeSelectorComponent(
           Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = if (selected && enabled) FontWeight.Medium else FontWeight.Normal,
+            fontWeight = if (selected && enabled) FontWeight.Bold else FontWeight.Normal,
             color = if (selected && enabled) {
               MaterialTheme.colorScheme.primary
             } else if (enabled) {
-              MaterialTheme.colorScheme.onSurfaceVariant
+              MaterialTheme.colorScheme.onSurface
             } else {
-              MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+              MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             },
           )
         }

@@ -19,5 +19,7 @@ data class VideoMetadataEntity(
   val fps: Float, // Framerate in frames per second
   val hasEmbeddedSubtitles: Boolean = false,
   val subtitleCodec: String = "",
+  val artist: String = "",
+  val album: String = "",
   val lastScanned: Long, // When this metadata was extracted (timestamp)
 )

@@ -3250,7 +3250,7 @@ class PlayerActivity :
 
         val files = parentFolder.listFiles { file ->
           file.isFile &&
-            (FileTypeUtils.isVideoFile(file) || (browserPreferences.showAudioFiles.get() && FileTypeUtils.isAudioFile(file))) &&
+            app.marlboroadvance.mpvex.utils.storage.FileTypeUtils.isMediaFile(file) &&
             !FileFilterUtils.shouldSkipFile(file)
         } ?: return@runCatching
 

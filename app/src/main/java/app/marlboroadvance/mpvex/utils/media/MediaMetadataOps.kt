@@ -32,9 +32,19 @@ object MediaMetadataOps {
                 val playbackStates = playbackStateRepository.getAllPlaybackStates()
                 val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
                 
-                val folders = CoreMediaScanner.getFlatMediaFolders(context, playbackStates, thresholdDays)
+                val foldersPreferences = koin.get<app.marlboroadvance.mpvex.preferences.FoldersPreferences>()
+                val blacklistedFolders = foldersPreferences.blacklistedFolders.get()
+                
+                val folders = CoreMediaScanner.getFlatMediaFolders(
+                    context = context, 
+                    playbackStates = playbackStates, 
+                    thresholdDays = thresholdDays,
+                    blacklistedFolders = blacklistedFolders
+                )
                 folders
-                    .filter { folder -> isAudioEnabled || folder.videoCount > 0 }
+                    .filter { folder -> 
+                        (isAudioEnabled || folder.videoCount > 0) && folder.path !in blacklistedFolders
+                    }
                     .map { folder ->
                         VideoFolder(
                             bucketId = folder.id,

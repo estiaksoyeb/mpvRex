@@ -38,6 +38,7 @@ class FileSystemBrowserViewModel(
 ) : BaseBrowserViewModel<FileSystemItem>(application),
   KoinComponent {
   private val browserPreferences: BrowserPreferences by inject()
+  private val foldersPreferences: app.marlboroadvance.mpvex.preferences.FoldersPreferences by inject()
   private val appearancePreferences: app.marlboroadvance.mpvex.preferences.AppearancePreferences by inject()
 
   // Special marker for "show storage volumes" mode
@@ -120,6 +121,13 @@ class FileSystemBrowserViewModel(
         SortUtils.sortFileSystemItems(items, sortType, sortOrder)
       }.collectLatest { sortedItems ->
         _items.value = sortedItems
+      }
+    }
+
+    // Refresh when blacklist changes
+    viewModelScope.launch {
+      foldersPreferences.blacklistedFolders.changes().collectLatest {
+        refresh(silent = true)
       }
     }
   }

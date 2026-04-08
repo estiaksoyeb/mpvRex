@@ -72,4 +72,18 @@ object StorageVolumeUtils {
             return null
         }
     }
+
+    /**
+     * Checks if a path is the root of a storage volume
+     */
+    fun isStorageRoot(context: Context, path: String): Boolean {
+        val volumes = getAllStorageVolumes(context)
+        for (volume in volumes) {
+            val volumePath = getVolumePath(volume)
+            if (volumePath != null && File(volumePath).absolutePath == File(path).absolutePath) {
+                return true
+            }
+        }
+        return false
+    }
 }

@@ -73,9 +73,10 @@ object CoreMediaScanner {
     suspend fun getFlatMediaFolders(
         context: Context,
         playbackStates: List<PlaybackStateEntity> = emptyList(),
-        thresholdDays: Int = 7
+        thresholdDays: Int = 7,
+        blacklistedFolders: Set<String> = emptySet()
     ): List<MediaFolder> = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         
         // Filter for folders that have DIRECT media files
         allNodes.values
@@ -104,9 +105,10 @@ object CoreMediaScanner {
         context: Context, 
         parentPath: String,
         playbackStates: List<PlaybackStateEntity> = emptyList(),
-        thresholdDays: Int = 7
+        thresholdDays: Int = 7,
+        blacklistedFolders: Set<String> = emptySet()
     ): List<MediaFolder> = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         
         // Filter for direct subfolders of the parent
         allNodes.values.filter { node ->
@@ -137,9 +139,10 @@ object CoreMediaScanner {
         context: Context,
         path: String,
         playbackStates: List<PlaybackStateEntity> = emptyList(),
-        thresholdDays: Int = 7
+        thresholdDays: Int = 7,
+        blacklistedFolders: Set<String> = emptySet()
     ): MediaFolder? = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         allNodes[path]?.let { node ->
             MediaFolder(
                 id = node.path,
@@ -163,7 +166,8 @@ object CoreMediaScanner {
     private suspend fun getOrBuildMediaTree(
         context: Context,
         playbackStates: List<PlaybackStateEntity>,
-        thresholdDays: Int
+        thresholdDays: Int,
+        blacklistedFolders: Set<String> = emptySet()
     ): Map<String, FolderNode> {
         val now = System.currentTimeMillis()
         cachedMediaData?.let { cached ->
@@ -172,7 +176,7 @@ object CoreMediaScanner {
             }
         }
         
-        val tree = buildFullMediaTree(context, playbackStates, thresholdDays)
+        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         cachedMediaData = tree
         cacheTimestamp = now
         return tree
@@ -184,7 +188,8 @@ object CoreMediaScanner {
     private suspend fun buildFullMediaTree(
         context: Context,
         playbackStates: List<PlaybackStateEntity>,
-        thresholdDays: Int
+        thresholdDays: Int,
+        blacklistedFolders: Set<String>
     ): Map<String, FolderNode> {
         val allNodes = mutableMapOf<String, FolderNode>()
         val rawMediaByFolder = mutableMapOf<String, MutableList<ScannedItem>>()
@@ -200,6 +205,9 @@ object CoreMediaScanner {
 
         // Step 3: Build Nodes for folders with direct media
         for ((folderPath, items) in rawMediaByFolder) {
+            // Check if this folder is blacklisted
+            if (blacklistedFolders.contains(folderPath)) continue
+
             val file = File(folderPath)
             var videoCount = 0
             var audioCount = 0
@@ -235,7 +243,7 @@ object CoreMediaScanner {
         }
 
         // Step 4: Build Hierarchy and Calculate Recursive Counts
-        buildHierarchy(allNodes)
+        buildHierarchy(context, allNodes, blacklistedFolders)
         
         return allNodes
     }
@@ -350,7 +358,7 @@ object CoreMediaScanner {
         }
     }
 
-    private fun buildHierarchy(nodes: MutableMap<String, FolderNode>) {
+    private fun buildHierarchy(context: Context, nodes: MutableMap<String, FolderNode>, blacklistedFolders: Set<String>) {
         val sortedPaths = nodes.keys.sortedByDescending { it.length }
         
         // Find all parent paths needed
@@ -358,6 +366,7 @@ object CoreMediaScanner {
         for (path in nodes.keys) {
             var p = File(path).parent
             while (p != null && p.length > 1) {
+                if (blacklistedFolders.contains(p)) break
                 allPathsNeeded.add(p)
                 p = File(p).parent
             }
@@ -404,5 +413,39 @@ object CoreMediaScanner {
             // But node is val in the loop, so I need to update the map
             nodes[path] = node.copy(hasDirectSubfolders = hasSubfolders)
         }
+
+        // SMART TREE FLATTENING (User Logic)
+        // Logic: A folder should be hidden if it has NO direct media AND only has one child folder with media.
+        // This avoids deep nesting of single folders in Tree View.
+        val pathsToRemove = mutableSetOf<String>()
+        val sortedForFlattening = nodes.keys.sortedBy { it.length } // Shortest paths first to check from root down
+        
+        for (path in sortedForFlattening) {
+            val node = nodes[path] ?: continue
+            
+            // If it has direct media, we MUST keep it
+            if (node.directVideoCount > 0 || node.directAudioCount > 0) continue
+            
+            // Count direct children that actually contain media (recursive count > 0)
+            val childrenWithMedia = nodes.values.filter { 
+                File(it.path).parent == path && (it.recursiveVideoCount > 0 || it.recursiveAudioCount > 0)
+            }
+            
+            // Logic: Hide Music if it only has one media child (e.g. Music/Recordings)
+            // AND we are NOT at the storage root (roots should always be shown if they have media)
+            if (childrenWithMedia.size < 2) {
+                // Determine if this is a storage root - they are special
+                val isStorageRoot = StorageVolumeUtils.isStorageRoot(context, path)
+                if (!isStorageRoot) {
+                    pathsToRemove.add(path)
+                }
+            }
+        }
+        
+        // Apply removals
+        pathsToRemove.forEach { nodes.remove(it) }
+        
+        // Final pass to clean up empty folders that might have been left over
+        nodes.entries.removeIf { it.value.recursiveVideoCount == 0 && it.value.recursiveAudioCount == 0 }
     }
 }

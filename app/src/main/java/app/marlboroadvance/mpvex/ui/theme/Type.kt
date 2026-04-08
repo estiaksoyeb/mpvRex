@@ -7,40 +7,50 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import app.marlboroadvance.mpvex.R
 
-// Google Sans Flex font family
+// Google Sans Flex font family (variable font supporting weights 100-900)
 val GoogleSansFlex = FontFamily(
   Font(
-    resId = R.font.google_sans_flex_thin,
+    resId = R.font.google_sans_flex,
     weight = FontWeight.Thin,
     style = FontStyle.Normal,
   ),
   Font(
-    resId = R.font.google_sans_flex_extralight,
+    resId = R.font.google_sans_flex,
     weight = FontWeight.ExtraLight,
     style = FontStyle.Normal,
   ),
   Font(
-    resId = R.font.google_sans_flex_light,
+    resId = R.font.google_sans_flex,
     weight = FontWeight.Light,
     style = FontStyle.Normal,
   ),
   Font(
-    resId = R.font.google_sans_flex_regular,
+    resId = R.font.google_sans_flex,
     weight = FontWeight.Normal,
     style = FontStyle.Normal,
   ),
   Font(
-    resId = R.font.google_sans_flex_medium,
+    resId = R.font.google_sans_flex,
     weight = FontWeight.Medium,
     style = FontStyle.Normal,
   ),
   Font(
-    resId = R.font.google_sans_flex_bold,
+    resId = R.font.google_sans_flex,
+    weight = FontWeight.SemiBold,
+    style = FontStyle.Normal,
+  ),
+  Font(
+    resId = R.font.google_sans_flex,
     weight = FontWeight.Bold,
     style = FontStyle.Normal,
   ),
   Font(
-    resId = R.font.google_sans_flex_black,
+    resId = R.font.google_sans_flex,
+    weight = FontWeight.ExtraBold,
+    style = FontStyle.Normal,
+  ),
+  Font(
+    resId = R.font.google_sans_flex,
     weight = FontWeight.Black,
     style = FontStyle.Normal,
   ),

@@ -30,6 +30,7 @@ object VideoScanUtils {
         val mimeType: String,
         val width: Int = 0,
         val height: Int = 0,
+        val rotation: Int = 0,
         val artist: String = "",
         val album: String = "",
     )
@@ -65,7 +66,7 @@ object VideoScanUtils {
         folderPath: String,
         videosMap: MutableMap<String, Video>
     ) {
-        val projection = arrayOf(
+        val projection = mutableListOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.DATA,
@@ -78,13 +79,18 @@ object VideoScanUtils {
             MediaStore.Video.Media.HEIGHT
         )
         
+        // Add orientation column for API 29+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            projection.add(MediaStore.Video.Media.ORIENTATION)
+        }
+        
         val selection = "${MediaStore.Video.Media.DATA} LIKE ?"
         val selectionArgs = arrayOf("$folderPath/%")
         
         try {
             context.contentResolver.query(
                 MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                projection,
+                projection.toTypedArray(),
                 selection,
                 selectionArgs,
                 "${MediaStore.Video.Media.DISPLAY_NAME} ASC"
@@ -99,6 +105,9 @@ object VideoScanUtils {
                 val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
                 val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
                 val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
+                val orientationColumn = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    cursor.getColumnIndex(MediaStore.Video.Media.ORIENTATION)
+                } else -1
                 
                 while (cursor.moveToNext()) {
                     val path = cursor.getString(dataColumn)
@@ -118,6 +127,7 @@ object VideoScanUtils {
                     val mimeType = cursor.getString(mimeTypeColumn) ?: "video/*"
                     val width = cursor.getInt(widthColumn)
                     val height = cursor.getInt(heightColumn)
+                    val rotation = if (orientationColumn != -1) cursor.getInt(orientationColumn) else 0
                     
                     val uri = Uri.withAppendedPath(
                         MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
@@ -141,6 +151,7 @@ object VideoScanUtils {
                         bucketDisplayName = File(folderPath).name,
                         width = width,
                         height = height,
+                        rotation = rotation,
                         fps = 0f,
                         resolution = MediaFormatter.formatResolution(width, height),
                         hasEmbeddedSubtitles = false,
@@ -302,6 +313,7 @@ object VideoScanUtils {
                         bucketDisplayName = folder.name,
                         width = metadata.width,
                         height = metadata.height,
+                        rotation = metadata.rotation,
                         fps = 0f,
                         resolution = if (isAudio) "" else MediaFormatter.formatResolution(metadata.width, metadata.height),
                         hasEmbeddedSubtitles = false,
@@ -331,6 +343,7 @@ object VideoScanUtils {
         var mimeType = "video/*"
         var width = 0
         var height = 0
+        var rotation = 0
         var artist = ""
         var album = ""
         
@@ -344,6 +357,7 @@ object VideoScanUtils {
                 duration = metadata.durationMs
                 width = metadata.width
                 height = metadata.height
+                rotation = metadata.rotation
                 artist = metadata.artist
                 album = metadata.album
                 mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase())
@@ -356,7 +370,7 @@ object VideoScanUtils {
             mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase())
         }
         
-        return VideoMetadata(duration, mimeType, width, height, artist, album)
+        return VideoMetadata(duration, mimeType, width, height, rotation, artist, album)
     }
     
 }

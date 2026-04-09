@@ -269,8 +269,51 @@ class FileSystemBrowserViewModel(
                 filteredItems
               }
 
-              _unsortedItems.value = enrichedItems
-              loadPlaybackInfo(enrichedItems)
+              // Apply playback info (progress and orientation)
+              val playbackStates = playbackStateRepository.getAllPlaybackStates()
+              val playbackMap = mutableMapOf<Long, Float>()
+              val newIds = mutableSetOf<Long>()
+              val currentTime = System.currentTimeMillis()
+              val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+              val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
+
+              val fullyEnrichedItems = enrichedItems.map { item ->
+                if (item is FileSystemItem.VideoFile) {
+                  val video = item.video
+                  val state = playbackStates.find { it.mediaTitle == video.displayName }
+                  
+                  var updatedVideo = video
+                  if (state != null) {
+                    // 1. Map saved orientation
+                    if (state.savedOrientation != null) {
+                      updatedVideo = updatedVideo.copy(savedOrientation = state.savedOrientation)
+                    }
+                    
+                    // 2. Map progress
+                    if (video.duration > 0) {
+                      val durationSeconds = video.duration / 1000
+                      val watched = durationSeconds - state.timeRemaining.toLong()
+                      val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+                      if (progressValue in 0.01f..0.99f) {
+                        playbackMap[video.id] = progressValue
+                      }
+                    }
+                  } else {
+                    // 3. Map NEW status
+                    val videoAge = currentTime - (video.dateModified * 1000)
+                    if (videoAge <= thresholdMillis) {
+                      newIds.add(video.id)
+                    }
+                  }
+                  item.copy(video = updatedVideo)
+                } else {
+                  item
+                }
+              }
+
+              _videoFilesWithPlayback.value = playbackMap
+              _newVideoIds.value = newIds
+              _unsortedItems.value = fullyEnrichedItems
             }.onFailure { error ->
               _error.value = error.message
               _unsortedItems.value = emptyList()
@@ -282,64 +325,6 @@ class FileSystemBrowserViewModel(
       } finally {
         _isLoading.value = false
       }
-    }
-  }
-
-  private fun loadPlaybackInfo(items: List<FileSystemItem>) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val videoFiles = items.filterIsInstance<FileSystemItem.VideoFile>()
-      val playbackStates = playbackStateRepository.getAllPlaybackStates()
-      
-      val playbackMap = mutableMapOf<Long, Float>()
-      val newIds = mutableSetOf<Long>()
-      
-      val currentTime = System.currentTimeMillis()
-      val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
-      val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
-
-      videoFiles.forEach { videoFile ->
-        val video = videoFile.video
-        val state = playbackStates.find { it.mediaTitle == video.displayName }
-        
-        // Progress and orientation calculation
-        if (state != null) {
-          // Add saved orientation to video for smooth transition
-          val videoWithOrientation = if (state.savedOrientation != null) {
-            video.copy(savedOrientation = state.savedOrientation)
-          } else {
-            video
-          }
-          
-          if (video.duration > 0) {
-            val durationSeconds = video.duration / 1000
-            val watched = durationSeconds - state.timeRemaining.toLong()
-            val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
-            if (progressValue in 0.01f..0.99f) {
-              playbackMap[video.id] = progressValue
-            }
-          }
-          
-          // Update the item in unsorted list if orientation changed
-          if (videoWithOrientation !== video) {
-            _unsortedItems.value = _unsortedItems.value.map { item ->
-              if (item is FileSystemItem.VideoFile && item.video.id == video.id) {
-                item.copy(video = videoWithOrientation)
-              } else {
-                item
-              }
-            }
-          }
-        }
-        
-        // NEW status calculation
-        val videoAge = currentTime - (video.dateModified * 1000)
-        if (state == null && videoAge <= thresholdMillis) {
-          newIds.add(video.id)
-        }
-      }
-      
-      _videoFilesWithPlayback.value = playbackMap
-      _newVideoIds.value = newIds
     }
   }
 }

@@ -367,19 +367,14 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                             coroutineScope.launch {
                               viewModel.updatePlayHistory(videos[startIndex].path)
                             }
-                          }
 
-                          val videoUris = videos.map { it.uri }
-                          if (videoUris.isNotEmpty() && startIndex >= 0) {
-                            val intent = Intent(context, PlayerActivity::class.java).apply {
-                              action = Intent.ACTION_VIEW
-                              data = videoUris[startIndex]
-                              putExtra("playlist_index", startIndex)
-                              putExtra("launch_source", "playlist")
-                              putExtra("playlist_id", playlistId)
-                              putExtra("title", videos[startIndex].displayName)
-                            }
-                            context.startActivity(intent)
+                            MediaUtils.playPlaylist(
+                              videos = videos,
+                              startIndex = startIndex,
+                              context = context,
+                              launchSource = "playlist",
+                              playlistId = playlistId
+                            )
                           }
                         }
                       },
@@ -495,14 +490,13 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                   if (videos.size == 1) {
                     MediaUtils.playFile(item.video, context, "playlist_detail")
                   } else {
-                    val intent = Intent(Intent.ACTION_VIEW, videos[startIndex].uri)
-                    intent.setClass(context, PlayerActivity::class.java)
-                    intent.putExtra("internal_launch", true)
-                    intent.putExtra("playlist_index", startIndex)
-                    intent.putExtra("launch_source", "playlist")
-                    intent.putExtra("playlist_id", playlistId)
-                    intent.putExtra("title", videos[startIndex].displayName)
-                    context.startActivity(intent)
+                    MediaUtils.playPlaylist(
+                      videos = videos,
+                      startIndex = startIndex,
+                      context = context,
+                      launchSource = "playlist",
+                      playlistId = playlistId
+                    )
                   }
                 } else {
                   MediaUtils.playFile(item.video, context, "playlist_detail")

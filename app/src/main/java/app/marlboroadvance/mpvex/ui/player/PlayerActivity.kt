@@ -395,8 +395,9 @@ class PlayerActivity :
         // 2. Try to get dimensions from intent extras (for Video mode or if no saved orientation)
         val intentWidth = intent.getIntExtra("width", -1)
         val intentHeight = intent.getIntExtra("height", -1)
+        val intentRotation = intent.getIntExtra("rotation", 0)
         if (intentWidth > 0 && intentHeight > 0) {
-          setOrientation(intentWidth, intentHeight)
+          setOrientation(intentWidth, intentHeight, intentRotation)
         } else {
           // 3. Fallback: try to get saved orientation from DB or dimensions from cache
           lifecycleScope.launch {
@@ -417,7 +418,7 @@ class PlayerActivity :
               if (file.exists()) {
                 val metadata = metadataCache.getOrExtractMetadata(file, intent.data ?: "".toUri(), fileName)
                 if (metadata != null) {
-                  setOrientation(metadata.width, metadata.height)
+                  setOrientation(metadata.width, metadata.height, metadata.rotation)
                 }
               }
             }
@@ -1939,18 +1940,21 @@ class PlayerActivity :
           }
         }
 
-        val path = parsePathFromIntent(intent)
+        // 2. Use metadata cache for dimensions and rotation
+        // Get the actual current URI from playlist manager (intent.data is only for the first video)
+        val currentUri = viewModel.playlistManager.getCurrentUri() ?: intent.data
+        val path = if (currentUri != null) viewModel.historyManager.resolveFilePath(currentUri) else null
         var metadataWidth = -1
         var metadataHeight = -1
         
         if (path != null) {
           val file = File(path)
           if (file.exists()) {
-            val metadata = metadataCache.getOrExtractMetadata(file, intent.data ?: "".toUri(), fileName)
+            val metadata = metadataCache.getOrExtractMetadata(file, currentUri ?: "".toUri(), fileName)
             if (metadata != null) {
               metadataWidth = metadata.width
               metadataHeight = metadata.height
-              setOrientation(metadataWidth, metadataHeight)
+              setOrientation(metadataWidth, metadataHeight, metadata.rotation)
             }
           }
         }
@@ -2569,8 +2573,9 @@ class PlayerActivity :
    *
    * @param width Optional video width from metadata to set orientation before video loads
    * @param height Optional video height from metadata to set orientation before video loads
+   * @param rotation Optional video rotation from metadata to correctly determine aspect ratio
    */
-  private fun setOrientation(width: Int = -1, height: Int = -1) {
+  private fun setOrientation(width: Int = -1, height: Int = -1, rotation: Int = 0) {
     val orientationPref = playerPreferences.orientation.get()
 
     requestedOrientation =
@@ -2589,8 +2594,13 @@ class PlayerActivity :
 
           // 1. Try provided width/height from metadata first (to avoid jumpy transition)
           if (width > 0 && height > 0) {
-            val aspect = width.toDouble() / height.toDouble()
-            Log.d(TAG, "setOrientation - Using metadata: ${width}x${height}, aspect=$aspect")
+            // Swap dimensions if video has 90 or 270 degree rotation
+            val isRotated = rotation == 90 || rotation == 270
+            val effectiveWidth = if (isRotated) height else width
+            val effectiveHeight = if (isRotated) width else height
+            
+            val aspect = effectiveWidth.toDouble() / effectiveHeight.toDouble()
+            Log.d(TAG, "setOrientation - Using metadata: ${width}x${height}, rot=$rotation, aspect=$aspect")
             if (aspect > 1.0) {
               ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             } else {

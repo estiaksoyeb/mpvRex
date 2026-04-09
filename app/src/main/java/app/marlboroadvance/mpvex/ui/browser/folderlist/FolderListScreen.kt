@@ -382,13 +382,7 @@ object FolderListScreen : Screen {
                   if (allVideos.size == 1) {
                     MediaUtils.playFile(allVideos.first(), context)
                   } else {
-                    val intent = Intent(Intent.ACTION_VIEW, allVideos.first().uri)
-                    intent.setClass(context, app.marlboroadvance.mpvex.ui.player.PlayerActivity::class.java)
-                    intent.putExtra("internal_launch", true)
-                    intent.putParcelableArrayListExtra("playlist", ArrayList(allVideos.map { it.uri }))
-                    intent.putExtra("playlist_index", 0)
-                    intent.putExtra("launch_source", "playlist")
-                    context.startActivity(intent)
+                    MediaUtils.playPlaylist(allVideos, 0, context)
                   }
                   selectionManager.clear()
                 }

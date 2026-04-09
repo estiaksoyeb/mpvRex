@@ -154,13 +154,7 @@ class SelectionManager<T, ID>(
       MediaUtils.playFile(videos.first(), context)
     } else {
       // Multiple videos - play as playlist
-      val intent = Intent(Intent.ACTION_VIEW, videos.first().uri)
-      intent.setClass(context, PlayerActivity::class.java)
-      intent.putExtra("internal_launch", true)
-      intent.putParcelableArrayListExtra("playlist", ArrayList(videos.map { it.uri }))
-      intent.putExtra("playlist_index", 0)
-      intent.putExtra("launch_source", "playlist")
-      context.startActivity(intent)
+      MediaUtils.playPlaylist(videos, 0, context)
     }
 
     // Clear selection after starting playback

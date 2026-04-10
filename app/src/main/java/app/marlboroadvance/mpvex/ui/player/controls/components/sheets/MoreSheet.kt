@@ -25,6 +25,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material.icons.outlined.Timer
@@ -34,9 +35,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -69,6 +72,8 @@ import app.marlboroadvance.mpvex.domain.anime4k.Anime4KManager
 import app.marlboroadvance.mpvex.preferences.AdvancedPreferences
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.DecoderPreferences
+import app.marlboroadvance.mpvex.preferences.GesturePreferences
+import app.marlboroadvance.mpvex.preferences.PlayerButton
 import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.getPlayerButtonLabel
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
@@ -99,7 +104,7 @@ fun MoreSheet(
   modifier: Modifier = Modifier,
 ) {
   val lastTab by viewModel.lastMoreSheetTab.collectAsState()
-  val pagerState = rememberPagerState(initialPage = lastTab) { 2 }
+  val pagerState = rememberPagerState(initialPage = lastTab.coerceIn(0, 2)) { 3 }
   val scope = rememberCoroutineScope()
 
   // Persist tab change
@@ -109,7 +114,7 @@ fun MoreSheet(
     }
   }
 
-  val tabs = listOf("Settings", "Controls")
+  val tabs = listOf("Controls", "Settings", "Interaction")
 
   PlayerSheet(
     onDismissRequest,
@@ -132,7 +137,11 @@ fun MoreSheet(
             text = { Text(title) },
             icon = {
               Icon(
-                imageVector = if (index == 0) Icons.Default.Settings else Icons.Default.Widgets,
+                imageVector = when(index) {
+                    0 -> Icons.Default.Widgets
+                    1 -> Icons.Default.Settings
+                    else -> Icons.Default.TouchApp
+                },
                 contentDescription = null
               )
             }
@@ -148,18 +157,19 @@ fun MoreSheet(
         verticalAlignment = Alignment.Top
       ) { page ->
         when (page) {
-          0 -> SettingsTab(
+          0 -> ControlsTab(
+            viewModel = viewModel,
+            onDismissRequest = onDismissRequest,
+            onShowSheet = onShowSheet
+          )
+          1 -> SettingsTab(
             remainingTime = remainingTime,
             onStartTimer = onStartTimer,
             onEnterFiltersPanel = onEnterFiltersPanel,
             onAnime4KChanged = onAnime4KChanged,
             onDismissRequest = onDismissRequest
           )
-          1 -> ControlsTab(
-            viewModel = viewModel,
-            onDismissRequest = onDismissRequest,
-            onShowSheet = onShowSheet
-          )
+          2 -> InteractionTab()
         }
       }
       
@@ -408,12 +418,22 @@ fun ControlsTab(
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
   val moreSheetControlsPref by appearancePreferences.moreSheetControls.collectAsState()
 
-  val buttons = remember(moreSheetControlsPref) {
+  // Data needed for visibility checks
+  val chapters by viewModel.chapters.collectAsState(persistentListOf())
+  val playlist by viewModel.playlistManager.playlist.collectAsState(emptyList())
+  val hasPlaylistSupport = playlist.size > 1
+
+  val buttons = remember(moreSheetControlsPref, chapters, hasPlaylistSupport) {
       appearancePreferences.parseButtons(moreSheetControlsPref, mutableSetOf())
+          .filter { button ->
+              when (button) {
+                  PlayerButton.SHUFFLE -> hasPlaylistSupport
+                  PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
+                  else -> true
+              }
+          }
   }
 
-  // Data needed for RenderPlayerButton
-  val chapters by viewModel.chapters.collectAsState(persistentListOf())
   val currentChapter by MPVLib.propInt["chapter"].collectAsState(0)
   val playbackSpeed by MPVLib.propFloat["speed"].collectAsState(1f)
   val isSpeedNonOne by remember(playbackSpeed) {
@@ -445,7 +465,7 @@ fun ControlsTab(
       )
 
       LazyVerticalGrid(
-          columns = GridCells.Fixed(6), // More compact grid
+          columns = GridCells.Fixed(6), // Compact grid
           horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
           verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
           modifier = Modifier.height(240.dp)
@@ -478,7 +498,7 @@ fun ControlsTab(
                       },
                       viewModel = viewModel,
                       activity = activity,
-                      buttonSize = 48.dp // Slightly smaller icons for compact grid
+                      buttonSize = 48.dp 
                   )
                   Text(
                       text = getPlayerButtonLabel(button),
@@ -491,6 +511,137 @@ fun ControlsTab(
               }
           }
       }
+  }
+}
+
+@Composable
+fun InteractionTab() {
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val gesturePreferences = koinInject<GesturePreferences>()
+  val playerPreferences = koinInject<PlayerPreferences>()
+
+  val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
+  val preventSeekbarTap by gesturePreferences.preventSeekbarTap.collectAsState()
+  val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
+  val useSingleTapForLeftRight by gesturePreferences.useSingleTapForLeftRight.collectAsState()
+  val swipeToSubtitleSeek by playerPreferences.swipeToSubtitleSeek.collectAsState()
+  val keepScreenOnWhenPaused by playerPreferences.keepScreenOnWhenPaused.collectAsState()
+  val playlistMode by playerPreferences.playlistMode.collectAsState()
+  val showSeekBarWhenSeeking by playerPreferences.showSeekBarWhenSeeking.collectAsState()
+  val savePositionOnQuit by playerPreferences.savePositionOnQuit.collectAsState()
+  val autoPiPOnNavigation by playerPreferences.autoPiPOnNavigation.collectAsState()
+
+  Column(
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(horizontal = MaterialTheme.spacing.medium)
+      .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+  ) {
+    Text(
+      text = "Player Interaction",
+      style = MaterialTheme.typography.titleLarge,
+      modifier = Modifier.padding(bottom = MaterialTheme.spacing.small)
+    )
+
+    InteractionSwitch(
+      label = "Enable next/previous navigation",
+      description = "Show buttons for all videos in folder",
+      checked = playlistMode,
+      onCheckedChange = { playerPreferences.playlistMode.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Show seekbar when seeking",
+      description = "Display progress bar during gesture seeking",
+      checked = showSeekBarWhenSeeking,
+      onCheckedChange = { playerPreferences.showSeekBarWhenSeeking.set(it) }
+    )
+    
+    InteractionSwitch(
+      label = "Single tap for center",
+      description = "Use single tap for gesture action",
+      checked = useSingleTapForCenter,
+      onCheckedChange = { gesturePreferences.useSingleTapForCenter.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Single tap for left/right gestures",
+      description = "Use single tap for gesture action",
+      checked = useSingleTapForLeftRight,
+      onCheckedChange = { gesturePreferences.useSingleTapForLeftRight.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Hide button backgrounds",
+      description = "Makes player controls transparent",
+      checked = hideBackground,
+      onCheckedChange = { appearancePreferences.hidePlayerButtonsBackground.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Prevent accidental seeking",
+      description = "Disables seekbar jumping on tap",
+      checked = preventSeekbarTap,
+      onCheckedChange = { gesturePreferences.preventSeekbarTap.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Swipe to subtitle seek",
+      description = "Swipe horizontally top or bottom to seek subtitle",
+      checked = swipeToSubtitleSeek,
+      onCheckedChange = { playerPreferences.swipeToSubtitleSeek.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Keep screen on when paused",
+      description = "Prevents screen timeout during pause",
+      checked = keepScreenOnWhenPaused,
+      onCheckedChange = { playerPreferences.keepScreenOnWhenPaused.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Save playback position",
+      description = "Remember where you left off",
+      checked = savePositionOnQuit,
+      onCheckedChange = { playerPreferences.savePositionOnQuit.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Auto PiP on navigation",
+      description = "Enter Picture-in-Picture when leaving the app",
+      checked = autoPiPOnNavigation,
+      onCheckedChange = { playerPreferences.autoPiPOnNavigation.set(it) }
+    )
+  }
+}
+
+@Composable
+private fun InteractionSwitch(
+  label: String,
+  description: String,
+  checked: Boolean,
+  onCheckedChange: (Boolean) -> Unit,
+) {
+  Surface(
+    onClick = { onCheckedChange(!checked) },
+    shape = MaterialTheme.shapes.medium,
+    color = MaterialTheme.colorScheme.surfaceContainerLow,
+    modifier = Modifier.fillMaxWidth()
+  ) {
+    ListItem(
+      headlineContent = { Text(label, style = MaterialTheme.typography.bodyLarge) },
+      supportingContent = { Text(description, style = MaterialTheme.typography.bodySmall) },
+      trailingContent = {
+        Switch(
+          checked = checked,
+          onCheckedChange = onCheckedChange
+        )
+      },
+      colors = androidx.compose.material3.ListItemDefaults.colors(
+        containerColor = Color.Transparent
+      )
+    )
   }
 }
 

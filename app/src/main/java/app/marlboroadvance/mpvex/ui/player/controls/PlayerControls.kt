@@ -609,12 +609,21 @@ fun PlayerControls(
                 height = Dimension.wrapContent
             }
         ) {
+            val leftScrollState = rememberScrollState()
+            LaunchedEffect(leftScrollState.isScrollInProgress) {
+                if (leftScrollState.isScrollInProgress) {
+                    while (leftScrollState.isScrollInProgress) {
+                        resetControlsTimestamp = System.currentTimeMillis()
+                        delay(1000)
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(leftScrollState)
             ) {
                 customButtons.filter { it.isLeft }.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
@@ -666,12 +675,21 @@ fun PlayerControls(
                 height = Dimension.wrapContent
             }
         ) {
+            val rightScrollState = rememberScrollState()
+            LaunchedEffect(rightScrollState.isScrollInProgress) {
+                if (rightScrollState.isScrollInProgress) {
+                    while (rightScrollState.isScrollInProgress) {
+                        resetControlsTimestamp = System.currentTimeMillis()
+                        delay(1000)
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .horizontalScroll(rememberScrollState(), reverseScrolling = true)
+                    .horizontalScroll(rightScrollState, reverseScrolling = true)
             ) {
                 customButtons.filter { !it.isLeft }.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
@@ -722,12 +740,21 @@ fun PlayerControls(
                 height = Dimension.wrapContent
             }
         ) {
+            val portraitScrollState = rememberScrollState()
+            LaunchedEffect(portraitScrollState.isScrollInProgress) {
+                if (portraitScrollState.isScrollInProgress) {
+                    while (portraitScrollState.isScrollInProgress) {
+                        resetControlsTimestamp = System.currentTimeMillis()
+                        delay(1000)
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(portraitScrollState)
             ) {
                 customButtons.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }

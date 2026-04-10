@@ -150,11 +150,23 @@ fun BottomPlayerControlsPortrait(
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
 ) {
+  val scrollState = rememberScrollState()
+  val clickEvent = LocalPlayerButtonsClickEvent.current
+
+  androidx.compose.runtime.LaunchedEffect(scrollState.isScrollInProgress) {
+    if (scrollState.isScrollInProgress) {
+      while (scrollState.isScrollInProgress) {
+        clickEvent()
+        kotlinx.coroutines.delay(1000)
+      }
+    }
+  }
+
   Row(
     modifier = Modifier
       .fillMaxWidth()
       .padding(bottom = MaterialTheme.spacing.large)
-      .horizontalScroll(rememberScrollState()),
+      .horizontalScroll(scrollState),
     horizontalArrangement = Arrangement.Center,
     verticalAlignment = Alignment.CenterVertically,
   ) {

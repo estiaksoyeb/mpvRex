@@ -195,6 +195,7 @@ class PlayerActivity :
   private var mpvInitialized = false // Track MPV initialization state
   private var savePlaybackStateJob: kotlinx.coroutines.Job? = null // Track ongoing save job
   private var wasPlayingBeforePause = false // Track if video was playing before pause
+  private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
 
   // ==================== Background Playback ====================
 
@@ -302,6 +303,7 @@ class PlayerActivity :
     super.onCreate(savedInstanceState)
     setContentView(binding.root)
 
+    pendingIntentExtras = true
     setupMPV()
     viewModel.onMpvCoreInitialized()
     MediaPlaybackService.createNotificationChannel(this)
@@ -1874,7 +1876,10 @@ class PlayerActivity :
     // Reset ambient mode to OFF when a new video starts
     viewModel.resetAmbientMode()
 
-    setIntentExtras(intent.extras)
+    if (pendingIntentExtras) {
+      setIntentExtras(intent.extras)
+      pendingIntentExtras = false
+    }
 
     lifecycleScope.launch(Dispatchers.IO) {
       // Load playback state (will skip track restoration if preferred language configured)
@@ -2191,7 +2196,22 @@ class PlayerActivity :
    * @param mediaTitle The title of the media being played
    */
   private fun saveVideoPlaybackState(mediaTitle: String) {
-    if (mediaIdentifier.isBlank()) return
+    val identifier = mediaIdentifier
+    if (identifier.isBlank()) return
+
+    // Capture current playback state before switching files
+    val currentPos = viewModel.pos ?: 0
+    val currentDuration = viewModel.duration ?: 0
+    val currentSpeed = MPVLib.getPropertyDouble("speed") ?: DEFAULT_PLAYBACK_SPEED
+    val currentZoom = viewModel.videoZoom.value
+    val currentSid = player.sid
+    val currentSecondarySid = player.secondarySid
+    val currentAid = player.aid
+    val currentSubDelay = (MPVLib.getPropertyDouble("sub-delay") ?: 0.0)
+    val currentAudioDelay = (MPVLib.getPropertyDouble("audio-delay") ?: 0.0)
+    val currentSubSpeed = MPVLib.getPropertyDouble("sub-speed") ?: DEFAULT_SUB_SPEED
+    val currentOrientation = requestedOrientation
+    val currentExternalSubs = viewModel.externalSubtitles.toList()
 
     // Cancel any previous pending save operation
     savePlaybackStateJob?.cancel()
@@ -2199,45 +2219,47 @@ class PlayerActivity :
     // Launch new save job and track it
     savePlaybackStateJob = lifecycleScope.launch(Dispatchers.IO) {
       runCatching {
-        val oldState = playbackStateRepository.getVideoDataByTitle(mediaIdentifier)
-        Log.d(TAG, "Saving playback state for: $mediaTitle (identifier: $mediaIdentifier)")
+        val oldState = playbackStateRepository.getVideoDataByTitle(identifier)
+        Log.d(TAG, "Saving playback state for: $mediaTitle (identifier: $identifier) at position: $currentPos")
 
-        val lastPosition = calculateSavePosition(oldState)
-        val duration = viewModel.duration ?: 0
-        val timeRemaining = if (duration > lastPosition) duration - lastPosition else 0
+        val watchedThreshold = browserPreferences.watchedThreshold.get()
+        val progress = if (currentDuration > 0) currentPos.toFloat() / currentDuration.toFloat() else 0f
+
+        // Calculate save position
+        val savePos = if (!playerPreferences.savePositionOnQuit.get()) {
+          oldState?.lastPosition ?: 0
+        } else {
+          // If we've reached the threshold or are within 1 second of the end, restart from beginning
+          if (progress < (watchedThreshold / 100f) && currentPos < currentDuration - 1) {
+            currentPos
+          } else {
+            0
+          }
+        }
+
+        val timeRemaining = if (currentDuration > savePos) currentDuration - savePos else 0
 
         playbackStateRepository.upsert(
           PlaybackStateEntity(
-            mediaTitle = mediaIdentifier,
-            lastPosition = lastPosition,
-            playbackSpeed = MPVLib.getPropertyDouble("speed") ?: DEFAULT_PLAYBACK_SPEED,
-            videoZoom = MPVLib.getPropertyDouble("video-zoom")?.toFloat() ?: 0f,
-            sid = player.sid,
-            secondarySid = player.secondarySid,
-            subDelay = ((MPVLib.getPropertyDouble("sub-delay") ?: 0.0) * MILLISECONDS_TO_SECONDS).toInt(),
-            subSpeed = MPVLib.getPropertyDouble("sub-speed") ?: DEFAULT_SUB_SPEED,
-            aid = player.aid,
-            audioDelay =
-              (
-                (MPVLib.getPropertyDouble("audio-delay") ?: 0.0) * MILLISECONDS_TO_SECONDS
-                ).toInt(),
+            mediaTitle = identifier,
+            lastPosition = savePos,
+            playbackSpeed = currentSpeed,
+            videoZoom = currentZoom,
+            sid = currentSid,
+            secondarySid = currentSecondarySid,
+            subDelay = (currentSubDelay * MILLISECONDS_TO_SECONDS).toInt(),
+            subSpeed = currentSubSpeed,
+            aid = currentAid,
+            audioDelay = (currentAudioDelay * MILLISECONDS_TO_SECONDS).toInt(),
             timeRemaining = timeRemaining,
-            savedOrientation = requestedOrientation,
-            externalSubtitles = viewModel.externalSubtitles.joinToString("|"),
+            savedOrientation = currentOrientation,
+            externalSubtitles = currentExternalSubs.joinToString("|"),
             hasBeenWatched = run {
-              val watchedThreshold = browserPreferences.watchedThreshold.get()
-              val durationSeconds = duration.toFloat()
-              val currentPos = viewModel.pos ?: 0
-              
               // Check if we are at the end (effectively watched)
-              // Using a small buffer (1s) to account for float inaccuracies or near-end stops
-              val isFinished = (durationSeconds > 0) && (currentPos >= durationSeconds - 1)
-
-              val progress = if (durationSeconds > 0) currentPos.toFloat() / durationSeconds else 0f
+              val isFinished = (currentDuration > 0) && (currentPos >= currentDuration - 1)
               val isCurrentlyWatched = progress >= (watchedThreshold / 100f)
-              
-              // Also check lastPosition in case we are saving partway through (though lastPosition might be 0 if finished)
-              val oldProgress = if (durationSeconds > 0) lastPosition.toFloat() / durationSeconds else 0f
+
+              val oldProgress = if (currentDuration > 0) (oldState?.lastPosition?.toFloat() ?: 0f) / currentDuration.toFloat() else 0f
               val wasWatchedThisSession = oldProgress >= (watchedThreshold / 100f)
 
               isCurrentlyWatched || isFinished || wasWatchedThisSession || (oldState?.hasBeenWatched == true)
@@ -2249,36 +2271,6 @@ class PlayerActivity :
       }
     }
   }
-
-  /**
-   * Calculates the position to save based on user preferences.
-   *
-   * If "savePositionOnQuit" is not enabled, returns the previous saved position or 0.
-   * If enabled, saves the current playback position unless playback has reached the watched threshold.
-   *
-   * @param oldState Previous playback state if it exists
-   * @return Position in seconds to save
-   */
-  private fun calculateSavePosition(oldState: PlaybackStateEntity?): Int {
-    if (!playerPreferences.savePositionOnQuit.get()) {
-      return oldState?.lastPosition ?: 0
-    }
-
-    val pos = viewModel.pos ?: 0
-    val duration = viewModel.duration ?: 0
-    if (duration <= 0) return pos
-
-    val watchedThreshold = browserPreferences.watchedThreshold.get()
-    val progress = pos.toFloat() / duration.toFloat()
-    
-    // If we've reached the threshold or are within 1 second of the end, restart from beginning
-    return if (progress < (watchedThreshold / 100f) && pos < duration - 1) {
-      pos
-    } else {
-      0
-    }
-  }
-
   /**
    * Loads and applies saved playback state from the database.
    *
@@ -2309,7 +2301,11 @@ class PlayerActivity :
    * @param state The saved playback state entity
    */
   private suspend fun applyPlaybackState(state: PlaybackStateEntity?) {
-    if (state == null) return
+    if (state == null) {
+      // Force reset position for new items in playlist
+      MPVLib.setPropertyInt("time-pos", 0)
+      return
+    }
 
     val subDelay = state.subDelay / DELAY_DIVISOR
     val audioDelay = state.audioDelay / DELAY_DIVISOR
@@ -2359,8 +2355,10 @@ class PlayerActivity :
     MPVLib.setPropertyDouble("video-zoom", state.videoZoom.toDouble())
     viewModel.setVideoZoom(state.videoZoom)
 
-    if (playerPreferences.savePositionOnQuit.get() && state.lastPosition != 0) {
+    if (playerPreferences.savePositionOnQuit.get()) {
       MPVLib.setPropertyInt("time-pos", state.lastPosition)
+    } else {
+      MPVLib.setPropertyInt("time-pos", 0)
     }
   }
 
@@ -2409,6 +2407,7 @@ class PlayerActivity :
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
 
+    pendingIntentExtras = true
     // Update the intent first so getFileName uses the new intent data
     setIntent(intent)
 

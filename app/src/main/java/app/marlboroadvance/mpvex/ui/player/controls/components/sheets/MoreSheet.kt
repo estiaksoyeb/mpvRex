@@ -1,6 +1,7 @@
 package app.marlboroadvance.mpvex.ui.player.controls.components.sheets
 
 import android.text.format.DateUtils
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,13 +12,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -25,39 +35,63 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.domain.anime4k.Anime4KManager
 import app.marlboroadvance.mpvex.preferences.AdvancedPreferences
+import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.DecoderPreferences
+import app.marlboroadvance.mpvex.preferences.GesturePreferences
+import app.marlboroadvance.mpvex.preferences.PlayerButton
 import app.marlboroadvance.mpvex.preferences.PlayerPreferences
+import app.marlboroadvance.mpvex.preferences.getPlayerButtonLabel
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.components.PlayerSheet
+import app.marlboroadvance.mpvex.ui.player.Panels
+import app.marlboroadvance.mpvex.ui.player.PlayerActivity
+import app.marlboroadvance.mpvex.ui.player.PlayerViewModel
+import app.marlboroadvance.mpvex.ui.player.Sheets
+import app.marlboroadvance.mpvex.ui.player.controls.RenderPlayerButton
 import app.marlboroadvance.mpvex.ui.theme.spacing
-import `is`.xyz.mpv.MPVLib
+import `is`.xyz.mpv.*
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.math.abs
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MoreSheet(
   remainingTime: Int,
@@ -65,12 +99,97 @@ fun MoreSheet(
   onDismissRequest: () -> Unit,
   onEnterFiltersPanel: () -> Unit,
   onAnime4KChanged: () -> Unit = {},
+  viewModel: PlayerViewModel,
+  onShowSheet: (Sheets) -> Unit,
   modifier: Modifier = Modifier,
+) {
+  val lastTab by viewModel.lastMoreSheetTab.collectAsState()
+  val pagerState = rememberPagerState(initialPage = lastTab.coerceIn(0, 2)) { 3 }
+  val scope = rememberCoroutineScope()
+
+  // Persist tab change
+  LaunchedEffect(pagerState) {
+    snapshotFlow { pagerState.currentPage }.collect {
+      viewModel.lastMoreSheetTab.value = it
+    }
+  }
+
+  val tabs = listOf("Controls", "Settings", "Interaction")
+
+  PlayerSheet(
+    onDismissRequest,
+    modifier,
+  ) {
+    Column(
+      modifier = Modifier.fillMaxWidth()
+    ) {
+      PrimaryTabRow(
+        selectedTabIndex = pagerState.currentPage,
+        containerColor = Color.Transparent,
+        divider = {}
+      ) {
+        tabs.forEachIndexed { index, title ->
+          Tab(
+            selected = pagerState.currentPage == index,
+            onClick = { 
+              scope.launch { pagerState.animateScrollToPage(index) }
+            },
+            text = { Text(title) },
+            icon = {
+              Icon(
+                imageVector = when(index) {
+                    0 -> Icons.Default.Widgets
+                    1 -> Icons.Default.Settings
+                    else -> Icons.Default.TouchApp
+                },
+                contentDescription = null
+              )
+            }
+          )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
+
+      HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+      ) { page ->
+        when (page) {
+          0 -> ControlsTab(
+            viewModel = viewModel,
+            onDismissRequest = onDismissRequest,
+            onShowSheet = onShowSheet
+          )
+          1 -> SettingsTab(
+            remainingTime = remainingTime,
+            onStartTimer = onStartTimer,
+            onEnterFiltersPanel = onEnterFiltersPanel,
+            onAnime4KChanged = onAnime4KChanged,
+            onDismissRequest = onDismissRequest
+          )
+          2 -> InteractionTab()
+        }
+      }
+      
+      Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
+    }
+  }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SettingsTab(
+  remainingTime: Int,
+  onStartTimer: (Int) -> Unit,
+  onEnterFiltersPanel: () -> Unit,
+  onAnime4KChanged: () -> Unit,
+  onDismissRequest: () -> Unit,
 ) {
   val advancedPreferences = koinInject<AdvancedPreferences>()
   val decoderPreferences = koinInject<DecoderPreferences>()
   val anime4kManager = koinInject<Anime4KManager>()
-  koinInject<PlayerPreferences>()
   val statisticsPage by advancedPreferences.enabledStatisticsPage.collectAsState()
   
   val enableAnime4K by decoderPreferences.enableAnime4K.collectAsState()
@@ -79,21 +198,17 @@ fun MoreSheet(
   val gpuNext by decoderPreferences.gpuNext.collectAsState()
   val useVulkan by decoderPreferences.useVulkan.collectAsState()
   
-  val context = LocalContext.current
-val scope = rememberCoroutineScope()
+  val scope = rememberCoroutineScope()
+  val activity = LocalContext.current as PlayerActivity
 
-  PlayerSheet(
-    onDismissRequest,
-    modifier,
+  Column(
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .padding(horizontal = MaterialTheme.spacing.medium)
+        .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
   ) {
-    Column(
-      modifier =
-        Modifier
-          .fillMaxWidth()
-          .padding(MaterialTheme.spacing.medium)
-          .verticalScroll(rememberScrollState()),
-      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
-    ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -101,7 +216,7 @@ val scope = rememberCoroutineScope()
       ) {
         Text(
           text = stringResource(id = R.string.player_sheets_more_title),
-          style = MaterialTheme.typography.headlineMedium,
+          style = MaterialTheme.typography.titleLarge,
         )
         Row(
           verticalAlignment = Alignment.CenterVertically,
@@ -144,6 +259,9 @@ val scope = rememberCoroutineScope()
           }
         }
       }
+
+      Spacer(modifier = Modifier.height(MaterialTheme.spacing.extraSmall))
+
       Text(
         text = stringResource(R.string.player_sheets_stats_page_title),
         style = MaterialTheme.typography.titleMedium,
@@ -287,7 +405,243 @@ val scope = rememberCoroutineScope()
           }
         }
       }
-    }
+  }
+}
+
+@Composable
+fun ControlsTab(
+  viewModel: PlayerViewModel,
+  onDismissRequest: () -> Unit,
+  onShowSheet: (Sheets) -> Unit,
+) {
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
+  val moreSheetControlsPref by appearancePreferences.moreSheetControls.collectAsState()
+
+  // Data needed for visibility checks
+  val chapters by viewModel.chapters.collectAsState(persistentListOf())
+  val playlist by viewModel.playlistManager.playlist.collectAsState(emptyList())
+  val hasPlaylistSupport = playlist.size > 1
+
+  val buttons = remember(moreSheetControlsPref, chapters, hasPlaylistSupport) {
+      appearancePreferences.parseButtons(moreSheetControlsPref, mutableSetOf())
+          .filter { button ->
+              when (button) {
+                  PlayerButton.SHUFFLE -> hasPlaylistSupport
+                  PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
+                  else -> true
+              }
+          }
+  }
+
+  val currentChapter by MPVLib.propInt["chapter"].collectAsState(0)
+  val playbackSpeed by MPVLib.propFloat["speed"].collectAsState(1f)
+  val isSpeedNonOne by remember(playbackSpeed) {
+    derivedStateOf { abs((playbackSpeed ?: 1f) - 1f) > 0.001f }
+  }
+  val currentZoom by viewModel.videoZoom.collectAsState()
+  val aspect by viewModel.videoAspect.collectAsState()
+  
+  val activity = LocalContext.current as PlayerActivity
+  val mpvDecoder by MPVLib.propString["hwdec-current"].collectAsState("")
+  val decoder by remember { derivedStateOf { app.marlboroadvance.mpvex.ui.player.Decoder.getDecoderFromValue(mpvDecoder ?: "auto") } }
+
+  val mediaTitle by remember(activity) {
+      derivedStateOf {
+          MPVLib.getPropertyString("media-title")?.takeIf { it.isNotBlank() }
+              ?: activity.getTitleForControls()
+      }
+  }
+
+  Column(
+      modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = MaterialTheme.spacing.medium)
+  ) {
+      Text(
+          text = "Extended Controls",
+          style = MaterialTheme.typography.titleLarge,
+          modifier = Modifier.padding(bottom = MaterialTheme.spacing.medium)
+      )
+
+      LazyVerticalGrid(
+          columns = GridCells.Fixed(6), // Compact grid
+          horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
+          modifier = Modifier.height(240.dp)
+      ) {
+          items(buttons) { button ->
+              Column(
+                  horizontalAlignment = Alignment.CenterHorizontally,
+                  verticalArrangement = Arrangement.spacedBy(4.dp)
+              ) {
+                  RenderPlayerButton(
+                      button = button,
+                      chapters = chapters,
+                      currentChapter = currentChapter,
+                      isPortrait = true, 
+                      isSpeedNonOne = isSpeedNonOne,
+                      currentZoom = currentZoom,
+                      aspect = aspect,
+                      mediaTitle = mediaTitle,
+                      hideBackground = hideBackground,
+                      decoder = decoder,
+                      playbackSpeed = playbackSpeed ?: 1f,
+                      onBackPress = { activity.onBackPressedDispatcher.onBackPressed() },
+                      onOpenSheet = {
+                          onDismissRequest()
+                          onShowSheet(it)
+                      },
+                      onOpenPanel = {
+                          onDismissRequest()
+                          viewModel.panelShown.value = it
+                      },
+                      viewModel = viewModel,
+                      activity = activity,
+                      buttonSize = 48.dp 
+                  )
+                  Text(
+                      text = getPlayerButtonLabel(button),
+                      style = MaterialTheme.typography.labelSmall,
+                      textAlign = TextAlign.Center,
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                      modifier = Modifier.width(56.dp)
+                  )
+              }
+          }
+      }
+  }
+}
+
+@Composable
+fun InteractionTab() {
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val gesturePreferences = koinInject<GesturePreferences>()
+  val playerPreferences = koinInject<PlayerPreferences>()
+
+  val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
+  val preventSeekbarTap by gesturePreferences.preventSeekbarTap.collectAsState()
+  val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
+  val useSingleTapForLeftRight by gesturePreferences.useSingleTapForLeftRight.collectAsState()
+  val swipeToSubtitleSeek by playerPreferences.swipeToSubtitleSeek.collectAsState()
+  val keepScreenOnWhenPaused by playerPreferences.keepScreenOnWhenPaused.collectAsState()
+  val playlistMode by playerPreferences.playlistMode.collectAsState()
+  val showSeekBarWhenSeeking by playerPreferences.showSeekBarWhenSeeking.collectAsState()
+  val savePositionOnQuit by playerPreferences.savePositionOnQuit.collectAsState()
+  val autoPiPOnNavigation by playerPreferences.autoPiPOnNavigation.collectAsState()
+
+  Column(
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(horizontal = MaterialTheme.spacing.medium)
+      .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+  ) {
+    Text(
+      text = "Player Interaction",
+      style = MaterialTheme.typography.titleLarge,
+      modifier = Modifier.padding(bottom = MaterialTheme.spacing.small)
+    )
+
+    InteractionSwitch(
+      label = "Enable next/previous navigation",
+      description = "Show buttons for all videos in folder",
+      checked = playlistMode,
+      onCheckedChange = { playerPreferences.playlistMode.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Show seekbar when seeking",
+      description = "Display progress bar during gesture seeking",
+      checked = showSeekBarWhenSeeking,
+      onCheckedChange = { playerPreferences.showSeekBarWhenSeeking.set(it) }
+    )
+    
+    InteractionSwitch(
+      label = "Single tap for center",
+      description = "Use single tap for gesture action",
+      checked = useSingleTapForCenter,
+      onCheckedChange = { gesturePreferences.useSingleTapForCenter.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Single tap for left/right gestures",
+      description = "Use single tap for gesture action",
+      checked = useSingleTapForLeftRight,
+      onCheckedChange = { gesturePreferences.useSingleTapForLeftRight.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Hide button backgrounds",
+      description = "Makes player controls transparent",
+      checked = hideBackground,
+      onCheckedChange = { appearancePreferences.hidePlayerButtonsBackground.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Prevent accidental seeking",
+      description = "Disables seekbar jumping on tap",
+      checked = preventSeekbarTap,
+      onCheckedChange = { gesturePreferences.preventSeekbarTap.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Swipe to subtitle seek",
+      description = "Swipe horizontally top or bottom to seek subtitle",
+      checked = swipeToSubtitleSeek,
+      onCheckedChange = { playerPreferences.swipeToSubtitleSeek.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Keep screen on when paused",
+      description = "Prevents screen timeout during pause",
+      checked = keepScreenOnWhenPaused,
+      onCheckedChange = { playerPreferences.keepScreenOnWhenPaused.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Save playback position",
+      description = "Remember where you left off",
+      checked = savePositionOnQuit,
+      onCheckedChange = { playerPreferences.savePositionOnQuit.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Auto PiP on navigation",
+      description = "Enter Picture-in-Picture when leaving the app",
+      checked = autoPiPOnNavigation,
+      onCheckedChange = { playerPreferences.autoPiPOnNavigation.set(it) }
+    )
+  }
+}
+
+@Composable
+private fun InteractionSwitch(
+  label: String,
+  description: String,
+  checked: Boolean,
+  onCheckedChange: (Boolean) -> Unit,
+) {
+  Surface(
+    onClick = { onCheckedChange(!checked) },
+    shape = MaterialTheme.shapes.medium,
+    color = MaterialTheme.colorScheme.surfaceContainerLow,
+    modifier = Modifier.fillMaxWidth()
+  ) {
+    ListItem(
+      headlineContent = { Text(label, style = MaterialTheme.typography.bodyLarge) },
+      supportingContent = { Text(description, style = MaterialTheme.typography.bodySmall) },
+      trailingContent = {
+        Switch(
+          checked = checked,
+          onCheckedChange = onCheckedChange
+        )
+      },
+      colors = androidx.compose.material3.ListItemDefaults.colors(
+        containerColor = Color.Transparent
+      )
+    )
   }
 }
 
@@ -408,8 +762,4 @@ fun TimePickerDialog(
       }
     }
   }
-  }
-
-
-
-
+}

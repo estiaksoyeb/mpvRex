@@ -80,6 +80,12 @@ class PlaylistManager {
         }
     }
 
+    fun getCurrentUri(): Uri? {
+        val index = _currentIndex.value
+        val list = _playlist.value
+        return if (index >= 0 && index < list.size) list[index] else null
+    }
+
     fun setShuffleEnabled(enabled: Boolean) {
         if (_shuffleEnabled.value == enabled) return
         _shuffleEnabled.value = enabled

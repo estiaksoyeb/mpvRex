@@ -313,7 +313,7 @@ object MediaInfoOps {
         val contentResolver = context.contentResolver
         val pfd =
           contentResolver.openFileDescriptor(uri, "r")
-            ?: return@runCatching VideoMetadata(0L, 0L, 0, 0, 0f, false)
+            ?: return@runCatching VideoMetadata(0L, 0L, 0, 0, 0, 0f, false)
 
         val fd = pfd.detachFd()
         val mi = MediaInfo()
@@ -339,6 +339,10 @@ object MediaInfoOps {
 
           val heightStr = mi.getInfo(MediaInfo.Stream.Video, 0, "Height")
           val height = heightStr.toIntOrNull() ?: 0
+
+          // Extract rotation
+          val rotationStr = mi.getInfo(MediaInfo.Stream.Video, 0, "Rotation")
+          val rotation = rotationStr.toFloatOrNull()?.toInt() ?: 0
 
           // Extract framerate (fps)
           val fpsStr = mi.getInfo(MediaInfo.Stream.Video, 0, "FrameRate")
@@ -377,7 +381,7 @@ object MediaInfoOps {
             codecs.joinToString(" ")
           } else ""
 
-          VideoMetadata(fileSize, duration, width, height, fps, hasEmbeddedSubtitles, subtitleCodec, artist, album)
+          VideoMetadata(fileSize, duration, width, height, rotation, fps, hasEmbeddedSubtitles, subtitleCodec, artist, album)
         } finally {
           mi.Close()
           pfd.close()
@@ -393,6 +397,7 @@ object MediaInfoOps {
     val durationMs: Long,
     val width: Int,
     val height: Int,
+    val rotation: Int = 0,
     val fps: Float,
     val hasEmbeddedSubtitles: Boolean,
     val subtitleCodec: String = "",

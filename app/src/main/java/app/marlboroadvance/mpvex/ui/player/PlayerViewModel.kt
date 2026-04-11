@@ -258,7 +258,9 @@ class PlayerViewModel(
     )
 
   val sheetShown = MutableStateFlow(Sheets.None)
+  val lastMoreSheetTab = MutableStateFlow(1) // Default to Controls tab (index 1)
   val panelShown = MutableStateFlow(Panels.None)
+  val isSpeedLocked = MutableStateFlow(false)
 
   // Seek state
   private val _seekText = MutableStateFlow<String?>(null)
@@ -425,13 +427,8 @@ class PlayerViewModel(
     host.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
   }
 
-  // Seek coalescing for smooth performance
-  private var pendingSeekOffset: Int = 0
-  private var seekCoalesceJob: Job? = null
-
   private companion object {
     const val TAG = "PlayerViewModel"
-    const val SEEK_COALESCE_DELAY_MS = 60L
     val VALID_SUBTITLE_EXTENSIONS =
       setOf(
         // Common & modern

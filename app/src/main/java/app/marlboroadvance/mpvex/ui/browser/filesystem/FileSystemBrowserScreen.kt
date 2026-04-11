@@ -839,30 +839,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   if (isInSelectionMode) {
                     videoSelectionManager.toggle(video)
                   } else {
-                    // If playlist mode is enabled, play all videos in current folder starting from clicked one
-                    if (playlistMode) {
-                      val allVideos = videos
-                      val startIndex = allVideos.indexOfFirst { it.id == video.id }
-                      if (startIndex >= 0) {
-                        if (allVideos.size == 1) {
-                          // Single video - play normally
-                          MediaUtils.playFile(video, context)
-                        } else {
-                          // Multiple videos - play as playlist starting from clicked video
-                          val intent = Intent(Intent.ACTION_VIEW, allVideos[startIndex].uri)
-                          intent.setClass(context, app.marlboroadvance.mpvex.ui.player.PlayerActivity::class.java)
-                          intent.putExtra("internal_launch", true)
-                          intent.putParcelableArrayListExtra("playlist", ArrayList(allVideos.map { it.uri }))
-                          intent.putExtra("playlist_index", startIndex)
-                          intent.putExtra("launch_source", "playlist")
-                          context.startActivity(intent)
-                        }
-                      } else {
-                        MediaUtils.playFile(video, context)
-                      }
-                    } else {
-                      MediaUtils.playFile(video, context)
-                    }
+                    // Use MediaUtils.playFile which correctly passes all extras (width, height, rotation, savedOrientation)
+                    // and allows PlayerActivity to auto-generate the playlist if playlistMode is enabled.
+                    MediaUtils.playFile(video, context, "tree_mode")
                   }
                 },
                 onVideoLongClick = { video ->
@@ -1154,15 +1133,8 @@ private fun playVideosAsPlaylist(
     MediaUtils.playFile(videos.first(), context)
   } else {
     // Multiple videos - play as playlist
-    val intent = Intent(Intent.ACTION_VIEW, videos.first().uri)
-    intent.setClass(context, app.marlboroadvance.mpvex.ui.player.PlayerActivity::class.java)
-    intent.putExtra("internal_launch", true)
-    intent.putParcelableArrayListExtra("playlist", ArrayList(videos.map { it.uri }))
-    intent.putExtra("playlist_index", 0)
-    intent.putExtra("launch_source", "playlist")
-    context.startActivity(intent)
-  }
-}
+    MediaUtils.playPlaylist(videos, 0, context)
+  }}
 
 @Composable
 private fun FileSystemBrowserContent(

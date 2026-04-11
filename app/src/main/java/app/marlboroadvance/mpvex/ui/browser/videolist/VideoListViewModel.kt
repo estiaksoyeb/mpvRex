@@ -161,6 +161,13 @@ class VideoListViewModel(
       videos.map { video ->
         val playbackState = playbackStates.find { it.mediaTitle == video.displayName }
 
+        // Map saved orientation to video
+        val videoWithOrientation = if (playbackState?.savedOrientation != null) {
+          video.copy(savedOrientation = playbackState.savedOrientation)
+        } else {
+          video
+        }
+
         // Calculate watch progress (0.0 to 1.0)
         val progress = if (playbackState != null && video.duration > 0) {
           val durationSeconds = video.duration / 1000
@@ -186,7 +193,7 @@ class VideoListViewModel(
         }
 
         VideoWithPlaybackInfo(
-          video = video,
+          video = videoWithOrientation,
           timeRemaining = playbackState?.timeRemaining?.toLong(),
           progressPercentage = progress,
           isOldAndUnplayed = isOldAndUnplayed,

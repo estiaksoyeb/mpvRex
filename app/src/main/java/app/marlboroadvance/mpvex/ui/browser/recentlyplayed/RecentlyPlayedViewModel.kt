@@ -60,14 +60,22 @@ class RecentlyPlayedViewModel(application: Application) :
       _isLoading.value = true
       try {
         val entities = recentlyPlayedRepository.getRecentlyPlayed(limit = 50)
+        val playbackStates = playbackStateRepository.getAllPlaybackStates()
         
         val db = org.koin.core.context.GlobalContext.get().get<MpvExDatabase>()
         val playlistInfos = db.recentlyPlayedDao().getRecentlyPlayedPlaylists(limit = 20)
         
         val videoItems = entities.mapNotNull { entity ->
           try {
-            val video = createVideoFromEntity(entity)
-            if (video != null) RecentlyPlayedItem.VideoItem(video, entity.timestamp) else null
+            var video = createVideoFromEntity(entity)
+            if (video != null) {
+              // Map saved orientation and progress info if available
+              val state = playbackStates.find { it.mediaTitle == video.displayName }
+              if (state?.savedOrientation != null) {
+                video = video.copy(savedOrientation = state.savedOrientation)
+              }
+              RecentlyPlayedItem.VideoItem(video, entity.timestamp)
+            } else null
           } catch (e: Exception) { null }
         }
         

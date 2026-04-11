@@ -73,6 +73,8 @@ class PlaylistDetailViewModel(
       _isLoading.value = true
       try {
         val itemsList = playlistRepository.getPlaylistItems(playlistId)
+        val playbackStates = playbackStateRepository.getAllPlaybackStates()
+        
         if (itemsList.isEmpty()) {
           _items.value = emptyList()
         } else {
@@ -82,7 +84,7 @@ class PlaylistDetailViewModel(
           if (isM3uPlaylist) {
             val videoItemsList = itemsList.mapNotNull { item ->
               try {
-                val video = Video(
+                var video = Video(
                   id = item.id.toLong(),
                   title = item.fileName,
                   displayName = item.fileName,
@@ -107,6 +109,13 @@ class PlaylistDetailViewModel(
                   fps = 0f,
                   resolution = "Unknown"
                 )
+                
+                // Map saved orientation
+                val state = playbackStates.find { it.mediaTitle == video.displayName }
+                if (state?.savedOrientation != null) {
+                  video = video.copy(savedOrientation = state.savedOrientation)
+                }
+                
                 PlaylistVideoItem(item, video)
               } catch (e: Exception) {
                 null
@@ -117,8 +126,15 @@ class PlaylistDetailViewModel(
             val bucketIds = itemsList.map { item -> File(item.filePath).parent ?: "" }.toSet()
             val allVideos = MediaFileRepository.getVideosForBuckets(getApplication(), bucketIds)
             val videoItemsList = itemsList.mapNotNull { item ->
-              val matchedVideo = allVideos.find { video -> video.path == item.filePath }
-              if (matchedVideo != null) PlaylistVideoItem(item, matchedVideo) else null
+              var matchedVideo = allVideos.find { video -> video.path == item.filePath }
+              if (matchedVideo != null) {
+                // Map saved orientation
+                val state = playbackStates.find { it.mediaTitle == matchedVideo.displayName }
+                if (state?.savedOrientation != null) {
+                  matchedVideo = matchedVideo.copy(savedOrientation = state.savedOrientation)
+                }
+                PlaylistVideoItem(item, matchedVideo)
+              } else null
             }
             _items.value = videoItemsList
           }

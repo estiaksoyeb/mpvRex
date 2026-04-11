@@ -60,7 +60,7 @@ enum class Decoder(
   ;
 
   companion object {
-    fun getDecoderFromValue(value: String): Decoder = Decoder.entries.first { it.value == value }
+    fun getDecoderFromValue(value: String): Decoder = Decoder.entries.firstOrNull { it.value == value } ?: Auto
   }
 }
 
@@ -122,6 +122,11 @@ sealed class PlayerUpdates {
   data class DynamicSpeedControl(
     val speed: Float,
     val showFullOverlay: Boolean = true,
+  ) : PlayerUpdates()
+
+  data class SpeedLockHint(
+    val speed: Float,
+    val isLocked: Boolean,
   ) : PlayerUpdates()
 
   data object AspectRatio : PlayerUpdates()

@@ -21,6 +21,7 @@ data class Video(
   val bucketDisplayName: String,
   val width: Int,
   val height: Int,
+  val rotation: Int = 0,
   val fps: Float,
   val resolution: String,
   val hasEmbeddedSubtitles: Boolean = false,

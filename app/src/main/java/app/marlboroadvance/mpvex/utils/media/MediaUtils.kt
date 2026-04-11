@@ -10,8 +10,12 @@ import app.marlboroadvance.mpvex.BuildConfig
 import app.marlboroadvance.mpvex.domain.media.model.Video
 import app.marlboroadvance.mpvex.ui.player.PlayerActivity
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
+import app.marlboroadvance.mpvex.database.repository.VideoMetadataCacheRepository
+import app.marlboroadvance.mpvex.domain.playbackstate.repository.PlaybackStateRepository
 import `is`.xyz.mpv.Utils
 import java.io.File
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Central entry point for video playback operations.
@@ -36,7 +40,10 @@ import java.io.File
  * External apps use ACTION_SEND/ACTION_VIEW intents directly to PlayerActivity,
  * bypassing MediaUtils.
  */
-object MediaUtils {
+object MediaUtils : KoinComponent {
+  private val metadataCache: VideoMetadataCacheRepository by inject()
+  private val playbackStateRepository: PlaybackStateRepository by inject()
+
   /**
    * Play video content from any source.
    *
@@ -53,69 +60,143 @@ object MediaUtils {
     context: Context,
     launchSource: String? = null,
   ) {
-    val uri =
-      when (source) {
-        is Video -> {
-          val videoUri = if (source.uri.scheme == null) {
-            if (source.path.startsWith("/") || source.path.startsWith("file://")) {
-              val path = if (source.path.startsWith("file://")) source.path.removePrefix("file://") else source.path
-              Uri.fromFile(File(path))
-            } else {
-              source.uri
-            }
+    val intent = when (source) {
+      is Video -> {
+        val videoUri = if (source.uri.scheme == null) {
+          if (source.path.startsWith("/") || source.path.startsWith("file://")) {
+            val path = if (source.path.startsWith("file://")) source.path.removePrefix("file://") else source.path
+            Uri.fromFile(File(path))
           } else {
             source.uri
           }
-          val intent = Intent(Intent.ACTION_VIEW, videoUri)
-          intent.setClass(context, PlayerActivity::class.java)
-          intent.putExtra("internal_launch", true) // Enables subtitle autoload
-          intent.putExtra("width", source.width)
-          intent.putExtra("height", source.height)
-          source.savedOrientation?.let { intent.putExtra("saved_orientation", it) }
-          launchSource?.let { intent.putExtra("launch_source", it) }
-          
-          // For playlist items, pass the title so it shows correctly in the player
-          if (launchSource != null && (launchSource.contains("playlist") || launchSource == "m3u_playlist")) {
-            intent.putExtra("title", source.displayName)
-          }
-          
-          context.startActivity(
-            intent,
-            ActivityOptions.makeCustomAnimation(context, android.R.anim.fade_in, 0).toBundle()
-          )
-          return
+        } else {
+          source.uri
         }
-
-        is String -> {
-          if (source.isBlank()) return
-          // Handle file paths with # characters properly
-          if (source.startsWith("/") || source.startsWith("file://")) {
-            // It's a local file path - create URI safely
-            val filePath = if (source.startsWith("file://")) {
-              source.removePrefix("file://")
-            } else {
-              source
-            }
-            Uri.fromFile(java.io.File(filePath))
-          } else {
-            // It's likely a network URI - parse normally
-            val parsedUri = source.toUri()
-            parsedUri.scheme?.let { parsedUri } ?: "file://$source".toUri()
-          }
-        }
-
-        is android.net.Uri -> source
-        else -> {
-          android.util.Log.e("MediaUtils", "Unsupported source type: ${source::class.java}")
-          return
-        }
+        val it = Intent(Intent.ACTION_VIEW, videoUri)
+        it.putExtra("width", source.width)
+        it.putExtra("height", source.height)
+        it.putExtra("rotation", source.rotation)
+        source.savedOrientation?.let { orientation -> it.putExtra("saved_orientation", orientation) }
+        it
       }
 
-    val intent = Intent(Intent.ACTION_VIEW, uri)
+      is String -> {
+        if (source.isBlank()) return
+        val uri = if (source.startsWith("/") || source.startsWith("file://")) {
+          val filePath = if (source.startsWith("file://")) source.removePrefix("file://") else source
+          Uri.fromFile(File(filePath))
+        } else {
+          val parsedUri = source.toUri()
+          parsedUri.scheme?.let { parsedUri } ?: Uri.parse("file://$source")
+        }
+        
+        val it = Intent(Intent.ACTION_VIEW, uri)
+        
+        // Eagerly lookup metadata for local files to avoid jumpy transitions
+        if (uri.scheme == "file") {
+          val file = File(uri.path ?: "")
+          if (file.exists()) {
+            val fileName = file.name
+            // Use runBlocking as this is called from UI thread but we need the metadata
+            // Better would be to make playFile suspend, but that requires UI changes everywhere
+            kotlinx.coroutines.runBlocking {
+              // 1. Check for saved orientation in DB
+              val state = playbackStateRepository.getVideoDataByTitle(fileName)
+              if (state?.savedOrientation != null) {
+                it.putExtra("saved_orientation", state.savedOrientation)
+              }
+              
+              // 2. Check metadata cache for dimensions and rotation
+              val metadata = metadataCache.getOrExtractMetadata(file, uri, fileName)
+              if (metadata != null) {
+                it.putExtra("width", metadata.width)
+                it.putExtra("height", metadata.height)
+                it.putExtra("rotation", metadata.rotation)
+              }
+            }
+          }
+        }
+        it
+      }
+
+      is Uri -> {
+        Intent(Intent.ACTION_VIEW, source)
+      }
+
+      else -> {
+        android.util.Log.e("MediaUtils", "Unsupported source type: ${source::class.java}")
+        return
+      }
+    }
+
     intent.setClass(context, PlayerActivity::class.java)
     intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    intent.putExtra("internal_launch", true) // Enables subtitle autoload
     launchSource?.let { intent.putExtra("launch_source", it) }
+    
+    // For playlist items, pass the title so it shows correctly in the player
+    if (source is Video && launchSource != null && (launchSource.contains("playlist") || launchSource == "m3u_playlist")) {
+      intent.putExtra("title", source.displayName)
+    }
+
+    context.startActivity(
+      intent,
+      ActivityOptions.makeCustomAnimation(context, android.R.anim.fade_in, 0).toBundle()
+    )
+  }
+
+  /**
+   * Play multiple videos as a playlist.
+   *
+   * @param videos List of Video objects
+   * @param startIndex Index of the video to start with
+   * @param context Android context
+   * @param launchSource Analytics identifier
+   * @param playlistId Optional database playlist ID
+   */
+  fun playPlaylist(
+    videos: List<Video>,
+    startIndex: Int,
+    context: Context,
+    launchSource: String? = "playlist",
+    playlistId: Int? = null,
+  ) {
+    if (videos.isEmpty() || startIndex < 0 || startIndex >= videos.size) return
+
+    val firstVideo = videos[startIndex]
+    val videoUri = if (firstVideo.uri.scheme == null) {
+      if (firstVideo.path.startsWith("/") || firstVideo.path.startsWith("file://")) {
+        val path = if (firstVideo.path.startsWith("file://")) firstVideo.path.removePrefix("file://") else firstVideo.path
+        Uri.fromFile(File(path))
+      } else {
+        firstVideo.uri
+      }
+    } else {
+      firstVideo.uri
+    }
+
+    val intent = Intent(Intent.ACTION_VIEW, videoUri)
+    intent.setClass(context, PlayerActivity::class.java)
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    intent.putExtra("internal_launch", true)
+    
+    // Pass metadata extras for the FIRST video to ensure smooth transition
+    intent.putExtra("width", firstVideo.width)
+    intent.putExtra("height", firstVideo.height)
+    intent.putExtra("rotation", firstVideo.rotation)
+    firstVideo.savedOrientation?.let { intent.putExtra("saved_orientation", it) }
+    
+    // Pass playlist data
+    intent.putParcelableArrayListExtra("playlist", ArrayList(videos.map { it.uri }))
+    intent.putExtra("playlist_index", startIndex)
+    launchSource?.let { intent.putExtra("launch_source", it) }
+    playlistId?.let { intent.putExtra("playlist_id", it) }
+    
+    // Pass title for the first video
+    intent.putExtra("title", firstVideo.displayName)
+
     context.startActivity(
       intent,
       ActivityOptions.makeCustomAnimation(context, android.R.anim.fade_in, 0).toBundle()

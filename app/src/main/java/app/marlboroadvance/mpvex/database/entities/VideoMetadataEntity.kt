@@ -16,6 +16,7 @@ data class VideoMetadataEntity(
   val duration: Long, // Duration in milliseconds
   val width: Int, // Video width in pixels
   val height: Int, // Video height in pixels
+  val rotation: Int = 0, // Video rotation in degrees
   val fps: Float, // Framerate in frames per second
   val hasEmbeddedSubtitles: Boolean = false,
   val subtitleCodec: String = "",

@@ -118,6 +118,7 @@ import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.toFixed
 import app.marlboroadvance.mpvex.ui.theme.controlColor
 import app.marlboroadvance.mpvex.ui.theme.playerRippleConfiguration
 import app.marlboroadvance.mpvex.ui.theme.spacing
+import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.Utils
 import kotlinx.collections.immutable.persistentListOf
@@ -443,8 +444,10 @@ fun PlayerControls(
           viewModel.playerUpdate.update { PlayerUpdates.None }
         }
 
+        val isSpeedLocked by viewModel.isSpeedLocked.collectAsState()
+
         AnimatedVisibility(
-          currentPlayerUpdate !is PlayerUpdates.None,
+          currentPlayerUpdate !is PlayerUpdates.None || isSpeedLocked,
           enter = fadeIn(playerControlsEnterAnimationSpec()),
           exit = fadeOut(playerControlsExitAnimationSpec()),
           modifier =
@@ -461,39 +464,48 @@ fun PlayerControls(
                 top.linkTo(parent.top, if (isPortrait) 104.dp else 64.dp)
               },
         ) {
-          when (currentPlayerUpdate) {
-            is PlayerUpdates.MultipleSpeed -> MultipleSpeedPlayerUpdate(currentSpeed = holdForMultipleSpeed)
+          val currentPlaybackSpeed = playbackSpeed ?: 1f
+          if (isSpeedLocked && currentPlayerUpdate is PlayerUpdates.None && abs(currentPlaybackSpeed - 1f) > 0.01f) {
+            CompactSpeedIndicator(
+              currentSpeed = currentPlaybackSpeed,
+              prefix = "Speed Locked at",
+              onReset = {
+                viewModel.isSpeedLocked.value = false
+                viewModel.resetPlaybackSpeed()
+              }
+            )
+          } else {
+            when (currentPlayerUpdate) {
+              is PlayerUpdates.MultipleSpeed -> MultipleSpeedPlayerUpdate(currentSpeed = holdForMultipleSpeed)
             is PlayerUpdates.DynamicSpeedControl -> {
               val speedUpdate = currentPlayerUpdate as PlayerUpdates.DynamicSpeedControl
               val currentSpeed = speedUpdate.speed
               val showDynamicSpeedOverlay by playerPreferences.showDynamicSpeedOverlay.collectAsState()
-              val shouldShowFull = speedUpdate.showFullOverlay
-              var isCollapsed by remember { mutableStateOf(false) }
-              
-              LaunchedEffect(currentSpeed, shouldShowFull) {
-                if (shouldShowFull) {
-                  isCollapsed = false
-                  delay(1500)
-                  isCollapsed = true
-                } else {
-                  isCollapsed = true
-                }
-              }
-              
+
               if (showDynamicSpeedOverlay) {
-                if (isCollapsed) {
-                  // Simple compact indicator
-                  CompactSpeedIndicator(currentSpeed = currentSpeed)
-                } else {
-                  // Full speed control slider
-                  SpeedControlSlider(currentSpeed = currentSpeed)
-                }
+                CompactSpeedIndicator(currentSpeed = currentSpeed)
               } else {
-                // fallback, simple indicator
                 CompactSpeedIndicator(currentSpeed = currentSpeed)
               }
             }
-            is PlayerUpdates.AspectRatio -> {
+
+            is PlayerUpdates.SpeedLockHint -> {
+              val hintUpdate = currentPlayerUpdate as PlayerUpdates.SpeedLockHint
+              val currentSpeed = hintUpdate.speed
+              val isLocked = hintUpdate.isLocked
+              
+              CompactSpeedIndicator(
+                currentSpeed = currentSpeed,
+                prefix = if (isLocked) "Speed Locked at" else "Swipe up to lock",
+                suffix = if (isLocked) null else "speed",
+                onReset = if (isLocked) {
+                    {
+                        viewModel.isSpeedLocked.value = false
+                        viewModel.resetPlaybackSpeed()
+                    }
+                } else null
+              )
+            }            is PlayerUpdates.AspectRatio -> {
               val customRatiosSet by playerPreferences.customAspectRatios.collectAsState()
               val displayText = if (currentAspectRatio > 0) {
                 // Custom aspect ratio - try to find its label first
@@ -593,6 +605,7 @@ fun PlayerControls(
             else -> {}
           }
         }
+      }
 
         val areButtonsVisible = controlsShown && !areControlsLocked && !areSlidersShown
 
@@ -609,12 +622,21 @@ fun PlayerControls(
                 height = Dimension.wrapContent
             }
         ) {
+            val leftScrollState = rememberScrollState()
+            LaunchedEffect(leftScrollState.isScrollInProgress) {
+                if (leftScrollState.isScrollInProgress) {
+                    while (leftScrollState.isScrollInProgress) {
+                        resetControlsTimestamp = System.currentTimeMillis()
+                        delay(1000)
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(leftScrollState)
             ) {
                 customButtons.filter { it.isLeft }.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
@@ -666,12 +688,21 @@ fun PlayerControls(
                 height = Dimension.wrapContent
             }
         ) {
+            val rightScrollState = rememberScrollState()
+            LaunchedEffect(rightScrollState.isScrollInProgress) {
+                if (rightScrollState.isScrollInProgress) {
+                    while (rightScrollState.isScrollInProgress) {
+                        resetControlsTimestamp = System.currentTimeMillis()
+                        delay(1000)
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .horizontalScroll(rememberScrollState(), reverseScrolling = true)
+                    .horizontalScroll(rightScrollState, reverseScrolling = true)
             ) {
                 customButtons.filter { !it.isLeft }.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
@@ -722,12 +753,21 @@ fun PlayerControls(
                 height = Dimension.wrapContent
             }
         ) {
+            val portraitScrollState = rememberScrollState()
+            LaunchedEffect(portraitScrollState.isScrollInProgress) {
+                if (portraitScrollState.isScrollInProgress) {
+                    while (portraitScrollState.isScrollInProgress) {
+                        resetControlsTimestamp = System.currentTimeMillis()
+                        delay(1000)
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(portraitScrollState)
             ) {
                 customButtons.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
@@ -1250,7 +1290,7 @@ fun PlayerControls(
             chapters = chapters,
             currentChapter = currentChapter,
             isSpeedNonOne = isSpeedNonOne,
-            currentZoom = currentZoom,
+            currentZoom = videoZoom,
             aspect = aspect,
             mediaTitle = mediaTitle,
             hideBackground = hideBackground,
@@ -1316,7 +1356,7 @@ fun PlayerControls(
               chapters = chapters,
               currentChapter = currentChapter,
               isSpeedNonOne = isSpeedNonOne,
-              currentZoom = currentZoom,
+              currentZoom = videoZoom,
               aspect = aspect,
               mediaTitle = mediaTitle,
               hideBackground = hideBackground,
@@ -1334,7 +1374,7 @@ fun PlayerControls(
               chapters = chapters,
               currentChapter = currentChapter,
               isSpeedNonOne = isSpeedNonOne,
-              currentZoom = currentZoom,
+              currentZoom = videoZoom,
               aspect = aspect,
               mediaTitle = mediaTitle,
               hideBackground = hideBackground,
@@ -1396,7 +1436,7 @@ fun PlayerControls(
             chapters = chapters,
             currentChapter = currentChapter,
             isSpeedNonOne = isSpeedNonOne,
-            currentZoom = currentZoom,
+            currentZoom = videoZoom,
             aspect = aspect,
             mediaTitle = mediaTitle,
             hideBackground = hideBackground,

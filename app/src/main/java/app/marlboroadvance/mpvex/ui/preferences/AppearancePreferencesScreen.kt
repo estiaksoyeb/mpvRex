@@ -142,6 +142,25 @@ object AppearancePreferencesScreen : Screen {
 
                             PreferenceDivider()
 
+                            // System font toggle
+                            val useSystemFont by preferences.useSystemFont.collectAsState()
+
+                            SwitchPreference(
+                                value = useSystemFont,
+                                onValueChange = { newValue ->
+                                    preferences.useSystemFont.set(newValue)
+                                },
+                                title = { Text(text = stringResource(id = R.string.pref_appearance_use_system_font_title)) },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_use_system_font_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                },
+                            )
+
+                            PreferenceDivider()
+
                             val hidePlayerButtonsBackground by preferences.hidePlayerButtonsBackground.collectAsState()
                             SwitchPreference(
                                 value = hidePlayerButtonsBackground,

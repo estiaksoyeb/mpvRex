@@ -76,3 +76,7 @@ val AppTypography = Typography().run {
     labelSmall = labelSmall.copy(fontFamily = GoogleSansFlex),
   )
 }
+
+fun getTypography(useSystemFont: Boolean): Typography {
+    return if (useSystemFont) Typography() else AppTypography
+}

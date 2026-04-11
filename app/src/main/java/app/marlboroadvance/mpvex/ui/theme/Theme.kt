@@ -333,6 +333,7 @@ fun MpvexTheme(content: @Composable () -> Unit) {
   val darkMode by preferences.darkMode.collectAsState()
   val amoledMode by preferences.amoledMode.collectAsState()
   val appTheme by preferences.appTheme.collectAsState()
+  val useSystemFont by preferences.useSystemFont.collectAsState()
   val darkTheme = isSystemInDarkTheme()
   val context = LocalContext.current
 
@@ -375,7 +376,7 @@ fun MpvexTheme(content: @Composable () -> Unit) {
         ThemeTransitionContent {
             MaterialTheme(
                 colorScheme = colorScheme,
-                typography = AppTypography,
+                typography = getTypography(useSystemFont),
                 content = content,
                 motionScheme = MotionScheme.expressive(),
             )
@@ -391,6 +392,7 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
     val darkMode by preferences.darkMode.collectAsState()
     val amoledMode by preferences.amoledMode.collectAsState()
     val appTheme by preferences.appTheme.collectAsState()
+    val useSystemFont by preferences.useSystemFont.collectAsState()
     val darkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
 
@@ -437,7 +439,7 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
         ThemeTransitionContent {
             MaterialTheme(
                 colorScheme = colorScheme,
-                typography = AppTypography,
+                typography = getTypography(useSystemFont),
                 content = content,
                 motionScheme = MotionScheme.expressive(),
             )

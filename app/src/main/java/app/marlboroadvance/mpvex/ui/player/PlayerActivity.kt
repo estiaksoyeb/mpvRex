@@ -1912,6 +1912,20 @@ class PlayerActivity :
           viewModel.setVideoZoom(zoomPreference)
         }
       }
+      
+      // Apply saved aspect ratio setting
+      withContext(Dispatchers.Main) {
+        val savedAspect = playerPreferences.defaultVideoAspect.get()
+        val savedCustomRatio = playerPreferences.defaultCustomAspectRatio.get()
+        
+        if (savedCustomRatio > 0) {
+          // Apply custom aspect ratio
+          viewModel.setCustomAspectRatio(savedCustomRatio)
+        } else {
+          // Apply standard aspect mode (Fit, Crop, or Stretch)
+          viewModel.changeVideoAspect(savedAspect, showUpdate = false)
+        }
+      }
     }
 
     // Save to recently played when video actually loads and plays

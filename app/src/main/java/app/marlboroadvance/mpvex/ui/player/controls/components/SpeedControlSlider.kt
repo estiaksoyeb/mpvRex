@@ -25,8 +25,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +64,24 @@ fun CompactSpeedIndicator(
 ) {
   val speedString = remember(currentSpeed) {
     String.format("%.2f", currentSpeed)
+  }
+
+  // Keep track of previous speed to determine overall direction
+  var previousSpeed by remember { mutableFloatStateOf(currentSpeed) }
+  val isIncreasing = remember(currentSpeed) {
+    if (currentSpeed != previousSpeed) {
+      val increasing = currentSpeed > previousSpeed
+      previousSpeed = currentSpeed
+      increasing
+    } else {
+      null // No change
+    }
+  }
+  
+  // Persistent direction state to avoid "no change" jitters
+  var lastDirectionWasIncreasing by remember { mutableStateOf(true) }
+  LaunchedEffect(isIncreasing) {
+    isIncreasing?.let { lastDirectionWasIncreasing = it }
   }
 
   Surface(
@@ -107,12 +129,15 @@ fun CompactSpeedIndicator(
             AnimatedContent(
               targetState = char,
               transitionSpec = {
-                // Determine direction based on value change (simple heuristic for digits)
-                if (targetState > initialState) {
+                // Use the overall speed direction instead of individual digit comparison
+                // This fixes the 2.50 -> 3.00 problem where 0 < 5 causes a reverse animation
+                if (lastDirectionWasIncreasing) {
+                  // Increasing: New number comes from top
                   (slideInVertically { height -> -height } + fadeIn()).togetherWith(
                     slideOutVertically { height -> height } + fadeOut()
                   )
                 } else {
+                  // Decreasing: New number comes from bottom
                   (slideInVertically { height -> height } + fadeIn()).togetherWith(
                     slideOutVertically { height -> -height } + fadeOut()
                   )

@@ -532,7 +532,7 @@ class PlayerActivity :
   private fun setupAudio() {
     audioPreferences.audioChannels.get().let {
       runCatching {
-        MPVLib.setPropertyString(it.property, it.value)
+        safeSetPropertyString(it.property, it.value)
       }.onFailure { e ->
         Log.e(TAG, "Error setting audio channels: ${it.property}=${it.value}", e)
       }
@@ -1334,6 +1334,23 @@ class PlayerActivity :
    *
    * @param extras Bundle containing HTTP headers
    */
+  /**
+   * Safe wrapper for MPVLib.setPropertyString to prevent native crashes (SIGSEGV).
+   * Ensures that the property name and value are not null or blank before passing to JNI.
+   */
+  private fun safeSetPropertyString(property: String, value: String?) {
+    if (property.isBlank()) return
+    if (value == null) {
+      Log.w(TAG, "Attempted to set null value for MPV property: $property")
+      return
+    }
+    runCatching {
+      MPVLib.setPropertyString(property, value)
+    }.onFailure { e ->
+      Log.e(TAG, "Failed to set MPV property $property: ${e.message}")
+    }
+  }
+
   private fun setHttpHeadersFromExtras(extras: Bundle?) {
     // Build header map starting with auto-detected referer
     val headerMap = mutableMapOf<String, String>()
@@ -1349,22 +1366,22 @@ class PlayerActivity :
 
     // Process headers from extras (these can override the auto-detected referer)
     extras?.getStringArray("headers")?.let { headers ->
-      if (headers.isEmpty()) return@let
+      if (headers.size < 2) return@let
 
-      if (headers[0].startsWith("User-Agent", ignoreCase = true)) {
-        MPVLib.setPropertyString("user-agent", headers[1])
+      // Handle User-Agent if it's the first pair
+      if (headers[0]?.startsWith("User-Agent", ignoreCase = true) == true) {
+        headers[1]?.let { ua ->
+          safeSetPropertyString("user-agent", ua)
+        }
       }
 
-      if (headers.size > 2) {
-        headers
-          .asSequence()
-          .drop(2)
-          .chunked(2)
-          .filter { it.size == 2 }
-          .forEach { (key, value) ->
-            headerMap[key] = value
-          }
-      }
+      // Safe iteration in pairs to avoid null/unpaired crashes
+      headers.asSequence()
+        .chunked(2)
+        .filter { it.size == 2 && !it[0].isNullOrBlank() && !it[1].isNullOrBlank() }
+        .forEach { (key, value) ->
+          headerMap[key!!] = value!!
+        }
     }
 
     // Set all headers in MPV
@@ -1373,11 +1390,10 @@ class PlayerActivity :
         .map { "${it.key}: ${it.value.replace(",", "\\,")}" }
         .joinToString(",")
 
-      MPVLib.setPropertyString("http-header-fields", headersString)
+      safeSetPropertyString("http-header-fields", headersString)
       Log.d(TAG, "Set HTTP headers: $headersString")
     }
   }
-
   /**
    * Sets HTTP headers for a specific URI (used for playlist items).
    * Automatically extracts and sets the Referer header based on the URI origin.
@@ -1401,7 +1417,7 @@ class PlayerActivity :
         .map { "${it.key}: ${it.value.replace(",", "\\,")}" }
         .joinToString(",")
 
-      MPVLib.setPropertyString("http-header-fields", headersString)
+      safeSetPropertyString("http-header-fields", headersString)
       Log.d(TAG, "Set HTTP headers for playlist item: $headersString")
     }
   }
@@ -1981,7 +1997,7 @@ class PlayerActivity :
 
     // Don't force media-title for m3u/m3u8 streams - let MPV provide it
     if (!isCurrentStreamM3U()) {
-      MPVLib.setPropertyString("force-media-title", fileName)
+      safeSetPropertyString("force-media-title", fileName)
       viewModel.setMediaTitle(fileName)
     }
 
@@ -2076,7 +2092,7 @@ class PlayerActivity :
 
           // Update MPV title
           withContext(Dispatchers.Main) {
-            MPVLib.setPropertyString("force-media-title", fileName)
+            safeSetPropertyString("force-media-title", fileName)
             viewModel.setMediaTitle(fileName)
 
             // Update media session
@@ -2151,30 +2167,30 @@ class PlayerActivity :
    */
   private fun applySubtitlePreferences() {
     // Typography settings
-    MPVLib.setPropertyString("sub-font", subtitlesPreferences.font.get())
-    MPVLib.setPropertyString("secondary-sub-font", subtitlesPreferences.font.get())
+    safeSetPropertyString("sub-font", subtitlesPreferences.font.get())
+    safeSetPropertyString("secondary-sub-font", subtitlesPreferences.font.get())
     MPVLib.setPropertyInt("sub-font-size", subtitlesPreferences.fontSize.get())
     MPVLib.setPropertyBoolean("sub-bold", subtitlesPreferences.bold.get())
     MPVLib.setPropertyBoolean("sub-italic", subtitlesPreferences.italic.get())
-    MPVLib.setPropertyString("sub-justify", subtitlesPreferences.justification.get().value)
-    MPVLib.setPropertyString("sub-border-style", subtitlesPreferences.borderStyle.get().value)
+    safeSetPropertyString("sub-justify", subtitlesPreferences.justification.get().value)
+    safeSetPropertyString("sub-border-style", subtitlesPreferences.borderStyle.get().value)
     MPVLib.setPropertyInt("sub-outline-size", subtitlesPreferences.borderSize.get())
     MPVLib.setPropertyInt("sub-shadow-offset", subtitlesPreferences.shadowOffset.get())
 
     // Color settings
-    MPVLib.setPropertyString("sub-color", subtitlesPreferences.textColor.get().toColorHexString())
-    MPVLib.setPropertyString("sub-border-color", subtitlesPreferences.borderColor.get().toColorHexString())
-    MPVLib.setPropertyString("sub-back-color", subtitlesPreferences.backgroundColor.get().toColorHexString())
+    safeSetPropertyString("sub-color", subtitlesPreferences.textColor.get().toColorHexString())
+    safeSetPropertyString("sub-border-color", subtitlesPreferences.borderColor.get().toColorHexString())
+    safeSetPropertyString("sub-back-color", subtitlesPreferences.backgroundColor.get().toColorHexString())
 
     // Miscellaneous settings
     val overrideAssSubs = subtitlesPreferences.overrideAssSubs.get()
-    MPVLib.setPropertyString("sub-ass-override", if (overrideAssSubs) "force" else "scale")
-    MPVLib.setPropertyString("secondary-sub-ass-override", if (overrideAssSubs) "force" else "scale")
+    safeSetPropertyString("sub-ass-override", if (overrideAssSubs) "force" else "scale")
+    safeSetPropertyString("secondary-sub-ass-override", if (overrideAssSubs) "force" else "scale")
 
     val scaleByWindow = subtitlesPreferences.scaleByWindow.get()
     val scaleValue = if (scaleByWindow) "yes" else "no"
-    MPVLib.setPropertyString("sub-scale-by-window", scaleValue)
-    MPVLib.setPropertyString("sub-use-margins", scaleValue)
+    safeSetPropertyString("sub-scale-by-window", scaleValue)
+    safeSetPropertyString("sub-use-margins", scaleValue)
 
     MPVLib.setPropertyFloat("sub-scale", subtitlesPreferences.subScale.get())
     MPVLib.setPropertyInt("sub-pos", subtitlesPreferences.subPos.get())
@@ -3114,7 +3130,7 @@ class PlayerActivity :
     // Don't force media-title for m3u/m3u8 streams - let MPV provide it
     val isM3U = uri.toString().lowercase().contains(".m3u8") || uri.toString().lowercase().contains(".m3u")
     if (!isM3U) {
-      MPVLib.setPropertyString("force-media-title", fileName)
+      safeSetPropertyString("force-media-title", fileName)
       viewModel.setMediaTitle(fileName)
     }
 

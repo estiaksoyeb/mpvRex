@@ -166,7 +166,9 @@ object SubtitleOps : KoinComponent {
           val trackCountAfter = MPVLib.getPropertyInt("track-list/count") ?: 0
           if (trackCountAfter > trackCountBefore) {
             val newTrackIndex = trackCountAfter - 1
-            MPVLib.setPropertyString("track-list/$newTrackIndex/title", displayName)
+            runCatching {
+              MPVLib.setPropertyString("track-list/$newTrackIndex/title", displayName)
+            }
             Log.d(TAG, "Loaded network subtitle: '$displayName' (track $newTrackIndex) via proxy (flag=$flag)")
           } else {
             Log.d(TAG, "Loaded network subtitle: '$displayName' via proxy (flag=$flag)")

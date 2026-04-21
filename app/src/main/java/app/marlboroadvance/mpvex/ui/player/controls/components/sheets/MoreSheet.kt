@@ -45,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -418,23 +419,66 @@ fun ControlsTab(
   onShowSheet: (Sheets) -> Unit,
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
-  val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
+  val topRightControlsPref by appearancePreferences.topRightControls.collectAsState()
+  val bottomRightControlsPref by appearancePreferences.bottomRightControls.collectAsState()
+  val bottomLeftControlsPref by appearancePreferences.bottomLeftControls.collectAsState()
+  val portraitBottomControlsPref by appearancePreferences.portraitBottomControls.collectAsState()
   val moreSheetControlsPref by appearancePreferences.moreSheetControls.collectAsState()
+
+  val configuration = LocalConfiguration.current
+  val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
 
   // Data needed for visibility checks
   val chapters by viewModel.chapters.collectAsState(persistentListOf())
   val playlist by viewModel.playlistManager.playlist.collectAsState(emptyList())
   val hasPlaylistSupport = playlist.size > 1
 
-  val buttons = remember(moreSheetControlsPref, chapters, hasPlaylistSupport) {
-      appearancePreferences.parseButtons(moreSheetControlsPref, mutableSetOf())
-          .filter { button ->
-              when (button) {
-                  PlayerButton.SHUFFLE -> hasPlaylistSupport
-                  PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
-                  else -> true
-              }
+  // 1. Determine what's on screen (to hide from sheet)
+  val visibleOnScreen = remember(
+      isPortrait,
+      topRightControlsPref,
+      bottomRightControlsPref,
+      bottomLeftControlsPref,
+      portraitBottomControlsPref
+  ) {
+      val visible = mutableSetOf<PlayerButton>()
+      if (isPortrait) {
+          visible.addAll(appearancePreferences.parseButtons(portraitBottomControlsPref, mutableSetOf()))
+      } else {
+          visible.addAll(appearancePreferences.parseButtons(topRightControlsPref, mutableSetOf()))
+          visible.addAll(appearancePreferences.parseButtons(bottomRightControlsPref, mutableSetOf()))
+          visible.addAll(appearancePreferences.parseButtons(bottomLeftControlsPref, mutableSetOf()))
+      }
+      // Always exclude these from the dynamic sheet calculations as they are static or special
+      visible.add(PlayerButton.BACK_ARROW)
+      visible.add(PlayerButton.VIDEO_TITLE)
+      visible.add(PlayerButton.MORE_OPTIONS)
+      visible
+  }
+
+  // 2. Calculate the dynamic list of buttons for the sheet
+  val buttons = remember(moreSheetControlsPref, visibleOnScreen, chapters, hasPlaylistSupport) {
+      // Start with buttons the user explicitly wants in the More Sheet (respect order)
+      val userOrderedMoreButtons = appearancePreferences.parseButtons(moreSheetControlsPref, mutableSetOf())
+      
+      // Calculate "Orphaned" buttons: items in ALL buttons that are NOT on screen AND NOT in the More Sheet pref
+      val allAvailable = app.marlboroadvance.mpvex.preferences.allPlayerButtons
+      val orphanedButtons = allAvailable.filter { it !in visibleOnScreen && it !in userOrderedMoreButtons }
+      
+      // Combine them: User Order first, then the rest
+      (userOrderedMoreButtons + orphanedButtons).filter { button ->
+          // Don't show if already visible on screen
+          if (visibleOnScreen.contains(button)) return@filter false
+          
+          // Functional filters (don't show buttons that can't work)
+          when (button) {
+              PlayerButton.SHUFFLE -> hasPlaylistSupport
+              PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
+              PlayerButton.CURRENT_CHAPTER -> chapters.isNotEmpty()
+              PlayerButton.AB_LOOP -> true // Always show in more sheet if missing from UI
+              else -> true
           }
+      }
   }
 
   val currentChapter by MPVLib.propInt["chapter"].collectAsState(0)
@@ -460,6 +504,7 @@ fun ControlsTab(
       modifier = Modifier
           .fillMaxWidth()
           .padding(horizontal = MaterialTheme.spacing.medium)
+          .verticalScroll(rememberScrollState())
   ) {
       Text(
           text = "Extended Controls",
@@ -467,51 +512,38 @@ fun ControlsTab(
           modifier = Modifier.padding(bottom = MaterialTheme.spacing.medium)
       )
 
-      LazyVerticalGrid(
-          columns = GridCells.Fixed(6), // Compact grid
-          horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
-          modifier = Modifier.height(240.dp)
+      FlowRow(
+          horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+          modifier = Modifier.fillMaxWidth().padding(bottom = MaterialTheme.spacing.medium)
       ) {
-          items(buttons) { button ->
-              Column(
-                  horizontalAlignment = Alignment.CenterHorizontally,
-                  verticalArrangement = Arrangement.spacedBy(4.dp)
-              ) {
-                  RenderPlayerButton(
-                      button = button,
-                      chapters = chapters,
-                      currentChapter = currentChapter,
-                      isPortrait = true, 
-                      isSpeedNonOne = isSpeedNonOne,
-                      currentZoom = currentZoom,
-                      aspect = aspect,
-                      mediaTitle = mediaTitle,
-                      hideBackground = false, // Force background for better visibility on sheet surface
-                      decoder = decoder,
-                      playbackSpeed = playbackSpeed ?: 1f,
-                      onBackPress = { activity.onBackPressedDispatcher.onBackPressed() },
-                      onOpenSheet = {
-                          onDismissRequest()
-                          onShowSheet(it)
-                      },
-                      onOpenPanel = {
-                          onDismissRequest()
-                          viewModel.panelShown.value = it
-                      },
-                      viewModel = viewModel,
-                      activity = activity,
-                      buttonSize = 48.dp 
-                  )
-                  Text(
-                      text = getPlayerButtonLabel(button),
-                      style = MaterialTheme.typography.labelSmall,
-                      textAlign = TextAlign.Center,
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis,
-                      modifier = Modifier.width(56.dp)
-                  )
-              }
+          buttons.forEach { button ->
+              RenderPlayerButton(
+                  button = button,
+                  chapters = chapters,
+                  currentChapter = currentChapter,
+                  isPortrait = isPortrait, 
+                  isSpeedNonOne = isSpeedNonOne,
+                  currentZoom = currentZoom,
+                  aspect = aspect,
+                  mediaTitle = mediaTitle,
+                  hideBackground = false, // Force background for better visibility on sheet surface
+                  decoder = decoder,
+                  playbackSpeed = playbackSpeed ?: 1f,
+                  onBackPress = { activity.onBackPressedDispatcher.onBackPressed() },
+                  onOpenSheet = {
+                      onDismissRequest()
+                      onShowSheet(it)
+                  },
+                  onOpenPanel = {
+                      onDismissRequest()
+                      viewModel.panelShown.value = it
+                  },
+                  viewModel = viewModel,
+                  activity = activity,
+                  buttonSize = 48.dp,
+                  isMoreSheet = true
+              )
           }
       }
   }

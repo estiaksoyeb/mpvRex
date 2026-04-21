@@ -104,47 +104,110 @@ data class ControlLayoutEditorScreen(
 
     val prefToEdit: Preference<String> = prefs[0]
 
-    // State for buttons used in *other* regions
-    val disabledButtons by remember {
-      mutableStateOf(
-        if (region == ControlRegion.PORTRAIT_BOTTOM || region == ControlRegion.MORE_SHEET) {
-          emptySet()
-        } else {
-          val otherPref1: Preference<String> = prefs[1]
-          val otherPref2: Preference<String> = prefs[2]
-          val otherPref3: Preference<String> = prefs[3]
-          (otherPref1.get().split(',') + otherPref2.get().split(',') + otherPref3.get().split(','))
-            .filter(String::isNotBlank)
-            .mapNotNull {
-              try {
-                PlayerButton.valueOf(it)
-              } catch (_: Exception) {
-                null
-              }
-            }.toSet()
-        },
-      )
+    // Calculate buttons used in ALL regions except the current one being edited
+    // This is used for BOTH primary regions (to disable used buttons) 
+    // AND the More Sheet (to calculate what is NOT on screen)
+    val usedInOtherRegions by remember(region) {
+        mutableStateOf(
+            if (region == ControlRegion.MORE_SHEET) {
+                // THE FINAL FIX: A button is only 'Used' (hidden from More Sheet setting)
+                // if it is present in BOTH Landscape AND Portrait.
+                // If it's missing from either, it will appear in the More Sheet in that mode.
+                val landscapeSet = (preferences.topLeftControls.get().split(',') +
+                                    preferences.topRightControls.get().split(',') +
+                                    preferences.bottomLeftControls.get().split(',') +
+                                    preferences.bottomRightControls.get().split(','))
+                                    .filter(String::isNotBlank)
+                                    .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+                                    .toSet()
+                
+                val portraitSet = preferences.portraitBottomControls.get().split(',')
+                                    .filter(String::isNotBlank)
+                                    .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+                                    .toSet()
+                
+                landscapeSet.intersect(portraitSet)
+            } else {
+                // For a primary region, "other" means the other primary regions 
+                // (BUT NOT the more sheet itself)
+                val others = when (region) {
+                    ControlRegion.TOP_RIGHT -> listOf(preferences.topLeftControls, preferences.bottomRightControls, preferences.bottomLeftControls, preferences.portraitBottomControls)
+                    ControlRegion.BOTTOM_RIGHT -> listOf(preferences.topLeftControls, preferences.topRightControls, preferences.bottomLeftControls, preferences.portraitBottomControls)
+                    ControlRegion.BOTTOM_LEFT -> listOf(preferences.topLeftControls, preferences.topRightControls, preferences.bottomRightControls, preferences.portraitBottomControls)
+                    ControlRegion.PORTRAIT_BOTTOM -> listOf(preferences.topLeftControls, preferences.topRightControls, preferences.bottomRightControls, preferences.bottomLeftControls)
+                    else -> emptyList()
+                }
+                others.flatMap { it.get().split(',') }
+                    .filter(String::isNotBlank)
+                    .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+                    .toSet()
+            }
+        )
     }
 
     var selectedButtons by remember {
       mutableStateOf(
-        prefToEdit
-          .get()
-          .split(',')
-          .filter(String::isNotBlank)
-          .mapNotNull {
-            try {
-              PlayerButton.valueOf(it)
-            } catch (_: Exception) {
-              null
-            }
-          },
+        if (region == ControlRegion.MORE_SHEET) {
+            // THE CORE FIX: More Sheet list is "EVERYTHING ELSE"
+            // We take all available buttons, subtract what's on screen
+            // AND we respect the user's manual ordering from the moreSheet preference
+            val manualOrder = prefToEdit.get().split(',')
+                .filter(String::isNotBlank)
+                .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+            
+            val allOrphaned = allPlayerButtons.filter { it !in usedInOtherRegions }
+            
+            // Reconstruct the list: User's ordered items first (if still orphaned), 
+            // then the rest of the orphans
+            val orderedOrphans = manualOrder.filter { it in allOrphaned }
+            val remainingOrphans = allOrphaned.filter { it !in orderedOrphans }
+            
+            orderedOrphans + remainingOrphans
+        } else {
+            prefToEdit
+              .get()
+              .split(',')
+              .filter(String::isNotBlank)
+              .mapNotNull {
+                try {
+                  PlayerButton.valueOf(it)
+                } catch (_: Exception) {
+                  null
+                }
+              }
+        }
       )
     }
 
     DisposableEffect(Unit) {
       onDispose {
-        prefToEdit.set(selectedButtons.joinToString(","))
+        if (region == ControlRegion.MORE_SHEET) {
+            // Save only the items that ARE orphans to the preference
+            // Items already in other regions will stay there
+            prefToEdit.set(selectedButtons.filter { it !in usedInOtherRegions }.joinToString(","))
+        } else {
+            // Save the primary region
+            prefToEdit.set(selectedButtons.joinToString(","))
+            
+            // AUTOMATIC MOVE:
+            // When we add a button to a primary region, we should only remove it 
+            // from the moreSheet manual order if it is now present in BOTH modes.
+            val landscapeSet = (preferences.topLeftControls.get().split(',') +
+                                preferences.topRightControls.get().split(',') +
+                                preferences.bottomLeftControls.get().split(',') +
+                                preferences.bottomRightControls.get().split(','))
+                                .filter(String::isNotBlank)
+            val portraitSet = preferences.portraitBottomControls.get().split(',')
+                                .filter(String::isNotBlank)
+            
+            val intersection = landscapeSet.intersect(portraitSet.toSet())
+            
+            val currentMoreSheet = preferences.moreSheetControls.get().split(',')
+                .filter(String::isNotBlank)
+                .filter { btn -> btn !in intersection }
+            
+            preferences.moreSheetControls.set(currentMoreSheet.joinToString(","))
+        }
       }
     }
 
@@ -351,7 +414,7 @@ data class ControlLayoutEditorScreen(
                     ) {
                         val availableButtons = allPlayerButtons.filter { it !in selectedButtons }
                         availableButtons.forEach { button ->
-                            val isEnabled = button !in disabledButtons
+                            val isEnabled = button !in usedInOtherRegions
                             PlayerButtonChip(
                                 button = button,
                                 enabled = isEnabled,

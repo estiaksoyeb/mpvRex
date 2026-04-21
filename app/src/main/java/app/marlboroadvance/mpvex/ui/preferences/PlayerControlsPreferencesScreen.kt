@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.PlayerButton
+import app.marlboroadvance.mpvex.preferences.allPlayerButtons
 import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.SeekbarStyle
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
@@ -102,8 +103,27 @@ object PlayerControlsPreferencesScreen : Screen {
       appearancePrefs.parseButtons(portraitBottomState, mutableSetOf())
     }
 
-    val moreSheetButtons = remember(moreSheetState) {
-      appearancePrefs.parseButtons(moreSheetState, mutableSetOf())
+    val moreSheetButtons = remember(moreSheetState, topRState, bottomRState, bottomLState, portraitBottomState) {
+      val manualOrder = appearancePrefs.parseButtons(moreSheetState, mutableSetOf())
+      
+      val landscapeSet = (topRState.split(',') + bottomRState.split(',') + bottomLState.split(','))
+          .filter(String::isNotBlank)
+          .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+          .toSet()
+          
+      val portraitSet = portraitBottomState.split(',')
+          .filter(String::isNotBlank)
+          .mapNotNull { try { PlayerButton.valueOf(it) } catch (_: Exception) { null } }
+          .toSet()
+
+      // A button is only 'used' if it's in BOTH. If missing from EITHER, it's an orphan.
+      val intersection = landscapeSet.intersect(portraitSet)
+      
+      val orphans = allPlayerButtons.filter { it !in intersection }
+      val orderedOrphans = manualOrder.filter { it in orphans }
+      val remainingOrphans = orphans.filter { it !in orderedOrphans }
+      
+      orderedOrphans + remainingOrphans
     }
 
     Scaffold(

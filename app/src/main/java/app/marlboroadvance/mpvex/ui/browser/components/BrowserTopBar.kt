@@ -247,7 +247,6 @@ private fun NormalTopBar(
       }
     },
     actions = {
-      additionalActions()
       if (onSearchClick != null) {
         IconButton(
           onClick = onSearchClick,
@@ -287,6 +286,7 @@ private fun NormalTopBar(
           )
         }
       }
+      additionalActions()
     },
     modifier = modifier,
   )

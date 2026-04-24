@@ -94,7 +94,7 @@ object MediaFileRepository {
         )
         folders
           .filter { data -> 
-            (isAudioEnabled || data.videoCount > 0) && data.path !in blacklistedFolders
+            (isAudioEnabled || data.videoCount > 0)
           }
           .forEach { folderData ->
             items.add(
@@ -112,20 +112,22 @@ object MediaFileRepository {
             )
           }
 
-        // Get videos in current directory
-        val videos = VideoScanUtils.getVideosInFolder(context, path)
-        videos
-          .filter { video -> isAudioEnabled || !video.isAudio }
-          .forEach { video ->
-            items.add(
-              FileSystemItem.VideoFile(
-                name = video.displayName,
-                path = video.path,
-                lastModified = File(video.path).lastModified(),
-                video = video,
-              ),
-            )
-          }
+        // Get videos in current directory - Hide if current path is blacklisted
+        if (path !in blacklistedFolders) {
+          val videos = VideoScanUtils.getVideosInFolder(context, path)
+          videos
+            .filter { video -> isAudioEnabled || !video.isAudio }
+            .forEach { video ->
+              items.add(
+                FileSystemItem.VideoFile(
+                  name = video.displayName,
+                  path = video.path,
+                  lastModified = File(video.path).lastModified(),
+                  video = video,
+                ),
+              )
+            }
+        }
 
         Result.success(items)
       } catch (e: Exception) {

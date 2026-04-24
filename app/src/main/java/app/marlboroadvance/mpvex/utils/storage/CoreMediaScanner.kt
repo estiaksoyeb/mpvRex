@@ -224,8 +224,7 @@ object CoreMediaScanner {
 
         // Step 3: Build Nodes for folders with direct media
         for ((folderPath, items) in rawMediaByFolder) {
-            // Check if this folder is blacklisted
-            if (blacklistedFolders.contains(folderPath)) continue
+            val isBlacklisted = blacklistedFolders.contains(folderPath)
 
             val file = File(folderPath)
             var videoCount = 0
@@ -235,17 +234,19 @@ object CoreMediaScanner {
             var totalDuration = 0L
             var latestModified = 0L
             
-            for (item in items) {
-                totalSize += item.size
-                totalDuration += item.duration
-                if (item.dateModified > latestModified) latestModified = item.dateModified
-                if (item.isAudio) audioCount++ else videoCount++
+            if (!isBlacklisted) {
+                for (item in items) {
+                    totalSize += item.size
+                    totalDuration += item.duration
+                    if (item.dateModified > latestModified) latestModified = item.dateModified
+                    if (item.isAudio) audioCount++ else videoCount++
 
-                // Calculate NEW status
-                val playbackState = playbackStates.find { it.mediaTitle == item.name }
-                val videoAge = currentTime - (item.dateModified * 1000)
-                if (playbackState == null && videoAge <= thresholdMillis) {
-                    newCount++
+                    // Calculate NEW status
+                    val playbackState = playbackStates.find { it.mediaTitle == item.name }
+                    val videoAge = currentTime - (item.dateModified * 1000)
+                    if (playbackState == null && videoAge <= thresholdMillis) {
+                        newCount++
+                    }
                 }
             }
             
@@ -385,7 +386,6 @@ object CoreMediaScanner {
         for (path in nodes.keys) {
             var p = File(path).parent
             while (p != null && p.length > 1) {
-                if (blacklistedFolders.contains(p)) break
                 allPathsNeeded.add(p)
                 p = File(p).parent
             }

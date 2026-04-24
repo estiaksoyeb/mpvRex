@@ -47,25 +47,30 @@ object FileSystemOps {
                 
                 val playbackStates = playbackStateRepository.getAllPlaybackStates()
                 val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+                
+                val foldersPreferences = koin.get<app.marlboroadvance.mpvex.preferences.FoldersPreferences>()
+                val blacklistedFolders = foldersPreferences.blacklistedFolders.get()
 
                 // Internal Storage
                 val primaryStorage = Environment.getExternalStorageDirectory()
                 if (primaryStorage.exists() && primaryStorage.canRead()) {
                     val primaryPath = primaryStorage.absolutePath
-                    val folderData = CoreMediaScanner.getFolderRecursiveData(context, primaryPath, playbackStates, thresholdDays)
-                    roots.add(
-                        FileSystemItem.Folder(
-                            name = "Internal Storage",
-                            path = primaryPath,
-                            lastModified = primaryStorage.lastModified(),
-                            videoCount = folderData?.videoCount ?: 0,
-                            audioCount = folderData?.audioCount ?: 0,
-                            totalSize = folderData?.totalSize ?: 0L,
-                            totalDuration = folderData?.totalDuration ?: 0L,
-                            hasSubfolders = true,
-                            newCount = folderData?.newCount ?: 0
+                    val folderData = CoreMediaScanner.getFolderRecursiveData(context, primaryPath, playbackStates, thresholdDays, blacklistedFolders)
+                    if (folderData != null) {
+                        roots.add(
+                            FileSystemItem.Folder(
+                                name = "Internal Storage",
+                                path = primaryPath,
+                                lastModified = primaryStorage.lastModified(),
+                                videoCount = folderData.videoCount,
+                                audioCount = folderData.audioCount,
+                                totalSize = folderData.totalSize,
+                                totalDuration = folderData.totalDuration,
+                                hasSubfolders = true,
+                                newCount = folderData.newCount
+                            )
                         )
-                    )
+                    }
                 }
 
                 // External Volumes (SD Cards, USB)
@@ -74,20 +79,22 @@ object FileSystemOps {
                     val volumePath = StorageVolumeUtils.getVolumePath(volume) ?: continue
                     val volumeDir = File(volumePath)
                     if (volumeDir.exists() && volumeDir.canRead()) {
-                        val folderData = CoreMediaScanner.getFolderRecursiveData(context, volumePath, playbackStates, thresholdDays)
-                        roots.add(
-                            FileSystemItem.Folder(
-                                name = volume.getDescription(context),
-                                path = volumeDir.absolutePath,
-                                lastModified = volumeDir.lastModified(),
-                                videoCount = folderData?.videoCount ?: 0,
-                                audioCount = folderData?.audioCount ?: 0,
-                                totalSize = folderData?.totalSize ?: 0L,
-                                totalDuration = folderData?.totalDuration ?: 0L,
-                                hasSubfolders = true,
-                                newCount = folderData?.newCount ?: 0
+                        val folderData = CoreMediaScanner.getFolderRecursiveData(context, volumePath, playbackStates, thresholdDays, blacklistedFolders)
+                        if (folderData != null) {
+                            roots.add(
+                                FileSystemItem.Folder(
+                                    name = volume.getDescription(context),
+                                    path = volumeDir.absolutePath,
+                                    lastModified = volumeDir.lastModified(),
+                                    videoCount = folderData.videoCount,
+                                    audioCount = folderData.audioCount,
+                                    totalSize = folderData.totalSize,
+                                    totalDuration = folderData.totalDuration,
+                                    hasSubfolders = true,
+                                    newCount = folderData.newCount
+                                )
                             )
-                        )
+                        }
                     }
                 }
             } catch (e: Exception) {

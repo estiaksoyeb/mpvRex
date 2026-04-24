@@ -181,6 +181,15 @@ class FileSystemBrowserViewModel(
     _itemsWereDeletedOrMoved.value = true
   }
 
+  fun blacklistFolders(folders: List<FileSystemItem.Folder>) {
+    viewModelScope.launch {
+      val currentBlacklist = foldersPreferences.blacklistedFolders.get().toMutableSet()
+      folders.forEach { currentBlacklist.add(it.path) }
+      foldersPreferences.blacklistedFolders.set(currentBlacklist)
+      // BaseBrowserViewModel or init block should handle the refresh via flow observation
+    }
+  }
+
   fun deleteFolders(folders: List<FileSystemItem.Folder>): Pair<Int, Int> {
     var successCount = 0
     var failureCount = 0

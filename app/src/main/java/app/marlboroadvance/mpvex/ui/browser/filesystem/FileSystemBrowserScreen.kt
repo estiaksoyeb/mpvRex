@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FileOpen
@@ -705,9 +706,43 @@ fun FileSystemBrowserScreen(path: String? = null) {
               folderSelectionManager.clear()
               videoSelectionManager.clear()
             },
+            onBlacklistClick = if (folderSelectionManager.isInSelectionMode && !videoSelectionManager.isInSelectionMode) {
+              {
+                viewModel.blacklistFolders(folderSelectionManager.getSelectedItems())
+                folderSelectionManager.clear()
+              }
+            } else null,
             onAddToPlaylistClick = if (!BuildConfig.ENABLE_UPDATE_FEATURE && videoSelectionManager.isInSelectionMode && !folderSelectionManager.isInSelectionMode) {
               { addToPlaylistDialogOpen.value = true }
             } else null,
+            additionalActions = {
+              if (!isAtRoot && currentPath != null) {
+                IconButton(
+                  onClick = {
+                    coroutineScope.launch {
+                      val currentName = breadcrumbs.lastOrNull()?.name ?: "Folder"
+                      viewModel.blacklistFolders(
+                        listOf(
+                          FileSystemItem.Folder(
+                            name = currentName,
+                            path = currentPath!!,
+                            lastModified = 0,
+                            videoCount = 0
+                          )
+                        )
+                      )
+                      backstack.removeLastOrNull()
+                    }
+                  }
+                ) {
+                  Icon(
+                    imageVector = Icons.Filled.Block,
+                    contentDescription = "Blacklist current folder",
+                    tint = MaterialTheme.colorScheme.secondary,
+                  )
+                }
+              }
+            }
           )
         }
       },

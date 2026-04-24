@@ -364,6 +364,8 @@ data class VideoListScreen(
           isFabVisible = isFabVisible,
           modifier = Modifier.padding(padding),
           showFloatingBottomBar = showFloatingBottomBar,
+          sortType = videoSortType,
+          sortOrder = videoSortOrder,
         )
         
         // Floating Material 3 Button Group overlay with animation
@@ -562,6 +564,8 @@ private fun VideoListContent(
   isFabVisible: androidx.compose.runtime.MutableState<Boolean>,
   modifier: Modifier = Modifier,
   showFloatingBottomBar: Boolean = false,
+  sortType: VideoSortType = VideoSortType.Title,
+  sortOrder: SortOrder = SortOrder.Ascending,
 ) {
   val thumbnailRepository = koinInject<ThumbnailRepository>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -664,6 +668,11 @@ private fun VideoListContent(
           initialFirstVisibleItemIndex = initialGridIndex,
           initialFirstVisibleItemScrollOffset = rememberedGridOffset.intValue
       )
+
+      LaunchedEffect(sortType.name, sortOrder.name) {
+          listState.scrollToItem(0)
+          gridState.scrollToItem(0)
+      }
       
       LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
           rememberedListIndex.intValue = listState.firstVisibleItemIndex

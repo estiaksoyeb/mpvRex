@@ -197,11 +197,6 @@ object FolderListScreen : Screen {
       SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder)
     }
 
-    LaunchedEffect(folderSortType, folderSortOrder) {
-      listState.scrollToItem(0)
-      gridState.scrollToItem(0)
-    }
-
     val navigationBarHeight = LocalNavigationBarHeight.current
     val isRefreshing = remember { mutableStateOf(false) }
     val sortDialogOpen = rememberSaveable { mutableStateOf(false) }
@@ -590,8 +585,20 @@ object FolderListScreen : Screen {
         onDismiss = { sortDialogOpen.value = false },
         sortType = folderSortType,
         sortOrder = folderSortOrder,
-        onSortTypeChange = { browserPreferences.folderSortType.set(it) },
-        onSortOrderChange = { browserPreferences.folderSortOrder.set(it) },
+        onSortTypeChange = { 
+          browserPreferences.folderSortType.set(it)
+          coroutineScope.launch { 
+            listState.scrollToItem(0)
+            gridState.scrollToItem(0)
+          }
+        },
+        onSortOrderChange = { 
+          browserPreferences.folderSortOrder.set(it)
+          coroutineScope.launch { 
+            listState.scrollToItem(0)
+            gridState.scrollToItem(0)
+          }
+        },
       )
 
       DeleteConfirmationDialog(

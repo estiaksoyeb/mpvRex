@@ -191,7 +191,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val sortType by browserPreferences.folderSortType.collectAsState()
   val sortOrder by browserPreferences.folderSortOrder.collectAsState()
 
-  LaunchedEffect(sortType, sortOrder) {
+  LaunchedEffect(sortType.name, sortOrder.name) {
     listState.scrollToItem(0)
   }
   

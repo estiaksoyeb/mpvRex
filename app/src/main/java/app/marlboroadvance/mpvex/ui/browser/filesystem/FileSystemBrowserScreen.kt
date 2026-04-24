@@ -187,6 +187,13 @@ fun FileSystemBrowserScreen(path: String? = null) {
 
   // Use standalone local states instead of CompositionLocal to avoid scroll issues with predictive back gesture
   val listState = remember { LazyListState() }
+
+  val sortType by browserPreferences.folderSortType.collectAsState()
+  val sortOrder by browserPreferences.folderSortOrder.collectAsState()
+
+  LaunchedEffect(sortType, sortOrder) {
+    listState.scrollToItem(0)
+  }
   
   // UI state
   val isRefreshing = remember { mutableStateOf(false) }

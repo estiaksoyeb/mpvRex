@@ -135,16 +135,24 @@ object FolderListScreen : Screen {
   override fun Content() {
     val browserPreferences = koinInject<BrowserPreferences>()
     val folderViewMode by browserPreferences.folderViewMode.collectAsState()
+    val folderSortType by browserPreferences.folderSortType.collectAsState()
+    val folderSortOrder by browserPreferences.folderSortOrder.collectAsState()
 
     when (folderViewMode) {
       FolderViewMode.FileManager -> FileSystemBrowserRootScreen.Content()
-      FolderViewMode.AlbumView -> MediaStoreFolderListContent()
+      FolderViewMode.AlbumView -> MediaStoreFolderListContent(
+        folderSortType = folderSortType,
+        folderSortOrder = folderSortOrder
+      )
     }
   }
 
   @OptIn(ExperimentalMaterial3ExpressiveApi::class)
   @Composable
-  private fun MediaStoreFolderListContent() {
+  private fun MediaStoreFolderListContent(
+    folderSortType: FolderSortType,
+    folderSortOrder: SortOrder,
+  ) {
     val context = LocalContext.current
     val backstack = LocalBackStack.current
     val coroutineScope = rememberCoroutineScope()
@@ -177,14 +185,23 @@ object FolderListScreen : Screen {
   val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
   val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
     val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
-    val folderSortType by browserPreferences.folderSortType.collectAsState()
-    val folderSortOrder by browserPreferences.folderSortOrder.collectAsState()
     val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
 
     // UI state - use standalone states to avoid scroll issues with predictive back gesture
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
+
+    // Sorting and filtering
+    val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder) {
+      SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder)
+    }
+
+    LaunchedEffect(folderSortType, folderSortOrder) {
+      listState.scrollToItem(0)
+      gridState.scrollToItem(0)
+    }
+
     val navigationBarHeight = LocalNavigationBarHeight.current
     val isRefreshing = remember { mutableStateOf(false) }
     val sortDialogOpen = rememberSaveable { mutableStateOf(false) }
@@ -235,11 +252,6 @@ object FolderListScreen : Screen {
         }
         MediaUtils.playFile(it.toString(), context, "open_file")
       }
-    }
-
-    // Sorting and filtering
-    val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder) {
-      SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder)
     }
 
     val filteredFolders = sortedFolders

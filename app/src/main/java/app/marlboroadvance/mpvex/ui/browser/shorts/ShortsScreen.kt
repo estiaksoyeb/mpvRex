@@ -59,7 +59,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -107,13 +106,12 @@ object ShortsScreen : Screen {
         val shorts by viewModel.shorts.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
         val lovedPaths by viewModel.lovedPaths.collectAsState()
+        val blockedPaths by viewModel.blockedPaths.collectAsState()
         
-        // Force status bar and navigation bar to have white icons (Dark Mode style)
         val view = LocalView.current
         if (!view.isInEditMode) {
             SideEffect {
                 val window = (view.context as Activity).window
-                // Set status bar and navigation bar to "dark" mode (which means light icons)
                 val insetsController = WindowCompat.getInsetsController(window, view)
                 insetsController.isAppearanceLightStatusBars = false
                 insetsController.isAppearanceLightNavigationBars = false
@@ -195,6 +193,7 @@ object ShortsScreen : Screen {
                         shorts = shorts,
                         pagerState = pagerState,
                         lovedPaths = lovedPaths,
+                        blockedPaths = blockedPaths,
                         isPlayerReady = isPlayerReady,
                         playingPageIndex = playingPageIndex,
                         viewModel = viewModel,
@@ -207,7 +206,7 @@ object ShortsScreen : Screen {
                         },
                         onLove = { viewModel.toggleLove(it) },
                         onBlock = { viewModel.blockVideo(it) },
-                        onShuffle = { viewModel.shuffleShorts() }
+                        onShuffle = { viewModel.shuffleShorts(pagerState.currentPage) }
                     )
                 }
             }
@@ -219,6 +218,7 @@ object ShortsScreen : Screen {
         shorts: List<Video>,
         pagerState: PagerState,
         lovedPaths: Set<String>,
+        blockedPaths: Set<String>,
         isPlayerReady: Boolean,
         playingPageIndex: Int,
         viewModel: ShortsViewModel,
@@ -241,6 +241,7 @@ object ShortsScreen : Screen {
                     isPlaying = page == playingPageIndex,
                     isPlayerReady = isPlayerReady,
                     isLoved = lovedPaths.contains(video.path),
+                    isBlocked = blockedPaths.contains(video.path),
                     viewModel = viewModel,
                     onBack = onBack,
                     onLove = { onLove(video) },
@@ -259,6 +260,7 @@ object ShortsScreen : Screen {
         isPlaying: Boolean,
         isPlayerReady: Boolean,
         isLoved: Boolean,
+        isBlocked: Boolean,
         viewModel: ShortsViewModel,
         onBack: () -> Unit,
         onLove: () -> Unit,
@@ -391,6 +393,7 @@ object ShortsScreen : Screen {
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 100.dp, end = 16.dp),
                 isLoved = isLoved,
+                isBlocked = isBlocked,
                 onLove = onLove,
                 onBlock = onBlock,
                 onShuffle = onShuffle,
@@ -480,6 +483,7 @@ object ShortsScreen : Screen {
     private fun ActionColumn(
         modifier: Modifier = Modifier,
         isLoved: Boolean,
+        isBlocked: Boolean,
         onLove: () -> Unit,
         onBlock: () -> Unit,
         onShuffle: () -> Unit,
@@ -499,7 +503,12 @@ object ShortsScreen : Screen {
                 onClick = onLove
             )
             Spacer(modifier = Modifier.height(12.dp))
-            ActionButton(icon = Icons.Filled.Block, label = "Block", onClick = onBlock)
+            ActionButton(
+                icon = Icons.Filled.Block, 
+                label = if (isBlocked) "Blocked" else "Block", 
+                iconColor = if (isBlocked) Color.Red else Color.White,
+                onClick = onBlock
+            )
             Spacer(modifier = Modifier.height(12.dp))
             ActionButton(icon = Icons.Filled.Speed, label = "Speed", onClick = onSpeed)
             Spacer(modifier = Modifier.height(12.dp))

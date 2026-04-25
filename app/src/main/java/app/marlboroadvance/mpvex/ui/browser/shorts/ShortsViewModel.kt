@@ -42,6 +42,10 @@ class ShortsViewModel(
         .map { list -> list.filter { it.isLoved }.map { it.path }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    val blockedPaths: StateFlow<Set<String>> = shortsMediaDao.observeAllShortsMedia()
+        .map { list -> list.filter { it.isBlocked }.map { it.path }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     fun loadShorts() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -57,12 +61,23 @@ class ShortsViewModel(
     }
 
     suspend fun getThumbnail(video: Video): Bitmap? {
-        // High quality thumbnails for full screen
         return thumbnailRepository.getThumbnail(video, 1080, 1920)
     }
 
-    fun shuffleShorts() {
-        _shorts.value = _shorts.value.shuffled()
+    fun shuffleShorts(currentIndex: Int) {
+        val currentList = _shorts.value
+        if (currentList.isEmpty()) return
+        
+        val currentVideo = currentList.getOrNull(currentIndex) ?: return
+        
+        // Shuffle everything EXCEPT the current video, then re-insert it at the same index
+        // to prevent the "title jump" while playing.
+        val mutableList = currentList.toMutableList()
+        mutableList.removeAt(currentIndex)
+        mutableList.shuffle()
+        mutableList.add(currentIndex, currentVideo)
+        
+        _shorts.value = mutableList
     }
 
     fun toggleLove(video: Video) {
@@ -79,11 +94,12 @@ class ShortsViewModel(
         viewModelScope.launch {
             val current = shortsMediaDao.getShortsMediaByPath(video.path)
             val newEntity = current?.copy(isBlocked = true)
-                ?: ShortsMediaEntity(path = video.path, isBlocked = true)
+                ?: ShortsMediaEntity(path = video.path, isBlocked = true, addedDate = System.currentTimeMillis())
             shortsMediaDao.upsert(newEntity)
             
-            // Remove from current list
-            _shorts.value = _shorts.value.filter { it.path != video.path }
+            // NOTE: We no longer remove from _shorts immediately. 
+            // This prevents index shifting that causes other videos to "pop" into the current view.
+            // The video will be excluded next time loadShorts() is called.
         }
     }
 

@@ -715,34 +715,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
             onAddToPlaylistClick = if (!BuildConfig.ENABLE_UPDATE_FEATURE && videoSelectionManager.isInSelectionMode && !folderSelectionManager.isInSelectionMode) {
               { addToPlaylistDialogOpen.value = true }
             } else null,
-            additionalActions = {
-              if (!isAtRoot && currentPath != null) {
-                IconButton(
-                  onClick = {
-                    coroutineScope.launch {
-                      val currentName = breadcrumbs.lastOrNull()?.name ?: "Folder"
-                      viewModel.blacklistFolders(
-                        listOf(
-                          FileSystemItem.Folder(
-                            name = currentName,
-                            path = currentPath!!,
-                            lastModified = 0,
-                            videoCount = 0
-                          )
-                        )
-                      )
-                      backstack.removeLastOrNull()
-                    }
-                  }
-                ) {
-                  Icon(
-                    imageVector = Icons.Filled.Block,
-                    contentDescription = "Blacklist current folder",
-                    tint = MaterialTheme.colorScheme.secondary,
-                  )
-                }
-              }
-            }
           )
         }
       },

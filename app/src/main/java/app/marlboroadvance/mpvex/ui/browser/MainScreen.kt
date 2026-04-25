@@ -17,12 +17,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -44,8 +49,11 @@ import app.marlboroadvance.mpvex.ui.browser.folderlist.FolderListScreen
 import app.marlboroadvance.mpvex.ui.browser.networkstreaming.NetworkStreamingScreen
 import app.marlboroadvance.mpvex.ui.browser.playlist.PlaylistScreen
 import app.marlboroadvance.mpvex.ui.browser.recentlyplayed.RecentlyPlayedScreen
+import app.marlboroadvance.mpvex.ui.browser.shorts.ShortsScreen
 import app.marlboroadvance.mpvex.ui.browser.selection.SelectionManager
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -53,6 +61,13 @@ object MainScreen : Screen {
   // Use a companion object to store state more persistently
   private var persistentSelectedTab: Int = 0
   
+  private val _tabRequest = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+  val tabRequest = _tabRequest.asSharedFlow()
+
+  fun requestTab(tab: Int) {
+    _tabRequest.tryEmit(tab)
+  }
+
   // Shared state that can be updated by FileSystemBrowserScreen
   @Volatile
   private var isInSelectionModeShared: Boolean = false  // Controls FAB visibility
@@ -159,13 +174,20 @@ object MainScreen : Screen {
       persistentSelectedTab = selectedTab
     }
 
+    // Handle tab requests from other screens
+    LaunchedEffect(Unit) {
+      tabRequest.collect { tab ->
+        selectedTab = tab
+      }
+    }
+
     // Scaffold with bottom navigation bar
     Scaffold(
       modifier = Modifier.fillMaxSize(),
       bottomBar = {
         // Animated bottom navigation bar with slide animations
         AnimatedVisibility(
-          visible = !hideNavigationBar.value,
+          visible = !hideNavigationBar.value && selectedTab != 1,
           enter = slideInVertically(
             animationSpec = tween(durationMillis = 300),
             initialOffsetY = { fullHeight -> fullHeight }
@@ -184,31 +206,56 @@ object MainScreen : Screen {
                   bottomStart = 0.dp,
                   bottomEnd = 0.dp
                 )
-              )
+              ),
+            containerColor = if (selectedTab == 1) Color.Transparent else NavigationBarDefaults.containerColor,
+            contentColor = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurface,
           ) {
+            val itemColors = if (selectedTab == 1) {
+              NavigationBarItemDefaults.colors(
+                selectedIconColor = Color.White,
+                selectedTextColor = Color.White,
+                unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                unselectedTextColor = Color.White.copy(alpha = 0.7f),
+                indicatorColor = Color.White.copy(alpha = 0.2f)
+              )
+            } else {
+              NavigationBarItemDefaults.colors()
+            }
+
             NavigationBarItem(
               icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
               label = { Text("Home") },
               selected = selectedTab == 0,
-              onClick = { selectedTab = 0 }
+              onClick = { selectedTab = 0 },
+              colors = itemColors
+            )
+            NavigationBarItem(
+              icon = { Icon(Icons.Filled.VideoLibrary, contentDescription = "Shorts") },
+              label = { Text("Shorts") },
+              selected = selectedTab == 1,
+              onClick = { selectedTab = 1 },
+              colors = itemColors
             )
             NavigationBarItem(
               icon = { Icon(Icons.Filled.History, contentDescription = "Recents") },
               label = { Text("Recents") },
-              selected = selectedTab == 1,
-              onClick = { selectedTab = 1 }
+              selected = selectedTab == 2,
+              onClick = { selectedTab = 2 },
+              colors = itemColors
             )
             NavigationBarItem(
               icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = "Playlists") },
               label = { Text("Playlists") },
-              selected = selectedTab == 2,
-              onClick = { selectedTab = 2 }
+              selected = selectedTab == 3,
+              onClick = { selectedTab = 3 },
+              colors = itemColors
             )
             NavigationBarItem(
               icon = { Icon(Icons.Filled.Language, contentDescription = "Network") },
               label = { Text("Network") },
-              selected = selectedTab == 3,
-              onClick = { selectedTab = 3 }
+              selected = selectedTab == 4,
+              onClick = { selectedTab = 4 },
+              colors = itemColors
             )
           }
         }
@@ -284,9 +331,10 @@ object MainScreen : Screen {
           ) {
             when (targetTab) {
               0 -> FolderListScreen.Content()
-              1 -> RecentlyPlayedScreen.Content()
-              2 -> PlaylistScreen.Content()
-              3 -> NetworkStreamingScreen.Content()
+              1 -> ShortsScreen.Content()
+              2 -> RecentlyPlayedScreen.Content()
+              3 -> PlaylistScreen.Content()
+              4 -> NetworkStreamingScreen.Content()
             }
           }
         }

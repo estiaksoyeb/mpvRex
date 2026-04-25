@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Subtitles
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -302,6 +303,33 @@ object PreferencesScreen : Screen {
                   ) 
                 },
                 onClick = { backstack.add(AudioPreferencesScreen) },
+              )
+            }
+          }
+
+          // RexShorts Section
+          item {
+            PreferenceSectionHeader(title = "RexShorts")
+          }
+
+          item {
+            PreferenceCard {
+              Preference(
+                title = { Text(text = "RexShorts Settings") },
+                summary = {
+                  Text(
+                    text = "Manage enable/disable, shuffle, and blocked content",
+                    color = MaterialTheme.colorScheme.outline
+                  )
+                },
+                icon = {
+                  Icon(
+                    Icons.Outlined.VideoLibrary,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                  )
+                },
+                onClick = { backstack.add(ShortsPreferencesScreen) },
               )
             }
           }

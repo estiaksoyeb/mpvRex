@@ -53,6 +53,10 @@ class BrowserPreferences(
 
   // Media visibility preferences
   val showAudioFiles = preferenceStore.getBoolean("show_audio_files", false)
+
+  // RexShorts preferences
+  val enableShorts = preferenceStore.getBoolean("enable_shorts", true)
+  val persistentShuffle = preferenceStore.getBoolean("shorts_persistent_shuffle", false)
 }
 
 /**

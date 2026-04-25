@@ -44,6 +44,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import app.marlboroadvance.mpvex.preferences.BrowserPreferences
+import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.browser.folderlist.FolderListScreen
 import app.marlboroadvance.mpvex.ui.browser.networkstreaming.NetworkStreamingScreen
@@ -55,6 +57,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.Serializable
+import org.koin.compose.koinInject
 
 @Serializable
 object MainScreen : Screen {
@@ -136,6 +139,8 @@ object MainScreen : Screen {
 
     val context = LocalContext.current
     val density = LocalDensity.current
+    val browserPreferences = koinInject<BrowserPreferences>()
+    val isShortsEnabled by browserPreferences.enableShorts.collectAsState()
 
     // Shared state (across the app)
     val isInSelectionMode = remember { mutableStateOf(isInSelectionModeShared) }
@@ -186,8 +191,11 @@ object MainScreen : Screen {
       modifier = Modifier.fillMaxSize(),
       bottomBar = {
         // Animated bottom navigation bar with slide animations
+        // Also hide if Shorts tab is active (index 1 when enabled, index -1 when disabled)
+        val isShortsTabActive = isShortsEnabled && selectedTab == 1
+        
         AnimatedVisibility(
-          visible = !hideNavigationBar.value && selectedTab != 1,
+          visible = !hideNavigationBar.value && !isShortsTabActive,
           enter = slideInVertically(
             animationSpec = tween(durationMillis = 300),
             initialOffsetY = { fullHeight -> fullHeight }
@@ -207,10 +215,10 @@ object MainScreen : Screen {
                   bottomEnd = 0.dp
                 )
               ),
-            containerColor = if (selectedTab == 1) Color.Transparent else NavigationBarDefaults.containerColor,
-            contentColor = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurface,
+            containerColor = if (isShortsTabActive) Color.Transparent else NavigationBarDefaults.containerColor,
+            contentColor = if (isShortsTabActive) Color.White else MaterialTheme.colorScheme.onSurface,
           ) {
-            val itemColors = if (selectedTab == 1) {
+            val itemColors = if (isShortsTabActive) {
               NavigationBarItemDefaults.colors(
                 selectedIconColor = Color.White,
                 selectedTextColor = Color.White,
@@ -229,32 +237,41 @@ object MainScreen : Screen {
               onClick = { selectedTab = 0 },
               colors = itemColors
             )
-            NavigationBarItem(
-              icon = { Icon(Icons.Filled.VideoLibrary, contentDescription = "Shorts") },
-              label = { Text("Shorts") },
-              selected = selectedTab == 1,
-              onClick = { selectedTab = 1 },
-              colors = itemColors
-            )
+            
+            if (isShortsEnabled) {
+              NavigationBarItem(
+                icon = { Icon(Icons.Filled.VideoLibrary, contentDescription = "Shorts") },
+                label = { Text("Shorts") },
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                colors = itemColors
+              )
+            }
+
+            // Adjust indices for remaining items if shorts is disabled
+            val recentsIdx = if (isShortsEnabled) 2 else 1
+            val playlistIdx = if (isShortsEnabled) 3 else 2
+            val networkIdx = if (isShortsEnabled) 4 else 3
+
             NavigationBarItem(
               icon = { Icon(Icons.Filled.History, contentDescription = "Recents") },
               label = { Text("Recents") },
-              selected = selectedTab == 2,
-              onClick = { selectedTab = 2 },
+              selected = selectedTab == recentsIdx,
+              onClick = { selectedTab = recentsIdx },
               colors = itemColors
             )
             NavigationBarItem(
               icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = "Playlists") },
               label = { Text("Playlists") },
-              selected = selectedTab == 3,
-              onClick = { selectedTab = 3 },
+              selected = selectedTab == playlistIdx,
+              onClick = { selectedTab = playlistIdx },
               colors = itemColors
             )
             NavigationBarItem(
               icon = { Icon(Icons.Filled.Language, contentDescription = "Network") },
               label = { Text("Network") },
-              selected = selectedTab == 4,
-              onClick = { selectedTab = 4 },
+              selected = selectedTab == networkIdx,
+              onClick = { selectedTab = networkIdx },
               colors = itemColors
             )
           }
@@ -262,18 +279,15 @@ object MainScreen : Screen {
       }
     ) { paddingValues ->
       Box(modifier = Modifier.fillMaxSize()) {
-        // Always use 80dp bottom padding regardless of navigation bar visibility
         val fabBottomPadding = 80.dp
 
         AnimatedContent(
           targetState = selectedTab,
           transitionSpec = {
-            // Material 3 Expressive slide-in-fade animation (like Google Phone app)
             val slideDistance = with(density) { 48.dp.roundToPx() }
             val animationDuration = 250
             
             if (targetState > initialState) {
-              // Moving forward: slide in from right with fade
               (slideInHorizontally(
                 animationSpec = tween(
                   durationMillis = animationDuration,
@@ -298,7 +312,6 @@ object MainScreen : Screen {
                 )
               ))
             } else {
-              // Moving backward: slide in from left with fade
               (slideInHorizontally(
                 animationSpec = tween(
                   durationMillis = animationDuration,
@@ -329,12 +342,21 @@ object MainScreen : Screen {
           CompositionLocalProvider(
             LocalNavigationBarHeight provides fabBottomPadding
           ) {
-            when (targetTab) {
-              0 -> FolderListScreen.Content()
-              1 -> ShortsScreen.Content()
-              2 -> RecentlyPlayedScreen.Content()
-              3 -> PlaylistScreen.Content()
-              4 -> NetworkStreamingScreen.Content()
+            if (isShortsEnabled) {
+              when (targetTab) {
+                0 -> FolderListScreen.Content()
+                1 -> ShortsScreen.Content()
+                2 -> RecentlyPlayedScreen.Content()
+                3 -> PlaylistScreen.Content()
+                4 -> NetworkStreamingScreen.Content()
+              }
+            } else {
+              when (targetTab) {
+                0 -> FolderListScreen.Content()
+                1 -> RecentlyPlayedScreen.Content()
+                2 -> PlaylistScreen.Content()
+                3 -> NetworkStreamingScreen.Content()
+              }
             }
           }
         }

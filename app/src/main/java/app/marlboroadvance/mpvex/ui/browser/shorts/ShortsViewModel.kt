@@ -46,6 +46,9 @@ class ShortsViewModel(
         .map { list -> list.filter { it.isBlocked }.map { it.path }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    val isShuffleEnabled: StateFlow<Boolean> = browserPreferences.persistentShuffle.changes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), browserPreferences.persistentShuffle.get())
+
     fun loadShorts() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -55,13 +58,33 @@ class ShortsViewModel(
                 metadataCache,
                 browserPreferences
             )
-            _shorts.value = discoveredShorts
+            
+            // Apply persistent shuffle if enabled
+            val finalShorts = if (browserPreferences.persistentShuffle.get()) {
+                discoveredShorts.shuffled()
+            } else {
+                discoveredShorts
+            }
+            
+            _shorts.value = finalShorts
             _isLoading.value = false
         }
     }
 
     suspend fun getThumbnail(video: Video): Bitmap? {
         return thumbnailRepository.getThumbnail(video, 1080, 1920)
+    }
+
+    fun toggleShuffle(currentIndex: Int) {
+        val newState = !browserPreferences.persistentShuffle.get()
+        browserPreferences.persistentShuffle.set(newState)
+        
+        if (newState) {
+            shuffleShorts(currentIndex)
+        } else {
+            // Optional: Reload list to original order if disabled? 
+            // For now, just toggling state is fine as shuffling is destructive to the list order.
+        }
     }
 
     fun shuffleShorts(currentIndex: Int) {

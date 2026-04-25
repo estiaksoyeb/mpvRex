@@ -107,6 +107,7 @@ object ShortsScreen : Screen {
         val isLoading by viewModel.isLoading.collectAsState()
         val lovedPaths by viewModel.lovedPaths.collectAsState()
         val blockedPaths by viewModel.blockedPaths.collectAsState()
+        val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
         
         val view = LocalView.current
         if (!view.isInEditMode) {
@@ -195,6 +196,7 @@ object ShortsScreen : Screen {
                         lovedPaths = lovedPaths,
                         blockedPaths = blockedPaths,
                         isPlayerReady = isPlayerReady,
+                        isShuffleEnabled = isShuffleEnabled,
                         playingPageIndex = playingPageIndex,
                         viewModel = viewModel,
                         onBack = { 
@@ -206,7 +208,7 @@ object ShortsScreen : Screen {
                         },
                         onLove = { viewModel.toggleLove(it) },
                         onBlock = { viewModel.blockVideo(it) },
-                        onShuffle = { viewModel.shuffleShorts(pagerState.currentPage) }
+                        onShuffle = { viewModel.toggleShuffle(pagerState.currentPage) }
                     )
                 }
             }
@@ -220,6 +222,7 @@ object ShortsScreen : Screen {
         lovedPaths: Set<String>,
         blockedPaths: Set<String>,
         isPlayerReady: Boolean,
+        isShuffleEnabled: Boolean,
         playingPageIndex: Int,
         viewModel: ShortsViewModel,
         onBack: () -> Unit,
@@ -242,6 +245,7 @@ object ShortsScreen : Screen {
                     isPlayerReady = isPlayerReady,
                     isLoved = lovedPaths.contains(video.path),
                     isBlocked = blockedPaths.contains(video.path),
+                    isShuffleEnabled = isShuffleEnabled,
                     viewModel = viewModel,
                     onBack = onBack,
                     onLove = { onLove(video) },
@@ -261,6 +265,7 @@ object ShortsScreen : Screen {
         isPlayerReady: Boolean,
         isLoved: Boolean,
         isBlocked: Boolean,
+        isShuffleEnabled: Boolean,
         viewModel: ShortsViewModel,
         onBack: () -> Unit,
         onLove: () -> Unit,
@@ -394,6 +399,7 @@ object ShortsScreen : Screen {
                     .padding(bottom = 100.dp, end = 16.dp),
                 isLoved = isLoved,
                 isBlocked = isBlocked,
+                isShuffleEnabled = isShuffleEnabled,
                 onLove = onLove,
                 onBlock = onBlock,
                 onShuffle = onShuffle,
@@ -484,6 +490,7 @@ object ShortsScreen : Screen {
         modifier: Modifier = Modifier,
         isLoved: Boolean,
         isBlocked: Boolean,
+        isShuffleEnabled: Boolean,
         onLove: () -> Unit,
         onBlock: () -> Unit,
         onShuffle: () -> Unit,
@@ -494,7 +501,12 @@ object ShortsScreen : Screen {
             modifier = modifier,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ActionButton(icon = Icons.Filled.Shuffle, label = "Shuffle", onClick = onShuffle)
+            ActionButton(
+                icon = Icons.Filled.Shuffle, 
+                label = if (isShuffleEnabled) "Shuffled" else "Shuffle",
+                iconColor = if (isShuffleEnabled) MaterialTheme.colorScheme.primary else Color.White,
+                onClick = onShuffle
+            )
             Spacer(modifier = Modifier.height(12.dp))
             ActionButton(
                 icon = if (isLoved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,

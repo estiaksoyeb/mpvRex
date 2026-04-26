@@ -13,6 +13,7 @@ import app.marlboroadvance.mpvex.domain.media.model.Video
 import app.marlboroadvance.mpvex.domain.thumbnail.ThumbnailRepository
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.utils.media.ShortsDiscoveryOps
+import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +50,9 @@ class ShortsViewModel(
     val isShuffleEnabled: StateFlow<Boolean> = browserPreferences.persistentShuffle.changes()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), browserPreferences.persistentShuffle.get())
 
+    private val _currentSpeed = MutableStateFlow(1.0)
+    val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
+
     fun loadShorts() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -75,15 +79,16 @@ class ShortsViewModel(
         return thumbnailRepository.getThumbnail(video, 1080, 1920)
     }
 
+    fun updatePlaybackSpeed() {
+        _currentSpeed.value = MPVLib.getPropertyDouble("speed") ?: 1.0
+    }
+
     fun toggleShuffle(currentIndex: Int) {
         val newState = !browserPreferences.persistentShuffle.get()
         browserPreferences.persistentShuffle.set(newState)
         
         if (newState) {
             shuffleShorts(currentIndex)
-        } else {
-            // Optional: Reload list to original order if disabled? 
-            // For now, just toggling state is fine as shuffling is destructive to the list order.
         }
     }
 
@@ -93,8 +98,6 @@ class ShortsViewModel(
         
         val currentVideo = currentList.getOrNull(currentIndex) ?: return
         
-        // Shuffle everything EXCEPT the current video, then re-insert it at the same index
-        // to prevent the "title jump" while playing.
         val mutableList = currentList.toMutableList()
         mutableList.removeAt(currentIndex)
         mutableList.shuffle()
@@ -113,16 +116,13 @@ class ShortsViewModel(
         }
     }
 
-    fun blockVideo(video: Video) {
+    fun toggleBlock(video: Video) {
         viewModelScope.launch {
             val current = shortsMediaDao.getShortsMediaByPath(video.path)
-            val newEntity = current?.copy(isBlocked = true)
+            val isBlocked = current?.isBlocked ?: false
+            val newEntity = current?.copy(isBlocked = !isBlocked)
                 ?: ShortsMediaEntity(path = video.path, isBlocked = true, addedDate = System.currentTimeMillis())
             shortsMediaDao.upsert(newEntity)
-            
-            // NOTE: We no longer remove from _shorts immediately. 
-            // This prevents index shifting that causes other videos to "pop" into the current view.
-            // The video will be excluded next time loadShorts() is called.
         }
     }
 

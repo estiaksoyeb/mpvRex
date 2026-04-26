@@ -43,7 +43,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -108,14 +107,26 @@ object ShortsScreen : Screen {
         val lovedPaths by viewModel.lovedPaths.collectAsState()
         val blockedPaths by viewModel.blockedPaths.collectAsState()
         val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
+        val currentSpeed by viewModel.currentSpeed.collectAsState()
         
+        // Force status bar and navigation bar to have white icons (Dark Mode style)
         val view = LocalView.current
+        val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+        
         if (!view.isInEditMode) {
-            SideEffect {
+            DisposableEffect(Unit) {
                 val window = (view.context as Activity).window
                 val insetsController = WindowCompat.getInsetsController(window, view)
+                
+                // Switch to white icons
                 insetsController.isAppearanceLightStatusBars = false
                 insetsController.isAppearanceLightNavigationBars = false
+                
+                onDispose {
+                    // Restore original theme-based icons when leaving Shorts
+                    insetsController.isAppearanceLightStatusBars = !isDarkTheme
+                    insetsController.isAppearanceLightNavigationBars = !isDarkTheme
+                }
             }
         }
 
@@ -187,6 +198,8 @@ object ShortsScreen : Screen {
                             MPVLib.command("stop") 
                             MPVLib.command("loadfile", video.path)
                             MPVLib.setPropertyBoolean("pause", false)
+                            // Initial speed update
+                            viewModel.updatePlaybackSpeed()
                         }
                     }
 
@@ -197,6 +210,7 @@ object ShortsScreen : Screen {
                         blockedPaths = blockedPaths,
                         isPlayerReady = isPlayerReady,
                         isShuffleEnabled = isShuffleEnabled,
+                        currentSpeed = currentSpeed,
                         playingPageIndex = playingPageIndex,
                         viewModel = viewModel,
                         onBack = { 
@@ -207,12 +221,16 @@ object ShortsScreen : Screen {
                             }
                         },
                         onLove = { viewModel.toggleLove(it) },
-                        onBlock = { viewModel.blockVideo(it) },
+                        onBlock = { viewModel.toggleBlock(it) },
                         onShuffle = { viewModel.toggleShuffle(pagerState.currentPage) }
                     )
                 }
             }
         }
+    }
+
+    private fun androidx.compose.ui.graphics.Color.luminance(): Float {
+        return 0.299f * red + 0.587f * green + 0.114f * blue
     }
 
     @Composable
@@ -223,6 +241,7 @@ object ShortsScreen : Screen {
         blockedPaths: Set<String>,
         isPlayerReady: Boolean,
         isShuffleEnabled: Boolean,
+        currentSpeed: Double,
         playingPageIndex: Int,
         viewModel: ShortsViewModel,
         onBack: () -> Unit,
@@ -246,6 +265,7 @@ object ShortsScreen : Screen {
                     isLoved = lovedPaths.contains(video.path),
                     isBlocked = blockedPaths.contains(video.path),
                     isShuffleEnabled = isShuffleEnabled,
+                    currentSpeed = currentSpeed,
                     viewModel = viewModel,
                     onBack = onBack,
                     onLove = { onLove(video) },
@@ -266,6 +286,7 @@ object ShortsScreen : Screen {
         isLoved: Boolean,
         isBlocked: Boolean,
         isShuffleEnabled: Boolean,
+        currentSpeed: Double,
         viewModel: ShortsViewModel,
         onBack: () -> Unit,
         onLove: () -> Unit,
@@ -304,16 +325,23 @@ object ShortsScreen : Screen {
             finishedListener = { if (it == 1.5f) showHeart = false }
         )
 
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = {
-                            if (isSettled && isPlaying) {
-                                val currentPause = MPVLib.getPropertyBoolean("pause") ?: false
-                                MPVLib.setPropertyBoolean("pause", !currentPause)
-                                isPaused = !currentPause
+                        onTap = { offset ->
+                            // FIX: Only trigger pause in middle 80% of screen height
+                            val screenHeight = size.height
+                            val topThreshold = screenHeight * 0.1f
+                            val bottomThreshold = screenHeight * 0.9f
+                            
+                            if (offset.y in topThreshold..bottomThreshold) {
+                                if (isSettled && isPlaying) {
+                                    val currentPause = MPVLib.getPropertyBoolean("pause") ?: false
+                                    MPVLib.setPropertyBoolean("pause", !currentPause)
+                                    isPaused = !currentPause
+                                }
                             }
                         },
                         onDoubleTap = { offset ->
@@ -400,19 +428,21 @@ object ShortsScreen : Screen {
                 isLoved = isLoved,
                 isBlocked = isBlocked,
                 isShuffleEnabled = isShuffleEnabled,
+                currentSpeed = currentSpeed,
                 onLove = onLove,
                 onBlock = onBlock,
                 onShuffle = onShuffle,
                 onSpeed = { 
                     if (isSettled && isPlaying) {
-                        val currentSpeed = MPVLib.getPropertyDouble("speed") ?: 1.0
+                        val currentSpd = MPVLib.getPropertyDouble("speed") ?: 1.0
                         val nextSpeed = when {
-                            currentSpeed < 1.0 -> 1.0
-                            currentSpeed < 1.5 -> 1.5
-                            currentSpeed < 2.0 -> 2.0
+                            currentSpd < 1.0 -> 1.0
+                            currentSpd < 1.5 -> 1.5
+                            currentSpd < 2.0 -> 2.0
                             else -> 0.5
                         }
                         MPVLib.setPropertyDouble("speed", nextSpeed)
+                        viewModel.updatePlaybackSpeed()
                     }
                 },
                 onInfo = { showInfo = true }
@@ -491,6 +521,7 @@ object ShortsScreen : Screen {
         isLoved: Boolean,
         isBlocked: Boolean,
         isShuffleEnabled: Boolean,
+        currentSpeed: Double,
         onLove: () -> Unit,
         onBlock: () -> Unit,
         onShuffle: () -> Unit,
@@ -504,7 +535,7 @@ object ShortsScreen : Screen {
             ActionButton(
                 icon = Icons.Filled.Shuffle, 
                 label = if (isShuffleEnabled) "Shuffled" else "Shuffle",
-                iconColor = if (isShuffleEnabled) MaterialTheme.colorScheme.primary else Color.White,
+                iconColor = if (isShuffleEnabled) Color(0xFF2E7D32) else Color.White, // Deep Green
                 onClick = onShuffle
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -522,7 +553,11 @@ object ShortsScreen : Screen {
                 onClick = onBlock
             )
             Spacer(modifier = Modifier.height(12.dp))
-            ActionButton(icon = Icons.Filled.Speed, label = "Speed", onClick = onSpeed)
+            ActionButton(
+                icon = Icons.Filled.Speed, 
+                label = "${currentSpeed}x", 
+                onClick = onSpeed
+            )
             Spacer(modifier = Modifier.height(12.dp))
             ActionButton(icon = Icons.Filled.Info, label = "Info", onClick = onInfo)
             Spacer(modifier = Modifier.height(12.dp))

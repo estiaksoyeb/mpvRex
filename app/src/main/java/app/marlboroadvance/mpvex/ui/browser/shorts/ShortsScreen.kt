@@ -3,12 +3,14 @@ package app.marlboroadvance.mpvex.ui.browser.shorts
 import android.app.Activity
 import android.graphics.Bitmap
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,15 +18,18 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
@@ -36,12 +41,16 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -52,9 +61,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -79,12 +90,14 @@ import app.marlboroadvance.mpvex.domain.media.model.Video
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.browser.MainScreen
 import app.marlboroadvance.mpvex.ui.player.MPVView
+import app.marlboroadvance.mpvex.ui.preferences.BlockedShortsScreen
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import kotlin.random.Random
 
 @Serializable
 data class ShortsScreen(
@@ -114,10 +127,8 @@ data class ShortsScreen(
             DisposableEffect(Unit) {
                 val window = (view.context as Activity).window
                 val insetsController = WindowCompat.getInsetsController(window, view)
-                
                 insetsController.isAppearanceLightStatusBars = false
                 insetsController.isAppearanceLightNavigationBars = false
-                
                 onDispose {
                     insetsController.isAppearanceLightStatusBars = !isDarkTheme
                     insetsController.isAppearanceLightNavigationBars = !isDarkTheme
@@ -228,7 +239,6 @@ data class ShortsScreen(
     }
 }
 
-// Global text style with stroke (shadow) for visibility
 private val textWithStroke = TextStyle(
     fontWeight = FontWeight.Bold,
     shadow = Shadow(
@@ -298,12 +308,20 @@ private fun ShortPageItem(
     onBlock: () -> Unit,
     onShuffle: () -> Unit
 ) {
+    val backstack = LocalBackStack.current
     var progress by remember { mutableFloatStateOf(0f) }
     var isPaused by remember { mutableStateOf(false) }
-    var showHeart by remember { mutableStateOf(false) }
-    var heartOffset by remember { mutableStateOf(Offset.Zero) }
     var thumbnail by remember { mutableStateOf<Bitmap?>(null) }
     var showInfo by remember { mutableStateOf(false) }
+    var showMore by remember { mutableStateOf(false) }
+    
+    // --- Phase 5: Advanced Animation States ---
+    var heartOffset by remember { mutableStateOf(Offset.Zero) }
+    val heartScale = remember { Animatable(0f) }
+    val heartAlpha = remember { Animatable(0f) }
+    val confettiTrigger = remember { mutableStateOf(0L) }
+    
+    val coroutineScope = rememberCoroutineScope()
     
     var isSeeking by remember { mutableStateOf(false) }
     var seekProgress by remember { mutableFloatStateOf(0f) }
@@ -323,12 +341,6 @@ private fun ShortPageItem(
             }
         }
     }
-
-    val heartScale by animateFloatAsState(
-        targetValue = if (showHeart) 1.5f else 0f,
-        animationSpec = spring(),
-        finishedListener = { if (it == 1.5f) showHeart = false }
-    )
 
     val progressBarHeight by animateDpAsState(
         targetValue = if (isSeeking) 12.dp else 4.dp,
@@ -356,7 +368,17 @@ private fun ShortPageItem(
                     onDoubleTap = { offset ->
                         if (isSettled) {
                             heartOffset = offset
-                            showHeart = true
+                            coroutineScope.launch {
+                                // Premium Animation: Pop -> Zoom -> Fade
+                                heartAlpha.snapTo(1f)
+                                heartScale.snapTo(0.7f)
+                                confettiTrigger.value = System.currentTimeMillis()
+                                
+                                heartScale.animateTo(1.5f, spring(dampingRatio = 0.5f))
+                                delay(300)
+                                launch { heartScale.animateTo(2f, tween(400)) }
+                                launch { heartAlpha.animateTo(0f, tween(400)) }
+                            }
                             if (!isLoved) onLove()
                         }
                     }
@@ -418,7 +440,11 @@ private fun ShortPageItem(
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
         }
 
-        if (showHeart || heartScale > 0f) {
+        // Confetti Effect
+        ConfettiBurst(trigger = confettiTrigger.value, center = heartOffset)
+
+        // Premium Heart Animation Overlay
+        if (heartAlpha.value > 0f) {
             Icon(
                 imageVector = Icons.Filled.Favorite,
                 contentDescription = null,
@@ -428,9 +454,9 @@ private fun ShortPageItem(
                     .graphicsLayer {
                         translationX = heartOffset.x - 150f
                         translationY = heartOffset.y - 150f
-                        scaleX = heartScale
-                        scaleY = heartScale
-                        alpha = (1.5f - heartScale).coerceIn(0f, 1f)
+                        scaleX = heartScale.value
+                        scaleY = heartScale.value
+                        alpha = heartAlpha.value
                     }
             )
         }
@@ -440,9 +466,6 @@ private fun ShortPageItem(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(top = 48.dp, start = 24.dp)
-                .graphicsLayer {
-                    shadowElevation = 0f
-                }
         ) {
             Box {
                 Icon(
@@ -484,7 +507,7 @@ private fun ShortPageItem(
                     viewModel.updatePlaybackSpeed()
                 }
             },
-            onInfo = { showInfo = true }
+            onMore = { showMore = true }
         )
 
         if (isSeeking) {
@@ -544,6 +567,86 @@ private fun ShortPageItem(
                 }
             )
         }
+
+        if (showMore) {
+            MoreActionsSheet(
+                onDismiss = { showMore = false },
+                onShowBlocked = { 
+                    showMore = false
+                    backstack.add(BlockedShortsScreen)
+                },
+                onShowInfo = {
+                    showMore = false
+                    showInfo = true
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConfettiBurst(trigger: Long, center: Offset) {
+    if (trigger == 0L) return
+    
+    // Simple particle system using LaunchedEffect
+    val particles = remember(trigger) {
+        List(15) {
+            val angle = Random.nextFloat() * 360f
+            val distance = 50f + Random.nextFloat() * 150f
+            Offset(
+                x = center.x + Math.cos(Math.toRadians(angle.toDouble())).toFloat() * distance,
+                y = center.y + Math.sin(Math.toRadians(angle.toDouble())).toFloat() * distance
+            )
+        }
+    }
+
+    particles.forEach { targetOffset ->
+        val animProgress = remember(trigger) { Animatable(0f) }
+        LaunchedEffect(trigger) {
+            animProgress.animateTo(1f, tween(600))
+        }
+        
+        if (animProgress.value < 1f) {
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        translationX = center.x + (targetOffset.x - center.x) * animProgress.value - 10f
+                        translationY = center.y + (targetOffset.y - center.y) * animProgress.value - 10f
+                        alpha = 1f - animProgress.value
+                        scaleX = 1f - animProgress.value * 0.5f
+                        scaleY = 1f - animProgress.value * 0.5f
+                    }
+                    .size(8.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(listOf(Color.Red, Color.Yellow, Color.White, Color.Magenta).random())
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MoreActionsSheet(
+    onDismiss: () -> Unit,
+    onShowBlocked: () -> Unit,
+    onShowInfo: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState()
+    ) {
+        Column(modifier = Modifier.padding(bottom = 32.dp)) {
+            ListItem(
+                headlineContent = { Text("Video Information") },
+                leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
+                modifier = Modifier.clickable { onShowInfo() }
+            )
+            ListItem(
+                headlineContent = { Text("Blocked Videos Manager") },
+                leadingContent = { Icon(Icons.Default.Block, contentDescription = null) },
+                modifier = Modifier.clickable { onShowBlocked() }
+            )
+        }
     }
 }
 
@@ -558,7 +661,7 @@ private fun ActionColumn(
     onBlock: () -> Unit,
     onShuffle: () -> Unit,
     onSpeed: () -> Unit,
-    onInfo: () -> Unit
+    onMore: () -> Unit
 ) {
     Column(
         modifier = modifier,
@@ -591,9 +694,7 @@ private fun ActionColumn(
             onClick = onSpeed
         )
         Spacer(modifier = Modifier.height(12.dp))
-        ActionButton(icon = Icons.Filled.Info, label = "Info", onClick = onInfo)
-        Spacer(modifier = Modifier.height(12.dp))
-        ActionButton(icon = Icons.Filled.MoreVert, label = "More") { /* TODO */ }
+        ActionButton(icon = Icons.Filled.MoreVert, label = "More", onClick = onMore)
     }
 }
 

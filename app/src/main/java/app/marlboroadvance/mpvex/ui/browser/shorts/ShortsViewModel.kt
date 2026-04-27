@@ -53,7 +53,6 @@ class ShortsViewModel(
     private val _currentSpeed = MutableStateFlow(1.0)
     val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
     
-    // --- Phase B: Session History ---
     private val seenPaths = mutableSetOf<String>()
 
     fun loadShorts(initialVideoPath: String? = null, blockedOnly: Boolean = false) {
@@ -61,7 +60,6 @@ class ShortsViewModel(
             _isLoading.value = true
             
             val finalShorts = if (blockedOnly) {
-                // Phase 4: Blocked Only Mode (Skip weighted logic)
                 val blockedInDb = shortsMediaDao.getAllShortsMedia().filter { it.isBlocked }
                 val flatFolders = app.marlboroadvance.mpvex.utils.storage.CoreMediaScanner.getFlatMediaFolders(getApplication())
                 val allVideos = flatFolders.flatMap { folder ->
@@ -78,47 +76,74 @@ class ShortsViewModel(
                     browserPreferences
                 )
                 
-                // --- Phase B: Smart Weighted Interleaving ---
+                // Partition into Loved and Others
                 val loved = discoveredShorts.filter { lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
                 val others = discoveredShorts.filter { !lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
                 
-                val interleaved = mutableListOf<Video>()
-                
-                // Interleave in a 2:1 ratio (2 normal, 1 loved)
-                while (loved.isNotEmpty() || others.isNotEmpty()) {
-                    // Add up to 2 "others"
-                    repeat(2) {
-                        if (others.isNotEmpty()) interleaved.add(others.removeAt(0))
-                    }
-                    // Add 1 "loved"
-                    if (loved.isNotEmpty()) interleaved.add(loved.removeAt(0))
-                }
-                
-                interleaved
+                // Apply Claude's Elastic Interleaving Algorithm
+                buildElasticFeed(loved, others)
             }
             
-            // If an initial video is specified, move it to the front
+            // Apply Strict Session Filtering (No repeats)
+            // But we keep the initialVideoPath if specified, even if seen.
+            val filteredShorts = finalShorts.filter { it.path !in seenPaths || it.path == initialVideoPath }
+            
+            // Move initial video to the front
             val orderedShorts = if (initialVideoPath != null) {
-                val initial = finalShorts.find { it.path == initialVideoPath }
+                val initial = filteredShorts.find { it.path == initialVideoPath }
                 if (initial != null) {
-                    listOf(initial) + finalShorts.filter { it.path != initialVideoPath }
+                    listOf(initial) + filteredShorts.filter { it.path != initialVideoPath }
                 } else {
-                    finalShorts
+                    filteredShorts
                 }
             } else {
-                finalShorts
+                filteredShorts
             }
             
             _shorts.value = orderedShorts
             _isLoading.value = false
         }
     }
+
+    private fun buildElasticFeed(
+        loved: MutableList<Video>,
+        others: MutableList<Video>,
+        targetOthersPerLoved: Int = 2
+    ): List<Video> {
+        if (loved.isEmpty()) return others.shuffled()
+        if (others.isEmpty()) return loved.shuffled()
+
+        val interleaved = mutableListOf<Video>()
+        
+        // Calculate dynamic ratio based on pool sizes
+        val effectiveRatio = if (others.size >= loved.size * targetOthersPerLoved) {
+            targetOthersPerLoved
+        } else {
+            // Gracefully degrade to 1:1 if we don't have enough "others"
+            maxOf(1, others.size / loved.size)
+        }
+
+        while (loved.isNotEmpty() || others.isNotEmpty()) {
+            val othersToTake = minOf(effectiveRatio, others.size)
+            repeat(othersToTake) { interleaved.add(others.removeAt(0)) }
+
+            if (loved.isNotEmpty()) interleaved.add(loved.removeAt(0))
+
+            // If others are exhausted, dump the rest of the loved videos
+            if (others.isEmpty() && loved.isNotEmpty()) {
+                interleaved.addAll(loved.shuffled())
+                loved.clear()
+            }
+        }
+        return interleaved
+    }
     
-    /**
-     * Mark a video as seen in the current session.
-     */
     fun markAsSeen(video: Video) {
         seenPaths.add(video.path)
+    }
+    
+    fun clearSessionHistory() {
+        seenPaths.clear()
     }
 
     suspend fun getThumbnail(video: Video): Bitmap? {

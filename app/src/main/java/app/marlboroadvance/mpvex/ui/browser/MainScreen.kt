@@ -345,7 +345,7 @@ object MainScreen : Screen {
             if (isShortsEnabled) {
               when (targetTab) {
                 0 -> FolderListScreen.Content()
-                1 -> ShortsScreen.Content()
+                1 -> ShortsScreen().Content()
                 2 -> RecentlyPlayedScreen.Content()
                 3 -> PlaylistScreen.Content()
                 4 -> NetworkStreamingScreen.Content()

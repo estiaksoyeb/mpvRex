@@ -53,24 +53,48 @@ class ShortsViewModel(
     private val _currentSpeed = MutableStateFlow(1.0)
     val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
 
-    fun loadShorts() {
+    fun loadShorts(initialVideoPath: String? = null, blockedOnly: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
-            val discoveredShorts = ShortsDiscoveryOps.discoverShorts(
-                getApplication(),
-                shortsMediaDao,
-                metadataCache,
-                browserPreferences
-            )
             
-            // Apply persistent shuffle if enabled
-            val finalShorts = if (browserPreferences.persistentShuffle.get()) {
-                discoveredShorts.shuffled()
+            val finalShorts = if (blockedOnly) {
+                // Phase 4: Blocked Only Mode
+                val blockedInDb = shortsMediaDao.getAllShortsMedia().filter { it.isBlocked }
+                val flatFolders = app.marlboroadvance.mpvex.utils.storage.CoreMediaScanner.getFlatMediaFolders(getApplication())
+                val allVideos = flatFolders.flatMap { folder ->
+                    app.marlboroadvance.mpvex.utils.storage.VideoScanUtils.getVideosInFolder(getApplication(), folder.path)
+                }.filter { !it.isAudio }
+                
+                val blockedPathsSet = blockedInDb.map { it.path }.toSet()
+                allVideos.filter { it.path in blockedPathsSet }
             } else {
-                discoveredShorts
+                val discoveredShorts = ShortsDiscoveryOps.discoverShorts(
+                    getApplication(),
+                    shortsMediaDao,
+                    metadataCache,
+                    browserPreferences
+                )
+                
+                if (browserPreferences.persistentShuffle.get()) {
+                    discoveredShorts.shuffled()
+                } else {
+                    discoveredShorts
+                }
             }
             
-            _shorts.value = finalShorts
+            // If an initial video is specified, move it to the front
+            val orderedShorts = if (initialVideoPath != null) {
+                val initial = finalShorts.find { it.path == initialVideoPath }
+                if (initial != null) {
+                    listOf(initial) + finalShorts.filter { it.path != initialVideoPath }
+                } else {
+                    finalShorts
+                }
+            } else {
+                finalShorts
+            }
+            
+            _shorts.value = orderedShorts
             _isLoading.value = false
         }
     }

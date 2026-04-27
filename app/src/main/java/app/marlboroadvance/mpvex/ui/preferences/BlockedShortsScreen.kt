@@ -1,5 +1,6 @@
 package app.marlboroadvance.mpvex.ui.preferences
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,7 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -18,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,12 +28,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import app.marlboroadvance.mpvex.database.dao.ShortsMediaDao
 import app.marlboroadvance.mpvex.presentation.Screen
+import app.marlboroadvance.mpvex.ui.browser.shorts.ShortsScreen
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -89,13 +93,17 @@ object BlockedShortsScreen : Screen {
                         .padding(padding)
                         .padding(horizontal = 16.dp),
                 ) {
-                    items(filteredBlocked) { media ->
+                    items(filteredBlocked, key = { it.path }) { media ->
                         val fileName = File(media.path).name
                         
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    // Launch this video in a 'Blocked Only' shorts session
+                                    backstack.add(ShortsScreen(initialVideoPath = media.path, blockedOnly = true))
+                                },
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer
                             )
@@ -123,21 +131,23 @@ object BlockedShortsScreen : Screen {
                                     )
                                 }
                                 
-                                IconButton(
+                                TextButton(
                                     onClick = {
                                         scope.launch {
-                                            // To unblock, we just delete the entry or update its flag.
-                                            // If it was manually added, we might want to keep the entry but set isBlocked = false.
-                                            // For simplicity, deleting the entry removes all its shorts-related metadata.
+                                            // Unblock: deleting the entry removes it from the 'blocked' list instantly
                                             shortsMediaDao.deleteByPath(media.path)
                                         }
-                                    }
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = Color.Red
+                                    )
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.Delete,
-                                        contentDescription = "Unblock",
-                                        tint = MaterialTheme.colorScheme.error
+                                        imageVector = Icons.Default.Block,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(end = 4.dp)
                                     )
+                                    Text("Blocked", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -148,7 +158,6 @@ object BlockedShortsScreen : Screen {
     }
 }
 
-// Add a Box import that was missing
 @Composable
 private fun Box(
     modifier: Modifier,

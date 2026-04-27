@@ -205,6 +205,9 @@ data class ShortsScreen(
                             MPVLib.command("loadfile", video.path)
                             MPVLib.setPropertyBoolean("pause", false)
                             viewModel.updatePlaybackSpeed()
+                            
+                            // Phase B: Mark as seen in current session
+                            viewModel.markAsSeen(video)
                         }
                     }
 

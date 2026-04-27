@@ -52,13 +52,16 @@ class ShortsViewModel(
 
     private val _currentSpeed = MutableStateFlow(1.0)
     val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
+    
+    // --- Phase B: Session History ---
+    private val seenPaths = mutableSetOf<String>()
 
     fun loadShorts(initialVideoPath: String? = null, blockedOnly: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             
             val finalShorts = if (blockedOnly) {
-                // Phase 4: Blocked Only Mode
+                // Phase 4: Blocked Only Mode (Skip weighted logic)
                 val blockedInDb = shortsMediaDao.getAllShortsMedia().filter { it.isBlocked }
                 val flatFolders = app.marlboroadvance.mpvex.utils.storage.CoreMediaScanner.getFlatMediaFolders(getApplication())
                 val allVideos = flatFolders.flatMap { folder ->
@@ -75,11 +78,23 @@ class ShortsViewModel(
                     browserPreferences
                 )
                 
-                if (browserPreferences.persistentShuffle.get()) {
-                    discoveredShorts.shuffled()
-                } else {
-                    discoveredShorts
+                // --- Phase B: Smart Weighted Interleaving ---
+                val loved = discoveredShorts.filter { lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
+                val others = discoveredShorts.filter { !lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
+                
+                val interleaved = mutableListOf<Video>()
+                
+                // Interleave in a 2:1 ratio (2 normal, 1 loved)
+                while (loved.isNotEmpty() || others.isNotEmpty()) {
+                    // Add up to 2 "others"
+                    repeat(2) {
+                        if (others.isNotEmpty()) interleaved.add(others.removeAt(0))
+                    }
+                    // Add 1 "loved"
+                    if (loved.isNotEmpty()) interleaved.add(loved.removeAt(0))
                 }
+                
+                interleaved
             }
             
             // If an initial video is specified, move it to the front
@@ -97,6 +112,13 @@ class ShortsViewModel(
             _shorts.value = orderedShorts
             _isLoading.value = false
         }
+    }
+    
+    /**
+     * Mark a video as seen in the current session.
+     */
+    fun markAsSeen(video: Video) {
+        seenPaths.add(video.path)
     }
 
     suspend fun getThumbnail(video: Video): Bitmap? {

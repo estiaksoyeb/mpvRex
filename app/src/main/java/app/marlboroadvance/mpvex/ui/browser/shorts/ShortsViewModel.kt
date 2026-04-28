@@ -39,6 +39,12 @@ class ShortsViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isExhausted = MutableStateFlow(false)
+    val isExhausted: StateFlow<Boolean> = _isExhausted.asStateFlow()
+
+    private val _totalShortsCount = MutableStateFlow(0)
+    val totalShortsCount: StateFlow<Int> = _totalShortsCount.asStateFlow()
+
     val lovedPaths: StateFlow<Set<String>> = shortsMediaDao.observeAllShortsMedia()
         .map { list -> list.filter { it.isLoved }.map { it.path }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
@@ -69,16 +75,22 @@ class ShortsViewModel(
                 val blockedPathsSet = blockedInDb.map { it.path }.toSet()
                 allVideos.filter { it.path in blockedPathsSet }
             } else {
-                val discoveredShorts = ShortsDiscoveryOps.discoverShorts(
+                ShortsDiscoveryOps.discoverShorts(
                     getApplication(),
                     shortsMediaDao,
                     metadataCache,
                     browserPreferences
                 )
-                
+            }
+
+            _totalShortsCount.value = finalShorts.size
+
+            val interleavedShorts = if (blockedOnly) {
+                finalShorts
+            } else {
                 // Partition into Loved and Others
-                val loved = discoveredShorts.filter { lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
-                val others = discoveredShorts.filter { !lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
+                val loved = finalShorts.filter { lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
+                val others = finalShorts.filter { !lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
                 
                 // Apply Claude's Elastic Interleaving Algorithm
                 buildElasticFeed(loved, others)
@@ -86,8 +98,14 @@ class ShortsViewModel(
             
             // Apply Strict Session Filtering (No repeats)
             // But we keep the initialVideoPath if specified, even if seen.
-            val filteredShorts = finalShorts.filter { it.path !in seenPaths || it.path == initialVideoPath }
+            val filteredShorts = interleavedShorts.filter { it.path !in seenPaths || it.path == initialVideoPath }
             
+            if (finalShorts.isNotEmpty() && filteredShorts.isEmpty()) {
+                _isExhausted.value = true
+            } else {
+                _isExhausted.value = false
+            }
+
             // Move initial video to the front
             val orderedShorts = if (initialVideoPath != null) {
                 val initial = filteredShorts.find { it.path == initialVideoPath }
@@ -140,10 +158,14 @@ class ShortsViewModel(
     
     fun markAsSeen(video: Video) {
         seenPaths.add(video.path)
+        if (seenPaths.size >= _totalShortsCount.value && _totalShortsCount.value > 0) {
+            _isExhausted.value = true
+        }
     }
     
     fun clearSessionHistory() {
         seenPaths.clear()
+        _isExhausted.value = false
     }
 
     suspend fun getThumbnail(video: Video): Bitmap? {

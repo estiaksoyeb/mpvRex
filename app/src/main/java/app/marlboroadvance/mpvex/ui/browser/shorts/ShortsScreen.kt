@@ -115,6 +115,8 @@ data class ShortsScreen(
 
         val shorts by viewModel.shorts.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
+        val isExhausted by viewModel.isExhausted.collectAsState()
+        val totalShortsCount by viewModel.totalShortsCount.collectAsState()
         val lovedPaths by viewModel.lovedPaths.collectAsState()
         val blockedPaths by viewModel.blockedPaths.collectAsState()
         val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
@@ -143,6 +145,17 @@ data class ShortsScreen(
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             if (isLoading && shorts.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (shorts.isEmpty() && totalShortsCount > 0) {
+                FinishedPageItem(
+                    onBack = {
+                        viewModel.clearSessionHistory()
+                        if (backstack.size > 1) {
+                            backstack.removeLastOrNull()
+                        } else {
+                            MainScreen.requestTab(0)
+                        }
+                    }
+                )
             } else if (shorts.isEmpty()) {
                 Text(
                     text = if (blockedOnly) "No blocked videos found" else "No vertical videos found",
@@ -154,7 +167,9 @@ data class ShortsScreen(
                 var isPlayerReady by remember { mutableStateOf(false) }
                 var playingPageIndex by remember { mutableIntStateOf(0) }
                 
-                val pagerState = rememberPagerState(pageCount = { shorts.size })
+                val pagerState = rememberPagerState(pageCount = { 
+                    if (isExhausted) shorts.size + 1 else shorts.size 
+                })
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val density = LocalDensity.current
 
@@ -169,7 +184,7 @@ data class ShortsScreen(
                             .background(Color.Black)
                             .graphicsLayer {
                                 translationY = -scrollOffset + (playingPageIndex * heightPx)
-                                alpha = if (isPlayerReady) 1f else 0f
+                                alpha = if (isPlayerReady && pagerState.settledPage < shorts.size) 1f else 0f
                             }
                     ) {
                         ShortsPlayerHost(
@@ -188,7 +203,11 @@ data class ShortsScreen(
                         val observer = LifecycleEventObserver { _, event ->
                             when (event) {
                                 Lifecycle.Event.ON_PAUSE -> MPVLib.setPropertyBoolean("pause", true)
-                                Lifecycle.Event.ON_RESUME -> MPVLib.setPropertyBoolean("pause", false)
+                                Lifecycle.Event.ON_RESUME -> {
+                                    if (pagerState.settledPage < shorts.size) {
+                                        MPVLib.setPropertyBoolean("pause", false)
+                                    }
+                                }
                                 else -> {}
                             }
                         }
@@ -199,15 +218,20 @@ data class ShortsScreen(
                     }
 
                     LaunchedEffect(pagerState.settledPage, mpvView) {
-                        if (mpvView != null && shorts.isNotEmpty() && pagerState.settledPage < shorts.size) {
-                            val video = shorts[pagerState.settledPage]
-                            MPVLib.command("stop") 
-                            MPVLib.command("loadfile", video.path)
-                            MPVLib.setPropertyBoolean("pause", false)
-                            viewModel.updatePlaybackSpeed()
-                            
-                            // Phase B: Mark as seen in current session
-                            viewModel.markAsSeen(video)
+                        if (mpvView != null && shorts.isNotEmpty()) {
+                            if (pagerState.settledPage < shorts.size) {
+                                val video = shorts[pagerState.settledPage]
+                                MPVLib.command("stop") 
+                                MPVLib.command("loadfile", video.path)
+                                MPVLib.setPropertyBoolean("pause", false)
+                                viewModel.updatePlaybackSpeed()
+                                
+                                // Phase B: Mark as seen in current session
+                                viewModel.markAsSeen(video)
+                            } else {
+                                MPVLib.command("stop")
+                                isPlayerReady = false
+                            }
                         }
                     }
 
@@ -218,10 +242,14 @@ data class ShortsScreen(
                         blockedPaths = blockedPaths,
                         isPlayerReady = isPlayerReady,
                         isShuffleEnabled = isShuffleEnabled,
+                        isExhausted = isExhausted,
                         currentSpeed = currentSpeed,
                         playingPageIndex = playingPageIndex,
                         viewModel = viewModel,
                         onBack = { 
+                            if (isExhausted && pagerState.currentPage >= shorts.size - 1) {
+                                viewModel.clearSessionHistory()
+                            }
                             if (backstack.size > 1) {
                                 backstack.removeLastOrNull()
                             } else {
@@ -252,6 +280,46 @@ private val textWithStroke = TextStyle(
 )
 
 @Composable
+private fun FinishedPageItem(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "All videos finished",
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "You've seen all vertical videos for now.",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.primary)
+                    .padding(horizontal = 24.dp)
+            ) {
+                Text("Go Back", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
 private fun ShortsPager(
     shorts: List<Video>,
     pagerState: PagerState,
@@ -259,6 +327,7 @@ private fun ShortsPager(
     blockedPaths: Set<String>,
     isPlayerReady: Boolean,
     isShuffleEnabled: Boolean,
+    isExhausted: Boolean,
     currentSpeed: Double,
     playingPageIndex: Int,
     viewModel: ShortsViewModel,
@@ -290,6 +359,8 @@ private fun ShortsPager(
                 onBlock = { onBlock(video) },
                 onToggleShuffle = onToggleShuffle
             )
+        } else if (isExhausted) {
+            FinishedPageItem(onBack = onBack)
         }
     }
 }

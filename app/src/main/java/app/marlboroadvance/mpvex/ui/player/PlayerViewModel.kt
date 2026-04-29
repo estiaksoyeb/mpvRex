@@ -203,16 +203,16 @@ class PlayerViewModel(
       MPVLib.propInt["duration"].collect { _ ->
         val dur = MPVLib.getPropertyDouble("duration")
         if (dur != null && dur > 0) {
-            _preciseDuration.value = dur.toFloat()
-            
-            // --- AMBIENT FIX: Adapt shader to new file dimensions ---
-            ambientModeManager.resetAmbientMode()
-            viewModelScope.launch {
-                // Slight delay ensures MPV's video-params (w/h/crop) are fully populated
-                delay(250) 
-                ambientModeManager.updateAmbientStretch()
-            }
-            // --------------------------------------------------------
+          _preciseDuration.value = dur.toFloat()
+
+          // --- AMBIENT FIX: Adapt shader to new file dimensions ---
+          ambientModeManager.resetAmbientMode()
+          viewModelScope.launch {
+            // Slight delay ensures MPV's video-params (w/h/crop) are fully populated
+            delay(250)
+            ambientModeManager.updateAmbientStretch()
+          }
+          // --------------------------------------------------------
         }
       }
     }
@@ -289,12 +289,12 @@ class PlayerViewModel(
   private val _videoZoom = MutableStateFlow(0f)
   val videoZoom: StateFlow<Float> = _videoZoom.asStateFlow()
 
-  // Video aspect ratio (not persisted, resets to Fit for each video)
-  private val _videoAspect = MutableStateFlow(VideoAspect.Fit)
+ // Video aspect ratio (now persisted via preferences)
+  private val _videoAspect = MutableStateFlow(playerPreferences.defaultVideoAspect.get())
   val videoAspect: StateFlow<VideoAspect> = _videoAspect.asStateFlow()
 
   // Current aspect ratio value (for custom ratios and tracking)
-  private val _currentAspectRatio = MutableStateFlow(-1.0)
+  private val _currentAspectRatio = MutableStateFlow(playerPreferences.defaultCustomAspectRatio.get())
   val currentAspectRatio: StateFlow<Double> = _currentAspectRatio.asStateFlow()
 
   // Timer
@@ -540,33 +540,6 @@ class PlayerViewModel(
       _subtitleManager.clearExternalSubtitles()
       // Scan for previously downloaded/added subtitles
       scanLocalSubtitles(mediaTitle)
-
-      // --- ADDED: Reset visual states for the new file for Ambient Mode Function by @Chinna95P ---
-      
-      // 1. Reset Aspect Ratio UI state and MPV properties to "Fit"
-      _videoAspect.value = VideoAspect.Fit
-      _currentAspectRatio.value = -1.0
-      runCatching {
-        MPVLib.setPropertyDouble("panscan", 0.0)
-        MPVLib.setPropertyDouble("video-aspect-override", -1.0)
-      }
-
-      // 2. Reset Video Zoom
-      if (_videoZoom.value != 0f) {
-          _videoZoom.value = 0f
-          runCatching { MPVLib.setPropertyDouble("video-zoom", 0.0) }
-      }
-
-      // 3. Reset Video Pan
-      if (_videoPanX.value != 0f || _videoPanY.value != 0f) {
-          _videoPanX.value = 0f
-          _videoPanY.value = 0f
-          runCatching {
-              MPVLib.setPropertyDouble("video-pan-x", 0.0)
-              MPVLib.setPropertyDouble("video-pan-y", 0.0)
-          }
-      }
-      // ---------------------------------------------------
     }
   }
 
@@ -900,6 +873,34 @@ class PlayerViewModel(
 
   // ==================== Video Aspect ====================
 
+  private var _cachedVideoRotation = 0
+
+  // Restores the user's preferred video aspect ratio and resets pan to center
+  fun resetVisualPreferences() {
+
+    // Cache the video rotation once it's available (used by stretch mode)
+    _cachedVideoRotation = MPVLib.getPropertyInt("video-params/rotate") ?: 0
+    
+    // 1. Apply saved aspect ratio preference
+    val savedAspect = playerPreferences.defaultVideoAspect.get()
+    val savedCustomRatio = playerPreferences.defaultCustomAspectRatio.get()
+
+    if (savedCustomRatio > 0) {
+      setCustomAspectRatio(savedCustomRatio)
+    } else {
+      changeVideoAspect(savedAspect, showUpdate = false)
+    }
+    // 2. Reset pan to neutral for the new file
+    if (_videoPanX.value != 0f || _videoPanY.value != 0f) {
+      _videoPanX.value = 0f
+      _videoPanY.value = 0f
+      runCatching {
+        MPVLib.setPropertyDouble("video-pan-x", 0.0)
+        MPVLib.setPropertyDouble("video-pan-y", 0.0)
+      }
+    }
+  }
+
   fun changeVideoAspect(
     aspect: VideoAspect,
     showUpdate: Boolean = true,
@@ -922,9 +923,7 @@ class PlayerViewModel(
         @Suppress("DEPRECATION")
         host.hostWindowManager.defaultDisplay.getRealMetrics(dm)
         
-        // Get video rotation from metadata
-        val rotate = MPVLib.getPropertyInt("video-params/rotate") ?: 0
-        val isVideoRotated = (rotate % 180 == 90) // 90° or 270° rotation
+        val isVideoRotated = (_cachedVideoRotation % 180 == 90)
         
         // Calculate screen ratio, inverting if video is rotated
         val screenRatio = if (isVideoRotated) {
@@ -942,9 +941,11 @@ class PlayerViewModel(
       }
     }
 
-    // Update the state
+    // Update the state and persist to preferences
     _videoAspect.value = aspect
     _currentAspectRatio.value = -1.0 // Reset custom ratio when using standard modes
+    playerPreferences.defaultVideoAspect.set(aspect)
+    playerPreferences.defaultCustomAspectRatio.set(-1.0)
 
     // Notify the UI
     if (showUpdate) {
@@ -956,6 +957,7 @@ class PlayerViewModel(
     MPVLib.setPropertyDouble("panscan", 0.0)
     MPVLib.setPropertyDouble("video-aspect-override", ratio)
     _currentAspectRatio.value = ratio
+    playerPreferences.defaultCustomAspectRatio.set(ratio)
     playerUpdate.value = PlayerUpdates.AspectRatio
   }
 

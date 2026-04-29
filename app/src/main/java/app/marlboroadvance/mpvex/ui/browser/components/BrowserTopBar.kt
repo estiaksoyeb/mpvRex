@@ -93,7 +93,6 @@ fun BrowserTopBar(
   additionalActions: @Composable RowScope.() -> Unit = { },
   onTitleLongPress: (() -> Unit)? = null,
   useRemoveIcon: Boolean = false,
-  onAddToPlaylistClick: (() -> Unit)? = null,
 ) {
   if (isInSelectionMode) {
     SelectionTopBar(
@@ -112,7 +111,6 @@ fun BrowserTopBar(
       onDeselectAll = onDeselectAll,
       modifier = modifier,
       useRemoveIcon = useRemoveIcon,
-      onAddToPlaylist = onAddToPlaylistClick,
     )
   } else {
     NormalTopBar(
@@ -313,7 +311,6 @@ private fun SelectionTopBar(
   onDeselectAll: (() -> Unit)?,
   modifier: Modifier = Modifier,
   useRemoveIcon: Boolean = false,
-  onAddToPlaylist: (() -> Unit)? = null,
 ) {
   var showDropdown by remember { mutableStateOf(false) }
 
@@ -403,21 +400,6 @@ private fun SelectionTopBar(
             contentDescription = "Play",
             modifier = Modifier.size(28.dp),
             tint = MaterialTheme.colorScheme.primary,
-          )
-        }
-      }
-
-      // Add to Playlist icon (for Play Store builds)
-      if (onAddToPlaylist != null) {
-        IconButton(
-          onClick = onAddToPlaylist,
-          modifier = Modifier.padding(horizontal = 2.dp),
-        ) {
-          Icon(
-            Icons.AutoMirrored.Filled.PlaylistAdd,
-            contentDescription = "Add to Playlist",
-            modifier = Modifier.size(28.dp),
-            tint = MaterialTheme.colorScheme.secondary,
           )
         }
       }

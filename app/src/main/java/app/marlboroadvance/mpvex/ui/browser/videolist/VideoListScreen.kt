@@ -293,9 +293,6 @@ data class VideoListScreen(
           onSelectAll = { selectionManager.selectAll() },
           onInvertSelection = { selectionManager.invertSelection() },
           onDeselectAll = { selectionManager.clear() },
-          onAddToPlaylistClick = if (!BuildConfig.ENABLE_UPDATE_FEATURE) {
-            { addToPlaylistDialogOpen.value = true }
-          } else null,
         )
       },
       floatingActionButton = {

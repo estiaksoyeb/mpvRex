@@ -712,9 +712,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 folderSelectionManager.clear()
               }
             } else null,
-            onAddToPlaylistClick = if (!BuildConfig.ENABLE_UPDATE_FEATURE && videoSelectionManager.isInSelectionMode && !folderSelectionManager.isInSelectionMode) {
-              { addToPlaylistDialogOpen.value = true }
-            } else null,
           )
         }
       },

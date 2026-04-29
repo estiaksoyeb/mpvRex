@@ -795,6 +795,7 @@ private fun VideoListContent(
               LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
                 contentPadding = PaddingValues(
                   start = 8.dp,
                   end = 8.dp,

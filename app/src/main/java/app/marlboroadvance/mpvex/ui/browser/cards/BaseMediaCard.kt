@@ -19,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -65,6 +66,7 @@ fun BaseMediaCard(
     maxTitleLines: Int = 2,
     thumbnailSize: Dp = 64.dp,
     thumbnailAspectRatio: Float = 16f / 9f,
+    listTitleStyle: TextStyle? = null,
     infoContent: @Composable (RowScope.() -> Unit)? = null,
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
@@ -181,7 +183,7 @@ fun BaseMediaCard(
                         if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
                         else Color.Transparent
                     )
-                    .padding(16.dp),
+                    .padding(vertical = 10.dp, horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
         // Thumbnail Box
@@ -240,7 +242,7 @@ fun BaseMediaCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = listTitleStyle ?: MaterialTheme.typography.titleMedium,
                         color = when {
                             isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                             isNeverPlayed -> MaterialTheme.colorScheme.onSurface

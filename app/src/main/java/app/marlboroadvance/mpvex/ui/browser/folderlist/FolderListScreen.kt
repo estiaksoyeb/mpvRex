@@ -172,6 +172,7 @@ object FolderListScreen : Screen {
     val foldersWithNewCount by viewModel.foldersWithNewCount.collectAsState()
     val uiSettings by viewModel.uiSettings.collectAsState()
     val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
+    val playedFolderPaths by viewModel.playedFolderPaths.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val scanStatus by viewModel.scanStatus.collectAsState()
     val hasCompletedInitialLoad by viewModel.hasCompletedInitialLoad.collectAsState()
@@ -180,10 +181,10 @@ object FolderListScreen : Screen {
     // Preferences
     val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
     val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
-  val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
-  val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-  val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-  val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+    val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
     val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
     val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
@@ -544,6 +545,7 @@ object FolderListScreen : Screen {
               hasCompletedInitialLoad = hasCompletedInitialLoad,
               foldersWereDeleted = foldersWereDeleted,
               recentlyPlayedFilePath = recentlyPlayedFilePath,
+              playedFolderPaths = playedFolderPaths,
               onRefresh = { viewModel.refresh() },
               mediaLayoutMode = mediaLayoutMode,
               folderGridColumns = folderGridColumns,
@@ -619,6 +621,7 @@ private fun FolderListContent(
   foldersWithNewCount: List<app.marlboroadvance.mpvex.ui.browser.folderlist.FolderWithNewCount>,
   uiSettings: UiSettings,
   recentlyPlayedFilePath: String?,
+  playedFolderPaths: Set<String>,
   isLoading: Boolean,
   scanStatus: String?,
   hasCompletedInitialLoad: Boolean,
@@ -689,6 +692,7 @@ private fun FolderListContent(
           foldersWithNewCount = foldersWithNewCount,
           uiSettings = uiSettings,
           recentlyPlayedFilePath = recentlyPlayedFilePath,
+          playedFolderPaths = playedFolderPaths,
           folderGridColumns = folderGridColumns,
           tapThumbnailToSelect = tapThumbnailToSelect,
           navigationBarHeight = navigationBarHeight,
@@ -704,6 +708,7 @@ private fun FolderListContent(
           foldersWithNewCount = foldersWithNewCount,
           uiSettings = uiSettings,
           recentlyPlayedFilePath = recentlyPlayedFilePath,
+          playedFolderPaths = playedFolderPaths,
           tapThumbnailToSelect = tapThumbnailToSelect,
           navigationBarHeight = navigationBarHeight,
           listState = listState,
@@ -734,6 +739,7 @@ private fun GridContent(
   foldersWithNewCount: List<app.marlboroadvance.mpvex.ui.browser.folderlist.FolderWithNewCount>,
   uiSettings: UiSettings,
   recentlyPlayedFilePath: String?,
+  playedFolderPaths: Set<String>,
   folderGridColumns: Int,
   tapThumbnailToSelect: Boolean,
   navigationBarHeight: androidx.compose.ui.unit.Dp,
@@ -762,7 +768,7 @@ private fun GridContent(
         val isRecentlyPlayed = recentlyPlayedFilePath?.let {
           java.io.File(it).parent == folder.path
         } ?: false
-
+        val isNeverPlayed = folder.path !in playedFolderPaths
         val newCount = foldersWithNewCount
           .find { it.folder.bucketId == folder.bucketId }
           ?.newVideoCount ?: 0
@@ -772,6 +778,7 @@ private fun GridContent(
           uiSettings = uiSettings,
           isSelected = selectionManager.isSelected(folder),
           isRecentlyPlayed = isRecentlyPlayed,
+          isNeverPlayed = isNeverPlayed,
           onClick = { onFolderClick(folder) },
           onLongClick = { onFolderLongClick(folder) },
           onThumbClick = if (tapThumbnailToSelect) {
@@ -811,7 +818,7 @@ private fun ListContent(
   foldersWithNewCount: List<FolderWithNewCount>,
   uiSettings: UiSettings,
   recentlyPlayedFilePath: String?,
-
+  playedFolderPaths: Set<String>,
   tapThumbnailToSelect: Boolean,
   navigationBarHeight: androidx.compose.ui.unit.Dp,
   listState: LazyListState,
@@ -824,6 +831,7 @@ private fun ListContent(
     LazyColumn(
       state = listState,
       modifier = Modifier.fillMaxSize(),
+      verticalArrangement = Arrangement.spacedBy(2.dp),
       contentPadding = PaddingValues(
         start = 8.dp,
         end = 8.dp,
@@ -834,7 +842,7 @@ private fun ListContent(
         val isRecentlyPlayed = recentlyPlayedFilePath?.let {
           java.io.File(it).parent == folder.path
         } ?: false
-
+        val isNeverPlayed = folder.path !in playedFolderPaths
         val newCount = foldersWithNewCount
           .find { it.folder.bucketId == folder.bucketId }
           ?.newVideoCount ?: 0
@@ -844,6 +852,7 @@ private fun ListContent(
           uiSettings = uiSettings,
           isSelected = selectionManager.isSelected(folder),
           isRecentlyPlayed = isRecentlyPlayed,
+          isNeverPlayed = isNeverPlayed,
           onClick = { onFolderClick(folder) },
           onLongClick = { onFolderLongClick(folder) },
           onThumbClick = if (tapThumbnailToSelect) {

@@ -540,37 +540,6 @@ class PlayerViewModel(
       _subtitleManager.clearExternalSubtitles()
       // Scan for previously downloaded/added subtitles
       scanLocalSubtitles(mediaTitle)
-
-      // --- ADDED: Reset visual states for the new file for Ambient Mode Function by @Chinna95P ---
-
-      // 1. Reset Aspect Ratio to saved preference
-      val savedAspect = playerPreferences.defaultVideoAspect.get()
-      val savedCustomRatio = playerPreferences.defaultCustomAspectRatio.get()
-
-      if (savedCustomRatio > 0) {
-        // Restore user preferred custom aspect ratio
-        setCustomAspectRatio(savedCustomRatio)
-      } else {
-        // Restore standard aspect ratio mode (Fit, Crop, or Stretch)
-        changeVideoAspect(savedAspect, showUpdate = false)
-      }
-
-      // 2. Reset Video Zoom
-      if (_videoZoom.value != 0f) {
-          _videoZoom.value = 0f
-          runCatching { MPVLib.setPropertyDouble("video-zoom", 0.0) }
-      }
-
-      // 3. Reset Video Pan
-      if (_videoPanX.value != 0f || _videoPanY.value != 0f) {
-          _videoPanX.value = 0f
-          _videoPanY.value = 0f
-          runCatching {
-              MPVLib.setPropertyDouble("video-pan-x", 0.0)
-              MPVLib.setPropertyDouble("video-pan-y", 0.0)
-          }
-      }
-      // ---------------------------------------------------
     }
   }
 
@@ -903,6 +872,30 @@ class PlayerViewModel(
   }
 
   // ==================== Video Aspect ====================
+
+
+  // Restores the user's preferred video aspect ratio and resets pan to center
+  fun resetVisualPreferences() {
+    
+    // 1. Apply saved aspect ratio preference
+    val savedAspect = playerPreferences.defaultVideoAspect.get()
+    val savedCustomRatio = playerPreferences.defaultCustomAspectRatio.get()
+
+    if (savedCustomRatio > 0) {
+      setCustomAspectRatio(savedCustomRatio)
+    } else {
+      changeVideoAspect(savedAspect, showUpdate = false)
+    }
+    // 2. Reset pan to neutral for the new file
+    if (_videoPanX.value != 0f || _videoPanY.value != 0f) {
+      _videoPanX.value = 0f
+      _videoPanY.value = 0f
+      runCatching {
+        MPVLib.setPropertyDouble("video-pan-x", 0.0)
+        MPVLib.setPropertyDouble("video-pan-y", 0.0)
+      }
+    }
+  }
 
   fun changeVideoAspect(
     aspect: VideoAspect,

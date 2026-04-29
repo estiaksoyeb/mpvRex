@@ -1896,6 +1896,8 @@ class PlayerActivity :
       setIntentExtras(intent.extras)
       pendingIntentExtras = false
     }
+    // Reset aspect ration to preferred and pan to neutral
+    viewModel.resetVisualPreferences()
 
     lifecycleScope.launch(Dispatchers.IO) {
       // Load playback state (will skip track restoration if preferred language configured)

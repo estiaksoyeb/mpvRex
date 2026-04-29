@@ -873,9 +873,13 @@ class PlayerViewModel(
 
   // ==================== Video Aspect ====================
 
+  private var _cachedVideoRotation = 0
 
   // Restores the user's preferred video aspect ratio and resets pan to center
   fun resetVisualPreferences() {
+
+    // Cache the video rotation once it's available (used by stretch mode)
+    _cachedVideoRotation = MPVLib.getPropertyInt("video-params/rotate") ?: 0
     
     // 1. Apply saved aspect ratio preference
     val savedAspect = playerPreferences.defaultVideoAspect.get()
@@ -919,9 +923,7 @@ class PlayerViewModel(
         @Suppress("DEPRECATION")
         host.hostWindowManager.defaultDisplay.getRealMetrics(dm)
         
-        // Get video rotation from metadata
-        val rotate = MPVLib.getPropertyInt("video-params/rotate") ?: 0
-        val isVideoRotated = (rotate % 180 == 90) // 90° or 270° rotation
+        val isVideoRotated = (_cachedVideoRotation % 180 == 90)
         
         // Calculate screen ratio, inverting if video is rotated
         val screenRatio = if (isVideoRotated) {

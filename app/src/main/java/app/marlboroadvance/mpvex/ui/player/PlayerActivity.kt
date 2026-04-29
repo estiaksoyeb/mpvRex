@@ -197,6 +197,8 @@ class PlayerActivity :
   private var wasPlayingBeforePause = false // Track if video was playing before pause
   private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
 
+  @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
+
   // ==================== Background Playback ====================
 
   /**
@@ -1858,6 +1860,12 @@ class PlayerActivity :
         if (!isReady) {
           isReady = true
         }
+        if (needsAspectReapply) {
+          needsAspectReapply = false
+          runOnUiThread {
+            viewModel.resetVisualPreferences()
+          }
+        }
       }
     }
   }
@@ -1898,6 +1906,7 @@ class PlayerActivity :
     }
     // Reset aspect ration to preferred and pan to neutral
     viewModel.resetVisualPreferences()
+    needsAspectReapply = true
 
     lifecycleScope.launch(Dispatchers.IO) {
       // Load playback state (will skip track restoration if preferred language configured)

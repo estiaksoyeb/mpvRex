@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import app.marlboroadvance.mpvex.domain.recentlyplayed.repository.RecentlyPlayedRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -37,10 +41,20 @@ class FolderListViewModel(
   private val foldersPreferences: FoldersPreferences by inject()
   private val appearancePreferences: AppearancePreferences by inject()
   private val browserPreferences: app.marlboroadvance.mpvex.preferences.BrowserPreferences by inject()
+  private val recentlyPlayedRepository: RecentlyPlayedRepository by inject()
 
   private val _allVideoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
   private val _videoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
   val videoFolders: StateFlow<List<VideoFolder>> = _videoFolders.asStateFlow()
+
+  // Set of folder paths that have ever had a video played from them
+  val playedFolderPaths: StateFlow<Set<String>> =
+    recentlyPlayedRepository
+      .observeRecentlyPlayed(limit = 1000)
+      .map { list ->
+        list.mapNotNull { java.io.File(it.filePath).parent }.toSet()
+      }
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
   private val _foldersWithNewCount = MutableStateFlow<List<FolderWithNewCount>>(emptyList())
   val foldersWithNewCount: StateFlow<List<FolderWithNewCount>> = _foldersWithNewCount.asStateFlow()

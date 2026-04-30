@@ -763,10 +763,9 @@ private fun GridContent(
           java.io.File(it).parent == folder.path
         } ?: false
 
-        val counts = foldersWithNewCount
+        val newCount = foldersWithNewCount
           .find { it.folder.bucketId == folder.bucketId }
-        val newCount = counts?.newVideoCount ?: 0
-        val unwatchedCount = counts?.unwatchedVideoCount ?: 0
+          ?.newVideoCount ?: 0
 
         FolderCard(
           folder = folder,
@@ -781,7 +780,6 @@ private fun GridContent(
             { onFolderClick(folder) }
           },
           newVideoCount = newCount,
-          unwatchedVideoCount = unwatchedCount,
           isGridMode = true,
           gridColumns = folderGridColumns,
         )
@@ -837,10 +835,9 @@ private fun ListContent(
           java.io.File(it).parent == folder.path
         } ?: false
 
-        val counts = foldersWithNewCount
+        val newCount = foldersWithNewCount
           .find { it.folder.bucketId == folder.bucketId }
-        val newCount = counts?.newVideoCount ?: 0
-        val unwatchedCount = counts?.unwatchedVideoCount ?: 0
+          ?.newVideoCount ?: 0
 
         FolderCard(
           folder = folder,
@@ -855,7 +852,6 @@ private fun ListContent(
             { onFolderClick(folder) }
           },
           newVideoCount = newCount,
-          unwatchedVideoCount = unwatchedCount,
           isGridMode = false,
         )
       }

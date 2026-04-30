@@ -43,7 +43,6 @@ object CoreMediaScanner {
         val directVideoCount: Int = 0,
         val directAudioCount: Int = 0,
         val directNewCount: Int = 0,
-        val directUnwatchedCount: Int = 0,
         val directSize: Long = 0L,
         val directDuration: Long = 0L,
         val lastModified: Long = 0L,
@@ -53,7 +52,6 @@ object CoreMediaScanner {
         var recursiveVideoCount: Int = 0,
         var recursiveAudioCount: Int = 0,
         var recursiveNewCount: Int = 0,
-        var recursiveUnwatchedCount: Int = 0,
         var recursiveSize: Long = 0L,
         var recursiveDuration: Long = 0L,
         var latestModified: Long = 0L
@@ -77,10 +75,9 @@ object CoreMediaScanner {
         context: Context,
         playbackStates: List<PlaybackStateEntity> = emptyList(),
         thresholdDays: Int = 7,
-        watchedThreshold: Int = 95,
         blacklistedFolders: Set<String> = emptySet()
     ): List<MediaFolder> = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, watchedThreshold, blacklistedFolders)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         
         // Filter for folders that have DIRECT media files
         allNodes.values
@@ -97,8 +94,7 @@ object CoreMediaScanner {
                     lastModified = node.lastModified,
                     hasSubfolders = node.hasDirectSubfolders,
                     isRecursive = false,
-                    newCount = node.directNewCount,
-                    unwatchedCount = node.directUnwatchedCount
+                    newCount = node.directNewCount
                 )
             }.sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
@@ -111,10 +107,9 @@ object CoreMediaScanner {
         parentPath: String,
         playbackStates: List<PlaybackStateEntity> = emptyList(),
         thresholdDays: Int = 7,
-        watchedThreshold: Int = 95,
         blacklistedFolders: Set<String> = emptySet()
     ): List<MediaFolder> = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, watchedThreshold, blacklistedFolders)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         
         getEffectiveChildren(parentPath, allNodes)
             .map { node ->
@@ -130,8 +125,7 @@ object CoreMediaScanner {
                     lastModified = node.latestModified,
                     hasSubfolders = node.hasDirectSubfolders,
                     isRecursive = true,
-                    newCount = node.recursiveNewCount,
-                    unwatchedCount = node.recursiveUnwatchedCount
+                    newCount = node.recursiveNewCount
                 )
             }.sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
@@ -165,10 +159,9 @@ object CoreMediaScanner {
         path: String,
         playbackStates: List<PlaybackStateEntity> = emptyList(),
         thresholdDays: Int = 7,
-        watchedThreshold: Int = 95,
         blacklistedFolders: Set<String> = emptySet()
     ): MediaFolder? = withContext(Dispatchers.IO) {
-        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, watchedThreshold, blacklistedFolders)
+        val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         allNodes[path]?.let { node ->
             MediaFolder(
                 id = node.path,
@@ -181,8 +174,7 @@ object CoreMediaScanner {
                 lastModified = node.latestModified,
                 hasSubfolders = node.hasDirectSubfolders,
                 isRecursive = true,
-                newCount = node.recursiveNewCount,
-                unwatchedCount = node.recursiveUnwatchedCount
+                newCount = node.recursiveNewCount
             )
         }
     }
@@ -194,7 +186,6 @@ object CoreMediaScanner {
         context: Context,
         playbackStates: List<PlaybackStateEntity>,
         thresholdDays: Int,
-        watchedThreshold: Int,
         blacklistedFolders: Set<String> = emptySet()
     ): Map<String, FolderNode> {
         val now = System.currentTimeMillis()
@@ -204,7 +195,7 @@ object CoreMediaScanner {
             }
         }
         
-        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, watchedThreshold, blacklistedFolders)
+        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
         cachedMediaData = tree
         cacheTimestamp = now
         return tree
@@ -217,7 +208,6 @@ object CoreMediaScanner {
         context: Context,
         playbackStates: List<PlaybackStateEntity>,
         thresholdDays: Int,
-        watchedThreshold: Int,
         blacklistedFolders: Set<String>
     ): Map<String, FolderNode> {
         val allNodes = mutableMapOf<String, FolderNode>()
@@ -240,7 +230,6 @@ object CoreMediaScanner {
             var videoCount = 0
             var audioCount = 0
             var newCount = 0
-            var unwatchedCount = 0
             var totalSize = 0L
             var totalDuration = 0L
             var latestModified = 0L
@@ -252,31 +241,11 @@ object CoreMediaScanner {
                     if (item.dateModified > latestModified) latestModified = item.dateModified
                     if (item.isAudio) audioCount++ else videoCount++
 
-                    // Calculate NEW and UNWATCHED status
+                    // Calculate NEW status
                     val playbackState = playbackStates.find { it.mediaTitle == item.name }
-                    
-                    // NEW: Never played and recently added
                     val videoAge = currentTime - (item.dateModified * 1000)
                     if (playbackState == null && videoAge <= thresholdMillis) {
                         newCount++
-                    }
-                    
-                    // UNWATCHED: Either never played OR played but progress < threshold
-                    val isWatched = if (playbackState != null && item.duration > 0) {
-                        val durationSeconds = item.duration / 1000
-                        val watched = durationSeconds - playbackState.timeRemaining.toLong()
-                        val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
-                        val calculatedWatched = progressValue >= (watchedThreshold / 100f)
-                        playbackState.hasBeenWatched || calculatedWatched
-                    } else if (playbackState != null && item.duration == 0L) {
-                        // If duration unknown but we have playback state, check hasBeenWatched
-                        playbackState.hasBeenWatched
-                    } else {
-                        false
-                    }
-                    
-                    if (!isWatched) {
-                        unwatchedCount++
                     }
                 }
             }
@@ -287,7 +256,6 @@ object CoreMediaScanner {
                 directVideoCount = videoCount,
                 directAudioCount = audioCount,
                 directNewCount = newCount,
-                directUnwatchedCount = unwatchedCount,
                 directSize = totalSize,
                 directDuration = totalDuration,
                 lastModified = latestModified
@@ -440,7 +408,6 @@ object CoreMediaScanner {
             node.recursiveVideoCount = node.directVideoCount
             node.recursiveAudioCount = node.directAudioCount
             node.recursiveNewCount = node.directNewCount
-            node.recursiveUnwatchedCount = node.directUnwatchedCount
             node.recursiveSize = node.directSize
             node.recursiveDuration = node.directDuration
             node.latestModified = node.lastModified
@@ -453,7 +420,6 @@ object CoreMediaScanner {
                     node.recursiveVideoCount += otherNode.recursiveVideoCount
                     node.recursiveAudioCount += otherNode.recursiveAudioCount
                     node.recursiveNewCount += otherNode.recursiveNewCount
-                    node.recursiveUnwatchedCount += otherNode.recursiveUnwatchedCount
                     node.recursiveSize += otherNode.recursiveSize
                     node.recursiveDuration += otherNode.recursiveDuration
                     if (otherNode.latestModified > node.latestModified) {

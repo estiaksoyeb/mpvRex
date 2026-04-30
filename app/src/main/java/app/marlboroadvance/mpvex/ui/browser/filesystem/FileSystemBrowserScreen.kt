@@ -1313,8 +1313,6 @@ private fun FileSystemBrowserContent(
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,
-                newCount = folder.newCount,
-                unwatchedCount = folder.unwatchedCount
               )
 
               FolderCard(
@@ -1322,7 +1320,6 @@ private fun FileSystemBrowserContent(
                 uiSettings = uiSettings,
                 isSelected = folderSelectionManager.isSelected(folder),
                 newVideoCount = folder.newCount,
-                unwatchedVideoCount = folder.unwatchedCount,
 
                 isRecentlyPlayed = recentlyPlayedFilePath?.let { it.startsWith(folder.path + "/") && folder.path != "/" } ?: false,
                 onClick = { onFolderClick(folder) },
@@ -1505,8 +1502,6 @@ private fun FileSystemSearchContent(
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,
-                newCount = folder.newCount,
-                unwatchedCount = folder.unwatchedCount
               )
 
               FolderCard(
@@ -1515,7 +1510,6 @@ private fun FileSystemSearchContent(
                 isSelected = false,
                 isRecentlyPlayed = false,
                 newVideoCount = folder.newCount,
-                unwatchedVideoCount = folder.unwatchedCount,
                 onClick = { onFolderClick(folder) },
                 onLongClick = { },
                 onThumbClick = { onFolderClick(folder) },

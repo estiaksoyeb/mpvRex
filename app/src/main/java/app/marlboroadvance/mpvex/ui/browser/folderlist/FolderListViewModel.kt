@@ -28,7 +28,6 @@ import org.koin.core.component.inject
 data class FolderWithNewCount(
   val folder: VideoFolder,
   val newVideoCount: Int = 0,
-  val unwatchedVideoCount: Int = 0,
 )
 
 class FolderListViewModel(
@@ -124,7 +123,7 @@ class FolderListViewModel(
         
         // Map to FolderWithNewCount using the pre-calculated newCount from repository
         _foldersWithNewCount.value = filteredFolders.map { 
-          FolderWithNewCount(it, it.newCount, it.unwatchedCount) 
+          FolderWithNewCount(it, it.newCount) 
         }
 
         // Save to cache for next app launch (save unfiltered list)
@@ -169,7 +168,7 @@ class FolderListViewModel(
   private fun serializeFoldersToJson(folders: List<VideoFolder>): String {
     // For now using a simple approach since we only cache basic info
     return folders.joinToString("|") { folder ->
-      "${folder.bucketId};${folder.name};${folder.path};${folder.videoCount};${folder.audioCount};${folder.totalSize};${folder.totalDuration};${folder.lastModified};${folder.newCount};${folder.unwatchedCount}"
+      "${folder.bucketId};${folder.name};${folder.path};${folder.videoCount};${folder.audioCount};${folder.totalSize};${folder.totalDuration};${folder.lastModified};${folder.newCount}"
     }
   }
 
@@ -187,8 +186,7 @@ class FolderListViewModel(
           totalSize = parts[5].toLong(),
           totalDuration = parts[6].toLong(),
           lastModified = parts[7].toLong(),
-          newCount = if (parts.size > 8) parts[8].toInt() else 0,
-          unwatchedCount = if (parts.size > 9) parts[9].toInt() else 0
+          newCount = if (parts.size > 8) parts[8].toInt() else 0
         )
       } catch (e: Exception) {
         null

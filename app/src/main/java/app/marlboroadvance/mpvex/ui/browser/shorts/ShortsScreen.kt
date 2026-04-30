@@ -223,6 +223,7 @@ data class ShortsScreen(
                                 val video = shorts[pagerState.settledPage]
                                 MPVLib.command("stop") 
                                 MPVLib.command("loadfile", video.path)
+                                MPVLib.setPropertyString("loop-file", "inf")
                                 MPVLib.setPropertyBoolean("pause", false)
                                 viewModel.syncPlaybackSpeed()
                                 

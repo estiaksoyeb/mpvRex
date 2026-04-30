@@ -59,6 +59,7 @@ fun ShortsPlayerHost(
         }
 
         mpvView.initialize(context.filesDir.path, context.cacheDir.path)
+        MPVLib.setPropertyString("loop-file", "inf")
         MPVLib.addObserver(observer)
         onReady(mpvView)
         

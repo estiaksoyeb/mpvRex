@@ -2,6 +2,10 @@ package app.marlboroadvance.mpvex.ui.player.controls.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateFloat
@@ -85,6 +89,7 @@ fun SeekbarWithTimers(
   seekbarStyle: SeekbarStyle = SeekbarStyle.Wavy,
   loopStart: Float? = null,
   loopEnd: Float? = null,
+  isGestureSeeking: Boolean = false,
   modifier: Modifier = Modifier,
 ) {
   val clickEvent = LocalPlayerButtonsClickEvent.current
@@ -95,6 +100,19 @@ fun SeekbarWithTimers(
   val animatedPosition = remember { Animatable(position) }
   val scope = rememberCoroutineScope()
   var lastInteractionTime by remember { mutableLongStateOf(0L) }
+
+  // Determine if the seekbar should be actively squeezed
+  val shouldSqueeze = isUserInteracting || isGestureSeeking
+  
+  // Calculate spring bounce animation for Y-axis (78%)
+  val squeezeScale by animateFloatAsState(
+    targetValue = if (shouldSqueeze) 0.78f else 1f,
+    animationSpec = spring(
+      dampingRatio = 0.75f,
+      stiffness = Spring.StiffnessMediumLow
+    ),
+    label = "seekbar_squeeze"
+  )
 
   // Only animate position updates when user is not interacting
   LaunchedEffect(position) {
@@ -139,7 +157,10 @@ fun SeekbarWithTimers(
       modifier =
         Modifier
           .weight(1f)
-          .height(48.dp),
+          .height(48.dp)
+          .graphicsLayer {
+            scaleY = squeezeScale
+          },
       contentAlignment = Alignment.Center,
     ) {
 

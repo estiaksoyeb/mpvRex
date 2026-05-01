@@ -185,6 +185,17 @@ class PlayerViewModel(
   // Audio state
   val currentVolume = MutableStateFlow(host.audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
   private val volumeBoostCap by MPVLib.propInt["volume-max"].collectAsState(viewModelScope)
+  
+  // Gesture state for seekbar bouncing animation
+  private val _isGestureSeeking = MutableStateFlow(false)
+  val isGestureSeeking: StateFlow<Boolean> = _isGestureSeeking.asStateFlow()
+
+  fun setGestureSeeking(isSeeking: Boolean) {
+    _isGestureSeeking.value = isSeeking
+  }
+
+  // Gesture state for vertical bouncing animation
+  val isVerticalGestureActive = MutableStateFlow(false)
 
   init {
     // Poll precise position only when playing

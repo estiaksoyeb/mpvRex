@@ -194,12 +194,15 @@ fun PlayerControls(
   val playerTimeToDisappear by playerPreferences.playerTimeToDisappear.collectAsState()
   val chapters by viewModel.chapters.collectAsState(persistentListOf())
   val playlistMode by playerPreferences.playlistMode.collectAsState()
-    val haptic = LocalHapticFeedback.current
+  val haptic = LocalHapticFeedback.current
 
-    val customButtons by viewModel.customButtons.collectAsState()
+  val customButtons by viewModel.customButtons.collectAsState()
     
   val abLoopA by viewModel.abLoopA.collectAsState()
   val abLoopB by viewModel.abLoopB.collectAsState()
+
+  val isGestureSeeking by viewModel.isGestureSeeking.collectAsState()
+  val isVerticalGestureActive by viewModel.isVerticalGestureActive.collectAsState()
 
   val onOpenSheet: (Sheets) -> Unit = {
     viewModel.sheetShown.update { _ -> it }
@@ -386,7 +389,7 @@ fun PlayerControls(
               top.linkTo(parent.top, spacing.larger)
               bottom.linkTo(parent.bottom, spacing.extraLarge)
             },
-        ) { BrightnessSlider(brightness, 0f..1f) }
+        ) { BrightnessSlider(brightness, 0f..1f, isActive = isVerticalGestureActive) }
 
         AnimatedVisibility(
           isVolumeSliderShown,
@@ -427,6 +430,7 @@ fun PlayerControls(
             range = 0..viewModel.maxVolume,
             boostRange = if (showBoost) 0..effBoostCap else null,
             displayAsPercentage = displayVolumeAsPercentage,
+            isActive = isVerticalGestureActive
           )
         }
 
@@ -1170,6 +1174,7 @@ fun PlayerControls(
             seekbarStyle = seekbarStyle,
             loopStart = abLoopA?.toFloat(),
             loopEnd = abLoopB?.toFloat(),
+            isGestureSeeking = isGestureSeeking
           )
         }
 

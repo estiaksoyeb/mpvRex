@@ -22,6 +22,9 @@ import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.BrightnessMedium
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -55,13 +58,33 @@ fun VerticalSlider(
   modifier: Modifier = Modifier,
   overflowValue: Float? = null,
   overflowRange: ClosedFloatingPointRange<Float>? = null,
+  isActive: Boolean = false
 ) {
   val coercedValue = value.coerceIn(range)
+
+  // Calculate dynamic track width
+  val trackWidth by animateDpAsState(
+    targetValue = if (isActive) 32.dp else 22.dp,
+    animationSpec = tween(
+      durationMillis = 250,
+      easing = FastOutSlowInEasing
+    ),
+    label = "track_width"
+  )
+
+  // Outer fixed-width container prevents layout shifts
   Box(
     modifier =
       modifier
-        .height(120.dp)
-        .aspectRatio(0.2f)
+      .height(120.dp)
+      .width(32.dp),
+    contentAlignment = Alignment.BottomCenter
+  ) {
+    // Inner track that actually animates
+    Box(
+      modifier = Modifier
+        .fillMaxHeight()
+        .width(trackWidth)
         .clip(RoundedCornerShape(16.dp))
         .background(MaterialTheme.colorScheme.background)
         .border(
@@ -69,26 +92,27 @@ fun VerticalSlider(
           color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
           shape = RoundedCornerShape(16.dp),
         ),
-    contentAlignment = Alignment.BottomCenter,
-  ) {
-    val targetHeight by animateFloatAsState(percentage(coercedValue, range), label = "vsliderheight")
-    Box(
-      Modifier
-        .fillMaxWidth()
-        .fillMaxHeight(targetHeight)
-        .background(MaterialTheme.colorScheme.tertiary),
-    )
-    if (overflowRange != null && overflowValue != null) {
-      val overflowHeight by animateFloatAsState(
-        percentage(overflowValue, overflowRange),
-        label = "vslideroverflowheight",
-      )
+      contentAlignment = Alignment.BottomCenter,
+    ) {
+      val targetHeight by animateFloatAsState(percentage(coercedValue, range), label = "vsliderheight")
       Box(
         Modifier
           .fillMaxWidth()
-          .fillMaxHeight(overflowHeight)
-          .background(MaterialTheme.colorScheme.errorContainer),
+          .fillMaxHeight(targetHeight)
+          .background(MaterialTheme.colorScheme.tertiary),
       )
+      if (overflowRange != null && overflowValue != null) {
+        val overflowHeight by animateFloatAsState(
+          percentage(overflowValue, overflowRange),
+          label = "vslideroverflowheight",
+        )
+        Box(
+          Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(overflowHeight)
+            .background(MaterialTheme.colorScheme.errorContainer),
+        )
+      }
     }
   }
 }
@@ -100,13 +124,32 @@ fun VerticalSlider(
   modifier: Modifier = Modifier,
   overflowValue: Int? = null,
   overflowRange: ClosedRange<Int>? = null,
+  isActive: Boolean = false
 ) {
   val coercedValue = value.coerceIn(range)
+
+  // Calculate dynamic track width
+  val trackWidth by animateDpAsState(
+    targetValue = if (isActive) 32.dp else 22.dp,
+    animationSpec = tween(
+      durationMillis = 250,
+      easing = FastOutSlowInEasing
+    ),
+    label = "track_width"
+  )
+
+  // Outer fixed-width container
   Box(
-    modifier =
-      modifier
-        .height(120.dp)
-        .aspectRatio(0.2f)
+    modifier = modifier
+      .height(120.dp)
+      .width(32.dp),
+    contentAlignment = Alignment.BottomCenter
+  ) {
+    // Inner track that actually animates
+    Box(
+      modifier = Modifier
+        .fillMaxHeight()
+        .width(trackWidth)
         .clip(RoundedCornerShape(16.dp))
         .background(MaterialTheme.colorScheme.background)
         .border(
@@ -114,26 +157,27 @@ fun VerticalSlider(
           color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
           shape = RoundedCornerShape(16.dp),
         ),
-    contentAlignment = Alignment.BottomCenter,
-  ) {
-    val targetHeight by animateFloatAsState(percentage(coercedValue, range), label = "vsliderheight")
-    Box(
-      Modifier
-        .fillMaxWidth()
-        .fillMaxHeight(targetHeight)
-        .background(MaterialTheme.colorScheme.tertiary),
-    )
-    if (overflowRange != null && overflowValue != null) {
-      val overflowHeight by animateFloatAsState(
-        percentage(overflowValue, overflowRange),
-        label = "vslideroverflowheight",
-      )
+      contentAlignment = Alignment.BottomCenter,
+    ) {
+      val targetHeight by animateFloatAsState(percentage(coercedValue, range), label = "vsliderheight")
       Box(
         Modifier
           .fillMaxWidth()
-          .fillMaxHeight(overflowHeight)
-          .background(MaterialTheme.colorScheme.errorContainer),
+          .fillMaxHeight(targetHeight)
+          .background(MaterialTheme.colorScheme.tertiary),
       )
+      if (overflowRange != null && overflowValue != null) {
+        val overflowHeight by animateFloatAsState(
+          percentage(overflowValue, overflowRange),
+          label = "vslideroverflowheight",
+        )
+        Box(
+          Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(overflowHeight)
+            .background(MaterialTheme.colorScheme.errorContainer),
+        )
+      }
     }
   }
 }
@@ -143,6 +187,7 @@ fun BrightnessSlider(
   brightness: Float,
   range: ClosedFloatingPointRange<Float>,
   modifier: Modifier = Modifier,
+  isActive: Boolean = false
 ) {
   val coercedBrightness = brightness.coerceIn(range)
   Surface(
@@ -166,6 +211,7 @@ fun BrightnessSlider(
       VerticalSlider(
         coercedBrightness,
         range,
+        isActive = isActive
       )
       Icon(
         when (percentage(coercedBrightness, range)) {
@@ -188,6 +234,7 @@ fun VolumeSlider(
   boostRange: ClosedRange<Int>?,
   modifier: Modifier = Modifier,
   displayAsPercentage: Boolean = false,
+  isActive: Boolean = false
 ) {
   val percentage = (percentage(volume, range) * 100).roundToInt()
   Surface(
@@ -215,6 +262,7 @@ fun VolumeSlider(
         if (displayAsPercentage) 0..100 else range,
         overflowValue = boostVolume,
         overflowRange = boostRange,
+        isActive = isActive
       )
       Icon(
         when (percentage) {

@@ -485,6 +485,7 @@ fun GestureHandler(
                       "vertical" -> {
                         if ((brightnessGesture || volumeGesture) && !isLongPressing) {
                           isVerticalGestureActive = true
+                          viewModel.isVerticalGestureActive.value = true
                           startingY = 0f
                           mpvVolumeStartingY = 0f
                           originalVolume = currentVolume
@@ -661,6 +662,7 @@ fun GestureHandler(
                   "vertical" -> {
                     if (brightnessGesture || volumeGesture) {
                       isVerticalGestureActive = false
+                      viewModel.isVerticalGestureActive.value = false
                       startingY = 0f
                       lastVolumeValue = currentVolume
                       lastMPVVolumeValue = currentMPVVolume ?: 100
@@ -708,6 +710,7 @@ fun GestureHandler(
             "vertical" -> {
               if (brightnessGesture || volumeGesture) {
                 isVerticalGestureActive = false
+                viewModel.isVerticalGestureActive.value = false
                 startingY = 0f
                 lastVolumeValue = currentVolume
                 lastMPVVolumeValue = currentMPVVolume ?: 100
@@ -933,6 +936,7 @@ fun GestureHandler(
                     } else if (horizontalSwipeToSeek) {
                       gestureType = "horizontal_seek"
                       hasStartedSeeking = true
+                      viewModel.setGestureSeeking(true)
                       initialVideoPosition = position?.toFloat() ?: 0f
                       
                       // Show seekbar if preference enabled
@@ -998,6 +1002,7 @@ fun GestureHandler(
               // Multi-finger detected, cancel horizontal seek
               if (hasStartedSeeking) {
                 hasStartedSeeking = false
+                viewModel.setGestureSeeking(false)
                 // Clean up seeking state without showing controls
                 viewModel.playerUpdate.update { PlayerUpdates.None }
                 viewModel.hideSeekBar()
@@ -1013,6 +1018,7 @@ fun GestureHandler(
               delay(300)
               viewModel.playerUpdate.update { PlayerUpdates.None }
               viewModel.hideSeekBar()
+              viewModel.setGestureSeeking(false)
             }
           }
         }

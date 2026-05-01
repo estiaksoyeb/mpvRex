@@ -39,16 +39,40 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assemblePreview
 
-      - name: Sign APK
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/preview
-          signingKeyBase64: ${{ secrets.SIGNING_KEYSTORE }}
-          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: "35.0.0"
+      - name: Sign APKs
+        run: |
+          set -e
+          RELEASE_DIR="app/build/outputs/apk/preview"
+          
+          echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > release.keystore
+          
+          # Find all unsigned APKs
+          APK_COUNT=$(find "$RELEASE_DIR" -name "app-*-preview-unsigned.apk" -type f | wc -l)
+          if [ "$APK_COUNT" -eq 0 ]; then
+            echo "No unsigned APK files found"
+            ls -lah "$RELEASE_DIR"
+            rm release.keystore
+            exit 1
+          fi
+          
+          find "$RELEASE_DIR" -name "app-*-preview-unsigned.apk" -type f | while read -r apk; do
+            # Rename output to remove -unsigned suffix
+            signed_apk="${apk/-unsigned/}"
+          
+            $ANDROID_HOME/build-tools/35.0.0/apksigner sign \
+              --ks release.keystore \
+              --ks-key-alias "${{ secrets.SIGNING_KEY_ALIAS }}" \
+              --ks-pass "pass:${{ secrets.SIGNING_STORE_PASSWORD }}" \
+              --key-pass "pass:${{ secrets.KEY_PASSWORD }}" \
+              --out "$signed_apk" \
+              "$apk"
+          
+            $ANDROID_HOME/build-tools/35.0.0/apksigner verify "$signed_apk"
+            rm "$apk"
+          done
+          
+          rm release.keystore
+          ls -lh "$RELEASE_DIR"/app-*-preview.apk
 
       - name: Copy build artifacts
         id: set_commit
@@ -61,12 +85,16 @@ jobs:
 
           declare -a apks=("universal" "arm64-v8a" "armeabi-v7a" "x86" "x86_64")
           mkdir -p output
-          # Initialize empty array for file sizes
-          declare -a file_sizes=()
           
           for arch in "${apks[@]}"; do
-            src="app/build/outputs/apk/preview/app-${arch}-preview-signed.apk"
+            src="app/build/outputs/apk/preview/app-${arch}-preview.apk"
             dest="output/mpvRex-preview-r${commit_count}-${arch}.apk"
+            
+            if [ ! -f "$src" ]; then
+              echo "::error file=$src::Signed APK for $arch was not found"
+              exit 1
+            fi
+            
             cp "$src" "$dest"
           
             # Get file size in human-readable format

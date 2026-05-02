@@ -22,7 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.runtime.LaunchedEffect
@@ -65,7 +65,7 @@ fun VerticalSlider(
 ) {
   val coercedValue = value.coerceIn(range)
 
-  val trackWidthAnim = remember { androidx.compose.animation.core.Animatable(22f) }
+  val trackWidthAnim = remember { Animatable(22f) }
 
   // Listen for changes to the interaction state (touching vs. released)
   LaunchedEffect(isActive) {

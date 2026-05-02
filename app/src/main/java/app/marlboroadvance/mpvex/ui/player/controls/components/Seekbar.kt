@@ -103,15 +103,32 @@ fun SeekbarWithTimers(
 
   // Determine if the seekbar should be actively squeezed
   val shouldSqueeze = isUserInteracting || isGestureSeeking
-  // Calculate spring bounce animation for Y-axis (78%)
-  val squeezeScale by animateFloatAsState(
-    targetValue = if (shouldSqueeze) 0.75f else 1f,
-    animationSpec = spring(
-      dampingRatio = Spring.DampingRatioMediumBouncy,
-      stiffness = Spring.StiffnessLow
-    ),
-    label = "seekbar_squeeze"
-  )
+  
+  val squeezeAnim = remember { Animatable(1f) }
+
+  // Trigger animation whenever the interaction state change
+  LaunchedEffect(shouldSqueeze) {
+    if (shouldSqueeze) {
+      squeezeAnim.animateTo(
+        targetValue = 0.75f,
+        animationSpec = spring(
+          dampingRatio = Spring.DampingRatioNoBouncy,
+          stiffness = Spring.StiffnessMedium
+        )
+      )
+    } else {
+      kotlinx.coroutines.delay(150)
+      squeezeAnim.animateTo(
+        targetValue = 1f,
+        animationSpec = spring(
+          dampingRatio = 0.4f,
+          stiffness = Spring.StiffnessLow
+        )
+      )
+    }
+  }
+
+  val squeezeScale = squeezeAnim.value
 
   // Only animate position updates when user is not interacting
   LaunchedEffect(position) {

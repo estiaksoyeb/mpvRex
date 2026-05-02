@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -63,15 +65,32 @@ fun VerticalSlider(
 ) {
   val coercedValue = value.coerceIn(range)
 
-  // Calculate dynamic track width
-  val trackWidth by animateDpAsState(
-    targetValue = if (isActive) 32.dp else 22.dp,
-    animationSpec = spring(
-      dampingRatio = Spring.DampingRatioMediumBouncy,
-      stiffness = Spring.StiffnessLow
-    ),
-    label = "track_width"
-  )
+  val trackWidthAnim = remember { androidx.compose.animation.core.Animatable(22f) }
+
+  // Listen for changes to the interaction state (touching vs. released)
+  LaunchedEffect(isActive) {
+    if (isActive) {
+      // Instant, tight reaction on touch
+      trackWidthAnim.animateTo(
+        targetValue = 32f,
+        animationSpec = spring(
+          dampingRatio = Spring.DampingRatioNoBouncy,
+          stiffness = Spring.StiffnessMedium
+        )
+      )
+    } else {
+      kotlinx.coroutines.delay(150)
+      trackWidthAnim.animateTo(
+        targetValue = 22f,
+        animationSpec = spring(
+          dampingRatio = 0.4f,
+          stiffness = Spring.StiffnessLow
+        )
+      )
+    }
+  }
+
+  val trackWidth = trackWidthAnim.value.dp
 
   // Outer fixed-width container prevents layout shifts
   Box(
@@ -129,15 +148,32 @@ fun VerticalSlider(
 ) {
   val coercedValue = value.coerceIn(range)
 
-  // Calculate dynamic track width
-  val trackWidth by animateDpAsState(
-    targetValue = if (isActive) 32.dp else 22.dp,
-    animationSpec = spring(
-      dampingRatio = Spring.DampingRatioMediumBouncy,
-      stiffness = Spring.StiffnessLow
-    ),
-    label = "track_width"
-  )
+  val trackWidthAnim = remember { androidx.compose.animation.core.Animatable(22f) }
+
+  LaunchedEffect(isActive) {
+    if (isActive) {
+      // Instant, tight reaction on touch
+      trackWidthAnim.animateTo(
+        targetValue = 32f,
+        animationSpec = spring(
+          dampingRatio = Spring.DampingRatioNoBouncy,
+          stiffness = Spring.StiffnessMedium
+        )
+      )
+    } else {
+      // Linger and bounce heavily on release
+      kotlinx.coroutines.delay(150)
+      trackWidthAnim.animateTo(
+        targetValue = 22f,
+        animationSpec = spring(
+          dampingRatio = 0.4f,
+          stiffness = Spring.StiffnessLow
+        )
+      )
+    }
+  }
+
+  val trackWidth = trackWidthAnim.value.dp
 
   // Outer fixed-width container
   Box(

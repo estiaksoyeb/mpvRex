@@ -23,7 +23,8 @@ import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -65,9 +66,9 @@ fun VerticalSlider(
   // Calculate dynamic track width
   val trackWidth by animateDpAsState(
     targetValue = if (isActive) 32.dp else 22.dp,
-    animationSpec = tween(
-      durationMillis = 250,
-      easing = FastOutSlowInEasing
+    animationSpec = spring(
+      dampingRatio = Spring.DampingRatioMediumBouncy,
+      stiffness = Spring.StiffnessLow
     ),
     label = "track_width"
   )
@@ -131,9 +132,9 @@ fun VerticalSlider(
   // Calculate dynamic track width
   val trackWidth by animateDpAsState(
     targetValue = if (isActive) 32.dp else 22.dp,
-    animationSpec = tween(
-      durationMillis = 250,
-      easing = FastOutSlowInEasing
+    animationSpec = spring(
+      dampingRatio = Spring.DampingRatioMediumBouncy,
+      stiffness = Spring.StiffnessLow
     ),
     label = "track_width"
   )

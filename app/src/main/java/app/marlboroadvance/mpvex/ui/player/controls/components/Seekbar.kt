@@ -103,13 +103,12 @@ fun SeekbarWithTimers(
 
   // Determine if the seekbar should be actively squeezed
   val shouldSqueeze = isUserInteracting || isGestureSeeking
-  
   // Calculate spring bounce animation for Y-axis (78%)
   val squeezeScale by animateFloatAsState(
-    targetValue = if (shouldSqueeze) 0.78f else 1f,
+    targetValue = if (shouldSqueeze) 0.75f else 1f,
     animationSpec = spring(
-      dampingRatio = 0.75f,
-      stiffness = Spring.StiffnessMediumLow
+      dampingRatio = Spring.DampingRatioMediumBouncy,
+      stiffness = Spring.StiffnessLow
     ),
     label = "seekbar_squeeze"
   )

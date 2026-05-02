@@ -294,6 +294,7 @@ object PlayerControlsPreferencesScreen : Screen {
           }
           
           item {
+            val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
             val hidePlayerButtonsBackground by appearancePrefs.hidePlayerButtonsBackground.collectAsState()
             val playerAlwaysDarkMode by appearancePrefs.playerAlwaysDarkMode.collectAsState()
             val playerTimeToDisappear by playerPrefs.playerTimeToDisappear.collectAsState()
@@ -304,6 +305,23 @@ object PlayerControlsPreferencesScreen : Screen {
             var customTimeValue by remember { mutableStateOf("") }
             
             PreferenceCard {
+              SwitchPreference(
+                value = enableBounceAnimation,
+                onValueChange = { appearancePrefs.enableBounceAnimation.set(it) },
+                title = {
+                  Text(
+                    text = stringResource(id = R.string.pref_appearance_enable_bounce_animation_title)
+                  ) 
+                },
+                summary = { 
+                  Text(
+                    text = stringResource(id = R.string.pref_appearance_enable_bounce_animation_summary)
+                  ) 
+                },
+              )
+              
+              PreferenceDivider()
+
               SwitchPreference(
                 value = hidePlayerButtonsBackground,
                 onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },

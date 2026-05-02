@@ -556,6 +556,7 @@ fun InteractionTab() {
   val playerPreferences = koinInject<PlayerPreferences>()
 
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
+  val enableBounceAnimation by appearancePreferences.enableBounceAnimation.collectAsState()
   val preventSeekbarTap by gesturePreferences.preventSeekbarTap.collectAsState()
   val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
   val useSingleTapForLeftRight by gesturePreferences.useSingleTapForLeftRight.collectAsState()
@@ -605,6 +606,13 @@ fun InteractionTab() {
       description = "Use single tap for gesture action",
       checked = useSingleTapForLeftRight,
       onCheckedChange = { gesturePreferences.useSingleTapForLeftRight.set(it) }
+    )
+
+    InteractionSwitch(
+      label = "Bounce animation",
+      description = "Seekbar and volume/brightness sliders animate with a bounce effect",
+      checked = enableBounceAnimation,
+      onCheckedChange = { appearancePreferences.enableBounceAnimation.set(it) }
     )
 
     InteractionSwitch(

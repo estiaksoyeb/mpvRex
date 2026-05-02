@@ -28,6 +28,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.animation.core.FastOutSlowInEasing
+import org.koin.compose.koinInject
+import app.marlboroadvance.mpvex.preferences.AppearancePreferences
+import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -65,12 +68,19 @@ fun VerticalSlider(
 ) {
   val coercedValue = value.coerceIn(range)
 
+  // Read Toggle for Bounce Animation from Preferences
+  val appearancePrefs = koinInject<AppearancePreferences>()
+  val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
+
   val trackWidthAnim = remember { Animatable(22f) }
 
   // Listen for changes to the interaction state (touching vs. released)
-  LaunchedEffect(isActive) {
+  LaunchedEffect(isActive, enableBounceAnimation) {
+    if (!enableBounceAnimation) {
+      trackWidthAnim.snapTo(22f)
+      return@LaunchedEffect
+    }
     if (isActive) {
-      // Instant, tight reaction on touch
       trackWidthAnim.animateTo(
         targetValue = 32f,
         animationSpec = spring(
@@ -148,11 +158,19 @@ fun VerticalSlider(
 ) {
   val coercedValue = value.coerceIn(range)
 
-  val trackWidthAnim = remember { androidx.compose.animation.core.Animatable(22f) }
+  // Read Toggle for Bounce Animation from Preferences
+  val appearancePrefs = koinInject<AppearancePreferences>()
+  val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
 
-  LaunchedEffect(isActive) {
+  val trackWidthAnim = remember { Animatable(22f) }
+
+  // Listen for changes to the interaction state (touching vs. released)
+  LaunchedEffect(isActive, enableBounceAnimation) {
+    if (!enableBounceAnimation) {
+      trackWidthAnim.snapTo(22f)
+      return@LaunchedEffect
+    }
     if (isActive) {
-      // Instant, tight reaction on touch
       trackWidthAnim.animateTo(
         targetValue = 32f,
         animationSpec = spring(
@@ -161,7 +179,6 @@ fun VerticalSlider(
         )
       )
     } else {
-      // Linger and bounce heavily on release
       kotlinx.coroutines.delay(150)
       trackWidthAnim.animateTo(
         targetValue = 22f,

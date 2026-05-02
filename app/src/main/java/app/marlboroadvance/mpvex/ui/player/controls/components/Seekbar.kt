@@ -69,6 +69,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import org.koin.compose.koinInject
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
@@ -100,13 +101,21 @@ fun SeekbarWithTimers(
   val scope = rememberCoroutineScope()
   var lastInteractionTime by remember { mutableLongStateOf(0L) }
 
+  // Read Toggle for Bounce Animation from Preferences
+  val appearancePrefs = koinInject<AppearancePreferences>()
+  val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
+
   // Determine if the seekbar should be actively squeezed
   val shouldSqueeze = isUserInteracting || isGestureSeeking
   
   val squeezeAnim = remember { Animatable(1f) }
 
   // Trigger animation whenever the interaction state change
-  LaunchedEffect(shouldSqueeze) {
+  LaunchedEffect(shouldSqueeze, enableBounceAnimation) {
+    if (!enableBounceAnimation) {
+      squeezeAnim.snapTo(1f)
+      return@LaunchedEffect
+    }
     if (shouldSqueeze) {
       squeezeAnim.animateTo(
         targetValue = 0.75f,

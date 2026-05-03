@@ -37,6 +37,13 @@ class AppearancePreferences(
   val seekbarStyle = preferenceStore.getEnum("seekbar_style", SeekbarStyle.Wavy)
   val playerAlwaysDarkMode = preferenceStore.getBoolean("player_always_dark_mode", true)
 
+  val thumbnailStrategy = preferenceStore.getEnum("thumbnail_strategy", ThumbnailStrategy.FirstFrame)
+  val thumbnailPositionPercent = preferenceStore.getInt("thumbnail_position_percent", THUMBNAIL_POSITION_DEFAULT)
+
+  companion object {
+      const val THUMBNAIL_POSITION_DEFAULT = 30
+  }
+
   val topLeftControls =
     preferenceStore.getString(
       "top_left_controls",
@@ -89,6 +96,11 @@ class AppearancePreferences(
       }.filter { it != PlayerButton.NONE }
       .filter { usedButtons.add(it) }
       .toList()
+}
+
+enum class ThumbnailStrategy {
+  FirstFrame,
+  Position
 }
 
 @Composable

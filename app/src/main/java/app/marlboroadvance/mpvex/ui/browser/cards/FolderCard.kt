@@ -39,6 +39,7 @@ import org.koin.compose.koinInject
 import kotlin.math.pow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.graphics.ImageBitmap
 
 import app.marlboroadvance.mpvex.preferences.UiSettings
 
@@ -61,6 +62,7 @@ fun FolderCard(
   gridColumns: Int = 1,
   thumbnailSize: androidx.compose.ui.unit.Dp = 64.dp,
   thumbnailAspectRatio: Float = 1f,
+  thumbnail: ImageBitmap? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
@@ -72,6 +74,7 @@ fun FolderCard(
   BaseMediaCard(
     title = folder.name,
     modifier = modifier,
+    thumbnail = thumbnail,
     thumbnailAspectRatio = thumbnailAspectRatio,
     thumbnailSize = thumbnailSize,
     thumbnailIcon = {

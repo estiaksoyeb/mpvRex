@@ -18,7 +18,8 @@ data class UiSettings(
     val showDateChip: Boolean = false,
     val showTotalDurationChip: Boolean = false,
     val showUnplayedOldVideoLabel: Boolean = true,
-    val unplayedOldVideoDays: Int = 7
+    val unplayedOldVideoDays: Int = 7,
+    val showNetworkThumbnails: Boolean = false
 )
 
 /**
@@ -42,7 +43,9 @@ class UiPreferences(
             browserPreferences.showDateChip.changes(),
             browserPreferences.showTotalDurationChip.changes(),
             appearancePreferences.showUnplayedOldVideoLabel.changes(),
-            appearancePreferences.unplayedOldVideoDays.changes()
+            appearancePreferences.unplayedOldVideoDays.changes(),
+            appearancePreferences.showNetworkThumbnails.changes()
+            
         ) { values: Array<Any?> ->
             UiSettings(
                 unlimitedNameLines = values[0] as Boolean,
@@ -54,7 +57,8 @@ class UiPreferences(
                 showDateChip = values[6] as Boolean,
                 showTotalDurationChip = values[7] as Boolean,
                 showUnplayedOldVideoLabel = values[8] as Boolean,
-                unplayedOldVideoDays = values[9] as Int
+                unplayedOldVideoDays = values[9] as Int,
+                showNetworkThumbnails = values[10] as Boolean
             )
         }
     }
@@ -73,7 +77,8 @@ class UiPreferences(
             showDateChip = browserPreferences.showDateChip.get(),
             showTotalDurationChip = browserPreferences.showTotalDurationChip.get(),
             showUnplayedOldVideoLabel = appearancePreferences.showUnplayedOldVideoLabel.get(),
-            unplayedOldVideoDays = appearancePreferences.unplayedOldVideoDays.get()
+            unplayedOldVideoDays = appearancePreferences.unplayedOldVideoDays.get(),
+            showNetworkThumbnails = appearancePreferences.showNetworkThumbnails.get()
         )
     }
 }

@@ -2,6 +2,9 @@ package app.marlboroadvance.mpvex.ui.player.controls.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateFloat
@@ -66,6 +69,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import org.koin.compose.koinInject
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
@@ -85,6 +89,7 @@ fun SeekbarWithTimers(
   seekbarStyle: SeekbarStyle = SeekbarStyle.Wavy,
   loopStart: Float? = null,
   loopEnd: Float? = null,
+  isGestureSeeking: Boolean = false,
   modifier: Modifier = Modifier,
 ) {
   val clickEvent = LocalPlayerButtonsClickEvent.current
@@ -95,6 +100,43 @@ fun SeekbarWithTimers(
   val animatedPosition = remember { Animatable(position) }
   val scope = rememberCoroutineScope()
   var lastInteractionTime by remember { mutableLongStateOf(0L) }
+
+  // Read Toggle for Bounce Animation from Preferences
+  val appearancePrefs = koinInject<AppearancePreferences>()
+  val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
+
+  // Determine if the seekbar should be actively squeezed
+  val shouldSqueeze = isUserInteracting || isGestureSeeking
+  
+  val squeezeAnim = remember { Animatable(1f) }
+
+  // Trigger animation whenever the interaction state change
+  LaunchedEffect(shouldSqueeze, enableBounceAnimation) {
+    if (!enableBounceAnimation) {
+      squeezeAnim.snapTo(1f)
+      return@LaunchedEffect
+    }
+    if (shouldSqueeze) {
+      squeezeAnim.animateTo(
+        targetValue = 0.75f,
+        animationSpec = spring(
+          dampingRatio = Spring.DampingRatioNoBouncy,
+          stiffness = Spring.StiffnessMedium
+        )
+      )
+    } else {
+      kotlinx.coroutines.delay(150)
+      squeezeAnim.animateTo(
+        targetValue = 1f,
+        animationSpec = spring(
+          dampingRatio = 0.4f,
+          stiffness = Spring.StiffnessLow
+        )
+      )
+    }
+  }
+
+  val squeezeScale = squeezeAnim.value
 
   // Only animate position updates when user is not interacting
   LaunchedEffect(position) {
@@ -139,7 +181,10 @@ fun SeekbarWithTimers(
       modifier =
         Modifier
           .weight(1f)
-          .height(48.dp),
+          .height(48.dp)
+          .graphicsLayer {
+            scaleY = squeezeScale
+          },
       contentAlignment = Alignment.Center,
     ) {
 

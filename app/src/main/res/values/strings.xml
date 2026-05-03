@@ -25,6 +25,8 @@
     <string name="pref_appearance_material_you_summary_disabled">Only available on Android 12 and above</string>
     <string name="pref_appearance_unlimited_name_lines_title">Show full names</string>
     <string name="pref_appearance_unlimited_name_lines_summary">Show full folder and video names without truncation</string>
+    <string name="pref_appearance_enable_bounce_animation_title">Enable bouncy animations</string>
+    <string name="pref_appearance_enable_bounce_animation_summary">Seekbar and volume/brightness sliders animate with a bounce effect</string>
     <string name="pref_appearance_hide_player_buttons_background_title">Hide player buttons background</string>
     <string name="pref_appearance_hide_player_buttons_background_summary">Hide the background of all player control buttons</string>
     <string name="pref_appearance_use_system_font_title">Use system font</string>

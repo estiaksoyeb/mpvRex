@@ -24,6 +24,7 @@ class AppearancePreferences(
   val appTheme = preferenceStore.getEnum("app_theme", AppTheme.Default)
   val materialYou = preferenceStore.getBoolean("material_you", true)
   val amoledMode = preferenceStore.getBoolean("amoled_mode", false)
+  val matchPlayerControlsToTheme = preferenceStore.getBoolean("match_player_controls_to_theme", false)
   val useSystemFont = preferenceStore.getBoolean("use_system_font", false)
   val unlimitedNameLines = preferenceStore.getBoolean("unlimited_name_lines", false)
   val hidePlayerButtonsBackground = preferenceStore.getBoolean("hide_player_buttons_background", false)

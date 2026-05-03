@@ -875,6 +875,25 @@ fun PlayerControls(
                   1.0f to Color.Transparent,
                 )
 
+              val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+              val surfaceColor = when {
+                hideBackground -> Color.Transparent
+                matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+              }
+              val contentColor = when {
+                matchTheme -> {
+                    if (hideBackground) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onPrimaryContainer
+                }
+                else -> if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
+              }
+              val borderColor = if (hideBackground) null else BorderStroke(
+                1.dp,
+                if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+              )
+
               if (playlistMode && viewModel.hasPlaylistSupport()) {
                 androidx.compose.foundation.layout.Row(
                   horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -900,34 +919,20 @@ fun PlayerControls(
                           },
                         ),
                     shape = CircleShape,
-                    color =
-                      if (!hideBackground) {
-                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
-                      } else {
-                        Color.Transparent
-                      },
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    color = surfaceColor,
+                    contentColor = contentColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 0.dp,
-                    border =
-                      if (!hideBackground) {
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                      } else {
-                        null
-                      },
+                    border = borderColor,
                   ) {
                     Icon(
                       imageVector = Icons.Default.SkipPrevious,
                       contentDescription = "Previous",
                       tint =
                         if (viewModel.hasPrevious()) {
-                          if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
+                          contentColor
                         } else {
-                          if (hideBackground) {
-                            controlColor.copy(alpha = 0.38f)
-                          } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                          }
+                          contentColor.copy(alpha = 0.38f)
                         },
                       modifier = Modifier
                         .fillMaxSize()
@@ -952,21 +957,11 @@ fun PlayerControls(
                           },
                         ),
                     shape = CircleShape,
-                    color =
-                      if (!hideBackground) {
-                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
-                      } else {
-                        Color.Transparent
-                      },
-                    contentColor = if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface,
+                    color = surfaceColor,
+                    contentColor = contentColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 0.dp,
-                    border =
-                      if (!hideBackground) {
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                      } else {
-                        null
-                      },
+                    border = borderColor,
                   ) {
                     Image(
                       painter = rememberAnimatedVectorPainter(icon, paused == false),
@@ -974,7 +969,7 @@ fun PlayerControls(
                         .fillMaxSize()
                         .padding(MaterialTheme.spacing.medium),
                       contentDescription = null,
-                      colorFilter = ColorFilter.tint(LocalContentColor.current),
+                      colorFilter = ColorFilter.tint(contentColor),
                     )
                   }
 
@@ -998,34 +993,20 @@ fun PlayerControls(
                           },
                         ),
                     shape = CircleShape,
-                    color =
-                      if (!hideBackground) {
-                        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
-                      } else {
-                        Color.Transparent
-                      },
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    color = surfaceColor,
+                    contentColor = contentColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 0.dp,
-                    border =
-                      if (!hideBackground) {
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                      } else {
-                        null
-                      },
+                    border = borderColor,
                   ) {
                     Icon(
                       imageVector = Icons.Default.SkipNext,
                       contentDescription = "Next",
                       tint =
                         if (viewModel.hasNext()) {
-                          if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
+                          contentColor
                         } else {
-                          if (hideBackground) {
-                            controlColor.copy(alpha = 0.38f)
-                          } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                          }
+                          contentColor.copy(alpha = 0.38f)
                         },
                       modifier = Modifier
                         .fillMaxSize()
@@ -1051,21 +1032,11 @@ fun PlayerControls(
                         },
                       ),
                   shape = CircleShape,
-                  color =
-                    if (!hideBackground) {
-                      MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
-                    } else {
-                      Color.Transparent
-                    },
-                  contentColor = if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface,
+                  color = surfaceColor,
+                  contentColor = contentColor,
                   tonalElevation = 0.dp,
                   shadowElevation = 0.dp,
-                  border =
-                    if (!hideBackground) {
-                      BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                    } else {
-                      null
-                    },
+                  border = borderColor,
                 ) {
                   Image(
                     painter = rememberAnimatedVectorPainter(icon, paused == false),
@@ -1073,7 +1044,7 @@ fun PlayerControls(
                       .fillMaxSize()
                       .padding(MaterialTheme.spacing.medium),
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(LocalContentColor.current),
+                    colorFilter = ColorFilter.tint(contentColor),
                   )
                 }
               }

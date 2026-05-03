@@ -19,6 +19,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import app.marlboroadvance.mpvex.preferences.preference.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,8 +47,30 @@ fun TopLeftPlayerControlsLandscape(
   onOpenSheet: (Sheets) -> Unit,
   viewModel: PlayerViewModel,
 ) {
+  val appearancePreferences = org.koin.compose.koinInject<app.marlboroadvance.mpvex.preferences.AppearancePreferences>()
+  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
   val playlistModeEnabled = viewModel.hasPlaylistSupport()
   val clickEvent = LocalPlayerButtonsClickEvent.current
+
+  val surfaceColor = when {
+    hideBackground -> Color.Transparent
+    matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  }
+
+  val contentColor = when {
+    matchTheme -> {
+      if (hideBackground) MaterialTheme.colorScheme.primary
+      else MaterialTheme.colorScheme.onPrimaryContainer
+    }
+    else -> if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
+  }
+
+  val borderColor = if (hideBackground) null else BorderStroke(
+    1.dp,
+    if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+  )
 
   Row(
     modifier = Modifier.width(IntrinsicSize.Max),
@@ -56,7 +80,6 @@ fun TopLeftPlayerControlsLandscape(
     ControlsButton(
       icon = Icons.AutoMirrored.Default.ArrowBack,
       onClick = onBackPress,
-      color = if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface,
       modifier = Modifier.size(45.dp),
     )
 
@@ -79,26 +102,11 @@ fun TopLeftPlayerControlsLandscape(
     ) {
       Surface(
         shape = CircleShape,
-        color =
-          if (hideBackground) {
-            Color.Transparent
-          } else {
-            MaterialTheme.colorScheme.surfaceContainer.copy(
-              alpha = 0.55f,
-            )
-          },
-        contentColor = if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface,
+        color = surfaceColor,
+        contentColor = contentColor,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
-        border =
-          if (hideBackground) {
-            null
-          } else {
-            BorderStroke(
-              1.dp,
-              MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-            )
-          },
+        border = borderColor,
       ) {
         Row(
           verticalAlignment = Alignment.CenterVertically,

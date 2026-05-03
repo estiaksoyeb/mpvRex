@@ -688,6 +688,9 @@ fun VideoTimer(
   onClick: () -> Unit = {},
 ) {
   val interactionSource = remember { MutableInteractionSource() }
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+  
   Text(
     modifier =
       modifier
@@ -699,7 +702,7 @@ fun VideoTimer(
         )
         .wrapContentHeight(Alignment.CenterVertically),
     text = Utils.prettyTime(value.toInt(), isInverted),
-    color = Color.White,
+    color = if (matchTheme) MaterialTheme.colorScheme.primary else Color.White,
     textAlign = TextAlign.Center,
   )
 }

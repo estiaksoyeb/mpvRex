@@ -161,6 +161,24 @@ object AppearancePreferencesScreen : Screen {
 
                             PreferenceDivider()
 
+                            val matchPlayerControlsToTheme by preferences.matchPlayerControlsToTheme.collectAsState()
+                            SwitchPreference(
+                                value = matchPlayerControlsToTheme,
+                                onValueChange = { preferences.matchPlayerControlsToTheme.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_summary),
+                                    )
+                                },
+                            )
+
+                            PreferenceDivider()
+
                             val hidePlayerButtonsBackground by preferences.hidePlayerButtonsBackground.collectAsState()
                             SwitchPreference(
                                 value = hidePlayerButtonsBackground,
@@ -177,15 +195,21 @@ object AppearancePreferencesScreen : Screen {
                                 },
                             )
 
+                            PreferenceDivider()
+
                             val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
                             SwitchPreference(
                                 value = playerAlwaysDarkMode,
                                 onValueChange = { preferences.playerAlwaysDarkMode.set(it) },
                                 title = {
-                                    Text(text = "Player always dark mode")
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_title),
+                                    )
                                 },
                                 summary = {
-                                    Text(text = "Keep player controls in dark theme regardless of app theme")
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_summary),
+                                    )
                                 },
                             )
                         }

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.ui.player.controls.LocalPlayerButtonsClickEvent
+import app.marlboroadvance.mpvex.ui.theme.controlColor
 import app.marlboroadvance.mpvex.ui.theme.spacing
 import org.koin.compose.koinInject
 
@@ -47,6 +48,29 @@ fun ControlsButton(
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
 
   val clickEvent = LocalPlayerButtonsClickEvent.current
+  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+
+  val buttonColor = when {
+    color != null -> color
+    matchTheme -> MaterialTheme.colorScheme.primary
+    else -> if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
+  }
+
+  val surfaceColor = when {
+    hideBackground -> Color.Transparent
+    matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  }
+
+  val contentColor = when {
+    color != null -> color
+    matchTheme -> {
+      if (hideBackground) MaterialTheme.colorScheme.primary
+      else MaterialTheme.colorScheme.onPrimaryContainer
+    }
+    else -> if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
+  }
+
   Surface(
     modifier =
       modifier
@@ -61,8 +85,8 @@ fun ControlsButton(
           indication = ripple(),
         ),
     shape = CircleShape,
-    color = if (hideBackground) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-    contentColor = color ?: MaterialTheme.colorScheme.onSurface,
+    color = surfaceColor,
+    contentColor = contentColor,
     tonalElevation = 0.dp,
     shadowElevation = 0.dp,
     border =
@@ -71,14 +95,15 @@ fun ControlsButton(
       } else {
         BorderStroke(
           1.dp,
-          MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+          if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+          else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         )
       },
   ) {
     Icon(
       imageVector = icon,
       contentDescription = title,
-      tint = color ?: MaterialTheme.colorScheme.onSurface,
+      tint = contentColor,
       modifier =
         Modifier
           .padding(MaterialTheme.spacing.small)

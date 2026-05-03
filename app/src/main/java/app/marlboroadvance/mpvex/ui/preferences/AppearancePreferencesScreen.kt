@@ -54,7 +54,6 @@ import androidx.compose.runtime.mutableStateOf
 import android.widget.Toast
 import androidx.compose.runtime.rememberCoroutineScope
 import app.marlboroadvance.mpvex.domain.thumbnail.ThumbnailRepository
-import app.marlboroadvance.mpvex.presentation.components.ConfirmDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -430,14 +429,31 @@ object AppearancePreferencesScreen : Screen {
                             )
 
                             if (showNetworkWarning) {
-                                ConfirmDialog(
-                                    title = "Enable Network Thumbnails?",
-                                    subtitle = "Generating thumbnails for network streams (M3U/HTTP) may significantly increase background data usage and loading times. Proceed?",
-                                    onConfirm = {
-                                        preferences.showNetworkThumbnails.set(true)
-                                        showNetworkWarning = false
+                                AlertDialog(
+                                    onDismissRequest = { showNetworkWarning = false },
+                                    title = { Text("Enable Network Thumbnails?") },
+                                    text = {
+                                        Column{
+                                            Text(
+                                                text = "Generating thumbnails for network streams (M3U/HTTP) may significantly increase background data usage and loading times. Proceed?",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     },
-                                    onCancel = { showNetworkWarning = false }
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            preferences.showNetworkThumbnails.set(true)
+                                            showNetworkWarning = false
+                                        }) {
+                                            Text(stringResource(R.string.generic_confirm))
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showNetworkWarning = false }) {
+                                            Text(stringResource(R.string.generic_cancel))
+                                        }
+                                    }
                                 )
                             }
 

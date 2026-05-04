@@ -91,11 +91,11 @@ object AppearancePreferencesScreen : Screen {
 
         fun clearCacheAndApply(onSuccess: () -> Unit, onFailure: () -> Unit = {}) {
             scope.launch(Dispatchers.IO) {
-                runCatching { thumbnailRepository.clearThumbnailCache() }
+                runCatching { thumbnailRepository.clearLocalThumbnailCache() }
                     .onSuccess {
                         withContext(Dispatchers.Main) {
                             onSuccess()
-                            Toast.makeText(context, "Thumbnail cache cleared", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Local thumbnail cache cleared", Toast.LENGTH_SHORT).show()
                         }
                     }
                     .onFailure {

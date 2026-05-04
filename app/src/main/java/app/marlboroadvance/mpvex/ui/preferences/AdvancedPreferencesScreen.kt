@@ -628,7 +628,7 @@ object AdvancedPreferencesScreen : Screen {
               if (isClearThumbsConfirmShown) {
                 ConfirmDialog(
                   title = "Clear thumbnail cache?",
-                  subtitle = "This will delete cached thumbnails from storage and memory.",
+                  subtitle = "This will delete all cached thumbnails (local and network) from storage and memory.",
                   onConfirm = {
                     scope.launch(Dispatchers.IO) {
                       runCatching {

@@ -22,6 +22,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
 import kotlin.math.max
 
 class ThumbnailRepository(
@@ -35,7 +36,8 @@ class ThumbnailRepository(
   private val diskCacheDimension = 1024
   private val diskJpegQuality = 100
   private val memoryCache: LruCache<String, Bitmap>
-  private val diskDir: File = File(context.filesDir, "thumbnails").apply { mkdirs() }
+  private val networkDiskDir: File = File(context.filesDir, "thumbnails/network").apply { mkdirs() }
+  private val localDiskDir: File  = File(context.filesDir, "thumbnails/local").apply  { mkdirs() }
   private val ongoingOperations = ConcurrentHashMap<String, Deferred<Bitmap?>>()
 
   private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -54,6 +56,10 @@ class ThumbnailRepository(
 
   // Track network URLs where all extraction strategies have failed – avoids endless retries while scrolling
   private val networkThumbnailFailed = ConcurrentHashMap<String, Boolean>()
+  private val networkMemoryKeys = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+
+  private fun diskDirFor(video: Video): File =
+    if (isNetworkUrl(video.path)) networkDiskDir else localDiskDir
 
   private val _thumbnailReadyKeys =
     MutableSharedFlow<String>(
@@ -70,6 +76,12 @@ class ThumbnailRepository(
           key: String,
           value: Bitmap,
         ): Int = value.byteCount / 1024
+      }
+      runCatching {
+        File(context.filesDir, "thumbnails")
+        .listFiles()
+        ?.filter { it.isFile && it.name.endsWith(".jpg") }
+        ?.forEach { it.delete() }
       }
   }
 
@@ -99,6 +111,7 @@ class ThumbnailRepository(
         async {
           try {
             loadFromDisk(video)?.let { thumbnail ->
+              if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
               memoryCache.put(key, thumbnail)
               _thumbnailReadyKeys.tryEmit(key)
               return@async thumbnail
@@ -151,7 +164,7 @@ class ThumbnailRepository(
             if (thumbnail == null) {
               return@async null
             }
-
+            if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
             memoryCache.put(key, thumbnail)
             _thumbnailReadyKeys.tryEmit(key)
             writeToDisk(video, thumbnail)
@@ -182,7 +195,10 @@ class ThumbnailRepository(
       val key = thumbnailKey(video, widthPx, heightPx)
       synchronized(memoryCache) { memoryCache.get(key) }?.let { return@withContext it }
       loadFromDisk(video)?.let { thumbnail ->
-        synchronized(memoryCache) { memoryCache.put(key, thumbnail) }
+        synchronized(memoryCache) {
+          if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
+          memoryCache.put(key, thumbnail)
+        }
         return@withContext thumbnail
       }
       null
@@ -204,6 +220,26 @@ class ThumbnailRepository(
     return synchronized(memoryCache) { memoryCache.get(key) }
   }
 
+  fun clearLocalThumbnailCache() {
+    folderJobs.values.forEach { it.cancel() }
+    folderJobs.clear()
+    folderStates.clear()
+    useMediaStoreForVideo.clear()
+
+    synchronized(memoryCache) {
+      val snapshot = memoryCache.snapshot().keys.toList()
+      for (key in snapshot) {
+        if (key !in networkMemoryKeys) {
+          memoryCache.remove(key)
+        }
+      }
+    }
+
+    runCatching {
+      localDiskDir.listFiles()?.forEach { it.delete() }
+    }
+  }
+
   fun clearThumbnailCache() {
     folderJobs.values.forEach { it.cancel() }
     folderJobs.clear()
@@ -211,15 +247,15 @@ class ThumbnailRepository(
     ongoingOperations.clear()
     useMediaStoreForVideo.clear()
     networkThumbnailFailed.clear()
+    networkMemoryKeys.clear()
 
     synchronized(memoryCache) {
       memoryCache.evictAll()
     }
 
     runCatching {
-      if (diskDir.exists()) {
-        diskDir.listFiles()?.forEach { it.delete() }
-      }
+      if (networkDiskDir.exists()) networkDiskDir.listFiles()?.forEach { it.delete() }
+      if (localDiskDir.exists()) localDiskDir.listFiles()?.forEach { it.delete() }
     }
   }
 
@@ -313,24 +349,32 @@ class ThumbnailRepository(
   }
 
   private fun loadFromDisk(video: Video): Bitmap? {
-    val diskFile = File(diskDir, keyToFileName(diskKey(video)))
-    if (!diskFile.exists()) return null
+    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video)))
+    if (!diskFile.exists()) {
+      android.util.Log.d("ThumbnailRepository", "Disk cache MISS: ${diskFile.name} for ${video.displayName}")
+      return null
+    }
+    android.util.Log.d("ThumbnailRepository", "Disk cache HIT: ${diskFile.name} for ${video.displayName}")
     return runCatching {
-      val options =
-        BitmapFactory.Options().apply {
+      val options = BitmapFactory.Options().apply {
           inPreferredConfig = Bitmap.Config.ARGB_8888
         }
       BitmapFactory.decodeFile(diskFile.absolutePath, options)
+    }.onFailure { e ->
+      android.util.Log.e("ThumbnailRepository", "loadFromDisk decode FAILED for ${video.displayName}", e)
     }.getOrNull()
   }
 
   private fun writeToDisk(video: Video, bitmap: Bitmap) {
-    val diskFile = File(diskDir, keyToFileName(diskKey(video)))
+    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video)))
     runCatching {
       FileOutputStream(diskFile).use { out ->
         bitmap.compress(Bitmap.CompressFormat.JPEG, diskJpegQuality, out)
         out.flush()
       }
+      android.util.Log.d("ThumbnailRepository", "Disk cache written: ${diskFile.name} for ${video.displayName}")
+    }.onFailure { e ->
+      android.util.Log.e("ThumbnailRepository", "writeToDisk FAILED for ${video.displayName}", e)
     }
   }
 

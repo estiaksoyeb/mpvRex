@@ -22,6 +22,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
 import kotlin.math.max
 
 class ThumbnailRepository(
@@ -35,7 +36,8 @@ class ThumbnailRepository(
   private val diskCacheDimension = 1024
   private val diskJpegQuality = 100
   private val memoryCache: LruCache<String, Bitmap>
-  private val diskDir: File = File(context.filesDir, "thumbnails").apply { mkdirs() }
+  private val networkDiskDir: File = File(context.filesDir, "thumbnails/network").apply { mkdirs() }
+  private val localDiskDir: File  = File(context.filesDir, "thumbnails/local").apply  { mkdirs() }
   private val ongoingOperations = ConcurrentHashMap<String, Deferred<Bitmap?>>()
 
   private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -49,8 +51,15 @@ class ThumbnailRepository(
   private val folderStates = ConcurrentHashMap<String, FolderState>()
   private val folderJobs = ConcurrentHashMap<String, Job>()
   
-  // Track videos that failed with FastThumbnails and should use MediaStore
+  // Track local videos that failed with FastThumbnails and should use MediaStore
   private val useMediaStoreForVideo = ConcurrentHashMap<String, Boolean>()
+
+  // Track network URLs where all extraction strategies have failed – avoids endless retries while scrolling
+  private val networkThumbnailFailed = ConcurrentHashMap<String, Boolean>()
+  private val networkMemoryKeys = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+
+  private fun diskDirFor(video: Video): File =
+    if (isNetworkUrl(video.path)) networkDiskDir else localDiskDir
 
   private val _thumbnailReadyKeys =
     MutableSharedFlow<String>(
@@ -67,6 +76,12 @@ class ThumbnailRepository(
           key: String,
           value: Bitmap,
         ): Int = value.byteCount / 1024
+      }
+      runCatching {
+        File(context.filesDir, "thumbnails")
+        .listFiles()
+        ?.filter { it.isFile && it.name.endsWith(".jpg") }
+        ?.forEach { it.delete() }
       }
   }
 
@@ -96,6 +111,7 @@ class ThumbnailRepository(
         async {
           try {
             loadFromDisk(video)?.let { thumbnail ->
+              if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
               memoryCache.put(key, thumbnail)
               _thumbnailReadyKeys.tryEmit(key)
               return@async thumbnail
@@ -105,29 +121,50 @@ class ThumbnailRepository(
               return@async null
             }
 
-            // Check if this video should use MediaStore
             val videoKey = videoBaseKey(video)
-            val thumbnail = if (useMediaStoreForVideo.containsKey(videoKey)) {
-              // Use MediaStore for this video
-              android.util.Log.d("ThumbnailRepository", "Using MediaStore for ${video.displayName}")
-              generateWithMediaStore(video, diskCacheDimension)
+            val thumbnail = if (isNetworkUrl(video.path)) {
+              // ---- Network path ------------------------------------------------
+              // Android's native MediaStore cannot handle network URLs properly,
+              // FastThumbnails  ->  MediaMetadataRetriever
+              // Once both fail record it to avoid re-trying on every scroll.
+              if (networkThumbnailFailed.containsKey(videoKey)) {
+                android.util.Log.d("ThumbnailRepository", "Skipping network thumbnail (previously failed): ${video.displayName}")
+                null
+              } else {
+                val fastResult = generateWithFastThumbnails(video, diskCacheDimension)
+                if (fastResult != null) {
+                  fastResult
+                } else {
+                  android.util.Log.w("ThumbnailRepository", "FastThumbnails failed for network stream ${video.displayName}, trying MediaMetadataRetriever")
+                  val retrieverResult = generateWithMediaMetadataRetriever(video, diskCacheDimension)
+                  if (retrieverResult == null) {
+                    android.util.Log.w("ThumbnailRepository", "All strategies failed for network stream ${video.displayName}")
+                    networkThumbnailFailed[videoKey] = true
+                  }
+                  retrieverResult
+                }
+              }
             } else {
-              // Try FastThumbnails first
-              val fastResult = generateWithFastThumbnails(video, diskCacheDimension)
-              if (fastResult == null) {
-                // FastThumbnails failed, mark for MediaStore and try it
-                android.util.Log.w("ThumbnailRepository", "FastThumbnails failed for ${video.displayName}, falling back to MediaStore")
-                useMediaStoreForVideo[videoKey] = true
+              // ---- Local-file path ---------------------------------------------
+              if (useMediaStoreForVideo.containsKey(videoKey)) {
+                android.util.Log.d("ThumbnailRepository", "Using MediaStore for ${video.displayName}")
                 generateWithMediaStore(video, diskCacheDimension)
               } else {
-                fastResult
+                val fastResult = generateWithFastThumbnails(video, diskCacheDimension)
+                if (fastResult == null) {
+                  android.util.Log.w("ThumbnailRepository", "FastThumbnails failed for ${video.displayName}, falling back to MediaStore")
+                  useMediaStoreForVideo[videoKey] = true
+                  generateWithMediaStore(video, diskCacheDimension)
+                } else {
+                  fastResult
+                }
               }
             }
 
             if (thumbnail == null) {
               return@async null
             }
-
+            if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
             memoryCache.put(key, thumbnail)
             _thumbnailReadyKeys.tryEmit(key)
             writeToDisk(video, thumbnail)
@@ -158,7 +195,10 @@ class ThumbnailRepository(
       val key = thumbnailKey(video, widthPx, heightPx)
       synchronized(memoryCache) { memoryCache.get(key) }?.let { return@withContext it }
       loadFromDisk(video)?.let { thumbnail ->
-        synchronized(memoryCache) { memoryCache.put(key, thumbnail) }
+        synchronized(memoryCache) {
+          if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
+          memoryCache.put(key, thumbnail)
+        }
         return@withContext thumbnail
       }
       null
@@ -180,21 +220,42 @@ class ThumbnailRepository(
     return synchronized(memoryCache) { memoryCache.get(key) }
   }
 
+  fun clearLocalThumbnailCache() {
+    folderJobs.values.forEach { it.cancel() }
+    folderJobs.clear()
+    folderStates.clear()
+    useMediaStoreForVideo.clear()
+
+    synchronized(memoryCache) {
+      val snapshot = memoryCache.snapshot().keys.toList()
+      for (key in snapshot) {
+        if (key !in networkMemoryKeys) {
+          memoryCache.remove(key)
+        }
+      }
+    }
+
+    runCatching {
+      localDiskDir.listFiles()?.forEach { it.delete() }
+    }
+  }
+
   fun clearThumbnailCache() {
     folderJobs.values.forEach { it.cancel() }
     folderJobs.clear()
     folderStates.clear()
     ongoingOperations.clear()
     useMediaStoreForVideo.clear()
+    networkThumbnailFailed.clear()
+    networkMemoryKeys.clear()
 
     synchronized(memoryCache) {
       memoryCache.evictAll()
     }
 
     runCatching {
-      if (diskDir.exists()) {
-        diskDir.listFiles()?.forEach { it.delete() }
-      }
+      if (networkDiskDir.exists()) networkDiskDir.listFiles()?.forEach { it.delete() }
+      if (localDiskDir.exists()) localDiskDir.listFiles()?.forEach { it.delete() }
     }
   }
 
@@ -275,31 +336,45 @@ class ThumbnailRepository(
   private fun diskKey(video: Video): String {
     val baseKey = videoBaseKey(video)
     return if (isNetworkUrl(video.path)) {
-      "$baseKey|disk|d$diskCacheDimension|pos3"
+      "$baseKey|disk|d$diskCacheDimension|pos10s"
     } else {
-      "$baseKey|disk|d$diskCacheDimension"
+      val strategy = appearancePreferences.thumbnailStrategy.get()
+      if (strategy == app.marlboroadvance.mpvex.preferences.ThumbnailStrategy.FirstFrame) {
+        "$baseKey|disk|d$diskCacheDimension|firstFrame"
+      } else {
+        val percent = appearancePreferences.thumbnailPositionPercent.get()
+        "$baseKey|disk|d$diskCacheDimension|pos${percent}pct"
+      }
     }
   }
 
   private fun loadFromDisk(video: Video): Bitmap? {
-    val diskFile = File(diskDir, keyToFileName(diskKey(video)))
-    if (!diskFile.exists()) return null
+    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video)))
+    if (!diskFile.exists()) {
+      android.util.Log.d("ThumbnailRepository", "Disk cache MISS: ${diskFile.name} for ${video.displayName}")
+      return null
+    }
+    android.util.Log.d("ThumbnailRepository", "Disk cache HIT: ${diskFile.name} for ${video.displayName}")
     return runCatching {
-      val options =
-        BitmapFactory.Options().apply {
+      val options = BitmapFactory.Options().apply {
           inPreferredConfig = Bitmap.Config.ARGB_8888
         }
       BitmapFactory.decodeFile(diskFile.absolutePath, options)
+    }.onFailure { e ->
+      android.util.Log.e("ThumbnailRepository", "loadFromDisk decode FAILED for ${video.displayName}", e)
     }.getOrNull()
   }
 
   private fun writeToDisk(video: Video, bitmap: Bitmap) {
-    val diskFile = File(diskDir, keyToFileName(diskKey(video)))
+    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video)))
     runCatching {
       FileOutputStream(diskFile).use { out ->
         bitmap.compress(Bitmap.CompressFormat.JPEG, diskJpegQuality, out)
         out.flush()
       }
+      android.util.Log.d("ThumbnailRepository", "Disk cache written: ${diskFile.name} for ${video.displayName}")
+    }.onFailure { e ->
+      android.util.Log.e("ThumbnailRepository", "writeToDisk FAILED for ${video.displayName}", e)
     }
   }
 
@@ -502,26 +577,112 @@ class ThumbnailRepository(
     }
   }
 
+  /**
+   * Extracts a thumbnail from a network stream (HLS, HTTP MP4, RTSP, etc.) using
+   * [android.media.MediaMetadataRetriever].  Seeks to 10s of the duration when the
+   * server reports it; falls back to 2 s for live / unknown-duration streams.
+   */
+  private suspend fun generateWithMediaMetadataRetriever(
+    video: Video,
+    dimension: Int,
+  ): Bitmap? = withContext(Dispatchers.IO) {
+    val url = video.path.ifBlank { video.uri.toString() }
+    android.util.Log.d("ThumbnailRepository", "MediaMetadataRetriever: extracting frame from $url")
+
+    val retriever = android.media.MediaMetadataRetriever()
+    try {
+      // Empty-headers map is required for the network overload on all API levels
+      retriever.setDataSource(url, emptyMap<String, String>())
+
+      // Prefer the duration reported by the stream; fall back to what the Video model says
+      val streamDurationMs = retriever
+        .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+        ?.toLongOrNull()
+        ?.takeIf { it > 0L }
+      val durationMs = streamDurationMs ?: video.duration.takeIf { it > 0L }
+
+      // Position in microseconds (MediaMetadataRetriever uses microsecond units)
+      val positionUs: Long = if (durationMs != null && durationMs > 0L) {
+        val maxSafePositionUs = (durationMs - 100L).coerceAtLeast(0L) * 1000L
+          minOf(10_000_000L, maxSafePositionUs)
+      } else {
+          10_000_000L
+      }
+
+      android.util.Log.d(
+        "ThumbnailRepository",
+        "MediaMetadataRetriever: seeking to ${positionUs / 1_000_000.0}s (duration=${durationMs}ms) for ${video.displayName}"
+      )
+
+      val frame: Bitmap? = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+        // API 27+ – returns already-scaled bitmap, avoids an extra allocation
+        retriever.getScaledFrameAtTime(
+          positionUs,
+          android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+          dimension,
+          dimension,
+        )
+      } else {
+        // Older APIs – get raw frame then scale down
+        retriever.getFrameAtTime(positionUs, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+          ?.let { raw ->
+            val scale = dimension.toFloat() / maxOf(raw.width, raw.height).toFloat()
+            if (scale >= 1f) {
+              raw
+            } else {
+              val scaled = Bitmap.createScaledBitmap(
+                raw,
+                (raw.width * scale).toInt().coerceAtLeast(1),
+                (raw.height * scale).toInt().coerceAtLeast(1),
+                true,
+              )
+              if (scaled !== raw) raw.recycle()
+              scaled
+            }
+          }
+      }
+
+      if (frame == null) {
+        android.util.Log.w("ThumbnailRepository", "MediaMetadataRetriever returned null frame for ${video.displayName}")
+        return@withContext null
+      }
+
+      android.util.Log.d("ThumbnailRepository", "MediaMetadataRetriever: frame extracted (${frame.width}x${frame.height}) for ${video.displayName}")
+      rotateIfNeeded(video, frame)
+    } catch (e: Throwable) {
+      android.util.Log.e("ThumbnailRepository", "MediaMetadataRetriever failed for ${video.displayName}", e)
+      null
+    } finally {
+      runCatching { retriever.release() }
+    }
+  }
+
   private fun preferredPositionSeconds(video: Video): Double {
     val isNetworkUrl = isNetworkUrl(video.path)
-    
+
     if (isNetworkUrl) {
       val durationSec = video.duration / 1000.0
-      
+
       if (durationSec > 0.0) {
-        return 2.0.coerceIn(0.0, max(0.0, durationSec - 0.1))
+        return minOf(10.0, max(0.0, durationSec - 0.1))
       }
-      
-      return 2.0
+      return 10.0
     }
-    
+
     val durationSec = video.duration / 1000.0
-    
+
     if (durationSec <= 0.0 || durationSec < 20.0) return 0.0
-    
-    val candidate = 3.0
-    
-    return candidate.coerceIn(0.0, max(0.0, durationSec - 0.1))
+
+    val strategy = appearancePreferences.thumbnailStrategy.get()
+    return if (strategy == app.marlboroadvance.mpvex.preferences.ThumbnailStrategy.FirstFrame) {
+      // Hardcoded 10s logic for local videos
+      minOf(10.0, max(0.0, durationSec - 0.1))
+    } else {
+      // Frame at position based on preference
+      val percent = appearancePreferences.thumbnailPositionPercent.get() / 100.0
+      val candidate = durationSec * percent
+      candidate.coerceIn(0.0, max(0.0, durationSec - 0.1))
+    }
   }
   
   private fun isNetworkUrl(path: String): Boolean {

@@ -145,10 +145,6 @@ fun PlaylistCard(
   // Wrap FolderCard content to use the loaded thumbnail if available
   val customThumbnail = thumbnail?.asImageBitmap()
   
-  // Note: FolderCard currently uses customIcon if thumbnail is null. 
-  // We'll pass the loaded thumbnail to BaseMediaCard via FolderCard if I update FolderCard to accept it.
-  // For now, let's keep it simple and just use the improved dimensions.
-  
   FolderCard(
     folder = folderModel,
     uiSettings = uiSettings,
@@ -159,6 +155,7 @@ fun PlaylistCard(
     onThumbClick = onThumbClick,
     showDateModified = true,
     customIcon = Icons.AutoMirrored.Filled.PlaylistPlay,
+    thumbnail = customThumbnail,
     modifier = modifier,
     customChipContent = customChipRenderer,
     isGridMode = isGridMode,

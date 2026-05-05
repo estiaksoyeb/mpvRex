@@ -3,11 +3,17 @@ package app.marlboroadvance.mpvex.ui.preferences
 import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,12 +23,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import app.marlboroadvance.mpvex.R
+import app.marlboroadvance.mpvex.preferences.ThumbnailStrategy
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
@@ -40,8 +49,17 @@ import me.zhanghai.compose.preference.SliderPreference
 import me.zhanghai.compose.preference.SwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import android.widget.Toast
+import androidx.compose.runtime.rememberCoroutineScope
+import app.marlboroadvance.mpvex.domain.thumbnail.ThumbnailRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.HorizontalDivider
 
 @Serializable
 object AppearancePreferencesScreen : Screen {
@@ -62,6 +80,31 @@ object AppearancePreferencesScreen : Screen {
             DarkMode.Dark -> true
             DarkMode.Light -> false
             DarkMode.System -> systemDarkTheme
+        }
+
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        val thumbnailRepository = koinInject<ThumbnailRepository>()
+        var showNetworkWarning by remember { mutableStateOf(false) }
+        var pendingStrategyChange by remember { mutableStateOf<ThumbnailStrategy?>(null) }
+        var pendingPositionChange by remember { mutableStateOf<Int?>(null) }
+
+        fun clearCacheAndApply(onSuccess: () -> Unit, onFailure: () -> Unit = {}) {
+            scope.launch(Dispatchers.IO) {
+                runCatching { thumbnailRepository.clearLocalThumbnailCache() }
+                    .onSuccess {
+                        withContext(Dispatchers.Main) {
+                            onSuccess()
+                            Toast.makeText(context, "Local thumbnail cache cleared", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    .onFailure {
+                        withContext(Dispatchers.Main) {
+                            onFailure()
+                            Toast.makeText(context, "Failed to clear cache", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+            }
         }
 
         Scaffold(
@@ -320,6 +363,31 @@ object AppearancePreferencesScreen : Screen {
 
                             PreferenceDivider()
 
+                            val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
+                            SwitchPreference(
+                                value = showAudioFiles,
+                                onValueChange = { browserPreferences.showAudioFiles.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_show_audio_files_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_show_audio_files_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    item {
+                        PreferenceSectionHeader(title = stringResource(id = R.string.pref_appearance_category_thumbnails))
+                    }
+
+                    item {
+                        PreferenceCard {
                             val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
                             SwitchPreference(
                                 value = tapThumbnailToSelect,
@@ -342,11 +410,15 @@ object AppearancePreferencesScreen : Screen {
                             val showNetworkThumbnails by preferences.showNetworkThumbnails.collectAsState()
                             SwitchPreference(
                                 value = showNetworkThumbnails,
-                                onValueChange = { preferences.showNetworkThumbnails.set(it) },
+                                onValueChange = { newValue ->
+                                    if (newValue) {
+                                        showNetworkWarning = true
+                                    } else {
+                                        preferences.showNetworkThumbnails.set(false)
+                                    }
+                                },
                                 title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_show_network_thumbnails_title),
-                                    )
+                                    Text(text = stringResource(id = R.string.pref_appearance_show_network_thumbnails_title))
                                 },
                                 summary = {
                                     Text(
@@ -356,24 +428,239 @@ object AppearancePreferencesScreen : Screen {
                                 }
                             )
 
+                            if (showNetworkWarning) {
+                                AlertDialog(
+                                    onDismissRequest = { showNetworkWarning = false },
+                                    title = { Text("Enable Network Thumbnails?") },
+                                    text = {
+                                        Column{
+                                            Text(
+                                                text = "Generating thumbnails for network streams (M3U/HTTP) may significantly increase background data usage and loading times. Proceed?",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            preferences.showNetworkThumbnails.set(true)
+                                            showNetworkWarning = false
+                                        }) {
+                                            Text(stringResource(R.string.generic_confirm))
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showNetworkWarning = false }) {
+                                            Text(stringResource(R.string.generic_cancel))
+                                        }
+                                    }
+                                )
+                            }
+
                             PreferenceDivider()
 
-                            val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
-                            SwitchPreference(
-                                value = showAudioFiles,
-                                onValueChange = { browserPreferences.showAudioFiles.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_show_audio_files_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_show_audio_files_summary),
-                                        color = MaterialTheme.colorScheme.outline,
+                            val thumbnailStrategy by preferences.thumbnailStrategy.collectAsState()
+                            Column(modifier = Modifier.padding(vertical = 16.dp)) {
+                                Text(
+                                    text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_title),
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_summary),
+                                    modifier = Modifier.padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 12.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                MultiChoiceSegmentedButton(
+                                    choices = persistentListOf(
+                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_title),
+                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_title)
+                                    ),
+                                    selectedIndices = persistentListOf(ThumbnailStrategy.entries.indexOf(thumbnailStrategy)),
+                                    onClick = { index ->
+                                        val newStrategy = ThumbnailStrategy.entries[index]
+                                        if (newStrategy != thumbnailStrategy) {
+                                            pendingStrategyChange = newStrategy
+                                        }
+                                    },
+                                )
+
+                                Text(
+                                    text = if (thumbnailStrategy == ThumbnailStrategy.FirstFrame) {
+                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_summary)
+                                    } else {
+                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_summary)
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            pendingStrategyChange?.let { newStrategy ->
+                                AlertDialog(
+                                    onDismissRequest = { pendingStrategyChange = null },
+                                    title = { Text("Change Thumbnail Strategy?") },
+                                    text = {
+                                        Column {
+                                            val summaryText = if (newStrategy == ThumbnailStrategy.FirstFrame) {
+                                                stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_summary)
+                                            } else {
+                                                stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_summary)
+                                            }
+                                            Text(
+                                                text = summaryText,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                                            Text(
+                                                text = "Changing the extraction strategy will clear your currently saved thumbnail cache. New thumbnails will be generated automatically as you browse.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            clearCacheAndApply(
+                                                onSuccess = {
+                                                    preferences.thumbnailStrategy.set(newStrategy)
+                                                    pendingStrategyChange = null
+                                                },
+                                                onFailure = {
+                                                    pendingStrategyChange = null
+                                                }
+                                            )
+                                        }) {
+                                            Text(stringResource(R.string.generic_confirm))
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { pendingStrategyChange = null }) {
+                                            Text(stringResource(R.string.generic_cancel))
+                                        }
+                                    }
+                                )
+                            }
+
+                            PreferenceDivider()
+                            
+                            val thumbnailPositionPercent by preferences.thumbnailPositionPercent.collectAsState()
+                            val isPositionStrategy = thumbnailStrategy == ThumbnailStrategy.Position
+                            
+                            // Track the drag visually without saving it to the backend yet
+                            var draftPosition by remember(thumbnailPositionPercent) { mutableStateOf(thumbnailPositionPercent.toFloat()) }
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                SliderPreference(
+                                    modifier = Modifier.weight(1f),
+                                    value = thumbnailPositionPercent.toFloat(),
+                                    onValueChange = { finalValue ->
+                                        val newInt = finalValue.roundToInt()
+                                        if (newInt != thumbnailPositionPercent) {
+                                            pendingPositionChange = newInt
+                                        }
+                                    },
+                                    sliderValue = draftPosition,
+                                    onSliderValueChange = { slidingValue ->
+                                        draftPosition = slidingValue
+                                    },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_thumbnail_position_title)) },
+                                    valueRange = 1f..100f,
+                                    summary = {
+                                        Text(
+                                            text = stringResource(
+                                                id = R.string.pref_appearance_thumbnail_position_summary,
+                                                draftPosition.roundToInt(),
+                                            ),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    enabled = isPositionStrategy
+                                )
+
+                                IconButton(
+                                    onClick = {
+                                        val default = AppearancePreferences.THUMBNAIL_POSITION_DEFAULT
+                                        if (thumbnailPositionPercent != default) {
+                                            pendingPositionChange = default
+                                        }
+                                    },
+                                    enabled = isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT,
+                                    modifier = Modifier
+                                        .padding(end = 8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            color = if (isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT)
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            else
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        ),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Refresh,
+                                        contentDescription = stringResource(id = R.string.pref_appearance_thumbnail_position_reset),
+                                        tint = if (isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                                     )
                                 }
-                            )
+                            }
+                            
+                            pendingPositionChange?.let { newPosition ->
+                                AlertDialog(
+                                    onDismissRequest = { 
+                                        pendingPositionChange = null 
+                                        draftPosition = thumbnailPositionPercent.toFloat()
+                                    },
+                                    title = { Text("Update Thumbnail Position?") },
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "Reset thumbnail at $newPosition% of the video duration.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                                            Text(
+                                                text = "Changing the extraction position will clear your currently saved thumbnail cache. New thumbnails will be generated automatically as you browse.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            clearCacheAndApply(
+                                                onSuccess = {
+                                                    preferences.thumbnailPositionPercent.set(newPosition)
+                                                    pendingPositionChange = null
+                                                },
+                                                onFailure = {
+                                                    pendingPositionChange = null
+                                                    draftPosition = thumbnailPositionPercent.toFloat()
+                                                }
+                                            )
+                                        }) {
+                                            Text(stringResource(R.string.generic_confirm))
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { 
+                                            pendingPositionChange = null 
+                                            draftPosition = thumbnailPositionPercent.toFloat()
+                                        }) {
+                                            Text(stringResource(R.string.generic_cancel))
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
 

@@ -23,6 +23,9 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.filled.Close
 import android.content.res.Configuration.ORIENTATION_PORTRAIT
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.Image
@@ -200,6 +203,7 @@ fun PlayerControls(
     
   val abLoopA by viewModel.abLoopA.collectAsState()
   val abLoopB by viewModel.abLoopB.collectAsState()
+  val isABLoopExpanded by viewModel.isABLoopExpanded.collectAsState()
 
   val isGestureSeeking by viewModel.isGestureSeeking.collectAsState()
   val isVerticalGestureActive by viewModel.isVerticalGestureActive.collectAsState()
@@ -315,6 +319,7 @@ fun PlayerControls(
         val (playerUpdates, playerLockHint) = createRefs()
         val (customLeftButtonsRef, customRightButtonsRef) = createRefs()
         val customButtonsPortraitRef = createRef()
+        val floatingABLoop = createRef()
 
         val bottomControlsBelowSeekbar by playerPreferences.bottomControlsBelowSeekbar.collectAsState()
 
@@ -1436,8 +1441,95 @@ fun PlayerControls(
             LockHint(text = if (update.isLocked) "Speed Locked" else "Swipe up to lock")
           }
         }
+
+        AnimatedVisibility(
+          visible = isABLoopExpanded,
+          enter = fadeIn(tween(200)) + slideInHorizontally(initialOffsetX = { it }),
+          exit = fadeOut(tween(200)) + slideOutHorizontally(targetOffsetX = { it }),
+          modifier = Modifier.constrainAs(floatingABLoop) {
+            end.linkTo(parent.end, spacing.extraLarge)
+            top.linkTo(parent.top)
+            bottom.linkTo(parent.bottom)
+            verticalBias = 0.7f
+          }
+        ) {
+          val buttonSize = 40.dp
+          Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            modifier = Modifier.height(buttonSize),
+          ) {
+            Row(
+              horizontalArrangement = Arrangement.spacedBy(2.dp),
+              verticalAlignment = Alignment.CenterVertically,
+              modifier = Modifier.padding(horizontal = 4.dp),
+            ) {
+
+              Surface(
+                shape = CircleShape,
+                color = if (abLoopA != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
+                modifier = Modifier
+                  .height(buttonSize - 4.dp)
+                  .widthIn(min = buttonSize - 4.dp)
+                  .clip(CircleShape)
+                  .clickable(onClick = { viewModel.setLoopA() }),
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Text(
+                    text = if (abLoopA != null) viewModel.formatTimestamp(abLoopA!!) else "A",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (abLoopA != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = if (abLoopA != null) 8.dp else 0.dp),
+                  )
+                }
+              }
+
+              Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                modifier = Modifier
+                  .size(buttonSize - 4.dp)
+                  .clip(CircleShape)
+                  .clickable(onClick = {
+                    viewModel.clearABLoop()
+                    viewModel.toggleABLoopExpanded()
+                  }),
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Clear Loop",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(16.dp),
+                  )
+                }
+              }
+
+              Surface(
+                shape = CircleShape,
+                color = if (abLoopB != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
+                modifier = Modifier
+                  .height(buttonSize - 4.dp)
+                  .widthIn(min = buttonSize - 4.dp)
+                  .clip(CircleShape)
+                  .clickable(onClick = { viewModel.setLoopB() }),
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Text(
+                    text = if (abLoopB != null) viewModel.formatTimestamp(abLoopB!!) else "B",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (abLoopB != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = if (abLoopB != null) 8.dp else 0.dp),
+                  )
+                }
+              }
+            }
+          }
+        }
       }
-    }
+     }
     }
 
     val sheetShown by viewModel.sheetShown.collectAsState()

@@ -637,10 +637,10 @@ fun PlayerControls(
                 }
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 6.dp)
                     .horizontalScroll(leftScrollState)
             ) {
                 customButtons.filter { it.isLeft }.forEach { button ->
@@ -669,7 +669,7 @@ fun PlayerControls(
                         Text(
                             text = button.label,
                             modifier = Modifier
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                                 .basicMarquee(),
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
@@ -703,10 +703,10 @@ fun PlayerControls(
                 }
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 6.dp)
                     .horizontalScroll(rightScrollState, reverseScrolling = true)
             ) {
                 customButtons.filter { !it.isLeft }.forEach { button ->
@@ -735,7 +735,7 @@ fun PlayerControls(
                         Text(
                             text = button.label,
                             modifier = Modifier
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                                 .basicMarquee(),
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
@@ -768,10 +768,10 @@ fun PlayerControls(
                 }
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 6.dp)
                     .horizontalScroll(portraitScrollState)
             ) {
                 customButtons.forEach { button ->
@@ -800,7 +800,7 @@ fun PlayerControls(
                         Text(
                             text = button.label,
                             modifier = Modifier
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                                 .basicMarquee(),
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
@@ -907,7 +907,7 @@ fun PlayerControls(
                   Surface(
                     modifier =
                       Modifier
-                        .size(56.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .clickable(
                           onClick = {
@@ -940,14 +940,14 @@ fun PlayerControls(
                         },
                       modifier = Modifier
                         .fillMaxSize()
-                        .padding(MaterialTheme.spacing.small),
+                        .padding(MaterialTheme.spacing.smaller),
                     )
                   }
 
                   Surface(
                     modifier =
                       Modifier
-                        .size(64.dp)
+                        .size(56.dp)
                         .clip(CircleShape)
                         .clickable(interaction, ripple(), onClick = {
                           resetControlsTimestamp = System.currentTimeMillis()
@@ -971,7 +971,7 @@ fun PlayerControls(
                       painter = rememberAnimatedVectorPainter(icon, paused == false),
                       modifier = Modifier
                         .fillMaxSize()
-                        .padding(MaterialTheme.spacing.medium),
+                        .padding(MaterialTheme.spacing.small),
                       contentDescription = null,
                       colorFilter = ColorFilter.tint(contentColor),
                     )
@@ -980,7 +980,7 @@ fun PlayerControls(
                   Surface(
                     modifier =
                       Modifier
-                        .size(56.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .clickable(
                           onClick = {
@@ -1013,7 +1013,7 @@ fun PlayerControls(
                         },
                       modifier = Modifier
                         .fillMaxSize()
-                        .padding(MaterialTheme.spacing.small),
+                        .padding(MaterialTheme.spacing.smaller),
                     )
                   }
                 }
@@ -1021,7 +1021,7 @@ fun PlayerControls(
                 Surface(
                   modifier =
                     Modifier
-                      .size(64.dp)
+                      .size(56.dp)
                       .clip(CircleShape)
                       .clickable(interaction, ripple(), onClick = {
                         resetControlsTimestamp = System.currentTimeMillis()
@@ -1045,7 +1045,7 @@ fun PlayerControls(
                     painter = rememberAnimatedVectorPainter(icon, paused == false),
                     modifier = Modifier
                       .fillMaxSize()
-                      .padding(MaterialTheme.spacing.medium),
+                      .padding(MaterialTheme.spacing.small),
                     contentDescription = null,
                     colorFilter = ColorFilter.tint(contentColor),
                   )

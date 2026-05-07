@@ -80,7 +80,7 @@ fun TopLeftPlayerControlsLandscape(
     ControlsButton(
       icon = Icons.AutoMirrored.Default.ArrowBack,
       onClick = onBackPress,
-      modifier = Modifier.size(45.dp),
+      modifier = Modifier.size(40.dp),
     )
 
     val titleInteractionSource = remember { MutableInteractionSource() }
@@ -88,7 +88,7 @@ fun TopLeftPlayerControlsLandscape(
     Box(
       modifier =
         Modifier
-          .height(45.dp)
+          .height(40.dp)
           .clip(CircleShape)
           .clickable(
             interactionSource = titleInteractionSource,
@@ -113,8 +113,8 @@ fun TopLeftPlayerControlsLandscape(
           modifier =
             Modifier
               .padding(
-                start = MaterialTheme.spacing.medium,
-                end = MaterialTheme.spacing.medium,
+                start = MaterialTheme.spacing.smaller,
+                end = MaterialTheme.spacing.smaller,
                 top = MaterialTheme.spacing.small,
                 bottom = MaterialTheme.spacing.small,
               ),
@@ -180,7 +180,7 @@ fun TopRightPlayerControlsLandscape(
         onOpenPanel = onOpenPanel,
         viewModel = viewModel,
         activity = activity,
-        buttonSize = 45.dp,
+        buttonSize = 40.dp,
       )
     }
   }
@@ -226,7 +226,7 @@ fun BottomRightPlayerControlsLandscape(
         onOpenPanel = onOpenPanel,
         viewModel = viewModel,
         activity = activity,
-        buttonSize = 45.dp,
+        buttonSize = 40.dp,
       )
     }
   }
@@ -272,7 +272,7 @@ fun BottomLeftPlayerControlsLandscape(
         onOpenPanel = onOpenPanel,
         viewModel = viewModel,
         activity = activity,
-        buttonSize = 45.dp,
+        buttonSize = 40.dp,
       )
     }
   }

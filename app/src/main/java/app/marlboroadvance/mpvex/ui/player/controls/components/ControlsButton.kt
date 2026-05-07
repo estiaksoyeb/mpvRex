@@ -106,7 +106,7 @@ fun ControlsButton(
       tint = contentColor,
       modifier =
         Modifier
-          .padding(MaterialTheme.spacing.small)
+          .padding(MaterialTheme.spacing.smaller)
           .size(20.dp),
     )
   }

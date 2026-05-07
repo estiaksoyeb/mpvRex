@@ -53,7 +53,7 @@ fun CurrentChapter(
   Surface(
     modifier =
       modifier
-        .height(45.dp)
+        .height(40.dp)
         .widthIn(max = 220.dp)
         .clip(RoundedCornerShape(50))
         .clickable(onClick = onClick),

@@ -192,10 +192,9 @@ fun RenderPlayerButton(
           modifier =
             Modifier
               .padding(
-                horizontal = MaterialTheme.spacing.extraSmall,
-                vertical = MaterialTheme.spacing.small,
-              ),
-        ) {
+                horizontal = MaterialTheme.spacing.smaller,
+                vertical = MaterialTheme.spacing.smaller,
+              ),        ) {
           Text(
             mediaTitle ?: "",
             maxLines = 1,
@@ -232,7 +231,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.Bookmarks,
@@ -293,8 +292,8 @@ fun RenderPlayerButton(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
             modifier = Modifier.padding(
-              horizontal = MaterialTheme.spacing.small,
-              vertical = MaterialTheme.spacing.small,
+              horizontal = MaterialTheme.spacing.smaller,
+              vertical = MaterialTheme.spacing.smaller,
             ),
           ) {
             Icon(
@@ -345,8 +344,8 @@ fun RenderPlayerButton(
           modifier =
             Modifier
               .padding(
-                horizontal = MaterialTheme.spacing.medium,
-                vertical = MaterialTheme.spacing.small,
+                horizontal = MaterialTheme.spacing.small,
+                vertical = MaterialTheme.spacing.smaller,
               ),
         ) {
           if (isMoreSheet) {
@@ -381,7 +380,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.ScreenRotation,
@@ -423,7 +422,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.Camera,
@@ -637,7 +636,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.PictureInPictureAlt,
@@ -681,7 +680,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = when (aspect) {
@@ -735,7 +734,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.LockOpen,
@@ -773,7 +772,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.Audiotrack,
@@ -812,7 +811,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.Subtitles,
@@ -890,7 +889,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = icon,
@@ -933,7 +932,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.FastForward,
@@ -975,7 +974,7 @@ fun RenderPlayerButton(
               Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-                modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+                modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
               ) {
                 Icon(
                   imageVector = if (shuffleEnabled) Icons.Default.ShuffleOn else Icons.Default.Shuffle,
@@ -1016,7 +1015,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.Flip,
@@ -1056,7 +1055,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.Flip,
@@ -1119,7 +1118,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Text(
                 text = "AB",
@@ -1170,7 +1169,7 @@ fun RenderPlayerButton(
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
             ) {
               Icon(
                 imageVector = Icons.Default.Headset,
@@ -1210,7 +1209,7 @@ fun RenderPlayerButton(
               Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-                modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small)
+                modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
               ) {
                 Icon(
                   imageVector = if (isAmbientEnabled) Icons.Filled.BlurOn else Icons.Outlined.BlurOn,

@@ -46,7 +46,7 @@ fun PlayerUpdate(
       MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
     ),
     modifier = modifier
-      .height(45.dp)
+      .height(40.dp)
       .animateContentSize(),
   ) {
     Box(

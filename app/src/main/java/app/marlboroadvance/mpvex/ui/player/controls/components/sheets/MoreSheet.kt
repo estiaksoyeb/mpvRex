@@ -541,7 +541,7 @@ fun ControlsTab(
                   },
                   viewModel = viewModel,
                   activity = activity,
-                  buttonSize = 48.dp,
+                  buttonSize = 40.dp,
                   isMoreSheet = true
               )
           }

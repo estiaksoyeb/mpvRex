@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -89,6 +91,7 @@ fun TopPlayerControlsPortrait(
         androidx.compose.foundation.layout.Box(
           modifier =
             Modifier
+              .height(40.dp)
               .clip(CircleShape)
               .clickable(
                 interactionSource = titleInteractionSource,
@@ -113,8 +116,8 @@ fun TopPlayerControlsPortrait(
               modifier =
                 Modifier
                   .padding(
-                    horizontal = MaterialTheme.spacing.medium,
-                    vertical = MaterialTheme.spacing.small,
+                    horizontal = MaterialTheme.spacing.smaller,
+                    vertical = MaterialTheme.spacing.smaller,
                   ),
             ) {
               Text(
@@ -197,7 +200,7 @@ fun BottomPlayerControlsPortrait(
           activity = activity,
           decoder = decoder,
           playbackSpeed = playbackSpeed,
-          buttonSize = 48.dp,
+          buttonSize = 40.dp,
         )
       }
     }

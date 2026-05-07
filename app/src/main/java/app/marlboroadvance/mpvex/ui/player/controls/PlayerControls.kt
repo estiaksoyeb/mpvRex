@@ -232,6 +232,7 @@ fun PlayerControls(
   val bottomRightControlsPref by appearancePreferences.bottomRightControls.collectAsState()
   val bottomLeftControlsPref by appearancePreferences.bottomLeftControls.collectAsState()
   val portraitBottomControlsPref by appearancePreferences.portraitBottomControls.collectAsState()
+  val portraitGridColumns by appearancePreferences.portraitGridColumns.collectAsState()
 
   val (topRightButtons, bottomRightButtons, bottomLeftButtons) =
     remember(
@@ -838,8 +839,13 @@ fun PlayerControls(
             Modifier.constrainAs(playerPauseButton) {
               end.linkTo(parent.absoluteRight)
               start.linkTo(parent.absoluteLeft)
-              top.linkTo(parent.top)
-              bottom.linkTo(parent.bottom)
+              if (isPortrait) {
+                top.linkTo(topLeftControls.bottom)
+                bottom.linkTo(seekbar.top)
+              } else {
+                top.linkTo(parent.top)
+                bottom.linkTo(parent.bottom)
+              }
             },
         ) {
           val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
@@ -1085,7 +1091,9 @@ fun PlayerControls(
                 }
               )
               .constrainAs(seekbar) {
-                if (bottomControlsBelowSeekbar) {
+                if (isPortrait) {
+                  bottom.linkTo(bottomRightControls.top, spacing.small)
+                } else if (bottomControlsBelowSeekbar) {
                   // When bottom controls are below seekbar, position seekbar above them
                   // Use a stable margin to prevent jumping when controls are hiding
                   val bottomMargin = if (isPortrait) 96.dp else 45.dp + spacing.medium + spacing.small
@@ -1309,18 +1317,17 @@ fun PlayerControls(
                 }
               )
               .constrainAs(bottomRightControls) {
-                if (bottomControlsBelowSeekbar) {
-                  // Bottom controls at very bottom - more margin for navigation bar
-                  bottom.linkTo(parent.bottom, spacing.medium)
-                } else {
-                  // Bottom controls above seekbar
-                  bottom.linkTo(seekbar.top, spacing.small)
-                }
                 if (isPortrait) {
+                  bottom.linkTo(parent.bottom, spacing.medium)
                   start.linkTo(parent.start, spacing.medium)
                   end.linkTo(parent.end, spacing.medium)
                   width = Dimension.fillToConstraints
                 } else {
+                  if (bottomControlsBelowSeekbar) {
+                    bottom.linkTo(parent.bottom, spacing.medium)
+                  } else {
+                    bottom.linkTo(seekbar.top, spacing.small)
+                  }
                   end.linkTo(parent.end, spacing.medium)
                 }
               },
@@ -1342,8 +1349,8 @@ fun PlayerControls(
               onOpenPanel = onOpenPanel,
               viewModel = viewModel,
               activity = activity,
-            )
-          } else {
+              gridColumns = portraitGridColumns,
+            )          } else {
             BottomRightPlayerControlsLandscape(
               buttons = bottomRightButtons,
               chapters = chapters,

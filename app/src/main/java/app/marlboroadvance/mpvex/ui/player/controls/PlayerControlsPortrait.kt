@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -160,48 +161,56 @@ fun BottomPlayerControlsPortrait(
   onOpenPanel: (Panels) -> Unit,
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
+  gridColumns: Int,
 ) {
-  val scrollState = rememberScrollState()
-  val clickEvent = LocalPlayerButtonsClickEvent.current
+  val spacing = MaterialTheme.spacing
 
-  androidx.compose.runtime.LaunchedEffect(scrollState.isScrollInProgress) {
-    if (scrollState.isScrollInProgress) {
-      while (scrollState.isScrollInProgress) {
-        clickEvent()
-        kotlinx.coroutines.delay(1000)
-      }
-    }
-  }
-
-  Row(
+  Column(
     modifier = Modifier
       .fillMaxWidth()
-      .padding(bottom = MaterialTheme.spacing.large)
-      .horizontalScroll(scrollState),
-    horizontalArrangement = Arrangement.Center,
-    verticalAlignment = Alignment.CenterVertically,
+      .padding(bottom = spacing.large),
+    verticalArrangement = Arrangement.spacedBy(spacing.smaller)
   ) {
-    ControlsGroup {
-      buttons.forEach { button ->
-        RenderPlayerButton(
-          button = button,
-          chapters = chapters,
-          currentChapter = currentChapter,
-          isPortrait = true,
-          isSpeedNonOne = isSpeedNonOne,
-          currentZoom = currentZoom,
-          aspect = aspect,
-          mediaTitle = mediaTitle,
-          hideBackground = hideBackground,
-          onBackPress = onBackPress,
-          onOpenSheet = onOpenSheet,
-          onOpenPanel = onOpenPanel,
-          viewModel = viewModel,
-          activity = activity,
-          decoder = decoder,
-          playbackSpeed = playbackSpeed,
-          buttonSize = 40.dp,
-        )
+    buttons.chunked(gridColumns).forEach { rowButtons ->
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        rowButtons.forEach { button ->
+          Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.Center
+          ) {
+            RenderPlayerButton(
+              button = button,
+              chapters = chapters,
+              currentChapter = currentChapter,
+              isPortrait = true,
+              isSpeedNonOne = isSpeedNonOne,
+              currentZoom = currentZoom,
+              aspect = aspect,
+              mediaTitle = mediaTitle,
+              hideBackground = hideBackground,
+              onBackPress = onBackPress,
+              onOpenSheet = onOpenSheet,
+              onOpenPanel = onOpenPanel,
+              viewModel = viewModel,
+              activity = activity,
+              decoder = decoder,
+              playbackSpeed = playbackSpeed,
+              buttonSize = 40.dp,
+            )
+          }
+        }
+
+        // Fill the remaining space in the last row to keep columns aligned
+        val remaining = gridColumns - rowButtons.size
+        if (remaining > 0) {
+          repeat(remaining) {
+            Spacer(modifier = Modifier.weight(1f))
+          }
+        }
       }
     }
   }

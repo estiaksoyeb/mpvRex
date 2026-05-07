@@ -255,9 +255,26 @@ object AppearancePreferencesScreen : Screen {
                                     )
                                 },
                             )
+
+                            PreferenceDivider()
+
+                            val portraitGridColumns by preferences.portraitGridColumns.collectAsState()
+                            SliderPreference(
+                                value = portraitGridColumns.toFloat(),
+                                onValueChange = { preferences.portraitGridColumns.set(it.roundToInt()) },
+                                sliderValue = portraitGridColumns.toFloat(),
+                                onSliderValueChange = { preferences.portraitGridColumns.set(it.roundToInt()) },
+                                title = {
+                                    Text(text = "Portrait Grid Columns")
+                                },
+                                summary = {
+                                    Text(text = "Number of buttons per row in portrait mode ($portraitGridColumns)")
+                                },
+                                valueRange = 1f..10f,
+                                valueSteps = 8
+                            )
                         }
                     }
-
                     item {
                         PreferenceSectionHeader(title = stringResource(id = R.string.pref_appearance_category_file_browser))
                     }

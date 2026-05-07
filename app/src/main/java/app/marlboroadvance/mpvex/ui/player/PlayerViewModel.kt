@@ -1120,6 +1120,18 @@ class PlayerViewModel(
     executeGestureAction(gesturePreferences.rightSingleActionGesture.get(), isRight = true)
   }
 
+  fun handleMediaPlayPause() {
+    executeGestureAction(gesturePreferences.mediaPlayGesture.get())
+  }
+
+  fun handleMediaNext() {
+    executeGestureAction(gesturePreferences.mediaNextGesture.get(), isRight = true)
+  }
+
+  fun handleMediaPrevious() {
+    executeGestureAction(gesturePreferences.mediaPreviousGesture.get(), isLeft = true)
+  }
+
   // ==================== Video Zoom ====================
 
   fun setVideoZoom(zoom: Float) {

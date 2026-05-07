@@ -910,10 +910,9 @@ fun PlayerControls(
                         .size(56.dp)
                         .clip(CircleShape)
                         .clickable(
-                          enabled = viewModel.hasPrevious(),
                           onClick = {
                             resetControlsTimestamp = System.currentTimeMillis()
-                            if (viewModel.hasPrevious()) viewModel.playPrevious()
+                            viewModel.handleMediaPrevious()
                           },
                         )
                         .then(
@@ -952,7 +951,7 @@ fun PlayerControls(
                         .clip(CircleShape)
                         .clickable(interaction, ripple(), onClick = {
                           resetControlsTimestamp = System.currentTimeMillis()
-                          viewModel.pauseUnpause()
+                          viewModel.handleMediaPlayPause()
                         })
                         .then(
                           if (hideBackground) {
@@ -984,10 +983,9 @@ fun PlayerControls(
                         .size(56.dp)
                         .clip(CircleShape)
                         .clickable(
-                          enabled = viewModel.hasNext(),
                           onClick = {
                             resetControlsTimestamp = System.currentTimeMillis()
-                            if (viewModel.hasNext()) viewModel.playNext()
+                            viewModel.handleMediaNext()
                           },
                         )
                         .then(

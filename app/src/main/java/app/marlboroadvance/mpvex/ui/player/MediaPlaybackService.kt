@@ -223,33 +223,17 @@ class MediaPlaybackService :
 
             override fun onSkipToNext() {
               Log.d(TAG, "onSkipToNext called")
-              when (gesturePreferences.mediaNextGesture.get()) {
-                SingleActionGesture.PlaylistNext -> {
-                  listener?.onNextRequested() ?: run {
-                    // Fallback if no listener
-                    MPVLib.command("playlist-next")
-                  }
-                }
-                SingleActionGesture.Seek -> {
-                  playbackManager.seekBy(serviceScope, 10)
-                }
-                else -> { /* Handle other gestures if needed */ }
+              listener?.onNextRequested() ?: run {
+                // Fallback if no listener
+                MPVLib.command("playlist-next")
               }
             }
 
             override fun onSkipToPrevious() {
               Log.d(TAG, "onSkipToPrevious called")
-              when (gesturePreferences.mediaPreviousGesture.get()) {
-                SingleActionGesture.PlaylistPrev -> {
-                  listener?.onPreviousRequested() ?: run {
-                    // Fallback if no listener
-                    MPVLib.command("playlist-prev")
-                  }
-                }
-                SingleActionGesture.Seek -> {
-                  playbackManager.seekBy(serviceScope, -10)
-                }
-                else -> { /* Handle other gestures if needed */ }
+              listener?.onPreviousRequested() ?: run {
+                // Fallback if no listener
+                MPVLib.command("playlist-prev")
               }
             }
 

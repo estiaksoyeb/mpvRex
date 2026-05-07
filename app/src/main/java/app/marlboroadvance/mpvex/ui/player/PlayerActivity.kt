@@ -2814,23 +2814,11 @@ class PlayerActivity :
               }
 
               override fun onSkipToNext() {
-                when (gesturePreferences.mediaNextGesture.get()) {
-                  SingleActionGesture.PlaylistNext -> playNext()
-                  SingleActionGesture.Seek -> {
-                    viewModel.handleRightDoubleTap()
-                  }
-                  else -> {}
-                }
+                viewModel.handleMediaNext()
               }
 
               override fun onSkipToPrevious() {
-                when (gesturePreferences.mediaPreviousGesture.get()) {
-                  SingleActionGesture.PlaylistPrev -> playPrevious()
-                  SingleActionGesture.Seek -> {
-                    viewModel.handleLeftDoubleTap()
-                  }
-                  else -> {}
-                }
+                viewModel.handleMediaPrevious()
               }
 
               override fun onSeekTo(pos: Long) {
@@ -3061,14 +3049,13 @@ class PlayerActivity :
 
   // ==================== ServiceListener ====================
 
-  override fun onNextRequested() {
-    viewModel.playNext()
-  }
+   override fun onNextRequested() {
+     viewModel.handleMediaNext()
+   }
 
-  override fun onPreviousRequested() {
-    viewModel.playPrevious()
-  }
-
+   override fun onPreviousRequested() {
+     viewModel.handleMediaPrevious()
+   }
   // ==================== Playlist Management ====================
 
   /**

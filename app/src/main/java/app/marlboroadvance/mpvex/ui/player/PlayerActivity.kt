@@ -42,6 +42,7 @@ import app.marlboroadvance.mpvex.preferences.AdvancedPreferences
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.AudioPreferences
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
+import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
 import app.marlboroadvance.mpvex.database.repository.VideoMetadataCacheRepository
@@ -52,6 +53,7 @@ import app.marlboroadvance.mpvex.utils.media.HttpUtils
 import app.marlboroadvance.mpvex.utils.media.SubtitleOps
 import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
 import app.marlboroadvance.mpvex.utils.storage.FileFilterUtils
+import app.marlboroadvance.mpvex.ui.player.SingleActionGesture
 import com.github.k1rakishou.fsaf.FileManager
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
@@ -83,7 +85,8 @@ import java.io.File
 @Suppress("TooManyFunctions", "LargeClass")
 class PlayerActivity :
   AppCompatActivity(),
-  PlayerHost {
+  PlayerHost,
+  MediaPlaybackService.ServiceListener {
   // ==================== ViewModels and Bindings ====================
 
   /**
@@ -119,6 +122,11 @@ class PlayerActivity :
    * Preferences for player settings.
    */
   private val playerPreferences: PlayerPreferences by inject()
+
+  /**
+   * Preferences for gesture settings.
+   */
+  private val gesturePreferences: GesturePreferences by inject()
 
   /**
    * Preferences for audio settings.
@@ -2805,6 +2813,26 @@ class PlayerActivity :
                 updateMediaSessionPlaybackState(isPlaying = false)
               }
 
+              override fun onSkipToNext() {
+                when (gesturePreferences.mediaNextGesture.get()) {
+                  SingleActionGesture.PlaylistNext -> playNext()
+                  SingleActionGesture.Seek -> {
+                    viewModel.handleRightDoubleTap()
+                  }
+                  else -> {}
+                }
+              }
+
+              override fun onSkipToPrevious() {
+                when (gesturePreferences.mediaPreviousGesture.get()) {
+                  SingleActionGesture.PlaylistPrev -> playPrevious()
+                  SingleActionGesture.Seek -> {
+                    viewModel.handleLeftDoubleTap()
+                  }
+                  else -> {}
+                }
+              }
+
               override fun onSeekTo(pos: Long) {
                 viewModel.seekTo((pos / 1000).toInt())
                 updateMediaSessionPlaybackState(isPlaying = viewModel.paused == false)
@@ -2820,7 +2848,9 @@ class PlayerActivity :
             PlaybackState.ACTION_PLAY or
               PlaybackState.ACTION_PAUSE or
               PlaybackState.ACTION_PLAY_PAUSE or
-              PlaybackState.ACTION_SEEK_TO,
+              PlaybackState.ACTION_SEEK_TO or
+              PlaybackState.ACTION_SKIP_TO_NEXT or
+              PlaybackState.ACTION_SKIP_TO_PREVIOUS,
           )
       mediaSessionInitialized = true
     }.onFailure { e ->
@@ -2895,12 +2925,14 @@ class PlayerActivity :
       ) {
         val binder = service as? MediaPlaybackService.MediaPlaybackBinder ?: return
         mediaPlaybackService = binder.getService()
+        mediaPlaybackService?.setListener(this@PlayerActivity)
         serviceBound = true
         Log.d(TAG, "Service connected")
       }
 
       override fun onServiceDisconnected(name: ComponentName?) {
         Log.d(TAG, "Service disconnected")
+        mediaPlaybackService?.setListener(null)
         mediaPlaybackService = null
         serviceBound = false
       }
@@ -3026,6 +3058,16 @@ class PlayerActivity :
     set(value) {
       requestedOrientation = value
     }
+
+  // ==================== ServiceListener ====================
+
+  override fun onNextRequested() {
+    viewModel.playNext()
+  }
+
+  override fun onPreviousRequested() {
+    viewModel.playPrevious()
+  }
 
   // ==================== Playlist Management ====================
 

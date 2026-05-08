@@ -107,7 +107,7 @@ fun ControlsButton(
       modifier =
         Modifier
           .padding(MaterialTheme.spacing.smaller)
-          .size(20.dp),
+          .size(24.dp),
     )
   }
 }

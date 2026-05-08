@@ -86,6 +86,7 @@ fun TopPlayerControlsPortrait(
         ControlsButton(
           icon = Icons.AutoMirrored.Default.ArrowBack,
           onClick = onBackPress,
+          modifier = Modifier.size(40.dp),
         )
 
         val titleInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
@@ -94,6 +95,7 @@ fun TopPlayerControlsPortrait(
           modifier =
             Modifier
               .height(40.dp)
+              .weight(1f)
               .clip(CircleShape)
               .clickable(
                 interactionSource = titleInteractionSource,
@@ -118,8 +120,10 @@ fun TopPlayerControlsPortrait(
               modifier =
                 Modifier
                   .padding(
-                    horizontal = MaterialTheme.spacing.smaller,
-                    vertical = MaterialTheme.spacing.smaller,
+                    start = MaterialTheme.spacing.smaller,
+                    end = MaterialTheme.spacing.smaller,
+                    top = MaterialTheme.spacing.small,
+                    bottom = MaterialTheme.spacing.small,
                   ),
             ) {
               Text(

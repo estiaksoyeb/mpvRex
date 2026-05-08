@@ -236,7 +236,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Bookmarks,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = chapter?.name ?: "Chapters",
@@ -300,7 +300,7 @@ fun RenderPlayerButton(
               imageVector = Icons.Default.Speed,
               contentDescription = "Playback Speed",
               tint = if (isSpeedNonOne) activeContentColor else contentColor,
-              modifier = Modifier.size(20.dp),
+              modifier = Modifier.size(24.dp),
             )
             Text(
               text = String.format("%.2fx", playbackSpeed),
@@ -352,7 +352,7 @@ fun RenderPlayerButton(
             Icon(
               imageVector = Icons.Outlined.Memory,
               contentDescription = null,
-              modifier = Modifier.size(20.dp).padding(end = 6.dp)
+              modifier = Modifier.size(24.dp).padding(end = 6.dp)
             )
           }
           Text(
@@ -385,7 +385,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.ScreenRotation,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "Rotation",
@@ -427,7 +427,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Camera,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "Frame Nav",
@@ -475,7 +475,7 @@ fun RenderPlayerButton(
                         imageVector = Icons.Default.FastRewind,
                         contentDescription = "Previous Frame",
                         tint = contentColor,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                       )
                     }
                   }
@@ -518,7 +518,7 @@ fun RenderPlayerButton(
                           imageVector = Icons.Default.CameraAlt,
                           contentDescription = "Take Screenshot",
                           tint = contentColor,
-                          modifier = Modifier.size(20.dp),
+                          modifier = Modifier.size(24.dp),
                         )
                       }
                     }
@@ -541,7 +541,7 @@ fun RenderPlayerButton(
                         imageVector = Icons.Default.FastForward,
                         contentDescription = "Next Frame",
                         tint = contentColor,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                       )
                     }
                   }
@@ -599,7 +599,7 @@ fun RenderPlayerButton(
               imageVector = Icons.Default.ZoomIn,
               contentDescription = "Video Zoom",
               tint = if (isZoomed) activeContentColor else contentColor,
-              modifier = Modifier.size(20.dp),
+              modifier = Modifier.size(24.dp),
             )
             Text(
               text = String.format("%.0f%%", currentZoom * 100),
@@ -641,7 +641,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.PictureInPictureAlt,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "PiP",
@@ -689,7 +689,7 @@ fun RenderPlayerButton(
                     VideoAspect.Crop -> Icons.Default.FitScreen
                 },
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = aspect.name,
@@ -739,7 +739,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.LockOpen,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "Lock",
@@ -777,7 +777,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Audiotrack,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "Audio",
@@ -816,7 +816,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Subtitles,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "Subtitles",
@@ -894,7 +894,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = when (repeatMode) {
@@ -937,7 +937,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.FastForward,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "Skip ${playerPreferences.customSkipDuration.get()}s",
@@ -979,7 +979,7 @@ fun RenderPlayerButton(
                 Icon(
                   imageVector = if (shuffleEnabled) Icons.Default.ShuffleOn else Icons.Default.Shuffle,
                   contentDescription = null,
-                  modifier = Modifier.size(20.dp)
+                  modifier = Modifier.size(24.dp)
                 )
                 Text(
                   text = if (shuffleEnabled) "Shuffle On" else "Shuffle Off",
@@ -1020,7 +1020,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Flip,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = if (isMirrored) "Mirrored" else "Mirror",
@@ -1060,7 +1060,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Flip,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp).rotate(90f)
+                modifier = Modifier.size(24.dp).rotate(90f)
               )
               Text(
                 text = if (isVerticalFlipped) "Flipped" else "Flip Vert",
@@ -1086,8 +1086,8 @@ fun RenderPlayerButton(
                 contentDescription = "Vertical Flip",
                 tint = if (isVerticalFlipped) activeContentColor else contentColor,
                 modifier = Modifier
-                  .padding(MaterialTheme.spacing.small)
-                  .size(20.dp)
+                  .padding(MaterialTheme.spacing.smaller)
+                  .size(24.dp)
                   .rotate(90f),
               )
             }
@@ -1174,7 +1174,7 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Headset,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
               Text(
                 text = "Background",
@@ -1214,7 +1214,7 @@ fun RenderPlayerButton(
                 Icon(
                   imageVector = if (isAmbientEnabled) Icons.Filled.BlurOn else Icons.Outlined.BlurOn,
                   contentDescription = null,
-                  modifier = Modifier.size(20.dp)
+                  modifier = Modifier.size(24.dp)
                 )
                 Text(
                   text = "Ambient",

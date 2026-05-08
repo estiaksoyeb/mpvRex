@@ -63,12 +63,17 @@ import org.koin.compose.koinInject
 object MainScreen : Screen {
   // Use a companion object to store state more persistently
   private var persistentSelectedTab: Int = 0
+  private var persistentPreviousTab: Int = 0
   
   private val _tabRequest = MutableSharedFlow<Int>(extraBufferCapacity = 1)
   val tabRequest = _tabRequest.asSharedFlow()
 
   fun requestTab(tab: Int) {
     _tabRequest.tryEmit(tab)
+  }
+  
+  fun requestPreviousTab() {
+    _tabRequest.tryEmit(persistentPreviousTab)
   }
 
   // Shared state that can be updated by FileSystemBrowserScreen
@@ -136,11 +141,20 @@ object MainScreen : Screen {
     var selectedTab by remember {
       mutableIntStateOf(persistentSelectedTab)
     }
+    
+    var previousTab by remember {
+      mutableIntStateOf(persistentPreviousTab)
+    }
 
     val context = LocalContext.current
     val density = LocalDensity.current
     val browserPreferences = koinInject<BrowserPreferences>()
     val isShortsEnabled by browserPreferences.enableShorts.collectAsState()
+    
+    // Intercept back button when on Shorts tab to return to previous tab
+    androidx.activity.compose.BackHandler(enabled = isShortsEnabled && selectedTab == 1) {
+      selectedTab = previousTab
+    }
 
     // Shared state (across the app)
     val isInSelectionMode = remember { mutableStateOf(isInSelectionModeShared) }
@@ -175,7 +189,11 @@ object MainScreen : Screen {
     
     // Update persistent state whenever tab changes
     LaunchedEffect(selectedTab) {
-      android.util.Log.d("MainScreen", "selectedTab changed to: $selectedTab (was ${persistentSelectedTab})")
+      if (selectedTab != persistentSelectedTab) {
+        previousTab = persistentSelectedTab
+        persistentPreviousTab = previousTab
+      }
+      android.util.Log.d("MainScreen", "selectedTab changed to: $selectedTab (was ${persistentSelectedTab}), previousTab is $previousTab")
       persistentSelectedTab = selectedTab
     }
 

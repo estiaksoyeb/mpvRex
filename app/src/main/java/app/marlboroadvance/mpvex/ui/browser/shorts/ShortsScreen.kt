@@ -154,7 +154,7 @@ data class ShortsScreen(
                         if (backstack.size > 1) {
                             backstack.removeLastOrNull()
                         } else {
-                            MainScreen.requestTab(0)
+                            MainScreen.requestPreviousTab()
                         }
                     }
                 )
@@ -270,7 +270,7 @@ data class ShortsScreen(
                             if (backstack.size > 1) {
                                 backstack.removeLastOrNull()
                             } else {
-                                MainScreen.requestTab(0)
+                                MainScreen.requestPreviousTab()
                             }
                         },
                         onLove = { viewModel.toggleLove(it) },

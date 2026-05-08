@@ -72,7 +72,8 @@ fun CurrentChapter(
   ) {
     AnimatedContent(
       targetState = chapter,
-      modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.small),
+      modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.smaller),
+      contentAlignment = Alignment.Center,
       transitionSpec = {
         if (targetState.start > initialState.start) {
           (slideInVertically { height -> height } + fadeIn())

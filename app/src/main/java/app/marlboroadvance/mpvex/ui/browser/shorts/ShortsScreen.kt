@@ -44,8 +44,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -119,7 +121,7 @@ data class ShortsScreen(
         val totalShortsCount by viewModel.totalShortsCount.collectAsState()
         val lovedPaths by viewModel.lovedPaths.collectAsState()
         val blockedPaths by viewModel.blockedPaths.collectAsState()
-        val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
+        val autoSwipe by viewModel.autoSwipe.collectAsState()
         val currentSpeed by viewModel.currentSpeed.collectAsState()
         
         val view = LocalView.current
@@ -217,13 +219,13 @@ data class ShortsScreen(
                         }
                     }
 
-                    LaunchedEffect(pagerState.settledPage, mpvView) {
+                    LaunchedEffect(pagerState.settledPage, mpvView, autoSwipe) {
                         if (mpvView != null && shorts.isNotEmpty()) {
                             if (pagerState.settledPage < shorts.size) {
                                 val video = shorts[pagerState.settledPage]
                                 MPVLib.command("stop") 
                                 MPVLib.command("loadfile", video.path)
-                                MPVLib.setPropertyString("loop-file", "inf")
+                                MPVLib.setPropertyString("loop-file", if (autoSwipe) "no" else "inf")
                                 MPVLib.setPropertyBoolean("pause", false)
                                 viewModel.syncPlaybackSpeed()
                                 
@@ -236,13 +238,27 @@ data class ShortsScreen(
                         }
                     }
 
+                    // Auto Swipe Transition Logic
+                    LaunchedEffect(isPlayerReady, autoSwipe, pagerState.settledPage) {
+                        if (isPlayerReady && autoSwipe) {
+                            while (isActive) {
+                                val eofReached = MPVLib.getPropertyBoolean("eof-reached") ?: false
+                                if (eofReached && pagerState.currentPage < shorts.size - 1) {
+                                    delay(100) // Small delay to ensure smooth transition
+                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                    break // Stop observing once we start swiping for THIS page
+                                }
+                                delay(500)
+                            }
+                        }
+                    }
+
                     ShortsPager(
                         shorts = shorts,
                         pagerState = pagerState,
                         lovedPaths = lovedPaths,
                         blockedPaths = blockedPaths,
                         isPlayerReady = isPlayerReady,
-                        isShuffleEnabled = isShuffleEnabled,
                         isExhausted = isExhausted,
                         currentSpeed = currentSpeed,
                         playingPageIndex = playingPageIndex,
@@ -258,8 +274,7 @@ data class ShortsScreen(
                             }
                         },
                         onLove = { viewModel.toggleLove(it) },
-                        onBlock = { viewModel.toggleBlock(it) },
-                        onToggleShuffle = { viewModel.toggleShuffle(pagerState.currentPage) }
+                        onBlock = { viewModel.toggleBlock(it) }
                     )
                 }
             }
@@ -327,15 +342,13 @@ private fun ShortsPager(
     lovedPaths: Set<String>,
     blockedPaths: Set<String>,
     isPlayerReady: Boolean,
-    isShuffleEnabled: Boolean,
     isExhausted: Boolean,
     currentSpeed: Double,
     playingPageIndex: Int,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
     onLove: (Video) -> Unit,
-    onBlock: (Video) -> Unit,
-    onToggleShuffle: () -> Unit
+    onBlock: (Video) -> Unit
 ) {
     VerticalPager(
         state = pagerState,
@@ -352,13 +365,11 @@ private fun ShortsPager(
                 isPlayerReady = isPlayerReady,
                 isLoved = lovedPaths.contains(video.path),
                 isBlocked = blockedPaths.contains(video.path),
-                isShuffleEnabled = isShuffleEnabled,
                 currentSpeed = currentSpeed,
                 viewModel = viewModel,
                 onBack = onBack,
                 onLove = { onLove(video) },
-                onBlock = { onBlock(video) },
-                onToggleShuffle = onToggleShuffle
+                onBlock = { onBlock(video) }
             )
         } else if (isExhausted) {
             FinishedPageItem(onBack = onBack)
@@ -375,13 +386,11 @@ private fun ShortPageItem(
     isPlayerReady: Boolean,
     isLoved: Boolean,
     isBlocked: Boolean,
-    isShuffleEnabled: Boolean,
     currentSpeed: Double,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
     onLove: () -> Unit,
-    onBlock: () -> Unit,
-    onToggleShuffle: () -> Unit
+    onBlock: () -> Unit
 ) {
     val backstack = LocalBackStack.current
     val coroutineScope = rememberCoroutineScope()
@@ -633,21 +642,19 @@ private fun ShortPageItem(
         }
 
         if (showMore) {
+            val isAutoSwipeEnabled by viewModel.autoSwipe.collectAsState()
             MoreActionsSheet(
                 onDismiss = { showMore = false },
-                isShuffleEnabled = isShuffleEnabled,
-                onToggleShuffle = onToggleShuffle,
-                onShowBlocked = { 
-                    showMore = false
+                isAutoSwipeEnabled = isAutoSwipeEnabled,
+                onToggleAutoSwipe = { viewModel.toggleAutoSwipe() },
+                onShowBlocked = {
                     backstack.add(BlockedShortsScreen)
                 },
                 onShowInfo = {
-                    showMore = false
                     showInfo = true
                 }
             )
-        }
-    }
+        }    }
 }
 
 @Composable
@@ -693,8 +700,8 @@ private fun ConfettiBurst(trigger: Long, center: Offset) {
 @Composable
 private fun MoreActionsSheet(
     onDismiss: () -> Unit,
-    isShuffleEnabled: Boolean,
-    onToggleShuffle: () -> Unit,
+    isAutoSwipeEnabled: Boolean,
+    onToggleAutoSwipe: () -> Unit,
     onShowBlocked: () -> Unit,
     onShowInfo: () -> Unit
 ) {
@@ -715,22 +722,29 @@ private fun MoreActionsSheet(
     ) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
             ListItem(
-                headlineContent = { Text(if (isShuffleEnabled) "Stop Shuffling" else "Shuffle Shorts") },
-                leadingContent = { Icon(Icons.Default.Shuffle, contentDescription = null) },
-                modifier = Modifier.clickable { 
-                    onToggleShuffle()
-                    onDismiss()
-                }
+                headlineContent = { Text("Auto Swipe to Next Short") },
+                supportingContent = { Text("Swipe automatically when video ends") },
+                leadingContent = { Icon(Icons.Default.Speed, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = isAutoSwipeEnabled,
+                        onCheckedChange = { onToggleAutoSwipe() }
+                    )
+                },
+                modifier = Modifier.clickable { onToggleAutoSwipe() },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
             ListItem(
                 headlineContent = { Text("Video Information") },
                 leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
-                modifier = Modifier.clickable { onShowInfo() }
+                modifier = Modifier.clickable { onShowInfo() },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
             ListItem(
                 headlineContent = { Text("Blocked Videos Manager") },
                 leadingContent = { Icon(Icons.Default.Block, contentDescription = null) },
-                modifier = Modifier.clickable { onShowBlocked() }
+                modifier = Modifier.clickable { onShowBlocked() },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
         }
     }

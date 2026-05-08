@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.HorizontalRule
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,7 +43,7 @@ object ShortsPreferencesScreen : Screen {
         val backstack = LocalBackStack.current
         val browserPreferences = koinInject<BrowserPreferences>()
         val enableShorts by browserPreferences.enableShorts.collectAsState()
-        val persistentShuffle by browserPreferences.persistentShuffle.collectAsState()
+        val autoSwipeShorts by browserPreferences.autoSwipeShorts.collectAsState()
         val includeHorizontal by browserPreferences.includeShortHorizontalVideos.collectAsState()
         val maxDuration by browserPreferences.maxHorizontalVideoDurationMinutes.collectAsState()
 
@@ -98,13 +99,13 @@ object ShortsPreferencesScreen : Screen {
                             PreferenceDivider()
 
                             SwitchPreference(
-                                value = persistentShuffle,
-                                onValueChange = { browserPreferences.persistentShuffle.set(it) },
-                                title = { Text("Persistent Shuffle") },
-                                summary = { Text("Always randomize videos when opening Shorts") },
+                                value = autoSwipeShorts,
+                                onValueChange = { browserPreferences.autoSwipeShorts.set(it) },
+                                title = { Text("Auto Swipe to Next Short") },
+                                summary = { Text("Automatically swipe to the next short when current one ends") },
                                 icon = {
                                     Icon(
-                                        Icons.Outlined.Shuffle,
+                                        Icons.Outlined.Repeat,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )

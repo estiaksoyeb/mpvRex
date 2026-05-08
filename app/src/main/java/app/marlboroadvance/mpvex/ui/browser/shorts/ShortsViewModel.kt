@@ -53,8 +53,8 @@ class ShortsViewModel(
         .map { list -> list.filter { it.isBlocked }.map { it.path }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    val isShuffleEnabled: StateFlow<Boolean> = browserPreferences.persistentShuffle.changes()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), browserPreferences.persistentShuffle.get())
+    val autoSwipe: StateFlow<Boolean> = browserPreferences.autoSwipeShorts.changes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), browserPreferences.autoSwipeShorts.get())
 
     private val _currentSpeed = MutableStateFlow(1.0)
     val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
@@ -188,27 +188,9 @@ class ShortsViewModel(
         setPlaybackSpeed(speeds[nextIndex])
     }
 
-    fun toggleShuffle(currentIndex: Int) {
-        val newState = !browserPreferences.persistentShuffle.get()
-        browserPreferences.persistentShuffle.set(newState)
-        
-        if (newState) {
-            shuffleShorts(currentIndex)
-        }
-    }
-
-    fun shuffleShorts(currentIndex: Int) {
-        val currentList = _shorts.value
-        if (currentList.isEmpty()) return
-        
-        val currentVideo = currentList.getOrNull(currentIndex) ?: return
-        
-        val mutableList = currentList.toMutableList()
-        mutableList.removeAt(currentIndex)
-        mutableList.shuffle()
-        mutableList.add(currentIndex, currentVideo)
-        
-        _shorts.value = mutableList
+    fun toggleAutoSwipe() {
+        val newState = !browserPreferences.autoSwipeShorts.get()
+        browserPreferences.autoSwipeShorts.set(newState)
     }
 
     fun toggleLove(video: Video) {

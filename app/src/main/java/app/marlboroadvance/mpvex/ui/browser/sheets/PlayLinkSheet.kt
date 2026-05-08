@@ -1,12 +1,15 @@
 package app.marlboroadvance.mpvex.ui.browser.sheets
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -88,7 +91,17 @@ fun PlayLinkSheet(
   ModalBottomSheet(
     onDismissRequest = handleDismiss,
     sheetState = sheetState,
-    dragHandle = { BottomSheetDefaults.DragHandle() },
+    dragHandle = {
+        Box(
+            modifier = Modifier
+                .padding(vertical = 12.dp)
+                .size(width = 32.dp, height = 4.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    shape = MaterialTheme.shapes.extraLarge
+                )
+        )
+    },
     modifier = modifier,
   ) {
     Column(

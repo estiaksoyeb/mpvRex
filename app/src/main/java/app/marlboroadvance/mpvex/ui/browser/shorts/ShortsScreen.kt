@@ -700,7 +700,18 @@ private fun MoreActionsSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState()
+        sheetState = rememberModalBottomSheetState(),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .size(width = 32.dp, height = 4.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        shape = MaterialTheme.shapes.extraLarge
+                    )
+            )
+        }
     ) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
             ListItem(

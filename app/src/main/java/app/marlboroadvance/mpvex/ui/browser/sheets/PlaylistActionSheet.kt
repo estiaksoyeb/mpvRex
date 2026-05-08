@@ -3,6 +3,7 @@ package app.marlboroadvance.mpvex.ui.browser.sheets
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,7 +65,17 @@ fun PlaylistActionSheet(
   ModalBottomSheet(
     onDismissRequest = onDismiss,
     sheetState = sheetState,
-    dragHandle = { BottomSheetDefaults.DragHandle() },
+    dragHandle = {
+        Box(
+            modifier = Modifier
+                .padding(vertical = 12.dp)
+                .size(width = 32.dp, height = 4.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    shape = MaterialTheme.shapes.extraLarge
+                )
+        )
+    },
     modifier = modifier,
   ) {
     Column(

@@ -862,8 +862,7 @@ fun PlayerControls(
               if (isPortrait) {
                 top.linkTo(parent.top)
                 bottom.linkTo(parent.bottom)
-                // Biased slightly upwards to account for navigation bars and the bottom grid
-                verticalBias = 0.45f
+                verticalBias = 0.5f
               } else {
                 top.linkTo(parent.top)
                 bottom.linkTo(parent.bottom)

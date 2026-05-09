@@ -204,6 +204,8 @@ class PlayerActivity :
   private var savePlaybackStateJob: kotlinx.coroutines.Job? = null // Track ongoing save job
   private var wasPlayingBeforePause = false // Track if video was playing before pause
   private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
+  private var lastVid = -1 // Track video track for background playback optimization
+  private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
 
   @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
 
@@ -700,16 +702,23 @@ class PlayerActivity :
   override fun onPause() {
     runCatching {
       val isInPip = isInPictureInPictureMode
+      val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
       val shouldPause = (!audioPreferences.automaticBackgroundPlayback.get() && !isManualBackgroundPlayback) || 
                         (isUserFinishing && !isManualBackgroundPlayback)
 
-      if (!isInPip && shouldPause) {
-        wasPlayingBeforePause = !(viewModel.paused ?: true)
-        viewModel.pause()
+      if (!isInPip && !isInMultiWindow) {
+        if (shouldPause) {
+          wasPlayingBeforePause = !(viewModel.paused ?: true)
+          viewModel.pause()
+        } else {
+          // Background playback is active - disable video decoding to save battery
+          disableVideoForBackground()
+        }
       }
 
       saveVideoPlaybackState(fileName)
-    }.onFailure { e ->
+    }
+.onFailure { e ->
       Log.e(TAG, "Error during onPause", e)
     }
 
@@ -786,6 +795,9 @@ class PlayerActivity :
       // Pause playback if background playback is not enabled and user is finishing
       if (!shouldAllowBackgroundPlayback && (isUserFinishing || isFinishing)) {
         viewModel.pause()
+      } else if (shouldAllowBackgroundPlayback && !isInBackgroundPlayback) {
+        // Ensure video is disabled when hidden, even if it wasn't handled in onPause (e.g. multi-window)
+        disableVideoForBackground()
       }
     }.onFailure { e ->
       Log.e(TAG, "Error during onStop", e)
@@ -801,6 +813,9 @@ class PlayerActivity :
     runCatching {
       setupWindowFlags()
       setupSystemUI()
+
+      // Restore video if it was disabled for background playback
+      enableVideoAfterBackground()
 
       if (!noisyReceiverRegistered) {
         val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
@@ -1901,6 +1916,11 @@ class PlayerActivity :
 
     // Start media notification service (like YouTube - always show notification)
     startBackgroundPlayback()
+
+    // If we are currently in background playback, disable video for the new file too
+    if (isInBackgroundPlayback) {
+      disableVideoForBackground()
+    }
 
     // Reset AB loop values when video changes
     viewModel.clearABLoop()
@@ -3026,6 +3046,33 @@ class PlayerActivity :
       flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
     startActivity(intent)
+  }
+
+  /**
+   * Disables video decoding to save battery when moving to background playback.
+   */
+  private fun disableVideoForBackground() {
+    if (!isReady || fileName.isBlank()) return
+
+    val currentVid = MPVLib.getPropertyInt("vid") ?: -1
+    if (currentVid > 0) {
+      lastVid = currentVid
+      MPVLib.setPropertyString("vid", "no")
+      isInBackgroundPlayback = true
+      Log.d(TAG, "Video disabled for background playback (saved vid: $lastVid)")
+    }
+  }
+
+  /**
+   * Restores video decoding when returning from background playback.
+   */
+  private fun enableVideoAfterBackground() {
+    isInBackgroundPlayback = false
+    if (lastVid > 0) {
+      Log.d(TAG, "Restoring video after background playback (vid: $lastVid)")
+      MPVLib.setPropertyInt("vid", lastVid)
+      lastVid = -1
+    }
   }
 
   // ==================== PlayerHost ====================

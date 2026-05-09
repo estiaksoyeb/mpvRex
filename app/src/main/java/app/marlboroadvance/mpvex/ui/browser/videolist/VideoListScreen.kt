@@ -666,7 +666,14 @@ private fun VideoListContent(
           initialFirstVisibleItemScrollOffset = rememberedGridOffset.intValue
       )
 
+      val isInitialSortLoad = remember { mutableStateOf(true) }
       LaunchedEffect(sortType.name, sortOrder.name) {
+          if (isInitialSortLoad.value) {
+              isInitialSortLoad.value = false
+              return@LaunchedEffect
+          }
+          rememberedListIndex.intValue = 0
+          rememberedGridIndex.intValue = 0
           listState.scrollToItem(0)
           gridState.scrollToItem(0)
       }

@@ -188,14 +188,76 @@ object FolderListScreen : Screen {
     val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
     val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
+    val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
 
     // UI state - use standalone states to avoid scroll issues with predictive back gesture
-    val listState = rememberLazyListState()
-    val gridState = rememberLazyGridState()
+    val rememberedListIndex = rememberSaveable { mutableIntStateOf(0) }
+    val rememberedListOffset = rememberSaveable { mutableIntStateOf(0) }
+    val rememberedGridIndex = rememberSaveable { mutableIntStateOf(0) }
+    val rememberedGridOffset = rememberSaveable { mutableIntStateOf(0) }
 
     // Sorting and filtering
     val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder) {
       SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder)
+    }
+
+    val initialListIndex = if (rememberedListIndex.intValue > 0) {
+      rememberedListIndex.intValue
+    } else if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && sortedFolders.isNotEmpty()) {
+      var foundIndex = 0
+      val lastPlayedParentPath = java.io.File(recentlyPlayedFilePath!!).parent ?: "/"
+      for (i in sortedFolders.indices) {
+        if (sortedFolders[i].path == lastPlayedParentPath) {
+          foundIndex = i
+          break
+        }
+      }
+      foundIndex
+    } else 0
+
+    val initialGridIndex = if (rememberedGridIndex.intValue > 0) {
+      rememberedGridIndex.intValue
+    } else if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && sortedFolders.isNotEmpty()) {
+      var foundIndex = 0
+      val lastPlayedParentPath = java.io.File(recentlyPlayedFilePath!!).parent ?: "/"
+      for (i in sortedFolders.indices) {
+        if (sortedFolders[i].path == lastPlayedParentPath) {
+          foundIndex = i
+          break
+        }
+      }
+      foundIndex
+    } else 0
+
+    val listState = rememberLazyListState(
+      initialFirstVisibleItemIndex = initialListIndex,
+      initialFirstVisibleItemScrollOffset = rememberedListOffset.intValue
+    )
+    val gridState = rememberLazyGridState(
+      initialFirstVisibleItemIndex = initialGridIndex,
+      initialFirstVisibleItemScrollOffset = rememberedGridOffset.intValue
+    )
+
+    val isInitialSortLoad = remember { mutableStateOf(true) }
+    LaunchedEffect(folderSortType.name, folderSortOrder.name) {
+      if (isInitialSortLoad.value) {
+        isInitialSortLoad.value = false
+        return@LaunchedEffect
+      }
+      rememberedListIndex.intValue = 0
+      rememberedGridIndex.intValue = 0
+      listState.scrollToItem(0)
+      gridState.scrollToItem(0)
+    }
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+      rememberedListIndex.intValue = listState.firstVisibleItemIndex
+      rememberedListOffset.intValue = listState.firstVisibleItemScrollOffset
+    }
+
+    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
+      rememberedGridIndex.intValue = gridState.firstVisibleItemIndex
+      rememberedGridOffset.intValue = gridState.firstVisibleItemScrollOffset
     }
 
     val navigationBarHeight = LocalNavigationBarHeight.current
@@ -589,17 +651,9 @@ object FolderListScreen : Screen {
         sortOrder = folderSortOrder,
         onSortTypeChange = { 
           browserPreferences.folderSortType.set(it)
-          coroutineScope.launch { 
-            listState.scrollToItem(0)
-            gridState.scrollToItem(0)
-          }
         },
         onSortOrderChange = { 
           browserPreferences.folderSortOrder.set(it)
-          coroutineScope.launch { 
-            listState.scrollToItem(0)
-            gridState.scrollToItem(0)
-          }
         },
       )
 

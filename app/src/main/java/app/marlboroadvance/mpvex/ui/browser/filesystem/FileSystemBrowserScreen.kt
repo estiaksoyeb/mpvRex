@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -185,15 +186,51 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val itemsWereDeletedOrMoved by viewModel.itemsWereDeletedOrMoved.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
+  val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
 
   // Use standalone local states instead of CompositionLocal to avoid scroll issues with predictive back gesture
-  val listState = remember { LazyListState() }
+  val rememberedIndex = rememberSaveable { mutableIntStateOf(0) }
+  val rememberedOffset = rememberSaveable { mutableIntStateOf(0) }
+
+  val initialIndex = if (rememberedIndex.intValue > 0) {
+    rememberedIndex.intValue
+  } else if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && items.isNotEmpty()) {
+    var foundIndex = 0
+    for (i in items.indices) {
+      val item = items[i]
+      if (item is FileSystemItem.VideoFile && item.video.path == recentlyPlayedFilePath) {
+        foundIndex = i
+        break
+      } else if (item is FileSystemItem.Folder && recentlyPlayedFilePath!!.startsWith(item.path + "/")) {
+        // If the last played file is inside this folder, scroll to the folder
+        foundIndex = i
+        break
+      }
+    }
+    foundIndex
+  } else 0
+
+  val listState = rememberLazyListState(
+    initialFirstVisibleItemIndex = initialIndex,
+    initialFirstVisibleItemScrollOffset = rememberedOffset.intValue
+  )
 
   val sortType by browserPreferences.folderSortType.collectAsState()
   val sortOrder by browserPreferences.folderSortOrder.collectAsState()
 
+  val isInitialSortLoad = remember { mutableStateOf(true) }
   LaunchedEffect(sortType.name, sortOrder.name) {
+    if (isInitialSortLoad.value) {
+      isInitialSortLoad.value = false
+      return@LaunchedEffect
+    }
+    rememberedIndex.intValue = 0
     listState.scrollToItem(0)
+  }
+
+  LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+    rememberedIndex.intValue = listState.firstVisibleItemIndex
+    rememberedOffset.intValue = listState.firstVisibleItemScrollOffset
   }
   
   // UI state

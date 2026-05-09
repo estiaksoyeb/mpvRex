@@ -140,7 +140,7 @@ fun FrameNavigationSheet(
   }
 
   PlayerSheet(onDismissRequest = onDismissRequest) {
-    FrameNavigationCard(
+    FrameNavigationContent(
       onPreviousFrame = {
         if (!isFrameStepping) {
           coroutineScope.launch {
@@ -195,7 +195,7 @@ fun FrameNavigationSheet(
       onSeekTo = onSeekTo,
       title = {
         Column {
-          FrameNavigationCardTitle(onClose = onDismissRequest)
+          FrameNavigationTitle()
           IncludeSubsToggle(
             includeSubs = includeSubtitlesInSnapshot,
             setIncludeSubs = { checked ->
@@ -213,7 +213,7 @@ fun FrameNavigationSheet(
 }
 
 @Composable
-private fun FrameNavigationCard(
+private fun FrameNavigationContent(
   onPreviousFrame: () -> Unit,
   onNextFrame: () -> Unit,
   onPlayPause: () -> Unit,
@@ -230,14 +230,6 @@ private fun FrameNavigationCard(
   title: @Composable () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val panelCardsColors: @Composable () -> CardColors = {
-    val colors = CardDefaults.cardColors()
-    colors.copy(
-      containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
-      disabledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
-    )
-  }
-
   val configuration = LocalConfiguration.current
   val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
@@ -257,87 +249,80 @@ private fun FrameNavigationCard(
     label = "seekbar",
   )
 
-  Card(
-    modifier =
-      modifier
-        .widthIn(max = 520.dp)
-        .animateContentSize(),
-    colors = panelCardsColors(),
+  Column(
+    modifier
+      .animateContentSize()
+      .verticalScroll(rememberScrollState())
+      .padding(
+        horizontal = MaterialTheme.spacing.medium,
+        vertical = MaterialTheme.spacing.smaller,
+      ),
+    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
   ) {
+    title()
+
+    // Video seeking slider
     Column(
-      Modifier
-        .verticalScroll(rememberScrollState())
-        .padding(
-          horizontal = MaterialTheme.spacing.medium,
-          vertical = MaterialTheme.spacing.smaller,
-        ),
-      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      modifier = Modifier.fillMaxWidth(),
     ) {
-      title()
-
-      // Video seeking slider
-      Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+      Slider(
+        value = animatedProgress.coerceIn(0f, 1f),
+        onValueChange = { newValue ->
+          if (!isSeeking) isSeeking = true
+          userSliderPosition = newValue.coerceIn(0f, 1f)
+          // Optional live-seek for responsiveness
+          val newPosition = (userSliderPosition * duration).toInt()
+          onSeekTo(newPosition, false)
+        },
+        onValueChangeFinished = {
+          // Commit final seek and return control to player updates
+          val finalPosition = (userSliderPosition * duration).toInt()
+          onSeekTo(finalPosition, true)
+          isSeeking = false
+        },
         modifier = Modifier.fillMaxWidth(),
-      ) {
-        Slider(
-          value = animatedProgress.coerceIn(0f, 1f),
-          onValueChange = { newValue ->
-            if (!isSeeking) isSeeking = true
-            userSliderPosition = newValue.coerceIn(0f, 1f)
-            // Optional live-seek for responsiveness
-            val newPosition = (userSliderPosition * duration).toInt()
-            onSeekTo(newPosition, false)
-          },
-          onValueChangeFinished = {
-            // Commit final seek and return control to player updates
-            val finalPosition = (userSliderPosition * duration).toInt()
-            onSeekTo(finalPosition, true)
-            isSeeking = false
-          },
-          modifier = Modifier.fillMaxWidth(),
-        )
-      }
+      )
+    }
 
-      // Define button colors to make disabled buttons look the same as enabled
-      val buttonColors =
-        ButtonDefaults.buttonColors(
-          containerColor = MaterialTheme.colorScheme.primary,
-          contentColor = MaterialTheme.colorScheme.onPrimary,
-          disabledContainerColor = MaterialTheme.colorScheme.primary,
-          disabledContentColor = MaterialTheme.colorScheme.onPrimary,
-        )
+    // Define button colors to make disabled buttons look the same as enabled
+    val buttonColors =
+      ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        disabledContainerColor = MaterialTheme.colorScheme.primary,
+        disabledContentColor = MaterialTheme.colorScheme.onPrimary,
+      )
 
-      // Frame info, timestamp and navigation buttons
-      if (isLandscape) {
-        FrameNavigationLandscape(
-          currentFrame = currentFrame,
-          totalFrames = totalFrames,
-          timestamp = timestamp,
-          onPreviousFrame = onPreviousFrame,
-          onPlayPause = onPlayPause,
-          isPaused = isPaused,
-          onNextFrame = onNextFrame,
-          onSnapshot = onSnapshot,
-          isSnapshotLoading = isSnapshotLoading,
-          isFrameStepping = isFrameStepping,
-          buttonColors = buttonColors,
-        )
-      } else {
-        FrameNavigationPortrait(
-          currentFrame = currentFrame,
-          totalFrames = totalFrames,
-          timestamp = timestamp,
-          onPreviousFrame = onPreviousFrame,
-          onPlayPause = onPlayPause,
-          isPaused = isPaused,
-          onNextFrame = onNextFrame,
-          onSnapshot = onSnapshot,
-          isSnapshotLoading = isSnapshotLoading,
-          isFrameStepping = isFrameStepping,
-          buttonColors = buttonColors,
-        )
-      }
+    // Frame info, timestamp and navigation buttons
+    if (isLandscape) {
+      FrameNavigationLandscape(
+        currentFrame = currentFrame,
+        totalFrames = totalFrames,
+        timestamp = timestamp,
+        onPreviousFrame = onPreviousFrame,
+        onPlayPause = onPlayPause,
+        isPaused = isPaused,
+        onNextFrame = onNextFrame,
+        onSnapshot = onSnapshot,
+        isSnapshotLoading = isSnapshotLoading,
+        isFrameStepping = isFrameStepping,
+        buttonColors = buttonColors,
+      )
+    } else {
+      FrameNavigationPortrait(
+        currentFrame = currentFrame,
+        totalFrames = totalFrames,
+        timestamp = timestamp,
+        onPreviousFrame = onPreviousFrame,
+        onPlayPause = onPlayPause,
+        isPaused = isPaused,
+        onNextFrame = onNextFrame,
+        onSnapshot = onSnapshot,
+        isSnapshotLoading = isSnapshotLoading,
+        isFrameStepping = isFrameStepping,
+        buttonColors = buttonColors,
+      )
     }
   }
 }
@@ -543,28 +528,23 @@ private fun ControlButtons(
 }
 
 @Composable
-private fun FrameNavigationCardTitle(
-  onClose: () -> Unit,
+private fun FrameNavigationTitle(
   modifier: Modifier = Modifier,
 ) {
   Row(
     modifier = modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.SpaceBetween,
+    horizontalArrangement = Arrangement.Start,
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(
       stringResource(R.string.player_sheets_frame_navigation_title),
-      style = MaterialTheme.typography.headlineMedium,
+      style = MaterialTheme.typography.titleLarge,
+      fontWeight = FontWeight.Bold,
+      color = MaterialTheme.colorScheme.primary,
     )
-    IconButton(onClose) {
-      Icon(
-        Icons.Default.Close,
-        null,
-        modifier = Modifier.size(32.dp),
-      )
-    }
   }
 }
+
 
 @Composable
 private fun IncludeSubsToggle(

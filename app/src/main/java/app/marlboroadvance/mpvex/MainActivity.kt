@@ -2,6 +2,8 @@ package app.marlboroadvance.mpvex
 
 import android.os.Bundle
 import android.util.Log
+import android.content.Intent
+import androidx.core.net.toUri
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -49,6 +51,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
+import androidx.compose.runtime.staticCompositionLocalOf
+
+val LocalUpdateViewModel = staticCompositionLocalOf<UpdateViewModel?> { null }
 
 /**
  * Main entry point for the application
@@ -166,9 +171,10 @@ class MainActivity : ComponentActivity() {
     val isDownloading by (updateViewModel?.isDownloading ?: MutableStateFlow(false)).collectAsState()
     val downloadProgress by (updateViewModel?.downloadProgress ?: MutableStateFlow(0f)).collectAsState()
 
-    // Provide both LocalBackStack and the LazyList/Grid states to all screens
+    // Provide shared states to all screens
     CompositionLocalProvider(
-      LocalBackStack provides typedBackstack
+      LocalBackStack provides typedBackstack,
+      LocalUpdateViewModel provides updateViewModel
     ) {
       NavDisplay(
         backStack = typedBackstack,
@@ -223,7 +229,16 @@ class MainActivity : ComponentActivity() {
               actionLabel = if (isDownloading) "Downloading..." else "Download",
               currentVersion = currentVersion,
               onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.downloadUpdate(release) },
+              onAction = { 
+                // Redirect to GitHub releases page as requested by user
+                context.startActivity(
+                  Intent(
+                    Intent.ACTION_VIEW, 
+                    (release.htmlUrl ?: "https://github.com/sfsakhawat999/mpvRex/releases/latest").toUri()
+                  )
+                )
+                // updateViewModel.downloadUpdate(release) // Kept in code but disabled for now
+              },
               onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
             )
           }
@@ -236,7 +251,16 @@ class MainActivity : ComponentActivity() {
               actionLabel = "Install",
               currentVersion = currentVersion,
               onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.installUpdate(release) },
+              onAction = { 
+                // Redirect to GitHub releases page as requested by user
+                context.startActivity(
+                  Intent(
+                    Intent.ACTION_VIEW, 
+                    (release.htmlUrl ?: "https://github.com/sfsakhawat999/mpvRex/releases/latest").toUri()
+                  )
+                )
+                // updateViewModel.installUpdate(release) // Kept in code but disabled for now
+              },
               onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
             )
           }

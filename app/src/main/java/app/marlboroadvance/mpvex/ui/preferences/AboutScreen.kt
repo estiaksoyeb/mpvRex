@@ -37,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,8 +58,20 @@ import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.crash.CrashActivity.Companion.collectDeviceInfo
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
+import me.zhanghai.compose.preference.Preference
+import me.zhanghai.compose.preference.SwitchPreference
+import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
+
+import app.marlboroadvance.mpvex.MainActivity
+import app.marlboroadvance.mpvex.LocalUpdateViewModel
+import app.marlboroadvance.mpvex.utils.update.UpdateViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Switch
+import androidx.compose.foundation.layout.IntrinsicSize
 
 @Serializable
 object AboutScreen : Screen {
@@ -69,11 +82,30 @@ object AboutScreen : Screen {
     val context = LocalContext.current
     val backstack = LocalBackStack.current
     val clipboardManager = LocalClipboardManager.current
+    val updateViewModel = LocalUpdateViewModel.current
+    val updateState by (updateViewModel?.updateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
+    
     val packageManager: PackageManager = context.packageManager
     val packageInfo = packageManager.getPackageInfo(context.packageName, 0)
     val versionName = packageInfo.versionName?.substringBefore('-') ?: packageInfo.versionName
     val buildType = BuildConfig.BUILD_TYPE
 
+    // Show toast for NoUpdate or Error states only if they were triggered manually
+    // (though UpdateViewModel doesn't distinguish between manual/auto in its state, 
+    // we can use a local flag or just show it if the state changes to these while on this screen)
+    LaunchedEffect(updateState) {
+        when (updateState) {
+            is UpdateViewModel.UpdateState.NoUpdate -> {
+                Toast.makeText(context, "You are up to date!", Toast.LENGTH_SHORT).show()
+                updateViewModel?.dismissNoUpdate()
+            }
+            is UpdateViewModel.UpdateState.Error -> {
+                Toast.makeText(context, "Failed to check for updates", Toast.LENGTH_SHORT).show()
+                updateViewModel?.dismissNoUpdate()
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
       topBar = {
@@ -101,6 +133,7 @@ object AboutScreen : Screen {
       val cs = MaterialTheme.colorScheme
       val colorPrimary = cs.primaryContainer
       val colorSecondary = cs.secondaryContainer
+      val isAutoUpdateEnabled by (updateViewModel?.isAutoUpdateEnabled ?: MutableStateFlow(false)).collectAsState()
       val transition = rememberInfiniteTransition()
       val fraction by transition.animateFloat(
         initialValue = 0f,
@@ -113,12 +146,13 @@ object AboutScreen : Screen {
       )
       val cornerRadius = 28.dp
 
-      Column(
-        modifier =
-          Modifier
-            .padding(paddingValues)
-            .verticalScroll(rememberScrollState()),
-      ) {
+      ProvidePreferenceLocals {
+        Column(
+          modifier =
+            Modifier
+              .padding(paddingValues)
+              .verticalScroll(rememberScrollState()),
+        ) {
         PreferenceCard {
           Box(
             modifier =
@@ -274,9 +308,59 @@ object AboutScreen : Screen {
 
         Spacer(Modifier.height(8.dp))
 
-
+        // Updates Section
+        if (BuildConfig.ENABLE_UPDATE_FEATURE) {
+          PreferenceSectionHeader(title = "Updates")
+          PreferenceCard {
+            SwitchPreference(
+              value = isAutoUpdateEnabled,
+              onValueChange = { updateViewModel?.toggleAutoUpdate(it) },
+              title = { Text("Auto Check for Updates") },
+              summary = {
+                Text(
+                  "Check for new versions on startup",
+                  color = MaterialTheme.colorScheme.outline,
+                )
+              },
+              icon = {
+                Icon(
+                  imageVector = Icons.Default.SystemUpdate,
+                  contentDescription = null,
+                  tint = MaterialTheme.colorScheme.primary
+                )
+              }
+            )
+            
+            PreferenceDivider()
+            
+            Preference(
+              title = { Text("Check for Updates") },
+              summary = {
+                if (updateState is UpdateViewModel.UpdateState.Loading) {
+                  Text("Checking...", color = MaterialTheme.colorScheme.primary)
+                } else {
+                  Text("Manually check for new versions on GitHub", color = MaterialTheme.colorScheme.outline)
+                }
+              },
+              icon = {
+                if (updateState is UpdateViewModel.UpdateState.Loading) {
+                   CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else {
+                   Icon(
+                     imageVector = Icons.Default.SystemUpdate,
+                     contentDescription = null,
+                     tint = MaterialTheme.colorScheme.primary
+                   )
+                }
+              },
+              onClick = { updateViewModel?.checkForUpdate(manual = true) },
+              enabled = updateState !is UpdateViewModel.UpdateState.Loading
+            )
+          }
+        }
 
         Spacer(Modifier.height(12.dp))
+        }
       }
     }
   }

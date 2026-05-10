@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -62,7 +63,8 @@ data class Release(
     @SerialName("name") val name: String,
     @SerialName("body") val body: String,
     @SerialName("published_at") val publishedAt: String,
-    @SerialName("assets") val assets: List<Asset>
+    @SerialName("assets") val assets: List<Asset>,
+    @SerialName("html_url") val htmlUrl: String? = null
 )
 
 @Serializable
@@ -87,7 +89,7 @@ class UpdateManager(
             return null
         }
         
-        val release = getLatestRelease("https://api.github.com/repos/marlboro-advance/mpvEx/releases/latest")
+        val release = getLatestRelease("https://api.github.com/repos/sfsakhawat999/mpvRex/releases/latest")
         val currentVersion = BuildConfig.VERSION_NAME.replace("-dev", "")
         val remoteVersion = release.tagName.removePrefix("v")
         val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
@@ -269,7 +271,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     private val prefs = application.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
     private val _isAutoUpdateEnabled = MutableStateFlow(
-        if (BuildConfig.ENABLE_UPDATE_FEATURE) prefs.getBoolean("auto_update", false) else false
+        if (BuildConfig.ENABLE_UPDATE_FEATURE) prefs.getBoolean("auto_update", true) else false
     )
     val isAutoUpdateEnabled: StateFlow<Boolean> = _isAutoUpdateEnabled.asStateFlow()
 
@@ -441,6 +443,19 @@ fun UpdateDialog(
                     InfoRow(label = "Latest Version", value = release.tagName.removePrefix("v"))
                     InfoRow(label = "Release Date", value = formattedDate)
                     InfoRow(label = "Size", value = MediaFormatter.formatFileSize(downloadSize))
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Release Notes",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MarkdownText(
+                        markdown = release.body,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 if (isDownloading) {

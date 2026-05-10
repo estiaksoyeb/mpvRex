@@ -56,6 +56,7 @@ import app.marlboroadvance.mpvex.presentation.crash.CrashActivity
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -68,6 +69,8 @@ import java.io.File
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
 import kotlin.io.path.readLines
+
+import app.marlboroadvance.mpvex.BuildConfig
 
 @Serializable
 object AdvancedPreferencesScreen : Screen {

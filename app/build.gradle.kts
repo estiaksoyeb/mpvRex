@@ -26,8 +26,8 @@ android {
 
     buildConfigField("String", "GIT_SHA", "\"${getCommitSha()}\"")
     buildConfigField("int", "GIT_COUNT", getCommitCount())
-    // Disable update feature by default
-    buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "false")
+    // Enable update feature by default
+    buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
     buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
   }
 
@@ -209,6 +209,7 @@ dependencies {
   implementation(libs.nanohttpd)
   implementation(libs.lazycolumnscrollbar)
   implementation(libs.reorderable)
+  implementation(libs.compose.markdown)
 }
 
 /* ---------------- Git helpers ---------------- */

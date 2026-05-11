@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -175,9 +174,6 @@ fun BottomPlayerControlsPortrait(
   val clickEvent = LocalPlayerButtonsClickEvent.current
   val spacing = MaterialTheme.spacing
 
-  val scrollingButtons = remember(buttons) { buttons.filter { it != PlayerButton.MORE_OPTIONS } }
-  val hasMoreButton = remember(buttons) { buttons.contains(PlayerButton.MORE_OPTIONS) }
-
   androidx.compose.runtime.LaunchedEffect(scrollState.isScrollInProgress) {
     if (scrollState.isScrollInProgress) {
       while (scrollState.isScrollInProgress) {
@@ -187,77 +183,22 @@ fun BottomPlayerControlsPortrait(
     }
   }
 
-  Box(
+  Row(
     modifier = Modifier
       .fillMaxWidth()
       .padding(bottom = spacing.medium)
-      .height(48.dp),
-    contentAlignment = Alignment.CenterEnd
+      .height(48.dp)
+      .horizontalScroll(scrollState),
+    horizontalArrangement = Arrangement.Start,
+    verticalAlignment = Alignment.CenterVertically,
   ) {
-    // 1. Full-width Scrollable Content
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .horizontalScroll(scrollState),
-      horizontalArrangement = Arrangement.Start,
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      // Start padding
-      Spacer(modifier = Modifier.width(spacing.medium))
-      
-      ControlsGroup {
-        scrollingButtons.forEach { button ->
-          RenderPlayerButton(
-            button = button,
-            chapters = chapters,
-            currentChapter = currentChapter,
-            isPortrait = true,
-            isSpeedNonOne = isSpeedNonOne,
-            currentZoom = currentZoom,
-            aspect = aspect,
-            mediaTitle = mediaTitle,
-            hideBackground = hideBackground,
-            onBackPress = onBackPress,
-            onOpenSheet = onOpenSheet,
-            onOpenPanel = onOpenPanel,
-            viewModel = viewModel,
-            activity = activity,
-            decoder = decoder,
-            playbackSpeed = playbackSpeed,
-            buttonSize = 40.dp,
-          )
-        }
-      }
-      
-      // END PADDING: This is crucial. It ensures the last scrolling button 
-      // stops before going under the stationary More button.
-      // 40dp (button) + extra spacing
-      if (hasMoreButton) {
-        Spacer(modifier = Modifier.width(64.dp))
-      } else {
-        Spacer(modifier = Modifier.width(spacing.medium))
-      }
-    }
+    // Start padding
+    Spacer(modifier = Modifier.width(spacing.medium))
 
-    // 2. The Stationary "Station" (More button + Fading Background)
-    if (hasMoreButton) {
-      val bgColor = if (hideBackground) Color.Transparent else MaterialTheme.colorScheme.surface
-      
-      Row(
-        modifier = Modifier
-          .fillMaxHeight()
-          .background(
-            brush = Brush.horizontalGradient(
-              0.0f to Color.Transparent,
-              0.3f to (if (hideBackground) Color.Black.copy(alpha = 0.3f) else bgColor.copy(alpha = 0.9f)),
-              1.0f to (if (hideBackground) Color.Black.copy(alpha = 0.6f) else bgColor)
-            )
-          )
-          .padding(start = 24.dp, end = spacing.medium), // Padding for the More button itself
-        verticalAlignment = Alignment.CenterVertically
-      ) {
+    ControlsGroup {
+      buttons.forEach { button ->
         RenderPlayerButton(
-          button = PlayerButton.MORE_OPTIONS,
+          button = button,
           chapters = chapters,
           currentChapter = currentChapter,
           isPortrait = true,
@@ -277,5 +218,8 @@ fun BottomPlayerControlsPortrait(
         )
       }
     }
+
+    // End padding
+    Spacer(modifier = Modifier.width(spacing.medium))
   }
 }

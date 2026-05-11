@@ -47,7 +47,6 @@ import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.PlayerButton
 import app.marlboroadvance.mpvex.preferences.allPlayerButtons
 import app.marlboroadvance.mpvex.preferences.preference.Preference
-import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.preferences.preference.deleteAndGet
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.components.ConfirmDialog
@@ -55,11 +54,9 @@ import app.marlboroadvance.mpvex.ui.preferences.components.PlayerButtonChip
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SliderPreference
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
-import kotlin.math.roundToInt
 
 @Serializable
 data class ControlLayoutEditorScreen(
@@ -70,7 +67,6 @@ data class ControlLayoutEditorScreen(
   override fun Content() {
     val backstack = LocalBackStack.current
     val preferences = koinInject<AppearancePreferences>()
-    val portraitGridColumns by preferences.portraitGridColumns.collectAsState()
 
     val prefs = remember(region) {
       when (region) {
@@ -84,7 +80,7 @@ data class ControlLayoutEditorScreen(
 
     val prefToEdit: Preference<String> = prefs[0]
 
-        val usedInOtherRegions by remember(region) {
+    val usedInOtherRegions by remember(region) {
       mutableStateOf(
         if (region == ControlRegion.MORE_SHEET) {
           val landscapeSet = (preferences.topLeftControls.get().split(',') +
@@ -149,11 +145,11 @@ data class ControlLayoutEditorScreen(
     }
 
     val title = when (region) {
-      ControlRegion.TOP_RIGHT -> "Top-Right Region"
-      ControlRegion.BOTTOM_RIGHT -> "Bottom-Right Region"
-      ControlRegion.BOTTOM_LEFT -> "Bottom-Left Region"
-      ControlRegion.PORTRAIT_BOTTOM -> "Portrait Controls"
-      ControlRegion.MORE_SHEET -> "More Options Menu"
+      ControlRegion.TOP_RIGHT -> "Edit Top Right"
+      ControlRegion.BOTTOM_RIGHT -> "Edit Bottom Right"
+      ControlRegion.BOTTOM_LEFT -> "Edit Bottom Left"
+      ControlRegion.PORTRAIT_BOTTOM -> "Edit Portrait Bottom"
+      ControlRegion.MORE_SHEET -> "Edit More Sheet Buttons"
     }
 
     if (showResetDialog) {
@@ -210,43 +206,9 @@ data class ControlLayoutEditorScreen(
             .fillMaxSize()
             .padding(padding)
         ) {
-          if (region == ControlRegion.PORTRAIT_BOTTOM) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-              androidx.compose.material3.Surface(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-              ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                  Text(
-                    text = "Portrait Grid Configuration",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                  )
-                  Spacer(modifier = Modifier.height(8.dp))
-                  SliderPreference(
-                    value = portraitGridColumns.toFloat(),
-                    onValueChange = { preferences.portraitGridColumns.set(it.roundToInt()) },
-                    sliderValue = portraitGridColumns.toFloat(),
-                    onSliderValueChange = { preferences.portraitGridColumns.set(it.roundToInt()) },
-                    title = { Text(text = "Columns per row") },
-                    summary = { Text(text = "$portraitGridColumns columns (Total capacity: ${portraitGridColumns * 2} buttons)") },
-                    valueRange = 1f..10f,
-                    valueSteps = 8
-                  )
-                }
-              }
-            }
-          }
-
           item(span = { GridItemSpan(maxLineSpan) }) {
             Text(
-              text = if (region == ControlRegion.PORTRAIT_BOTTOM) {
-                "Buttons will be distributed to Top Row (first $portraitGridColumns) and Bottom Row (next $portraitGridColumns). Any extra will go to More Sheet."
-              } else {
-                "Long press to reorder items. Tap the '-' icon to remove them."
-              },
+              text = "Long press to reorder items. Tap the '-' icon to remove them.",
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
@@ -278,55 +240,45 @@ data class ControlLayoutEditorScreen(
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                   )
+                  Text(
+                    text = "Tap buttons from the 'Available Palette' below",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                  )
                 }
               }
             }
           } else {
-            selectedButtons.forEachIndexed { index, button ->
-              if (region == ControlRegion.PORTRAIT_BOTTOM) {
-                if (index == 0) {
-                  item(span = { GridItemSpan(maxLineSpan) }, key = "marker_top") {
-                    RowMarker(title = "TOP ROW", color = MaterialTheme.colorScheme.primary)
-                  }
-                } else if (index == portraitGridColumns) {
-                  item(span = { GridItemSpan(maxLineSpan) }, key = "marker_bottom") {
-                    RowMarker(title = "BOTTOM ROW", color = MaterialTheme.colorScheme.secondary)
-                  }
-                } else if (index == 2 * portraitGridColumns) {
-                  item(span = { GridItemSpan(maxLineSpan) }, key = "marker_more") {
-                    RowMarker(title = "MORE SHEET (OVERFLOW)", color = MaterialTheme.colorScheme.outline)
-                  }
+            items(
+              count = selectedButtons.size,
+              key = { selectedButtons[it] },
+              span = { index ->
+                val button = selectedButtons[index]
+                if (button == PlayerButton.CURRENT_CHAPTER || button == PlayerButton.VIDEO_TITLE) {
+                  GridItemSpan(maxLineSpan)
+                } else {
+                  GridItemSpan(1)
                 }
               }
-
-              item(
-                key = button,
-                span = {
-                  if (button == PlayerButton.CURRENT_CHAPTER || button == PlayerButton.VIDEO_TITLE) {
-                    GridItemSpan(2)
-                  } else {
-                    GridItemSpan(1)
-                  }
-                }
-              ) {
-                ReorderableItem(reorderableState, key = button) { isDragging ->
-                  val elevation by animateFloatAsState(targetValue = if (isDragging) 8f else 0f, label = "drag_elevation")
-                  androidx.compose.material3.Surface(
-                    modifier = Modifier.draggableHandle().then(
-                      if (button == PlayerButton.CURRENT_CHAPTER || button == PlayerButton.VIDEO_TITLE) Modifier.wrapContentWidth(Alignment.Start) else Modifier
-                    ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
-                    shadowElevation = elevation.dp,
-                    color = Color.Transparent
-                  ) {
-                    PlayerButtonChip(
-                      button = button,
-                      enabled = true,
-                      onClick = { selectedButtons = selectedButtons - button },
-                      badgeIcon = Icons.Default.RemoveCircle,
-                      badgeColor = Color(0xFFEF5350),
-                    )
-                  }
+            ) { index ->
+              val button = selectedButtons[index]
+              ReorderableItem(reorderableState, key = button) { isDragging ->
+                val elevation by animateFloatAsState(targetValue = if (isDragging) 8f else 0f, label = "drag_elevation")
+                androidx.compose.material3.Surface(
+                  modifier = Modifier.draggableHandle().then(
+                    if (button == PlayerButton.CURRENT_CHAPTER || button == PlayerButton.VIDEO_TITLE) Modifier.wrapContentWidth(Alignment.Start) else Modifier
+                  ),
+                  shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                  shadowElevation = elevation.dp,
+                  color = Color.Transparent
+                ) {
+                  PlayerButtonChip(
+                    button = button,
+                    enabled = true,
+                    onClick = { selectedButtons = selectedButtons - button },
+                    badgeIcon = Icons.Default.RemoveCircle,
+                    badgeColor = Color(0xFFEF5350),
+                  )
                 }
               }
             }
@@ -337,36 +289,34 @@ data class ControlLayoutEditorScreen(
           }
 
           item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-              text = "Available Palette",
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
-            )
-          }
-
-          items(
-            count = availableButtons.size,
-            key = { "palette_${availableButtons[it].name}" },
-            span = { index ->
-              val button = availableButtons[index]
-              if (button == PlayerButton.CURRENT_CHAPTER || button == PlayerButton.VIDEO_TITLE) {
-                GridItemSpan(2)
-              } else {
-                GridItemSpan(1)
+            androidx.compose.material3.Card(
+              modifier = Modifier.fillMaxWidth(),
+              shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+              colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            ) {
+              FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+              ) {
+                val orphanedButtons = availableButtons.filter { it !in selectedButtons }
+                orphanedButtons.forEach { button ->
+                  val isEnabled = button !in usedInOtherRegions
+                  PlayerButtonChip(
+                    button = button,
+                    enabled = isEnabled,
+                    onClick = { selectedButtons = selectedButtons + button },
+                    badgeIcon = Icons.Default.AddCircle,
+                    badgeColor = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                  )
+                }
+                if (orphanedButtons.isEmpty()) {
+                  Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                    Text(text = "All available buttons are in use.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                  }
+                }
               }
             }
-          ) { index ->
-            val button = availableButtons[index]
-            val isUsed = button in selectedButtons || button in usedInOtherRegions
-            PlayerButtonChip(
-              button = button,
-              enabled = !isUsed,
-              onClick = { if (!isUsed) selectedButtons = selectedButtons + button },
-              badgeIcon = Icons.Default.AddCircle,
-              badgeColor = MaterialTheme.colorScheme.primary,
-            )
           }
 
           item(span = { GridItemSpan(maxLineSpan) }) {
@@ -403,14 +353,5 @@ private fun IconsLegend() {
         }
       }
     }
-  }
-}
-
-@Composable
-private fun RowMarker(title: String, color: Color) {
-  Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
-    androidx.compose.material3.HorizontalDivider(modifier = Modifier.weight(1f), thickness = 1.dp, color = color.copy(alpha = 0.3f))
-    Text(text = title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = color, modifier = Modifier.padding(horizontal = 12.dp))
-    androidx.compose.material3.HorizontalDivider(modifier = Modifier.weight(1f), thickness = 1.dp, color = color.copy(alpha = 0.3f))
   }
 }

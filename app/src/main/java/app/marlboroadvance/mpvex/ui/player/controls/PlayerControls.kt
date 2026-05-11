@@ -233,7 +233,6 @@ fun PlayerControls(
   val bottomRightControlsPref by appearancePreferences.bottomRightControls.collectAsState()
   val bottomLeftControlsPref by appearancePreferences.bottomLeftControls.collectAsState()
   val portraitBottomControlsPref by appearancePreferences.portraitBottomControls.collectAsState()
-  val portraitGridColumns by appearancePreferences.portraitGridColumns.collectAsState()
 
   val (topRightButtons, bottomRightButtons, bottomLeftButtons) =
     remember(
@@ -262,12 +261,6 @@ fun PlayerControls(
         else -> true
       }
     }
-  }
-
-  val (portraitTopButtons, portraitBottomButtons) = remember(portraitVisibleButtons, portraitGridColumns) {
-    val topChunk = portraitVisibleButtons.take(portraitGridColumns)
-    val bottomChunk = portraitVisibleButtons.drop(portraitGridColumns).take(portraitGridColumns)
-    topChunk to bottomChunk
   }
 
   var isUnlockSliderDragging by remember { mutableStateOf(false) }
@@ -331,7 +324,6 @@ fun PlayerControls(
             ),
       ) {
         val (topLeftControls, topRightControls) = createRefs()
-        val portraitTopGrid = createRef()
         val (volumeSlider, brightnessSlider) = createRefs()
         val unlockControlsButton = createRef()
         val (bottomRightControls, bottomLeftControls) = createRefs()
@@ -1253,50 +1245,6 @@ fun PlayerControls(
         }
 
         AnimatedVisibility(
-          visible = controlsShown && !areSlidersShown && !areControlsLocked && isPortrait && portraitTopButtons.isNotEmpty(),
-          enter = fadeIn(playerControlsEnterAnimationSpec()),
-          exit = fadeOut(playerControlsExitAnimationSpec()),
-          modifier =
-            Modifier
-              .then(
-                if (showSystemNavigationBar) {
-                  val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
-                  Modifier.padding(
-                    start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
-                    end = navBarPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
-                  )
-                } else {
-                  Modifier
-                }
-              )
-              .constrainAs(portraitTopGrid) {
-                top.linkTo(topLeftControls.bottom)
-                start.linkTo(parent.start, spacing.medium)
-                end.linkTo(parent.end, spacing.medium)
-                width = Dimension.fillToConstraints
-              },
-        ) {
-          TopPlayerControlsGridPortrait(
-            buttons = portraitTopButtons,
-            chapters = chapters,
-            currentChapter = currentChapter,
-            isSpeedNonOne = isSpeedNonOne,
-            currentZoom = videoZoom,
-            aspect = aspect,
-            mediaTitle = mediaTitle,
-            hideBackground = hideBackground,
-            decoder = decoder,
-            playbackSpeed = playbackSpeed ?: 1f,
-            onBackPress = onBackPress,
-            onOpenSheet = onOpenSheet,
-            onOpenPanel = onOpenPanel,
-            viewModel = viewModel,
-            activity = activity,
-            gridColumns = portraitGridColumns,
-          )
-        }
-
-        AnimatedVisibility(
           visible = controlsShown && !areControlsLocked && !isPortrait,
           enter =
             if (!reduceMotion) {
@@ -1407,7 +1355,7 @@ fun PlayerControls(
         ) {
           if (isPortrait) {
             BottomPlayerControlsPortrait(
-              buttons = portraitBottomButtons,
+              buttons = portraitVisibleButtons,
               chapters = chapters,
               currentChapter = currentChapter,
               isSpeedNonOne = isSpeedNonOne,
@@ -1422,7 +1370,6 @@ fun PlayerControls(
               onOpenPanel = onOpenPanel,
               viewModel = viewModel,
               activity = activity,
-              gridColumns = portraitGridColumns,
             )          } else {
             BottomRightPlayerControlsLandscape(
               buttons = bottomRightButtons,

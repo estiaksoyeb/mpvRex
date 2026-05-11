@@ -19,45 +19,70 @@ mpvRex is an advanced, customizable video player for Android. It combines the ve
 
 ---
 
-## Origin and Acknowledgments
+## Showcase
 
-mpvRex is a fork of **[mpvEx](https://github.com/marlboro-advance/mpvEx)**, which is based on **[mpv-android](https://github.com/mpv-android/mpv-android)**. This project aims to extend the core functionality of these upstream repositories with specialized features and aesthetic refinements.
+<div class="image-row" align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/player.png" width="92%">
+</div>
 
-We extend our sincere gratitude to the developers of the following projects, whose work serves as the foundation for mpvRex:
+<div class="image-row" align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/videoscreen.png" width="31%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/pip.png" width="31%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/about.png" width="31%">
+</div>
 
-*   **[mpvEx](https://github.com/marlboro-advance/mpvEx)** - Direct Upstream
-*   **[mpv-android](https://github.com/mpv-android)** - Core Base
-*   **[mpvKt](https://github.com/abdallahmehiz/mpvKt)** - UI Inspiration
-*   **[Next player](https://github.com/anilbeesetti/nextplayer)** - Feature Ideas
-*   **[Gramophone](https://github.com/FoedusProgramme/Gramophone)** - Design Concepts
+<div class="image-row" align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/playlistwindow.png" width="48%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/moresheet.png" width="48%">
+</div>
 
 ---
 
 ## Features
 
-For a detailed list of exclusive improvements and technical commits, see **[FEATURES_REX.md](FEATURES_REX.md)**.
+Based on mpvEx, with additional enhancements and optimizations built on top.
 
-### Advanced Gesture Controls
-*   **Subtitle Swipe Seeking:** Intuitive swipe gestures to jump between subtitle lines.
-*   **Instant Single Tap Logic:** Improved single tap response with exclusion zones and refined behavior.
-*   **Reverse Double Tap Gestures:** Option to reverse left/right seek directions to match your preference.
-*   **Accidental Tap Prevention:** Preference to ignore single taps on the seekbar to prevent accidental seeks.
+*   **Subtitle Swipe Seeking:** Intuitive gestures to jump between subtitle lines.
+*   **Refined Tap Logic:** Enhanced single-tap response with exclusion zones and reverse double-tap options.
+*   **Accidental Seek Prevention:** Optional ignore-single-tap on seekbar to prevent mistakes.
+*   **Smart Orientation:** Persistent per-video orientation preferences with intelligent fallback.
+*   **Enhanced Background Playback:** Optimized battery-saving mode with seamless, stutter-free transitions.
+*   **Themed Player Controls:** Adaptive controls that dynamically match your app theme or system accent (Material You).
+*   **Shorts Mode:** Optimized vertical playback experience with auto-swipe support for "Shorts" and Reels.
+*   **Audio Support:** Integrated capability to play audio files directly within the media engine.
+*   **Advanced Thumbnails:** Extraction strategy choice (First Frame vs. Specific Position) and network stream previews.
+*   **Modern Aesthetics:** Seamless transitions, custom branding, and specialized "Always Dark Mode" for player.
+*   **Modular Architecture:** Robust Ops/Manager-driven file browser with a unified discovery engine.
+*   **Unified UI:** Standardized media cards featuring reactive "NEW" badges and recursive file/folder counts.
+*   **Enhanced Navigation:** Auto-scrolling synchronized chapters and support for relative seeking.
+*   **Centralized "More Sheet":** Quick access to all player buttons and custom controls.
+*   **In-Player Interaction:** Real-time toggling of over 10+ player settings (gestures, PiP, UI behavior) without leaving playback.
+*   **Subtitle Management:** Visual indicators for primary tracks and integrated online search.
 
-### UI & Aesthetics
-*   **Smart Orientation Mode:** Per-video persistence of orientation preferences with intelligent fallback logic.
-*   **Enhanced Transitions:** Seamless fade-in when opening videos and elimination of white flashes on player exit.
-*   **Custom Branding & Themes:** Dedicated theme, custom icons, and an "Always Dark Mode" option for controls.
-*   **Layout Customization:** Option to place playback controls below the seekbar and adjust gradient opacity.
+---
 
-### Standardized File Browser
-*   **Modern Architecture:** Refactored to a modular **Ops/Manager-driven architecture** for better reliability and performance.
-*   **Unified UI Elements:** All media cards follow a standard design with reactive "NEW" badges and recursive folder counts.
-*   **Centralized Discovery:** Uses a unified media engine for consistent local and network file scanning.
+## Installation
 
-### Core Player Improvements
-*   **Chapter Navigation:** Auto-scrolling chapter lists that stay synchronized with current playback.
-*   **Seekbar Enhancements:** Increased bottom margins to prevent overlap and support for relative seeking.
-*   **Primary Subtitle Indicator:** Visual indicator in the track menu showing the active primary subtitle.
+<div class="image-row" align="center">
+  <a href="https://github.com/sfsakhawat999/mpvRex/releases">
+    <img src="https://img.shields.io/badge/Download-Stable_Release-blue?style=for-the-badge&logo=github" alt="Stable Release">
+  </a>
+  <a href="https://sfsakhawat999.github.io/mpvRex">
+    <img src="https://img.shields.io/badge/Download-Preview_Build-orange?style=for-the-badge&logo=github" alt="Preview Release">
+  </a>
+</div>
+
+<div align="center">
+  <i>Note: Previews may be unstable and are intended for testing purposes only.</i>
+</div>
+
+---
+
+## Credits
+
+mpvRex is a fork of **[mpvEx](https://github.com/marlboro-advance/mpvEx)** (based on **[mpv-android](https://github.com/mpv-android/mpv-android)**). Special thanks for the foundation and inspiration:
+
+[mpvEx](https://github.com/marlboro-advance/mpvEx) • [mpv-android](https://github.com/mpv-android) • [mpvKt](https://github.com/abdallahmehiz/mpvKt) • [Next player](https://github.com/anilbeesetti/nextplayer) • [Gramophone](https://github.com/FoedusProgramme/Gramophone)
 
 ---
 

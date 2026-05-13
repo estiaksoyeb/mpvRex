@@ -93,6 +93,8 @@ class PlayerViewModel(
   private val recentlyPlayedRepository: app.marlboroadvance.mpvex.domain.recentlyplayed.repository.RecentlyPlayedRepository by inject()
   private val wyzieRepository: WyzieSearchRepository by inject()
 
+  private val browserPreferences: app.marlboroadvance.mpvex.preferences.BrowserPreferences by inject()
+
   /**
    * Manager for playlist state and logic.
    */
@@ -1420,6 +1422,8 @@ class PlayerViewModel(
       // Try to get from cache first (synchronized access)
       val cacheKey = uri.toString()
       val (durationStr, resolutionStr) = synchronized(metadataCache) { metadataCache[cacheKey] } ?: ("" to "")
+      
+      val watchedThreshold = browserPreferences.watchedThreshold.get().toFloat()
 
       app.marlboroadvance.mpvex.ui.player.controls.components.sheets.PlaylistItem(
         uri = uri,
@@ -1428,7 +1432,7 @@ class PlayerViewModel(
         isPlaying = isCurrentlyPlaying,
         path = path,
         progressPercent = if (isCurrentlyPlaying) currentProgress else 0f,
-        isWatched = isCurrentlyPlaying && currentProgress >= 95f,
+        isWatched = isCurrentlyPlaying && currentProgress >= watchedThreshold,
         duration = durationStr,
         resolution = resolutionStr,
       )

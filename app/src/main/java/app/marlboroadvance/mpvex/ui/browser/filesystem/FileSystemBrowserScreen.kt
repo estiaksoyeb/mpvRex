@@ -177,6 +177,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val items by viewModel.items.collectAsState()
   val videoFilesWithPlayback by viewModel.videoFilesWithPlayback.collectAsState()
   val newVideoIds by viewModel.newVideoIds.collectAsState()
+  val watchedVideoIds by viewModel.watchedVideoIds.collectAsState()
   val isLoading by viewModel.isLoading.collectAsState()
   val uiSettings by viewModel.uiSettings.collectAsState()
   val error by viewModel.error.collectAsState()
@@ -840,6 +841,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 isLoading = isSearchLoading,
                 videoFilesWithPlayback = videoFilesWithPlayback,
                 newVideoIds = newVideoIds,
+                watchedVideoIds = watchedVideoIds,
                 uiSettings = uiSettings,
                 showSubtitleIndicator = showSubtitleIndicator,
                 isAtRoot = isAtRoot,
@@ -861,6 +863,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 items = items,
                 videoFilesWithPlayback = videoFilesWithPlayback,
                 newVideoIds = newVideoIds,
+                watchedVideoIds = watchedVideoIds,
                 isLoading = isLoading && items.isEmpty(),
                 uiSettings = uiSettings,
                 isRefreshing = isRefreshing,
@@ -1190,6 +1193,7 @@ private fun FileSystemBrowserContent(
   items: List<FileSystemItem>,
   videoFilesWithPlayback: Map<Long, Float>,
   newVideoIds: Set<Long>,
+  watchedVideoIds: Set<Long>,
   isLoading: Boolean,
   uiSettings: UiSettings,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
@@ -1380,6 +1384,7 @@ private fun FileSystemBrowserContent(
                 uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                 isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
+                isWatched = watchedVideoIds.contains(videoFile.video.id),
                 isRecentlyPlayed = recentlyPlayedFilePath == videoFile.video.path,
                 isNeverPlayed = videoFilesWithPlayback[videoFile.video.id] == null,
                 isSelected = videoSelectionManager.isSelected(videoFile.video),
@@ -1427,6 +1432,7 @@ private fun FileSystemSearchContent(
   isLoading: Boolean,
   videoFilesWithPlayback: Map<Long, Float>,
   newVideoIds: Set<Long>,
+  watchedVideoIds: Set<Long>,
   uiSettings: UiSettings,
   showSubtitleIndicator: Boolean,
   isAtRoot: Boolean,
@@ -1564,8 +1570,10 @@ private fun FileSystemSearchContent(
                 uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                 isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
+                isWatched = watchedVideoIds.contains(videoFile.video.id),
                 isRecentlyPlayed = false,
                 isSelected = false,
+                isNeverPlayed = videoFilesWithPlayback[videoFile.video.id] == null,
                 onClick = { onVideoClick(videoFile.video) },
                 onLongClick = { },
                 onThumbClick = { onVideoClick(videoFile.video) },

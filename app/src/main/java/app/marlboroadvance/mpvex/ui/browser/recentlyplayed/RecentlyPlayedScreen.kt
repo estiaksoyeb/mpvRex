@@ -527,7 +527,8 @@ private fun RecentItemsContent(
                   VideoCard(
                     video = item.video,
                     uiSettings = uiSettings,
-                    progressPercentage = null,
+                    progressPercentage = item.progress,
+                    isWatched = item.isWatched,
                     isSelected = selectionManager.isSelected(item),
                     isRecentlyPlayed = recentlyPlayedFilePath == item.video.path,
                     onClick = {
@@ -633,7 +634,8 @@ private fun RecentItemsContent(
                   VideoCard(
                     video = item.video,
                     uiSettings = uiSettings,
-                    progressPercentage = null,
+                    progressPercentage = item.progress,
+                    isWatched = item.isWatched,
                     isSelected = selectionManager.isSelected(item),
                     isRecentlyPlayed = recentlyPlayedFilePath == item.video.path,
                     onClick = {

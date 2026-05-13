@@ -25,8 +25,16 @@
     <string name="pref_appearance_material_you_summary_disabled">僅適用於 Android 12 及以上版本</string>
     <string name="pref_appearance_unlimited_name_lines_title">顯示完整名稱</string>
     <string name="pref_appearance_unlimited_name_lines_summary">顯示完整的資料夾和影片名稱，不進行截斷</string>
+    <string name="pref_appearance_enable_bounce_animation_title">啟用回彈動畫</string>
+    <string name="pref_appearance_enable_bounce_animation_summary">滑動條和音量/亮度滑動條將以回彈效果呈現動畫</string>
     <string name="pref_appearance_hide_player_buttons_background_title">隱藏播放程式按鈕背景</string>
     <string name="pref_appearance_hide_player_buttons_background_summary">隱藏所有播放控制按鈕的背景</string>
+    <string name="pref_appearance_match_player_controls_to_theme_title">播放程式控制項配對主題</string>
+    <string name="pref_appearance_match_player_controls_to_theme_summary">使用目前的主題顏色為播放程式按鈕著色</string>
+    <string name="pref_appearance_player_always_dark_mode_title">播放程式一律深色模式</string>
+    <string name="pref_appearance_player_always_dark_mode_summary">無論應用程式主題為何，皆將播放程式控制項保持在深色主題</string>
+    <string name="pref_appearance_use_system_font_title">使用系統字型</string>
+    <string name="pref_appearance_use_system_font_summary">使用您裝置的預設字型，而非應用程式字型</string>
     <string name="pref_appearance_category_file_browser">檔案瀏覽器</string>
     <string name="pref_appearance_show_hidden_files_title">顯示隱藏檔案</string>
     <string name="pref_appearance_show_hidden_files_summary">顯示以點 (.) 開頭的隱藏資料夾，包括 android、data、系統資料夾和 .nomedia 檔案</string>
@@ -34,8 +42,18 @@
     <string name="pref_appearance_show_unplayed_old_video_label_summary">在指定天數內新增且從未播放過的影片上顯示「新」標籤</string>
     <string name="pref_appearance_unplayed_old_video_days_title">新影片標籤的天數閾值</string>
     <string name="pref_appearance_unplayed_old_video_days_summary">在過去 %d 天內新增且無播放記錄的影片將被標記為新影片</string>
+    <string name="pref_appearance_category_thumbnails">縮圖</string>
     <string name="pref_appearance_show_network_thumbnails_title">顯示網路縮圖 (實驗性)</string>
     <string name="pref_appearance_show_network_thumbnails_summary">為網路串流產生縮圖 (可能會增加行動網路的數據使用量)</string>
+    <string name="pref_appearance_thumbnail_strategy_title">縮圖產生策略</string>
+    <string name="pref_appearance_thumbnail_strategy_summary">選擇從影片中擷取縮圖的方式</string>
+    <string name="pref_appearance_thumbnail_strategy_first_frame_title">首個影格</string>
+    <string name="pref_appearance_thumbnail_strategy_first_frame_summary">最快速的擷取方式。使用影片的 10 秒處。</string>
+    <string name="pref_appearance_thumbnail_strategy_position_title">指定位置影格</string>
+    <string name="pref_appearance_thumbnail_strategy_position_summary">需要較多處理。從影片較後方擷取影格，以避免空白標題畫面。</string>
+    <string name="pref_appearance_thumbnail_position_title">縮圖影格位置</string>
+    <string name="pref_appearance_thumbnail_position_summary">在影片總長的 %d%% 處擷取縮圖</string>
+    <string name="pref_appearance_thumbnail_position_reset">重設縮圖位置為預設值</string>
     <string name="pref_appearance_theme_picker_label">應用程式主題</string>
     <string name="pref_appearance_auto_scroll_title">自動捲動到上次播放</string>
     <string name="pref_appearance_auto_scroll_summary">開啟影片列表時自動捲動到上次播放的影片</string>
@@ -582,4 +600,8 @@
     <string name="no_storage_devices_found">找不到儲存裝置</string>
     <string name="no_folders_or_supported_files">無資料夾或支援的檔案</string>
     <string name="hello_world">你好世界</string>
+
+    <!-- Browser Preferences -->
+    <string name="pref_show_audio_files_title">顯示音訊檔案</string>
+    <string name="pref_show_audio_files_summary">在瀏覽器和播放清單中顯示並索引音訊檔案</string>
 </resources>

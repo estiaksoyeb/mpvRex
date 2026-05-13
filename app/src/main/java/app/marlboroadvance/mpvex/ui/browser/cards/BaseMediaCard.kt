@@ -60,6 +60,7 @@ fun BaseMediaCard(
     isSelected: Boolean = false,
     isRecentlyPlayed: Boolean = false,
     isNeverPlayed: Boolean = false,
+    isWatched: Boolean = false,
     isGridMode: Boolean = false,
     gridColumns: Int = 1,
     progressPercentage: Float? = null,
@@ -151,8 +152,8 @@ fun BaseMediaCard(
                     style = MaterialTheme.typography.bodyLarge,
                     color = when {
                         isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                        isNeverPlayed -> MaterialTheme.colorScheme.onSurface
-                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        else -> MaterialTheme.colorScheme.onSurface
                     },
                     maxLines = maxTitleLines,
                     overflow = TextOverflow.Ellipsis,
@@ -245,8 +246,8 @@ fun BaseMediaCard(
                         style = listTitleStyle ?: MaterialTheme.typography.titleMedium,
                         color = when {
                             isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                            isNeverPlayed -> MaterialTheme.colorScheme.onSurface
-                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            else -> MaterialTheme.colorScheme.onSurface
                         },
                         maxLines = maxTitleLines,
                         overflow = TextOverflow.Ellipsis,

@@ -2286,10 +2286,16 @@ class PlayerActivity :
           oldState?.lastPosition ?: 0
         } else {
           // If we've reached the threshold or are within 1 second of the end, restart from beginning
-          if (progress < (watchedThreshold / 100f) && currentPos < currentDuration - 1) {
-            currentPos
+          // Only do this if we have a valid duration to avoid accidental "watched" status
+          if (currentDuration > 0) {
+            if (progress < (watchedThreshold / 100f) && currentPos < currentDuration - 1) {
+              currentPos
+            } else {
+              0
+            }
           } else {
-            0
+            // If duration is not yet available, preserve old position or use current (0)
+            oldState?.lastPosition ?: currentPos
           }
         }
 

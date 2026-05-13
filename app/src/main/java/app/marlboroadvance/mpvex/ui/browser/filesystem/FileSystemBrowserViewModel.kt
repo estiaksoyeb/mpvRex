@@ -59,6 +59,10 @@ class FileSystemBrowserViewModel(
   private val _newVideoIds = MutableStateFlow<Set<Long>>(emptySet())
   val newVideoIds: StateFlow<Set<Long>> = _newVideoIds.asStateFlow()
 
+  // Set of video IDs that have reached the watched threshold
+  private val _watchedVideoIds = MutableStateFlow<Set<Long>>(emptySet())
+  val watchedVideoIds: StateFlow<Set<Long>> = _watchedVideoIds.asStateFlow()
+
   private val _error = MutableStateFlow<String?>(null)
   val error: StateFlow<String?> = _error.asStateFlow()
 
@@ -282,9 +286,11 @@ class FileSystemBrowserViewModel(
               val playbackStates = playbackStateRepository.getAllPlaybackStates()
               val playbackMap = mutableMapOf<Long, Float>()
               val newIds = mutableSetOf<Long>()
+              val watchedIds = mutableSetOf<Long>()
               val currentTime = System.currentTimeMillis()
               val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
               val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
+              val watchedThreshold = browserPreferences.watchedThreshold.get()
 
               val fullyEnrichedItems = enrichedItems.map { item ->
                 if (item is FileSystemItem.VideoFile) {
@@ -298,11 +304,17 @@ class FileSystemBrowserViewModel(
                       updatedVideo = updatedVideo.copy(savedOrientation = state.savedOrientation)
                     }
                     
-                    // 2. Map progress
+                    // 2. Map progress and watched status
                     if (video.duration > 0) {
                       val durationSeconds = video.duration / 1000
                       val watched = durationSeconds - state.timeRemaining.toLong()
                       val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+                      
+                      // Check if watched
+                      if (state.hasBeenWatched || progressValue >= (watchedThreshold / 100f)) {
+                        watchedIds.add(video.id)
+                      }
+                      
                       if (progressValue in 0.01f..0.99f) {
                         playbackMap[video.id] = progressValue
                       }
@@ -322,6 +334,7 @@ class FileSystemBrowserViewModel(
 
               _videoFilesWithPlayback.value = playbackMap
               _newVideoIds.value = newIds
+              _watchedVideoIds.value = watchedIds
               _unsortedItems.value = fullyEnrichedItems
             }.onFailure { error ->
               _error.value = error.message

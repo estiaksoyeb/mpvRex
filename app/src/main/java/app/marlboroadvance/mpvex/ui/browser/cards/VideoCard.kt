@@ -136,6 +136,7 @@ fun VideoCard(
     isSelected = isSelected,
     isRecentlyPlayed = isRecentlyPlayed,
     isNeverPlayed = isNeverPlayed,
+    isWatched = isWatched,
     isGridMode = isGridMode,
     gridColumns = gridColumns,
     progressPercentage = if (uiSettings.showProgressBar) progressPercentage else null,

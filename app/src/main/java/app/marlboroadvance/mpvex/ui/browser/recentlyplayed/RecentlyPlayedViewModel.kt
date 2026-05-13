@@ -65,16 +65,45 @@ class RecentlyPlayedViewModel(application: Application) :
         val db = org.koin.core.context.GlobalContext.get().get<MpvExDatabase>()
         val playlistInfos = db.recentlyPlayedDao().getRecentlyPlayedPlaylists(limit = 20)
         
+        val appearancePreferences by inject<app.marlboroadvance.mpvex.preferences.AppearancePreferences>()
+        val browserPreferences by inject<app.marlboroadvance.mpvex.preferences.BrowserPreferences>()
+        val watchedThreshold = browserPreferences.watchedThreshold.get()
+
         val videoItems = entities.mapNotNull { entity ->
           try {
             var video = createVideoFromEntity(entity)
             if (video != null) {
               // Map saved orientation and progress info if available
               val state = playbackStates.find { it.mediaTitle == video.displayName }
-              if (state?.savedOrientation != null) {
-                video = video.copy(savedOrientation = state.savedOrientation)
+              
+              var progress: Float? = null
+              var isWatched = false
+              
+              if (state != null) {
+                if (state.savedOrientation != null) {
+                  video = video.copy(savedOrientation = state.savedOrientation)
+                }
+                
+                if (video.duration > 0) {
+                  val durationSeconds = video.duration / 1000
+                  val watched = durationSeconds - state.timeRemaining.toLong()
+                  val progressValue = if (durationSeconds > 0) {
+                    (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+                  } else 0f
+                  
+                  isWatched = state.hasBeenWatched || (state.timeRemaining > 0 && progressValue >= (watchedThreshold / 100f))
+                  if (progressValue in 0.01f..0.99f && !isWatched) {
+                    progress = progressValue
+                  }
+                }
               }
-              RecentlyPlayedItem.VideoItem(video, entity.timestamp)
+              
+              RecentlyPlayedItem.VideoItem(
+                video = video,
+                timestamp = entity.timestamp,
+                progress = progress,
+                isWatched = isWatched
+              )
             } else null
           } catch (e: Exception) { null }
         }

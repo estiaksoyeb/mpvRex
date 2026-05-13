@@ -356,6 +356,70 @@ class PlayerViewModel(
   // Expose ambient mode state through the manager
   val isAmbientEnabled: StateFlow<Boolean> = ambientModeManager.isAmbientEnabled
 
+  // ==================== Screen Unlock Resume ===============================
+
+  var isActivityResumed = false
+  var isActivityStarted = false
+  var wasPlayingBeforePause = false
+
+  private var pausedByScreenOff = false
+  private var pendingResumeOnUnlock = false
+  private var screenStateReceiverRegistered = false
+
+  private val screenStateReceiver = object : android.content.BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+      when (intent?.action) {
+        Intent.ACTION_SCREEN_OFF -> {
+          // If the activity was active and playing when the screen turned off, flag it
+          if (isActivityStarted && (!(paused ?: true) || wasPlayingBeforePause)) {
+            pausedByScreenOff = true
+          }
+        }
+        Intent.ACTION_USER_PRESENT -> {
+          // Screen unlocked. If we paused due to screen off, prep for resume
+          if (pausedByScreenOff) {
+            pendingResumeOnUnlock = true
+            pausedByScreenOff = false
+
+            // If the activity is already resumed (e.g. no lock screen delay), execute immediately
+            if (isActivityResumed) {
+              handlePendingResumeOnUnlock()
+            }
+          }
+        }
+      }
+    }
+  }
+
+  fun setupScreenStateReceiver() {
+    if (!screenStateReceiverRegistered) {
+      val filter = android.content.IntentFilter().apply {
+        addAction(Intent.ACTION_SCREEN_OFF)
+        addAction(Intent.ACTION_USER_PRESENT)
+      }
+      host.context.registerReceiver(screenStateReceiver, filter)
+      screenStateReceiverRegistered = true
+    }
+  }
+
+  fun handlePendingResumeOnUnlock() {
+    if (pendingResumeOnUnlock) {
+      pendingResumeOnUnlock = false
+      if (playerPreferences.resumeOnUnlock.get()) {
+        unpause()
+      }
+    }
+  }
+
+  private fun cleanupScreenStateReceiver() {
+    if (screenStateReceiverRegistered) {
+      runCatching {
+        host.context.unregisterReceiver(screenStateReceiver)
+        screenStateReceiverRegistered = false
+      }
+    }
+  }
+
   init {
     // Track selection is now handled by TrackSelector in PlayerActivity
     
@@ -1867,6 +1931,7 @@ class PlayerViewModel(
 
   override fun onCleared() {
     super.onCleared()
+    cleanupScreenStateReceiver()
     ambientModeManager.cleanup()
   }
 }

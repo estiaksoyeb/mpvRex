@@ -88,5 +88,7 @@ class PlayerPreferences(
 
   // Ambience Mode
   val isAmbientEnabled = preferenceStore.getBoolean("ambient_enabled", false)
-  
+
+  // External media controls
+  val disableMediaButtons = preferenceStore.getBoolean("disable_media_buttons", false)
 }

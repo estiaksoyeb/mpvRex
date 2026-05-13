@@ -136,8 +136,11 @@ class MediaPlaybackService :
 
     // Handle media button events
     intent?.let {
-      MediaButtonReceiver.handleIntent(mediaSession, it)
-      
+      if (it.action == Intent.ACTION_MEDIA_BUTTON && playerPreferences.disableMediaButtons.get()) {
+        Log.d(TAG, "Ignoring external media button intent due to user preference")
+      } else {
+        MediaButtonReceiver.handleIntent(mediaSession, it)
+      }
       // Get media info from intent extras if available
       val title = it.getStringExtra("media_title")
       val artist = it.getStringExtra("media_artist")
@@ -206,38 +209,44 @@ class MediaPlaybackService :
       MediaSessionCompat(this, TAG).apply {
         setCallback(
           object : MediaSessionCompat.Callback() {
+            private fun canHandle() = !playerPreferences.disableMediaButtons.get()
+
             override fun onPlay() {
+              if (!canHandle()) return
               Log.d(TAG, "onPlay called")
               MPVLib.setPropertyBoolean("pause", false)
             }
 
             override fun onPause() {
+              if (!canHandle()) return
               Log.d(TAG, "onPause called")
               MPVLib.setPropertyBoolean("pause", true)
             }
 
             override fun onStop() {
+              if (!canHandle()) return
               Log.d(TAG, "onStop called")
               stopSelf()
             }
 
             override fun onSkipToNext() {
+              if (!canHandle()) return
               Log.d(TAG, "onSkipToNext called")
               listener?.onNextRequested() ?: run {
-                // Fallback if no listener
                 MPVLib.command("playlist-next")
               }
             }
 
             override fun onSkipToPrevious() {
+              if (!canHandle()) return
               Log.d(TAG, "onSkipToPrevious called")
               listener?.onPreviousRequested() ?: run {
-                // Fallback if no listener
                 MPVLib.command("playlist-prev")
               }
             }
 
             override fun onSeekTo(pos: Long) {
+              if (!canHandle()) return
               Log.d(TAG, "onSeekTo called: $pos")
               MPVLib.setPropertyDouble("time-pos", pos / 1000.0)
             }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -206,7 +207,27 @@ class WyzieSearchRepository(
     private val json: Json,
     private val preferences: SubtitlesPreferences
 ) {
-    private val baseUrl = "https://sub.wyzie.ru"
+    private val baseUrl = "https://sub.wyzie.io"
+
+    private fun buildApiRequest(url: String): Request {
+        val apiKey = preferences.wyzieApiKey.get()
+        
+        if (apiKey.isBlank()) {
+            throw IOException("Wyzie API key is missing. Please set it in Subtitle Settings.")
+        }
+        
+        val httpUrl = url.toHttpUrlOrNull()
+        val finalUrl = if (httpUrl != null) {
+            httpUrl.newBuilder()
+                .addQueryParameter("key", apiKey.trim())
+                .build()
+                .toString()
+        } else {
+            url
+        }
+        
+        return Request.Builder().url(finalUrl).build()
+    }
 
     suspend fun search(
         query: String,
@@ -260,23 +281,7 @@ class WyzieSearchRepository(
                 hi = if (hearingImpaired) true else null
             )
             
-            // The Wyzie API often returns all languages regardless of query parameters.
-            // We must strictly filter the results locally based on selected languages.
-            val filteredResults = if (languages != null && languages != "all") {
-                val allowedLangs = languages.split(",").map { it.trim() }
-                results.filter { sub -> 
-                    // Map the subtitle language code (which is sometimes lowercase, sometimes not)
-                    val subLangCode = WyzieLanguages.ALL.entries.find { 
-                        it.value.equals(sub.language, ignoreCase = true) 
-                    }?.key ?: sub.language?.lowercase()
-                    
-                    allowedLangs.contains(subLangCode)
-                }
-            } else {
-                results
-            }
-            
-            val sortedResults = filteredResults.sortedWith(compareByDescending<WyzieSubtitle> { sub ->
+            val sortedResults = results.sortedWith(compareByDescending<WyzieSubtitle> { sub ->
                 val name = sub.displayName.lowercase()
                 val q = query.lowercase()
                 var score = 0
@@ -304,32 +309,30 @@ class WyzieSearchRepository(
         source: String = "all",
         hi: Boolean? = null
     ): List<WyzieSubtitle> {
-        fun encode(s: String) = URLEncoder.encode(s, "UTF-8")
         
-        val url = StringBuilder("$baseUrl/search?id=${encode(id)}")
-            .apply {
-                if (season != null && episode != null) {
-                    append("&season=$season")
-                    append("&episode=$episode")
-                }
-                
-                // Wyzie API language format: single or multiple language codes are comma separated: `language=en,es`
-                language?.filter { !it.isWhitespace() }?.let { append("&language=${encode(it)}") }
-                
-                // Format and Encoding parameters
-                format?.split(",")?.filter { it.isNotBlank() }?.forEach { append("&${encode(it.trim())}=true") }
-                encoding?.split(",")?.filter { it.isNotBlank() }?.forEach { append("&${encode(it.trim())}=true") }
-                
-                // Source is a special case, "all" defaults to all sources implicitly, but adding specific sources works like `opensubtitles=true`
-                if (source != "all") {
-                   source.split(",").filter { it.isNotBlank() }.forEach { append("&${encode(it.trim())}=true") }
-                }
+        val finalUrl = "$baseUrl/search".toHttpUrlOrNull()?.newBuilder()?.apply {
+            addQueryParameter("id", id)
+            
+            if (season != null && episode != null) {
+                addQueryParameter("season", season.toString())
+                addQueryParameter("episode", episode.toString())
+            }
+            
+            language?.filter { !it.isWhitespace() }?.let { addQueryParameter("language", it) }
+            
+            format?.split(",")?.filter { it.isNotBlank() }?.forEach { addQueryParameter(it.trim(), "true") }
+            encoding?.split(",")?.filter { it.isNotBlank() }?.forEach { addQueryParameter(it.trim(), "true") }
+            
+            if (source != "all") {
+                source.split(",").filter { it.isNotBlank() }.forEach { addQueryParameter(it.trim(), "true") }
+            }
 
-                append("&unzip=true")
-                hi?.let { append("&hi=$it") }
-            }.toString()
+            addQueryParameter("unzip", "true")
+            hi?.let { addQueryParameter("hi", it.toString()) }
+        }?.build()?.toString() ?: throw IOException("Invalid Wyzie Base URL")
 
-        val request = Request.Builder().url(url).build()
+        val request = buildApiRequest(finalUrl)
+        
         client.newCall(request).execute().use { response ->
             val responseBodyString = response.body?.string() ?: ""
             if (!response.isSuccessful) {
@@ -341,7 +344,7 @@ class WyzieSearchRepository(
                 if (response.code == 400 && responseBodyString.contains("season and episode", ignoreCase = true)) {
                     throw IOException("Please select both a Season and an Episode.")
                 }
-                val errorMsg = "Search failed: HTTP ${response.code} for URL: $url | Body: $responseBodyString"
+                val errorMsg = "Search failed: HTTP ${response.code} for URL: $finalUrl | Body: $responseBodyString"
                 Log.e("WyzieSearchRepository", errorMsg)
                 throw IOException(errorMsg)
             }
@@ -408,7 +411,7 @@ class WyzieSearchRepository(
     suspend fun getTvShowDetails(id: Int): Result<WyzieTvShowDetails> = withContext(Dispatchers.IO) {
         try {
             val url = "$baseUrl/api/tmdb/tv/$id"
-            val request = Request.Builder().url(url).build()
+            val request = buildApiRequest(url)
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Failed to get TV show details: ${response.code}")
                 val body = response.body?.string() ?: throw IOException("Empty body from $url")
@@ -423,7 +426,7 @@ class WyzieSearchRepository(
     suspend fun getSeasonEpisodes(id: Int, season: Int): Result<List<WyzieEpisode>> = withContext(Dispatchers.IO) {
         try {
             val url = "$baseUrl/api/tmdb/tv/$id/$season"
-            val request = Request.Builder().url(url).build()
+            val request = buildApiRequest(url)
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Failed to get season episodes: ${response.code}")
                 val body = response.body?.string() ?: throw IOException("Empty body from $url")
@@ -437,7 +440,7 @@ class WyzieSearchRepository(
 
     private fun tmdbSearch(query: String): List<WyzieTmdbResult> {
         val url = "$baseUrl/api/tmdb/search?q=${URLEncoder.encode(query, "UTF-8")}"
-        val request = Request.Builder().url(url).build()
+        val request = buildApiRequest(url)
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("TMDb search failed: ${response.code}")
             val body = response.body?.string() ?: throw IOException("Empty body")

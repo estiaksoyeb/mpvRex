@@ -368,6 +368,21 @@ object PlayerPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
+              val disableMediaButtons by preferences.disableMediaButtons.collectAsState()
+              SwitchPreference(
+                value = disableMediaButtons,
+                onValueChange = preferences.disableMediaButtons::set,
+                title = { Text(stringResource(id = R.string.pref_player_controls_disable_media_buttons_title)) },
+                summary = {
+                  Text(
+                    text = stringResource(R.string.pref_player_controls_disable_media_buttons_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+              
+              PreferenceDivider()
+              
               val allowGesturesInPanels by preferences.allowGesturesInPanels.collectAsState()
               SwitchPreference(
                 value = allowGesturesInPanels,

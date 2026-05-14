@@ -2772,18 +2772,32 @@ class PlayerActivity :
       }
 
       KeyEvent.KEYCODE_MEDIA_STOP -> {
+        if (playerPreferences.disableMediaButtons.get()) return true
         finishAndRemoveTask()
         return true
       }
 
       KeyEvent.KEYCODE_MEDIA_REWIND -> {
+        if (playerPreferences.disableMediaButtons.get()) return true
         viewModel.handleLeftDoubleTap()
         return true
       }
 
       KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+        if (playerPreferences.disableMediaButtons.get()) return true
         viewModel.handleRightDoubleTap()
         return true
+      }
+
+      KeyEvent.KEYCODE_MEDIA_PLAY,
+      KeyEvent.KEYCODE_MEDIA_PAUSE,
+      KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+      KeyEvent.KEYCODE_MEDIA_NEXT,
+      KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+        if (playerPreferences.disableMediaButtons.get()) return true
+        
+        event?.let { player.onKey(it) }
+        return super.onKeyDown(keyCode, event)
       }
 
       else -> {
@@ -2829,25 +2843,32 @@ class PlayerActivity :
         MediaSession(this, TAG).apply {
           setCallback(
             object : MediaSession.Callback() {
+              private fun canHandle() = !playerPreferences.disableMediaButtons.get()
+
               override fun onPlay() {
+                if (!canHandle()) return
                 viewModel.unpause()
                 updateMediaSessionPlaybackState(isPlaying = true)
               }
 
               override fun onPause() {
+                if (!canHandle()) return
                 viewModel.pause()
                 updateMediaSessionPlaybackState(isPlaying = false)
               }
 
               override fun onSkipToNext() {
+                if (!canHandle()) return
                 viewModel.handleMediaNext()
               }
 
               override fun onSkipToPrevious() {
+                if (!canHandle()) return
                 viewModel.handleMediaPrevious()
               }
 
               override fun onSeekTo(pos: Long) {
+                if (!canHandle()) return
                 viewModel.seekTo((pos / 1000).toInt())
                 updateMediaSessionPlaybackState(isPlaying = viewModel.paused == false)
               }

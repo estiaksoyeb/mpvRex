@@ -174,6 +174,8 @@
     <string name="pref_player_gestures_hold_for_multiple_speed">Hold for multi - x speed</string>
 
     <string name="pref_player_controls">Controls</string>
+    <string name="pref_player_controls_disable_media_buttons_title">Disable media buttons</string>
+    <string name="pref_player_controls_disable_media_buttons_summary">Ignore playback commands from headset and Bluetooth devices, etc</string>
     <string name="pref_player_controls_allow_gestures_in_panels">Allow gestures in panels</string>
     <string name="pref_player_controls_display_volume_as_percentage">Display volume as percentage</string>
     <string name="pref_player_controls_show_loading_circle">Show loading circle</string>

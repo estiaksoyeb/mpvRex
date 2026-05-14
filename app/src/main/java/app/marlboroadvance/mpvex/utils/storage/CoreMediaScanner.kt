@@ -253,33 +253,33 @@ object CoreMediaScanner {
                         audioCount++
                     } else {
                         videoCount++
-                        
-                        // Calculate unwatched status for videos
-                        val playbackState = playbackStates.find { it.mediaTitle == item.name }
-                        var isWatched = false
-                        
-                        if (playbackState != null) {
-                            if (playbackState.hasBeenWatched) {
+                    }
+
+                    // Calculate unwatched status for all media (audio and video)
+                    val playbackState = playbackStates.find { it.mediaTitle == item.name }
+                    var isWatched = false
+                    
+                    if (playbackState != null) {
+                        if (playbackState.hasBeenWatched) {
+                            isWatched = true
+                        } else if (item.duration > 0) {
+                            val durationSeconds = item.duration / 1000
+                            val watched = durationSeconds - playbackState.timeRemaining.toLong()
+                            val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+                            if (progressValue >= (watchedThreshold / 100f)) {
                                 isWatched = true
-                            } else if (item.duration > 0) {
-                                val durationSeconds = item.duration / 1000
-                                val watched = durationSeconds - playbackState.timeRemaining.toLong()
-                                val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
-                                if (progressValue >= (watchedThreshold / 100f)) {
-                                    isWatched = true
-                                }
                             }
                         }
-                        
-                        if (!isWatched) {
-                            unwatchedCount++
-                        }
+                    }
+                    
+                    if (!isWatched) {
+                        unwatchedCount++
+                    }
 
-                        // Calculate NEW status
-                        val videoAge = currentTime - (item.dateModified * 1000)
-                        if (playbackState == null && videoAge <= thresholdMillis) {
-                            newCount++
-                        }
+                    // Calculate NEW status
+                    val videoAge = currentTime - (item.dateModified * 1000)
+                    if (playbackState == null && videoAge <= thresholdMillis) {
+                        newCount++
                     }
                 }
             }

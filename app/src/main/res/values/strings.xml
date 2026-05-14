@@ -258,6 +258,11 @@
     <string name="pref_subtitles_searching">Searching…</string>
     <string name="pref_subtitles_found">%d subtitles found</string>
     <string name="pref_subtitles_online_search_title">Online Subtitle Search</string>
+    <string name="pref_subtitles_wyzie_api_key_title">Wyzie API Key</string>
+    <string name="pref_subtitles_wyzie_api_key_summary">Required for subtitle searches. Get yours at sub.wyzie.io/redeem</string>
+    <string name="pref_subtitles_wyzie_api_key_hint">Enter API Key</string>
+    <string name="pref_subtitles_wyzie_api_key_not_set">Not set</string>
+    <string name="pref_subtitles_wyzie_api_key_masked">••••••••••••••••••••••</string>
 
     <string name="pref_audio">Audio</string>
     <string name="pref_audio_summary">Preferred languages, audio channels, pitch correction</string>

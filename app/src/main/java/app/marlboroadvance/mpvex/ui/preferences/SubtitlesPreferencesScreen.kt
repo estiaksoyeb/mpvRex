@@ -16,7 +16,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -26,6 +29,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import app.marlboroadvance.mpvex.repository.wyzie.WyzieEncodings
 import app.marlboroadvance.mpvex.repository.wyzie.WyzieFormats
 import app.marlboroadvance.mpvex.repository.wyzie.WyzieSources
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,8 +50,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
@@ -158,6 +168,7 @@ object SubtitlesPreferencesScreen : Screen {
         val wyzieSources by preferences.wyzieSources.collectAsState()
         val wyzieFormats by preferences.wyzieFormats.collectAsState()
         val wyzieEncodings by preferences.wyzieEncodings.collectAsState()
+        val wyzieApiKey by preferences.wyzieApiKey.collectAsState()
 
         val saveLocationPicker =
           rememberLauncherForActivityResult(
@@ -555,6 +566,77 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               PreferenceDivider()
+
+              TextFieldPreference(
+                value = wyzieApiKey,
+                onValueChange = preferences.wyzieApiKey::set,
+                textToValue = { it.trim() },
+                title = { Text(stringResource(R.string.pref_subtitles_wyzie_api_key_title)) },
+                summary = {
+                  val summaryText = if (wyzieApiKey.isNotBlank()) {
+                    stringResource(R.string.pref_subtitles_wyzie_api_key_masked)
+                  } else {
+                    stringResource(R.string.pref_subtitles_wyzie_api_key_not_set)
+                  }
+                  Text(summaryText, color = MaterialTheme.colorScheme.outline)
+                },
+                textField = { value, onValueChange, _ ->
+                  val uriHandler = LocalUriHandler.current
+                  val fullString = stringResource(R.string.pref_subtitles_wyzie_api_key_summary)
+                  val linkText = "sub.wyzie.io/redeem"
+                  
+                  val annotatedString = buildAnnotatedString {
+                      val startIndex = fullString.indexOf(linkText)
+                      if (startIndex >= 0) {
+                          append(fullString.substring(0, startIndex))
+                          pushStringAnnotation(tag = "URL", annotation = "https://$linkText")
+                          withStyle(style = SpanStyle(
+                              color = MaterialTheme.colorScheme.primary,
+                              textDecoration = TextDecoration.Underline,
+                              fontWeight = FontWeight.Bold
+                          )) {
+                              append(linkText)
+                          }
+                          pop()
+                          append(fullString.substring(startIndex + linkText.length))
+                      } else {
+                          append(fullString)
+                      }
+                  }
+
+                  Column(modifier = Modifier.padding(top = 8.dp)) {
+                    ClickableText(
+                        text = annotatedString,
+                        style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                        onClick = { offset ->
+                            annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                .firstOrNull()?.let { annotation ->
+                                    uriHandler.openUri(annotation.item)
+                                }
+                        }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    OutlinedTextField(
+                      value = value,
+                      onValueChange = onValueChange,
+                      modifier = Modifier.fillMaxWidth(),
+                      singleLine = true,
+                      placeholder = { Text(stringResource(R.string.pref_subtitles_wyzie_api_key_hint)) },
+                      shape = RoundedCornerShape(12.dp),
+                      colors = OutlinedTextFieldDefaults.colors(
+                          focusedBorderColor = MaterialTheme.colorScheme.primary,
+                          unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                          focusedContainerColor = MaterialTheme.colorScheme.surface,
+                          unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                      )
+                    )
+                  }
+                },
+              )
+
+              PreferenceDivider()
               
               // Wyzie Tag
               Row(
@@ -570,12 +652,12 @@ object SubtitlesPreferencesScreen : Screen {
                   color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                  text = "sub.wyzie.ru",
+                  text = "sub.wyzie.io",
                   style = MaterialTheme.typography.bodySmall,
                   color = MaterialTheme.colorScheme.primary,
                   fontWeight = FontWeight.Bold,
                   modifier = Modifier.clickable {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://sub.wyzie.ru"))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://sub.wyzie.io"))
                     context.startActivity(intent)
                   }
                 )

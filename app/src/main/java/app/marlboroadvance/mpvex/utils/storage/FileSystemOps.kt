@@ -67,7 +67,8 @@ object FileSystemOps {
                                 totalSize = folderData.totalSize,
                                 totalDuration = folderData.totalDuration,
                                 hasSubfolders = true,
-                                newCount = folderData.newCount
+                                newCount = folderData.newCount,
+                                unwatchedVideoCount = folderData.unwatchedVideoCount
                             )
                         )
                     }
@@ -91,7 +92,8 @@ object FileSystemOps {
                                     totalSize = folderData.totalSize,
                                     totalDuration = folderData.totalDuration,
                                     hasSubfolders = true,
-                                    newCount = folderData.newCount
+                                    newCount = folderData.newCount,
+                                    unwatchedVideoCount = folderData.unwatchedVideoCount
                                 )
                             )
                         }

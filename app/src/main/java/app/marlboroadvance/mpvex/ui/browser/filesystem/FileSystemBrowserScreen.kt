@@ -1354,6 +1354,8 @@ private fun FileSystemBrowserContent(
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,
+                newCount = folder.newCount,
+                unwatchedVideoCount = folder.unwatchedVideoCount,
               )
 
               FolderCard(
@@ -1545,6 +1547,8 @@ private fun FileSystemSearchContent(
                 totalSize = folder.totalSize,
                 totalDuration = folder.totalDuration,
                 lastModified = folder.lastModified / 1000,
+                newCount = folder.newCount,
+                unwatchedVideoCount = folder.unwatchedVideoCount,
               )
 
               FolderCard(

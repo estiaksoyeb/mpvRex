@@ -107,7 +107,8 @@ object MediaFileRepository {
                 totalSize = folderData.totalSize,
                 totalDuration = folderData.totalDuration,
                 hasSubfolders = folderData.hasSubfolders,
-                newCount = folderData.newCount
+                newCount = folderData.newCount,
+                unwatchedVideoCount = folderData.unwatchedVideoCount
               ),
             )
           }

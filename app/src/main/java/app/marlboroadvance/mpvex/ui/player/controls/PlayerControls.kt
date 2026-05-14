@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -378,6 +379,16 @@ fun PlayerControls(
         }
 
         val areSlidersShown = isBrightnessSliderShown || isVolumeSliderShown
+        val areButtonsVisible = controlsShown && !areControlsLocked && !areSlidersShown
+
+        val osdTopMargin by animateDpAsState(
+          targetValue = if (areButtonsVisible) {
+            if (isPortrait) 104.dp else 68.dp
+          } else {
+            if (isPortrait) 64.dp else 32.dp
+          },
+          label = "osdTopMargin"
+        )
 
         AnimatedVisibility(
           isBrightnessSliderShown,
@@ -486,7 +497,7 @@ fun PlayerControls(
               )
               .constrainAs(playerUpdates) {
                 linkTo(parent.start, parent.end)
-                top.linkTo(parent.top, if (isPortrait) 64.dp else 32.dp)
+                top.linkTo(parent.top, margin = osdTopMargin)
               },
         ) {
           val currentPlaybackSpeed = playbackSpeed ?: 1f
@@ -624,8 +635,6 @@ fun PlayerControls(
           }
         }
       }
-
-        val areButtonsVisible = controlsShown && !areControlsLocked && !areSlidersShown
 
         AnimatedVisibility(
             visible = areButtonsVisible && !isPortrait,

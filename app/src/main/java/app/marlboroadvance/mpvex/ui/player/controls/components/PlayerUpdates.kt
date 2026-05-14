@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.ui.theme.spacing
 
@@ -36,7 +37,7 @@ fun PlayerUpdate(
   content: @Composable () -> Unit = {},
 ) {
   Surface(
-    shape = CircleShape,
+    shape = RoundedCornerShape(100.dp),
     color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
     contentColor = MaterialTheme.colorScheme.onSurface,
     tonalElevation = 0.dp,
@@ -46,13 +47,12 @@ fun PlayerUpdate(
       MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
     ),
     modifier = modifier
-      .height(40.dp)
       .animateContentSize(),
   ) {
     Box(
       modifier = Modifier.padding(
-        vertical = MaterialTheme.spacing.small,
-        horizontal = MaterialTheme.spacing.medium,
+        vertical = 4.dp,
+        horizontal = 10.dp,
       ),
       contentAlignment = Alignment.Center,
     ) {
@@ -70,11 +70,11 @@ fun TextPlayerUpdate(
   PlayerUpdate(modifier) {
     Text(
       text = text,
-      fontFamily = FontFamily.Monospace,
-      fontWeight = FontWeight.Bold,
+      fontSize = 14.sp,
+      fontWeight = FontWeight.ExtraBold,
       textAlign = TextAlign.Center,
       color = MaterialTheme.colorScheme.onSurface,
-      style = MaterialTheme.typography.bodyMedium,
+      style = MaterialTheme.typography.bodyLarge,
     )
   }
 }
@@ -125,18 +125,18 @@ fun SeekPlayerUpdate(
     ) {
       Text(
         text = currentTime,
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.ExtraBold,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodyLarge,
       )
-      
+
       Text(
         text = " $seekDelta",
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
       )
     }

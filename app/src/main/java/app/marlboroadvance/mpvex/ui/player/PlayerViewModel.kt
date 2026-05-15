@@ -1,7 +1,6 @@
 package app.marlboroadvance.mpvex.ui.player
 
 import android.content.Context
-import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
 import android.net.Uri
@@ -358,66 +357,32 @@ class PlayerViewModel(
 
   // ==================== Screen Unlock Resume ===============================
 
-  var isActivityResumed = false
-  var isActivityStarted = false
-  var wasPlayingBeforePause = false
+  private val _screenStateManager = ScreenStateManager(
+    context = host.context,
+    playerPreferences = playerPreferences,
+    onResumePlayback = { unpause() },
+    isPaused = { paused ?: true }
+  )
+  val screenStateManager: ScreenStateManager get() = _screenStateManager
 
-  private var pausedByScreenOff = false
-  private var pendingResumeOnUnlock = false
-  private var screenStateReceiverRegistered = false
+  var isActivityResumed: Boolean
+    get() = _screenStateManager.isActivityResumed
+    set(value) { _screenStateManager.isActivityResumed = value }
 
-  private val screenStateReceiver = object : android.content.BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent?) {
-      when (intent?.action) {
-        Intent.ACTION_SCREEN_OFF -> {
-          // If the activity was active and playing when the screen turned off, flag it
-          if (isActivityStarted && (!(paused ?: true) || wasPlayingBeforePause)) {
-            pausedByScreenOff = true
-          }
-        }
-        Intent.ACTION_USER_PRESENT -> {
-          // Screen unlocked. If we paused due to screen off, prep for resume
-          if (pausedByScreenOff) {
-            pendingResumeOnUnlock = true
-            pausedByScreenOff = false
+  var isActivityStarted: Boolean
+    get() = _screenStateManager.isActivityStarted
+    set(value) { _screenStateManager.isActivityStarted = value }
 
-            // If the activity is already resumed (e.g. no lock screen delay), execute immediately
-            if (isActivityResumed) {
-              handlePendingResumeOnUnlock()
-            }
-          }
-        }
-      }
-    }
-  }
+  var wasPlayingBeforePause: Boolean
+    get() = _screenStateManager.wasPlayingBeforePause
+    set(value) { _screenStateManager.wasPlayingBeforePause = value }
 
   fun setupScreenStateReceiver() {
-    if (!screenStateReceiverRegistered) {
-      val filter = android.content.IntentFilter().apply {
-        addAction(Intent.ACTION_SCREEN_OFF)
-        addAction(Intent.ACTION_USER_PRESENT)
-      }
-      host.context.registerReceiver(screenStateReceiver, filter)
-      screenStateReceiverRegistered = true
-    }
+    _screenStateManager.setup()
   }
 
   fun handlePendingResumeOnUnlock() {
-    if (pendingResumeOnUnlock) {
-      pendingResumeOnUnlock = false
-      if (playerPreferences.resumeOnUnlock.get()) {
-        unpause()
-      }
-    }
-  }
-
-  private fun cleanupScreenStateReceiver() {
-    if (screenStateReceiverRegistered) {
-      runCatching {
-        host.context.unregisterReceiver(screenStateReceiver)
-        screenStateReceiverRegistered = false
-      }
-    }
+    _screenStateManager.handlePendingResumeOnUnlock()
   }
 
   init {
@@ -1931,7 +1896,7 @@ class PlayerViewModel(
 
   override fun onCleared() {
     super.onCleared()
-    cleanupScreenStateReceiver()
+    _screenStateManager.cleanup()
     ambientModeManager.cleanup()
   }
 }

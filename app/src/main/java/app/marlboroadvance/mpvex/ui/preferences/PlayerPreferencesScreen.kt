@@ -189,6 +189,24 @@ object PlayerPreferencesScreen : Screen {
                   )
                 },
               )
+              
+              PreferenceDivider()
+
+              val resumeOnUnlock by preferences.resumeOnUnlock.collectAsState()
+              SwitchPreference(
+                value = resumeOnUnlock,
+                onValueChange = preferences.resumeOnUnlock::set,
+                title = { Text(stringResource(R.string.pref_player_resume_on_unlock_title)) },
+                summary = {
+                  Text(
+                    text = if (resumeOnUnlock)
+                      stringResource(R.string.pref_player_resume_on_unlock_summary_on)
+                    else
+                      stringResource(R.string.pref_player_resume_on_unlock_summary_off),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
             }
           }
           // Seeking Section

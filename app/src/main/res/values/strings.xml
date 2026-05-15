@@ -106,6 +106,9 @@
     <string name="pref_autoplay_next_video_summary">Automatically play next video when current ends</string>
     <string name="pref_auto_pip_title">Auto Picture-in-Picture</string>
     <string name="pref_auto_pip_summary">Automatically enter PIP mode when pressing home or back</string>
+    <string name="pref_player_resume_on_unlock_title">Resume on unlock</string>
+    <string name="pref_player_resume_on_unlock_summary_on">Resume video automatically after unlocking if it was playing before the screen locked</string>
+    <string name="pref_player_resume_on_unlock_summary_off">Keep video paused after the screen is unlocked</string>
     <string name="pref_dynamic_speed_overlay_title">Dynamic Speed Overlay</string>
     <string name="pref_dynamic_speed_overlay_summary">Show advance overlay for speed control during long press and swipe</string>
     <string name="pref_show_navigation_bar_title">Show navigation bar with controls</string>

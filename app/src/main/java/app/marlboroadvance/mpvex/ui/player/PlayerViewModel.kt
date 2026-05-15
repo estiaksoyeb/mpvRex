@@ -1,7 +1,6 @@
 package app.marlboroadvance.mpvex.ui.player
 
 import android.content.Context
-import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
 import android.net.Uri
@@ -95,6 +94,9 @@ class PlayerViewModel(
 
   private val browserPreferences: app.marlboroadvance.mpvex.preferences.BrowserPreferences by inject()
 
+  // Cache the application context to prevent leaking the Activity context
+  private val appContext = host.context.applicationContext
+  
   /**
    * Manager for playlist state and logic.
    */
@@ -105,7 +107,7 @@ class PlayerViewModel(
    * Manager for subtitle state and operations.
    */
   private val _subtitleManager = SubtitleManager(
-    context = host.context,
+    context = appContext,
     wyzieRepository = wyzieRepository,
     scope = viewModelScope,
     onShowToast = { showToast(it) }
@@ -116,7 +118,7 @@ class PlayerViewModel(
    * Manager for history tracking and position saving.
    */
   private val _historyManager = app.marlboroadvance.mpvex.utils.history.HistoryManager(
-    context = host.context,
+    context = appContext,
     recentlyPlayedRepository = recentlyPlayedRepository,
     playbackStateRepository = playbackStateRepository,
     advancedPreferences = advancedPreferences,
@@ -128,7 +130,7 @@ class PlayerViewModel(
    * Manager for custom user-defined buttons.
    */
   private val _customButtonManager = CustomButtonManager(
-    context = host.context,
+    context = appContext,
     playerPreferences = playerPreferences,
     advancedPreferences = advancedPreferences,
     json = json,
@@ -355,6 +357,36 @@ class PlayerViewModel(
 
   // Expose ambient mode state through the manager
   val isAmbientEnabled: StateFlow<Boolean> = ambientModeManager.isAmbientEnabled
+
+  // ==================== Screen Unlock Resume ===============================
+
+  private val _screenStateManager = ScreenStateManager(
+    context = appContext,
+    playerPreferences = playerPreferences,
+    onResumePlayback = { unpause() },
+    isPaused = { paused ?: true }
+  )
+  val screenStateManager: ScreenStateManager get() = _screenStateManager
+
+  var isActivityResumed: Boolean
+    get() = _screenStateManager.isActivityResumed
+    set(value) { _screenStateManager.isActivityResumed = value }
+
+  var isActivityStarted: Boolean
+    get() = _screenStateManager.isActivityStarted
+    set(value) { _screenStateManager.isActivityStarted = value }
+
+  var wasPlayingBeforePause: Boolean
+    get() = _screenStateManager.wasPlayingBeforePause
+    set(value) { _screenStateManager.wasPlayingBeforePause = value }
+
+  fun setupScreenStateReceiver() {
+    _screenStateManager.setup()
+  }
+
+  fun handlePendingResumeOnUnlock() {
+    _screenStateManager.handlePendingResumeOnUnlock()
+  }
 
   init {
     // Track selection is now handled by TrackSelector in PlayerActivity
@@ -627,6 +659,7 @@ class PlayerViewModel(
         MPVLib.setPropertyBoolean("pause", false)
       } else {
         // We are about to pause
+        wasPlayingBeforePause = false
         MPVLib.setPropertyBoolean("pause", true)
         withContext(Dispatchers.Main) { host.abandonAudioFocus() }
       }
@@ -635,6 +668,7 @@ class PlayerViewModel(
 
   fun pause() {
     viewModelScope.launch(Dispatchers.IO) {
+      wasPlayingBeforePause = false
       MPVLib.setPropertyBoolean("pause", true)
       withContext(Dispatchers.Main) { host.abandonAudioFocus() }
     }
@@ -1862,11 +1896,12 @@ class PlayerViewModel(
   // ==================== Utility ====================
 
   fun showToast(message: String) {
-    Toast.makeText(host.context, message, Toast.LENGTH_SHORT).show()
+    Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
   }
 
   override fun onCleared() {
     super.onCleared()
+    _screenStateManager.cleanup()
     ambientModeManager.cleanup()
   }
 }

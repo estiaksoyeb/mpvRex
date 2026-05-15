@@ -203,7 +203,6 @@ class PlayerActivity :
   private var noisyReceiverRegistered = false
   private var mpvInitialized = false // Track MPV initialization state
   private var savePlaybackStateJob: kotlinx.coroutines.Job? = null // Track ongoing save job
-  private var wasPlayingBeforePause = false // Track if video was playing before pause
   private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
   private var lastVid = -1 // Track video track for background playback optimization
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
@@ -325,6 +324,7 @@ class PlayerActivity :
     setupPlayerControls()
     setupPipHelper()
     setupMediaSession()
+    viewModel.setupScreenStateReceiver()
 
     val playlistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
     val playlistIndex = intent.getIntExtra("playlist_index", 0)
@@ -701,6 +701,7 @@ class PlayerActivity :
 
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onPause() {
+    viewModel.isActivityResumed = false
     runCatching {
       val isInPip = isInPictureInPictureMode
       val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
@@ -710,7 +711,7 @@ class PlayerActivity :
 
       if (!isInPip && !isInMultiWindow) {
         if (shouldPause) {
-          wasPlayingBeforePause = !(viewModel.paused ?: true)
+          viewModel.wasPlayingBeforePause = !(viewModel.paused ?: true)
           viewModel.pause()
         } else {
           // Background playback is active - disable video decoding to save battery
@@ -781,6 +782,7 @@ class PlayerActivity :
   }
 
   override fun onStop() {
+    viewModel.isActivityStarted = false
     runCatching {
       pipHelper.onStop()
       saveVideoPlaybackState(fileName)
@@ -817,6 +819,7 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onStart() {
     super.onStart()
+    viewModel.isActivityStarted = true
 
     runCatching {
       setupWindowFlags()
@@ -1288,7 +1291,9 @@ class PlayerActivity :
 
   override fun onResume() {
     super.onResume()
+    viewModel.isActivityResumed = true
     updateVolume()
+    viewModel.handlePendingResumeOnUnlock()
   }
 
   /**

@@ -33,6 +33,17 @@ class ScreenStateManager(
             pausedByScreenOff = true
           }
         }
+        Intent.ACTION_SCREEN_ON -> {
+          // Fallback for devices without a lock screen
+          if (pausedByScreenOff) {
+            val km = context?.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+            if (km?.isKeyguardLocked == false) {
+              pendingResumeOnUnlock = true
+              pausedByScreenOff = false
+              if (isActivityResumed) handlePendingResumeOnUnlock()
+            }
+          }
+        }
         Intent.ACTION_USER_PRESENT -> {
           // Screen unlocked. If we paused due to screen off, prep for resume
           if (pausedByScreenOff) {
@@ -53,6 +64,7 @@ class ScreenStateManager(
     if (!screenStateReceiverRegistered) {
       val filter = IntentFilter().apply {
         addAction(Intent.ACTION_SCREEN_OFF)
+        addAction(Intent.ACTION_SCREEN_ON)
         addAction(Intent.ACTION_USER_PRESENT)
       }
       context.registerReceiver(screenStateReceiver, filter)
@@ -71,9 +83,9 @@ class ScreenStateManager(
 
   fun cleanup() {
     if (screenStateReceiverRegistered) {
+      screenStateReceiverRegistered = false
       runCatching {
         context.unregisterReceiver(screenStateReceiver)
-        screenStateReceiverRegistered = false
       }
     }
   }

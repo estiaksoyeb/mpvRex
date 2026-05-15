@@ -94,6 +94,9 @@ class PlayerViewModel(
 
   private val browserPreferences: app.marlboroadvance.mpvex.preferences.BrowserPreferences by inject()
 
+  // Cache the application context to prevent leaking the Activity context
+  private val appContext = host.context.applicationContext
+  
   /**
    * Manager for playlist state and logic.
    */
@@ -104,7 +107,7 @@ class PlayerViewModel(
    * Manager for subtitle state and operations.
    */
   private val _subtitleManager = SubtitleManager(
-    context = host.context,
+    context = appContext,
     wyzieRepository = wyzieRepository,
     scope = viewModelScope,
     onShowToast = { showToast(it) }
@@ -115,7 +118,7 @@ class PlayerViewModel(
    * Manager for history tracking and position saving.
    */
   private val _historyManager = app.marlboroadvance.mpvex.utils.history.HistoryManager(
-    context = host.context,
+    context = appContext,
     recentlyPlayedRepository = recentlyPlayedRepository,
     playbackStateRepository = playbackStateRepository,
     advancedPreferences = advancedPreferences,
@@ -127,7 +130,7 @@ class PlayerViewModel(
    * Manager for custom user-defined buttons.
    */
   private val _customButtonManager = CustomButtonManager(
-    context = host.context,
+    context = appContext,
     playerPreferences = playerPreferences,
     advancedPreferences = advancedPreferences,
     json = json,
@@ -358,7 +361,7 @@ class PlayerViewModel(
   // ==================== Screen Unlock Resume ===============================
 
   private val _screenStateManager = ScreenStateManager(
-    context = host.context,
+    context = appContext,
     playerPreferences = playerPreferences,
     onResumePlayback = { unpause() },
     isPaused = { paused ?: true }
@@ -656,6 +659,7 @@ class PlayerViewModel(
         MPVLib.setPropertyBoolean("pause", false)
       } else {
         // We are about to pause
+        wasPlayingBeforePause = false
         MPVLib.setPropertyBoolean("pause", true)
         withContext(Dispatchers.Main) { host.abandonAudioFocus() }
       }
@@ -664,6 +668,7 @@ class PlayerViewModel(
 
   fun pause() {
     viewModelScope.launch(Dispatchers.IO) {
+      wasPlayingBeforePause = false
       MPVLib.setPropertyBoolean("pause", true)
       withContext(Dispatchers.Main) { host.abandonAudioFocus() }
     }
@@ -1891,7 +1896,7 @@ class PlayerViewModel(
   // ==================== Utility ====================
 
   fun showToast(message: String) {
-    Toast.makeText(host.context, message, Toast.LENGTH_SHORT).show()
+    Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
   }
 
   override fun onCleared() {

@@ -198,6 +198,7 @@ class PlayerActivity :
   private var isReady = false // Single flag: true when video loaded and ready
   private var isOrientationRestored = false // Track if orientation was restored from DB
   private var isUserFinishing = false
+  private var wasInPipMode = false // Track if activity was in PiP mode
   private var isManualBackgroundPlayback = false // Track manual background playback trigger
   private var noisyReceiverRegistered = false
   private var mpvInitialized = false // Track MPV initialization state
@@ -703,8 +704,9 @@ class PlayerActivity :
     runCatching {
       val isInPip = isInPictureInPictureMode
       val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
+      val isEnding = isUserFinishing || isFinishing
       val shouldPause = (!audioPreferences.automaticBackgroundPlayback.get() && !isManualBackgroundPlayback) || 
-                        (isUserFinishing && !isManualBackgroundPlayback)
+                        (isEnding && !isManualBackgroundPlayback)
 
       if (!isInPip && !isInMultiWindow) {
         if (shouldPause) {
@@ -789,13 +791,19 @@ class PlayerActivity :
       }
 
       // Handle background playback based on preferences
-      val shouldAllowBackgroundPlayback = isManualBackgroundPlayback || 
-                                          audioPreferences.automaticBackgroundPlayback.get()
+      val isEnding = isUserFinishing || isFinishing
+      val isPipDismissed = wasInPipMode && !isChangingConfigurations
       
-      // Pause playback if background playback is not enabled and user is finishing
-      if (!shouldAllowBackgroundPlayback && (isUserFinishing || isFinishing)) {
+      val shouldAllowBackgroundPlayback = isManualBackgroundPlayback || 
+                                          (audioPreferences.automaticBackgroundPlayback.get() && !isEnding && !isPipDismissed)
+      
+      if (!shouldAllowBackgroundPlayback) {
         viewModel.pause()
-      } else if (shouldAllowBackgroundPlayback && !isInBackgroundPlayback) {
+        if (isPipDismissed) {
+          endBackgroundPlayback()
+          finish()
+        }
+      } else if (!isInBackgroundPlayback) {
         // Ensure video is disabled when hidden, even if it wasn't handled in onPause (e.g. multi-window)
         disableVideoForBackground()
       }
@@ -2564,6 +2572,7 @@ class PlayerActivity :
   ) {
     super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
 
+    wasInPipMode = isInPictureInPictureMode
     pipHelper.onPictureInPictureModeChanged(isInPictureInPictureMode)
 
     binding.controls.alpha = if (isInPictureInPictureMode) 0f else 1f

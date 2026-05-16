@@ -244,9 +244,9 @@ fun MediaLibraryContent() {
                 val lastPlayed = recentlyPlayedVideos.firstOrNull()
 
                 if (lastPlayed != null && sortedVideosWithInfo.any { it.video.path == lastPlayed.filePath }) {
-                  MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
+                  MediaUtils.playFile(lastPlayed.filePath, context, "media_library_list")
                 } else {
-                  MediaUtils.playFile(sortedVideosWithInfo.first().video, context, "first_video_button")
+                  MediaUtils.playFile(sortedVideosWithInfo.first().video, context, "media_library_list")
                 }
               }
             },
@@ -284,7 +284,7 @@ fun MediaLibraryContent() {
           if (selectionManager.isInSelectionMode) {
             selectionManager.toggle(video)
           } else {
-            MediaUtils.playFile(video, context, "video_list")
+            MediaUtils.playFile(video, context, "media_library_list")
           }
         },
         onVideoLongClick = { video -> selectionManager.toggle(video) },

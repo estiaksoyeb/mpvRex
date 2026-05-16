@@ -1384,13 +1384,17 @@ private fun FileSystemBrowserContent(
               items = items.filterIsInstance<FileSystemItem.VideoFile>(),
               key = { "${it.video.id}_${it.video.path}" },
             ) { videoFile ->
+              val isRecentlyPlayed = recentlyPlayedFilePath?.let { 
+                videoFile.video.path == it || videoFile.video.uri.toString() == it 
+              } ?: false
+
               VideoCard(
                 video = videoFile.video,
                 uiSettings = uiSettings,
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                 isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
                 isWatched = watchedVideoIds.contains(videoFile.video.id),
-                isRecentlyPlayed = recentlyPlayedFilePath == videoFile.video.path,
+                isRecentlyPlayed = isRecentlyPlayed,
                 isNeverPlayed = videoFilesWithPlayback[videoFile.video.id] == null,
                 isSelected = videoSelectionManager.isSelected(videoFile.video),
                 onClick = { onVideoClick(videoFile.video) },

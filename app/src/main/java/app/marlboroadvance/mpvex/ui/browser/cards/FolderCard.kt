@@ -141,7 +141,7 @@ fun FolderCard(
         )
       }
     },
-    chipsContent = {
+    chipsContent = if (isGridMode) null else ({
       if (customChipContent != null) {
         customChipContent()
       }
@@ -151,12 +151,12 @@ fun FolderCard(
       if (uiSettings.showSizeChip && folder.totalSize > 0) {
         MediaMetadataChip(text = MediaFormatter.formatFileSize(folder.totalSize))
       }
-      if (uiSettings.showTotalDurationChip && folder.totalDuration > 0 && !isGridMode) {
+      if (uiSettings.showTotalDurationChip && folder.totalDuration > 0) {
         MediaMetadataChip(text = MediaFormatter.formatDuration(folder.totalDuration))
       }
       if (uiSettings.showDateChip && folder.lastModified > 0) {
         MediaMetadataChip(text = MediaFormatter.formatDate(folder.lastModified * 1000))
       }
-    }
+    })
   )
 }

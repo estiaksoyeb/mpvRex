@@ -90,7 +90,7 @@ fun BaseMediaCard(
                         if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f) 
                         else Color.Transparent
                     )
-                    .then(if (gridColumns == 1) Modifier else Modifier.padding(12.dp)),
+                    .then(if (gridColumns == 1) Modifier.padding(horizontal = 12.dp, vertical = 5.dp) else Modifier.padding(12.dp)),
                 horizontalAlignment = if (gridColumns == 1) Alignment.Start else Alignment.CenterHorizontally,
             ) {
                 // Thumbnail Box
@@ -144,7 +144,7 @@ fun BaseMediaCard(
                     overlayContent?.invoke(this)
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Title
                 Text(
@@ -166,12 +166,23 @@ fun BaseMediaCard(
                 if (infoContent != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth().then(
-                            if (gridColumns == 1) Modifier.padding(vertical = 4.dp) else Modifier
+                            if (gridColumns == 1) Modifier.padding(vertical = 2.dp) else Modifier
                         ),
                         horizontalArrangement = if (gridColumns == 1) Arrangement.Start else Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         infoContent()
+                    }
+                }
+
+                if (chipsContent != null && gridColumns == 1) {
+                    Spacer(modifier = Modifier.height(1.dp))
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        chipsContent()
                     }
                 }
             }

@@ -281,6 +281,11 @@ class PlayerViewModel(
   private val _doubleTapSeekAmount = MutableStateFlow(0)
   val doubleTapSeekAmount: StateFlow<Int> = _doubleTapSeekAmount.asStateFlow()
 
+  // Captured position at the start of a double-tap seek sequence so the time
+  // display stays stable while MPV's time-pos asynchronously catches up.
+  private val _doubleTapSeekBasePos = MutableStateFlow<Int?>(null)
+  val doubleTapSeekBasePos: StateFlow<Int?> = _doubleTapSeekBasePos.asStateFlow()
+
   private val _isSeekingForwards = MutableStateFlow(false)
   val isSeekingForwards: StateFlow<Boolean> = _isSeekingForwards.asStateFlow()
 
@@ -772,6 +777,7 @@ class PlayerViewModel(
   }
 
   fun leftSeek() {
+    if (_doubleTapSeekAmount.value == 0) _doubleTapSeekBasePos.value = pos
     if ((pos ?: 0) > 0) {
       _doubleTapSeekAmount.value -= doubleTapToSeekDuration
     }
@@ -781,6 +787,7 @@ class PlayerViewModel(
   }
 
   fun rightSeek() {
+    if (_doubleTapSeekAmount.value == 0) _doubleTapSeekBasePos.value = pos
     if ((pos ?: 0) < (duration ?: 0)) {
       _doubleTapSeekAmount.value += doubleTapToSeekDuration
     }
@@ -823,6 +830,7 @@ class PlayerViewModel(
 
   fun updateSeekAmount(amount: Int) {
     _doubleTapSeekAmount.value = amount
+    if (amount == 0) _doubleTapSeekBasePos.value = null
   }
 
   fun updateSeekText(text: String?) {

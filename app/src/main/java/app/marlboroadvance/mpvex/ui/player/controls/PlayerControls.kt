@@ -184,6 +184,7 @@ fun PlayerControls(
   val playbackSpeed by MPVLib.propFloat["speed"].collectAsState()
 
   val doubleTapSeekAmount by viewModel.doubleTapSeekAmount.collectAsState()
+  val doubleTapSeekBasePos by viewModel.doubleTapSeekBasePos.collectAsState()
   val showDoubleTapOvals by playerPreferences.showDoubleTapOvals.collectAsState()
   val showSeekTime by playerPreferences.showSeekTimeWhileSeeking.collectAsState()
   var isSeeking by remember { mutableStateOf(false) }
@@ -877,13 +878,15 @@ fun PlayerControls(
           when {
             doubleTapSeekAmount != 0 -> {
               val seekAmount = doubleTapSeekAmount
-              val currentPos = position ?: 0
+              // Use the position captured before the first seek so the displayed
+              // target time stays correct even after MPV's time-pos updates.
+              val basePos = doubleTapSeekBasePos ?: (position ?: 0)
               Text(
                 stringResource(
                   R.string.player_gesture_seek_indicator,
                   if (seekAmount >= 0) '+' else '-',
                   Utils.prettyTime(abs(seekAmount)),
-                  Utils.prettyTime(currentPos + seekAmount),
+                  Utils.prettyTime(basePos + seekAmount),
                 ),
                 style =
                   MaterialTheme.typography.headlineMedium.copy(

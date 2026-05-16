@@ -761,7 +761,9 @@ fun VideoListContent(
               key = { index -> "${videosWithInfo[index].video.id}_${videosWithInfo[index].video.path}" },
             ) { index ->
               val videoWithInfo = videosWithInfo[index]
-              val isRecentlyPlayed = recentlyPlayedFilePath?.let { videoWithInfo.video.path == it } ?: false
+              val isRecentlyPlayed = recentlyPlayedFilePath?.let { 
+                videoWithInfo.video.path == it || videoWithInfo.video.uri.toString() == it 
+              } ?: false
 
               VideoCard(
                 video = videoWithInfo.video,
@@ -816,7 +818,9 @@ fun VideoListContent(
                 key = { index -> "${videosWithInfo[index].video.id}_${videosWithInfo[index].video.path}" },
               ) { index ->
                 val videoWithInfo = videosWithInfo[index]
-                val isRecentlyPlayed = recentlyPlayedFilePath?.let { videoWithInfo.video.path == it } ?: false
+                val isRecentlyPlayed = recentlyPlayedFilePath?.let { 
+                videoWithInfo.video.path == it || videoWithInfo.video.uri.toString() == it 
+              } ?: false
 
                 VideoCard(
                   video = videoWithInfo.video,

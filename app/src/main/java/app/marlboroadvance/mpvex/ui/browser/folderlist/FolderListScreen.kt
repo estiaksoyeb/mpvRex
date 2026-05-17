@@ -32,8 +32,10 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.VideoLibrary
@@ -102,6 +104,7 @@ import app.marlboroadvance.mpvex.ui.browser.LocalNavigationBarHeight
 import app.marlboroadvance.mpvex.ui.browser.cards.FolderCard
 import app.marlboroadvance.mpvex.ui.browser.cards.VideoCard
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
+import app.marlboroadvance.mpvex.ui.browser.components.SelectionOverflowAction
 import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.GridColumnSelector
 import app.marlboroadvance.mpvex.ui.browser.dialogs.SortDialog
@@ -113,6 +116,7 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.ViewModeOption
 import app.marlboroadvance.mpvex.ui.browser.filesystem.FileSystemDirectoryScreen
 import app.marlboroadvance.mpvex.ui.browser.filesystem.FileSystemBrowserRootScreen
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
+import app.marlboroadvance.mpvex.ui.browser.sheets.MultiSelectionInfoSheet
 import app.marlboroadvance.mpvex.ui.browser.sheets.PlayLinkSheet
 import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
 import app.marlboroadvance.mpvex.ui.browser.states.LoadingState
@@ -272,6 +276,7 @@ object FolderListScreen : Screen {
     val showLinkDialog = remember { mutableStateOf(false) }
 
     // Search state
+    var folderSelectionInfo by remember { mutableStateOf<Triple<Int, Long, Long>?>(null) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf<List<FileSystemItem>>(emptyList()) }
@@ -437,16 +442,13 @@ object FolderListScreen : Screen {
             onDeleteClick = { deleteDialogOpen.value = true },
             onRenameClick = null,
             isSingleSelection = selectionManager.isSingleSelection,
-            onInfoClick = null,
-            onShareClick = {
-              coroutineScope.launch {
-                val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()
-                val allVideos = app.marlboroadvance.mpvex.repository.MediaFileRepository
-                  .getVideosForBuckets(context, selectedIds)
-                if (allVideos.isNotEmpty()) {
-                  MediaUtils.shareVideos(context, allVideos)
-                }
-              }
+            onInfoClick = {
+              val selected = selectionManager.getSelectedItems()
+              folderSelectionInfo = Triple(
+                selected.size,
+                selected.sumOf { it.totalSize },
+                selected.sumOf { it.totalDuration },
+              )
             },
             onPlayClick = {
               coroutineScope.launch {
@@ -463,26 +465,44 @@ object FolderListScreen : Screen {
                 }
               }
             },
-            onBlacklistClick = {
-              coroutineScope.launch {
-                val selectedFolders = selectionManager.getSelectedItems()
-                val blacklistedFolders = foldersPreferences.blacklistedFolders.get().toMutableSet()
-                selectedFolders.forEach { folder ->
-                  blacklistedFolders.add(folder.path)
-                }
-                foldersPreferences.blacklistedFolders.set(blacklistedFolders)
-                selectionManager.clear()
-                viewModel.refresh()
-                android.widget.Toast.makeText(
-                  context,
-                  context.getString(app.marlboroadvance.mpvex.R.string.pref_folders_blacklisted),
-                  android.widget.Toast.LENGTH_SHORT,
-                ).show()
-              }
-            },
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },
             onDeselectAll = { selectionManager.clear() },
+            selectionOverflowActions = listOf(
+              SelectionOverflowAction(
+                icon = Icons.Filled.Share,
+                label = "Share",
+                onClick = {
+                  coroutineScope.launch {
+                    val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()
+                    val allVideos = app.marlboroadvance.mpvex.repository.MediaFileRepository
+                      .getVideosForBuckets(context, selectedIds)
+                    if (allVideos.isNotEmpty()) {
+                      MediaUtils.shareVideos(context, allVideos)
+                    }
+                  }
+                },
+              ),
+              SelectionOverflowAction(
+                icon = Icons.Filled.Block,
+                label = "Blacklist",
+                onClick = {
+                  coroutineScope.launch {
+                    val selectedFolders = selectionManager.getSelectedItems()
+                    val blacklistedFolders = foldersPreferences.blacklistedFolders.get().toMutableSet()
+                    selectedFolders.forEach { folder -> blacklistedFolders.add(folder.path) }
+                    foldersPreferences.blacklistedFolders.set(blacklistedFolders)
+                    selectionManager.clear()
+                    viewModel.refresh()
+                    android.widget.Toast.makeText(
+                      context,
+                      context.getString(app.marlboroadvance.mpvex.R.string.pref_folders_blacklisted),
+                      android.widget.Toast.LENGTH_SHORT,
+                    ).show()
+                  }
+                },
+              ),
+            ),
           )
         }
       },
@@ -670,6 +690,16 @@ object FolderListScreen : Screen {
         itemCount = selectionManager.selectedCount,
         itemNames = selectionManager.getSelectedItems().map { it.name },
       )
+
+      folderSelectionInfo?.let { (count, bytes, duration) ->
+        MultiSelectionInfoSheet(
+          count = count,
+          totalBytes = bytes,
+          totalDurationMs = duration,
+          onDismiss = { folderSelectionInfo = null },
+          unit = "folder",
+        )
+      }
     }
   }
 }

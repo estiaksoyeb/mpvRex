@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Button
@@ -69,6 +70,7 @@ import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefresh
 import app.marlboroadvance.mpvex.ui.browser.cards.M3UVideoCard
 import app.marlboroadvance.mpvex.ui.browser.cards.VideoCard
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
+import app.marlboroadvance.mpvex.ui.browser.components.SelectionOverflowAction
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import app.marlboroadvance.mpvex.ui.player.PlayerActivity
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
@@ -272,16 +274,19 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                 )
               }
             },
-            onShareClick = if (playlist?.isM3uPlaylist != true) {
-              // Hide share button for M3U playlists
-              {
-                val videosToShare = selectionManager.getSelectedItems().map { it.video }
-                MediaUtils.shareVideos(context, videosToShare)
-              }
-            } else {
-              null
-            },
             onPlayClick = null, // Don't show play icon in selection mode for playlist
+            selectionOverflowActions = buildList {
+              if (playlist?.isM3uPlaylist != true) {
+                add(SelectionOverflowAction(
+                  icon = Icons.Filled.Share,
+                  label = "Share",
+                  onClick = {
+                    val videosToShare = selectionManager.getSelectedItems().map { it.video }
+                    MediaUtils.shareVideos(context, videosToShare)
+                  },
+                ))
+              }
+            },
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },
             onDeselectAll = { selectionManager.clear() },

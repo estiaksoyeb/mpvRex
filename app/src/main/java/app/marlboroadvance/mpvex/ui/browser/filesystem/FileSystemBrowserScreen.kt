@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.ViewModule
@@ -98,6 +99,7 @@ import app.marlboroadvance.mpvex.ui.browser.cards.FolderCard
 import app.marlboroadvance.mpvex.ui.browser.cards.VideoCard
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserBottomBar
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
+import app.marlboroadvance.mpvex.ui.browser.components.SelectionOverflowAction
 import app.marlboroadvance.mpvex.ui.browser.dialogs.AddToPlaylistDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.FileOperationProgressDialog
@@ -253,6 +255,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   // Search state
   var mediaInfoUri by remember { mutableStateOf<Uri?>(null) }
   var multiSelectionInfo by remember { mutableStateOf<Triple<Int, Long, Long>?>(null) }
+  var multiSelectionUnit by remember { mutableStateOf("file") }
   var searchQuery by rememberSaveable { mutableStateOf("") }
   var isSearching by rememberSaveable { mutableStateOf(false) }
   var searchResults by remember { mutableStateOf<List<FileSystemItem>>(emptyList()) }
@@ -641,59 +644,34 @@ fun FileSystemBrowserScreen(path: String? = null) {
               null
             },
             isSingleSelection = videoSelectionManager.isSingleSelection && !isMixedSelection,
-            onInfoClick = if (videoSelectionManager.isInSelectionMode && !folderSelectionManager.isInSelectionMode) {
-              {
-                val selected = videoSelectionManager.getSelectedItems()
-                if (videoSelectionManager.isSingleSelection) {
-                  mediaInfoUri = selected.firstOrNull()?.uri
-                } else {
+            onInfoClick = when {
+              videoSelectionManager.isInSelectionMode && !folderSelectionManager.isInSelectionMode -> {
+                {
+                  val selected = videoSelectionManager.getSelectedItems()
+                  if (videoSelectionManager.isSingleSelection) {
+                    mediaInfoUri = selected.firstOrNull()?.uri
+                  } else {
+                    multiSelectionUnit = "file"
+                    multiSelectionInfo = Triple(
+                      selected.size,
+                      selected.sumOf { it.size },
+                      selected.sumOf { it.duration },
+                    )
+                  }
+                }
+              }
+              folderSelectionManager.isInSelectionMode && !videoSelectionManager.isInSelectionMode -> {
+                {
+                  val selected = folderSelectionManager.getSelectedItems()
+                  multiSelectionUnit = "folder"
                   multiSelectionInfo = Triple(
                     selected.size,
-                    selected.sumOf { it.size },
-                    selected.sumOf { it.duration },
+                    selected.sumOf { it.totalSize },
+                    selected.sumOf { it.totalDuration },
                   )
                 }
               }
-            } else {
-              null
-            },
-            onShareClick = {
-              when {
-                // Mixed selection: share videos from both selected videos and selected folders
-                isMixedSelection -> {
-                  coroutineScope.launch {
-                    val selectedVideos = videoSelectionManager.getSelectedItems()
-                    val selectedFolders = folderSelectionManager.getSelectedItems()
-
-                    // Get all videos recursively from selected folders
-                    val videosFromFolders = selectedFolders.flatMap { folder ->
-                      collectVideosRecursively(context, folder.path)
-                    }
-
-                    // Combine and share all videos
-                    val allVideos = (selectedVideos + videosFromFolders).distinctBy { it.id }
-                    if (allVideos.isNotEmpty()) {
-                      MediaUtils.shareVideos(context, allVideos)
-                    }
-                  }
-                }
-                // Folders only: share all videos from selected folders
-                folderSelectionManager.isInSelectionMode -> {
-                  coroutineScope.launch {
-                    val selectedFolders = folderSelectionManager.getSelectedItems()
-                    val videosFromFolders = selectedFolders.flatMap { folder ->
-                      collectVideosRecursively(context, folder.path)
-                    }
-                    if (videosFromFolders.isNotEmpty()) {
-                      MediaUtils.shareVideos(context, videosFromFolders)
-                    }
-                  }
-                }
-                // Videos only: use existing functionality
-                videoSelectionManager.isInSelectionMode -> {
-                  videoSelectionManager.shareSelected()
-                }
-              }
+              else -> null
             },
             onPlayClick = {
               when {
@@ -752,12 +730,49 @@ fun FileSystemBrowserScreen(path: String? = null) {
               folderSelectionManager.clear()
               videoSelectionManager.clear()
             },
-            onBlacklistClick = if (folderSelectionManager.isInSelectionMode && !videoSelectionManager.isInSelectionMode) {
-              {
-                viewModel.blacklistFolders(folderSelectionManager.getSelectedItems())
-                folderSelectionManager.clear()
+            selectionOverflowActions = buildList {
+              add(SelectionOverflowAction(
+                icon = Icons.Filled.Share,
+                label = "Share",
+                onClick = {
+                  when {
+                    isMixedSelection -> {
+                      coroutineScope.launch {
+                        val selectedVideos = videoSelectionManager.getSelectedItems()
+                        val selectedFolders = folderSelectionManager.getSelectedItems()
+                        val videosFromFolders = selectedFolders.flatMap { folder ->
+                          collectVideosRecursively(context, folder.path)
+                        }
+                        val allVideos = (selectedVideos + videosFromFolders).distinctBy { it.id }
+                        if (allVideos.isNotEmpty()) MediaUtils.shareVideos(context, allVideos)
+                      }
+                    }
+                    folderSelectionManager.isInSelectionMode -> {
+                      coroutineScope.launch {
+                        val selectedFolders = folderSelectionManager.getSelectedItems()
+                        val videosFromFolders = selectedFolders.flatMap { folder ->
+                          collectVideosRecursively(context, folder.path)
+                        }
+                        if (videosFromFolders.isNotEmpty()) MediaUtils.shareVideos(context, videosFromFolders)
+                      }
+                    }
+                    videoSelectionManager.isInSelectionMode -> {
+                      videoSelectionManager.shareSelected()
+                    }
+                  }
+                },
+              ))
+              if (folderSelectionManager.isInSelectionMode && !videoSelectionManager.isInSelectionMode) {
+                add(SelectionOverflowAction(
+                  icon = Icons.Filled.Block,
+                  label = "Blacklist",
+                  onClick = {
+                    viewModel.blacklistFolders(folderSelectionManager.getSelectedItems())
+                    folderSelectionManager.clear()
+                  },
+                ))
               }
-            } else null,
+            },
           )
         }
       },
@@ -1086,7 +1101,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
       app.marlboroadvance.mpvex.ui.browser.sheets.MediaInfoSheet(uri = uri, onDismiss = { mediaInfoUri = null })
     }
     multiSelectionInfo?.let { (count, bytes, duration) ->
-      app.marlboroadvance.mpvex.ui.browser.sheets.MultiSelectionInfoSheet(count = count, totalBytes = bytes, totalDurationMs = duration, onDismiss = { multiSelectionInfo = null })
+      app.marlboroadvance.mpvex.ui.browser.sheets.MultiSelectionInfoSheet(count = count, totalBytes = bytes, totalDurationMs = duration, onDismiss = { multiSelectionInfo = null }, unit = multiSelectionUnit)
     }
   }
 }

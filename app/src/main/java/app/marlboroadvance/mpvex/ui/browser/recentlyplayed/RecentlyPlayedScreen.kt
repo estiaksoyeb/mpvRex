@@ -185,7 +185,6 @@ object RecentlyPlayedScreen : Screen {
             },
             isSingleSelection = selectionManager.isSingleSelection,
             onInfoClick = null, // No info in recently played
-            onShareClick = null,
             onPlayClick = null,
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },

@@ -107,7 +107,6 @@ data class NetworkBrowserScreen(
           onRenameClick = null,
           isSingleSelection = false,
           onInfoClick = null,
-          onShareClick = null,
           onPlayClick = null,
           onSelectAll = null,
           onInvertSelection = null,

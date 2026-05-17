@@ -133,7 +133,6 @@ object NetworkStreamingScreen : Screen {
           onRenameClick = null,
           isSingleSelection = false,
           onInfoClick = null,
-          onShareClick = null,
           onPlayClick = null,
           onSelectAll = null,
           onInvertSelection = null,

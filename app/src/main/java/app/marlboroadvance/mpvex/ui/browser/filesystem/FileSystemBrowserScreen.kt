@@ -671,6 +671,18 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   )
                 }
               }
+              isMixedSelection -> {
+                {
+                  val selectedVideos = videoSelectionManager.getSelectedItems()
+                  val selectedFolders = folderSelectionManager.getSelectedItems()
+                  multiSelectionUnit = "item"
+                  multiSelectionInfo = Triple(
+                    selectedVideos.size + selectedFolders.size,
+                    selectedVideos.sumOf { it.size } + selectedFolders.sumOf { it.totalSize },
+                    selectedVideos.sumOf { it.duration } + selectedFolders.sumOf { it.totalDuration },
+                  )
+                }
+              }
               else -> null
             },
             onPlayClick = {

@@ -105,6 +105,7 @@ fun BrowserTopBar(
   additionalActions: @Composable RowScope.() -> Unit = { },
   onTitleLongPress: (() -> Unit)? = null,
   useRemoveIcon: Boolean = false,
+  deleteInOverflow: Boolean = false,
 ) {
   if (isInSelectionMode) {
     SelectionTopBar(
@@ -122,6 +123,7 @@ fun BrowserTopBar(
       overflowActions = selectionOverflowActions,
       modifier = modifier,
       useRemoveIcon = useRemoveIcon,
+      deleteInOverflow = deleteInOverflow,
     )
   } else {
     NormalTopBar(
@@ -321,6 +323,7 @@ private fun SelectionTopBar(
   overflowActions: List<SelectionOverflowAction> = emptyList(),
   modifier: Modifier = Modifier,
   useRemoveIcon: Boolean = false,
+  deleteInOverflow: Boolean = false,
 ) {
   var showDropdown by remember { mutableStateOf(false) }
   var showOverflowMenu by remember { mutableStateOf(false) }
@@ -436,6 +439,21 @@ private fun SelectionTopBar(
         }
       }
 
+      // Remove icon (playlist style) — shown before Info for muscle-memory consistency
+      if (onDelete != null && useRemoveIcon) {
+        IconButton(
+          onClick = onDelete,
+          modifier = Modifier.padding(horizontal = 2.dp),
+        ) {
+          Icon(
+            imageVector = Icons.Filled.RemoveCircle,
+            contentDescription = stringResource(R.string.delete),
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.error,
+          )
+        }
+      }
+
       // Info icon
       if (onInfo != null) {
         IconButton(
@@ -451,14 +469,14 @@ private fun SelectionTopBar(
         }
       }
 
-      // Delete/Remove icon
-      if (onDelete != null) {
+      // Delete icon — inline only when not using remove icon and not delegated to overflow
+      if (onDelete != null && !useRemoveIcon && !deleteInOverflow) {
         IconButton(
           onClick = onDelete,
           modifier = Modifier.padding(horizontal = 2.dp),
         ) {
           Icon(
-            imageVector = if (useRemoveIcon) Icons.Filled.RemoveCircle else Icons.Filled.Delete,
+            imageVector = Icons.Filled.Delete,
             contentDescription = stringResource(R.string.delete),
             modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.error,
@@ -466,8 +484,9 @@ private fun SelectionTopBar(
         }
       }
 
-      // Overflow (⋮) menu — only shown when there are overflow actions
-      if (overflowActions.isNotEmpty()) {
+      // Overflow (⋮) menu — shown when there are overflow actions or delete is delegated here
+      val hasDeleteInOverflow = deleteInOverflow && onDelete != null
+      if (overflowActions.isNotEmpty() || hasDeleteInOverflow) {
         Box(modifier = Modifier.padding(start = 0.dp, end = 4.dp)) {
           IconButton(
             onClick = { showOverflowMenu = true },
@@ -483,6 +502,24 @@ private fun SelectionTopBar(
             expanded = showOverflowMenu,
             onDismissRequest = { showOverflowMenu = false },
           ) {
+            // Delete shown first in overflow when deleteInOverflow is set
+            if (hasDeleteInOverflow) {
+              DropdownMenuItem(
+                leadingIcon = {
+                  Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.error,
+                  )
+                },
+                text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                onClick = {
+                  onDelete()
+                  showOverflowMenu = false
+                },
+              )
+            }
             overflowActions.forEach { action ->
               DropdownMenuItem(
                 leadingIcon = {

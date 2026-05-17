@@ -743,6 +743,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
               folderSelectionManager.clear()
               videoSelectionManager.clear()
             },
+            deleteInOverflow = folderSelectionManager.isInSelectionMode,
             selectionOverflowActions = buildList {
               add(SelectionOverflowAction(
                 icon = Icons.Filled.Share,

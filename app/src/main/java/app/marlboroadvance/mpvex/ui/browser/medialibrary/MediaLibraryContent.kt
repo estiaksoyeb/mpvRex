@@ -208,6 +208,7 @@ fun MediaLibraryContent() {
             backstack.add(app.marlboroadvance.mpvex.ui.preferences.PreferencesScreen)
           },
           onDeleteClick = { deleteDialogOpen.value = true },
+          deleteInOverflow = true,
           isSingleSelection = selectionManager.isSingleSelection,
           onInfoClick = {
             val selected = selectionManager.getSelectedItems()

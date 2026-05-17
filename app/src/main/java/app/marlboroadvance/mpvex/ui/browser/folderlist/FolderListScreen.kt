@@ -109,6 +109,7 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.GridColumnSelector
 import app.marlboroadvance.mpvex.ui.browser.dialogs.SortDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.ViewModeSelector
+import app.marlboroadvance.mpvex.ui.browser.dialogs.ContentToggle
 import app.marlboroadvance.mpvex.ui.browser.dialogs.VisibilityToggle
 import app.marlboroadvance.mpvex.ui.browser.medialibrary.MediaLibraryContent
 import app.marlboroadvance.mpvex.ui.browser.dialogs.MultiViewModeSelector
@@ -995,6 +996,9 @@ private fun FolderSortDialog(
   val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
   val showDateChip by browserPreferences.showDateChip.collectAsState()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
+  val showProgressBar by browserPreferences.showProgressBar.collectAsState()
+  val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
+  val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val folderViewMode by browserPreferences.folderViewMode.collectAsState()
   val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
@@ -1106,6 +1110,13 @@ private fun FolderSortDialog(
         )
       },
     ),
+    contentToggles = listOf(
+      ContentToggle(
+        label = "Audio Files",
+        checked = showAudioFiles,
+        onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
+      ),
+    ),
     visibilityToggles = listOf(
       VisibilityToggle(
         label = "Full Name",
@@ -1136,6 +1147,16 @@ private fun FolderSortDialog(
         label = "Date",
         checked = showDateChip,
         onCheckedChange = { browserPreferences.showDateChip.set(it) },
+      ),
+      VisibilityToggle(
+        label = "Progress Bar",
+        checked = showProgressBar,
+        onCheckedChange = { browserPreferences.showProgressBar.set(it) },
+      ),
+      VisibilityToggle(
+        label = "Subtitle Indicator",
+        checked = showSubtitleIndicator,
+        onCheckedChange = { browserPreferences.showSubtitleIndicator.set(it) },
       ),
     ),
     folderGridColumnSelector = folderGridColumnSelector,

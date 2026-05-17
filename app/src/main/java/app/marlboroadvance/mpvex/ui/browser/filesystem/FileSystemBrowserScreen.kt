@@ -110,6 +110,7 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.ViewModeSelector
 import app.marlboroadvance.mpvex.ui.browser.dialogs.MultiViewModeSelector
 import app.marlboroadvance.mpvex.ui.browser.dialogs.ViewModeOption
 import androidx.compose.material.icons.filled.VideoLibrary
+import app.marlboroadvance.mpvex.ui.browser.dialogs.ContentToggle
 import app.marlboroadvance.mpvex.ui.browser.dialogs.VisibilityToggle
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import app.marlboroadvance.mpvex.ui.browser.sheets.PlayLinkSheet
@@ -1678,6 +1679,7 @@ fun FileSystemSortDialog(
   val showProgressBar by browserPreferences.showProgressBar.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
+  val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
 
   SortDialog(
     isOpen = isOpen,
@@ -1751,6 +1753,13 @@ fun FileSystemSortDialog(
     videoGridColumnSelector = null,
     enableViewModeOptions = isAtRoot,
     enableLayoutModeOptions = false, // Disabled/grayed out
+    contentToggles = listOf(
+      ContentToggle(
+        label = "Audio Files",
+        checked = showAudioFiles,
+        onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
+      ),
+    ),
     visibilityToggles = listOf(
       VisibilityToggle(
         label = "Video Thumbnails",

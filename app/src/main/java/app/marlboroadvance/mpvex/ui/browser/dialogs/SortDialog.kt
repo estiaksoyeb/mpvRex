@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Switch
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,6 +70,7 @@ fun SortDialog(
   showSortOptions: Boolean = true,
   enableViewModeOptions: Boolean = true,
   enableLayoutModeOptions: Boolean = true,
+  contentToggles: List<ContentToggle> = emptyList(),
 ) {
   if (!isOpen) return
 
@@ -146,6 +148,13 @@ fun SortDialog(
           videoGridColumnSelector = videoGridColumnSelector,
         )
 
+        if (contentToggles.isNotEmpty()) {
+          ContentTogglesSection(
+            toggles = contentToggles,
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+
         if (visibilityToggles.isNotEmpty()) {
           VisibilityTogglesSection(
             toggles = visibilityToggles,
@@ -161,6 +170,12 @@ fun SortDialog(
     modifier = modifier,
   )
 }
+
+data class ContentToggle(
+  val label: String,
+  val checked: Boolean,
+  val onCheckedChange: (Boolean) -> Unit,
+)
 
 data class VisibilityToggle(
   val label: String,
@@ -513,6 +528,49 @@ private fun ViewModeSelectorComponent(
             },
           )
         }
+      }
+    }
+  }
+}
+
+@Composable
+private fun ContentTogglesSection(
+  toggles: List<ContentToggle>,
+  modifier: Modifier = Modifier,
+) {
+  Column(
+    modifier = modifier,
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
+    Text(
+      text = "Filters",
+      style = MaterialTheme.typography.titleMedium,
+      fontWeight = FontWeight.Medium,
+      color = MaterialTheme.colorScheme.onSurface,
+    )
+
+    toggles.forEach { toggle ->
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = ripple(bounded = true),
+            onClick = { toggle.onCheckedChange(!toggle.checked) },
+          )
+          .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Text(
+          text = toggle.label,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurface,
+        )
+        Switch(
+          checked = toggle.checked,
+          onCheckedChange = toggle.onCheckedChange,
+        )
       }
     }
   }

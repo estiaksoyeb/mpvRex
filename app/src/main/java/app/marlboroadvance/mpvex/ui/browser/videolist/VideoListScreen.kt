@@ -111,6 +111,8 @@ import app.marlboroadvance.mpvex.ui.browser.selection.SelectionManager
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
+import app.marlboroadvance.mpvex.ui.browser.sheets.MarkAsBottomSheet
+import app.marlboroadvance.mpvex.utils.history.MarkAsState
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
 import app.marlboroadvance.mpvex.utils.media.CopyPasteOps
 import app.marlboroadvance.mpvex.utils.media.MediaUtils
@@ -234,6 +236,7 @@ data class VideoListScreen(
 
     // Bottom bar animation state
     var showFloatingBottomBar by remember { mutableStateOf(false) }
+    var showMarkAsSheet by remember { mutableStateOf(false) }
     val animationDuration = 300
 
     // Handle selection mode changes with animation
@@ -416,6 +419,7 @@ data class VideoListScreen(
             onRenameClick = { renameDialogOpen.value = true },
             onDeleteClick = { deleteDialogOpen.value = true },
             onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
+            onMarkAsClick = { showMarkAsSheet = true },
             showRename = selectionManager.isSingleSelection
           )
         }
@@ -456,6 +460,27 @@ data class VideoListScreen(
             extension = if (extension != ".") extension else null,
           )
         }
+      }
+
+      // Mark As Sheet
+      if (showMarkAsSheet) {
+        MarkAsBottomSheet(
+          onDismiss = { showMarkAsSheet = false },
+          onMarkAs = { state ->
+            val selected = selectionManager.getSelectedItems()
+            coroutineScope.launch {
+              selected.forEach { video ->
+                RecentlyPlayedOps.markAs(
+                  filePath = video.path,
+                  fileName = video.displayName,
+                  duration = video.duration,
+                  state = state,
+                )
+              }
+              viewModel.refresh()
+            }
+          },
+        )
       }
 
       // Folder Picker Dialog

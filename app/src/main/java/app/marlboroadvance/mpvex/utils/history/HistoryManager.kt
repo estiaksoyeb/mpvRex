@@ -194,6 +194,58 @@ class HistoryManager(
         }
     }
 
+    /**
+     * Manually sets the watch state of a media item.
+     *
+     * @param filePath  Stable file path (used for RecentlyPlayed lookups).
+     * @param fileName  Display name / mediaTitle key (used for PlaybackState lookups).
+     * @param duration  Video duration in milliseconds (needed for Finished state).
+     */
+    suspend fun markAs(filePath: String, fileName: String, duration: Long, state: MarkAsState) {
+        when (state) {
+            MarkAsState.New -> {
+                // Remove progress so the card appears unplayed. RecentlyPlayed entry is kept
+                // so the file remains in history but with no position indicator.
+                playbackStateRepository.deleteByTitle(fileName)
+            }
+            MarkAsState.LastPlayed -> {
+                // Upsert a RecentlyPlayed entry with timestamp = now so the file surfaces
+                // at the top of the Recently Played list.
+                recentlyPlayedRepository.addRecentlyPlayed(
+                    filePath = filePath,
+                    fileName = fileName,
+                    duration = duration,
+                    launchSource = "mark_as",
+                )
+            }
+            MarkAsState.Finished -> {
+                val durationSeconds = (duration / 1000).toInt().coerceAtLeast(0)
+                val existing = playbackStateRepository.getVideoDataByTitle(fileName)
+                playbackStateRepository.upsert(
+                    app.marlboroadvance.mpvex.database.entities.PlaybackStateEntity(
+                        mediaTitle = fileName,
+                        lastPosition = durationSeconds,
+                        playbackSpeed = existing?.playbackSpeed ?: 1.0,
+                        videoZoom = existing?.videoZoom ?: 0f,
+                        sid = existing?.sid ?: -1,
+                        secondarySid = existing?.secondarySid ?: -1,
+                        subDelay = existing?.subDelay ?: 0,
+                        subSpeed = existing?.subSpeed ?: 1.0,
+                        aid = existing?.aid ?: -1,
+                        audioDelay = existing?.audioDelay ?: 0,
+                        timeRemaining = 0,
+                        hasBeenWatched = true,
+                    )
+                )
+            }
+            MarkAsState.None -> {
+                // Wipe everything so the file is completely neutral — no badge, no progress.
+                playbackStateRepository.deleteByTitle(fileName)
+                recentlyPlayedRepository.deleteByFilePath(filePath)
+            }
+        }
+    }
+
     suspend fun onVideoRenamed(oldPath: String, newPath: String) {
         if (oldPath.isBlank() || newPath.isBlank()) return
         val newFileName = File(newPath).name

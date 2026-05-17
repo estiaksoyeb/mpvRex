@@ -4,6 +4,10 @@ import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -116,7 +120,9 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.MultiViewModeSelector
 import app.marlboroadvance.mpvex.ui.browser.dialogs.ViewModeOption
 import app.marlboroadvance.mpvex.ui.browser.filesystem.FileSystemDirectoryScreen
 import app.marlboroadvance.mpvex.ui.browser.filesystem.FileSystemBrowserRootScreen
+import app.marlboroadvance.mpvex.ui.browser.components.BrowserBottomBar
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
+import app.marlboroadvance.mpvex.ui.browser.sheets.MarkAsBottomSheet
 import app.marlboroadvance.mpvex.ui.browser.sheets.MultiSelectionInfoSheet
 import app.marlboroadvance.mpvex.ui.browser.sheets.PlayLinkSheet
 import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
@@ -275,6 +281,7 @@ object FolderListScreen : Screen {
     val sortDialogOpen = rememberSaveable { mutableStateOf(false) }
     val deleteDialogOpen = rememberSaveable { mutableStateOf(false) }
     val showLinkDialog = remember { mutableStateOf(false) }
+    var showMarkAsSheet by remember { mutableStateOf(false) }
 
     // Search state
     var folderSelectionInfo by remember { mutableStateOf<Triple<Int, Long, Long>?>(null) }
@@ -581,7 +588,7 @@ object FolderListScreen : Screen {
         }
       },
     ) { padding ->
-      Box(modifier = Modifier.padding(padding)) {
+      Box(modifier = Modifier.padding(padding).fillMaxSize()) {
         when (permissionState.status) {
           PermissionStatus.Granted -> {
             if (isSearching) {
@@ -683,6 +690,56 @@ object FolderListScreen : Screen {
           browserPreferences.folderSortOrder.set(it)
         },
       )
+
+      Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedVisibility(
+          visible = selectionManager.isInSelectionMode,
+          enter = slideInVertically(
+            animationSpec = tween(durationMillis = 200),
+            initialOffsetY = { fullHeight -> fullHeight },
+          ),
+          exit = slideOutVertically(
+            animationSpec = tween(durationMillis = 200),
+            targetOffsetY = { fullHeight -> fullHeight },
+          ),
+          modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+          BrowserBottomBar(
+            isSelectionMode = true,
+            onCopyClick = { /* phase 2 */ },
+            onMoveClick = { /* phase 2 */ },
+            onRenameClick = { /* phase 2 */ },
+            onDeleteClick = { deleteDialogOpen.value = true },
+            onAddToPlaylistClick = { /* disabled */ },
+            showCopy = false,
+            showMove = false,
+            showRename = false,
+            showAddToPlaylist = false,
+            onMarkAsClick = { showMarkAsSheet = true },
+            modifier = Modifier.padding(bottom = navigationBarHeight),
+          )
+        }
+      }
+
+      if (showMarkAsSheet) {
+        MarkAsBottomSheet(
+          onDismiss = { showMarkAsSheet = false },
+          onMarkAs = { state ->
+            coroutineScope.launch {
+              val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()
+              val videos = MediaFileRepository.getVideosForBuckets(context, selectedIds)
+              videos.forEach { video ->
+                RecentlyPlayedOps.markAs(
+                  filePath = video.path,
+                  fileName = video.displayName,
+                  duration = video.duration,
+                  state = state,
+                )
+              }
+            }
+          },
+        )
+      }
 
       DeleteConfirmationDialog(
         isOpen = deleteDialogOpen.value,

@@ -67,6 +67,8 @@ import app.marlboroadvance.mpvex.ui.browser.videolist.VideoListContent
 import app.marlboroadvance.mpvex.ui.browser.videolist.VideoSortDialog
 import app.marlboroadvance.mpvex.ui.browser.videolist.VideoWithPlaybackInfo
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
+import app.marlboroadvance.mpvex.ui.browser.sheets.MarkAsBottomSheet
+import app.marlboroadvance.mpvex.utils.history.MarkAsState
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
 import app.marlboroadvance.mpvex.utils.media.MediaUtils
 import app.marlboroadvance.mpvex.utils.sort.SortUtils
@@ -139,6 +141,7 @@ fun MediaLibraryContent() {
 
   // Bottom bar animation state
   var showFloatingBottomBar by remember { mutableStateOf(false) }
+  var showMarkAsSheet by remember { mutableStateOf(false) }
   val animationDuration = 300
 
   LaunchedEffect(selectionManager.isInSelectionMode) {
@@ -327,6 +330,7 @@ fun MediaLibraryContent() {
           onRenameClick = { renameDialogOpen.value = true },
           onDeleteClick = { deleteDialogOpen.value = true },
           onAddToPlaylistClick = { /* N/A */ },
+          onMarkAsClick = { showMarkAsSheet = true },
           showCopy = false,
           showMove = false,
           showAddToPlaylist = false,
@@ -373,6 +377,26 @@ fun MediaLibraryContent() {
           itemType = "video"
         )
       }
+    }
+
+    if (showMarkAsSheet) {
+      MarkAsBottomSheet(
+        onDismiss = { showMarkAsSheet = false },
+        onMarkAs = { state ->
+          val selected = selectionManager.getSelectedItems()
+          coroutineScope.launch {
+            selected.forEach { video ->
+              RecentlyPlayedOps.markAs(
+                filePath = video.path,
+                fileName = video.displayName,
+                duration = video.duration,
+                state = state,
+              )
+            }
+            viewModel.refresh()
+          }
+        },
+      )
     }
 
     mediaInfoUri?.let { uri ->

@@ -90,6 +90,10 @@ object RecentlyPlayedOps {
     historyManager.onVideoDeleted(filePath)
   }
 
+  suspend fun markAs(filePath: String, fileName: String, duration: Long, state: MarkAsState) {
+    historyManager.markAs(filePath, fileName, duration, state)
+  }
+
   suspend fun onVideoRenamed(
     oldPath: String,
     newPath: String,

@@ -113,7 +113,9 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import app.marlboroadvance.mpvex.ui.browser.dialogs.ContentToggle
 import app.marlboroadvance.mpvex.ui.browser.dialogs.VisibilityToggle
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
+import app.marlboroadvance.mpvex.ui.browser.sheets.MarkAsBottomSheet
 import app.marlboroadvance.mpvex.ui.browser.sheets.PlayLinkSheet
+import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
 import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
 import app.marlboroadvance.mpvex.ui.browser.states.PermissionDeniedState
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
@@ -275,7 +277,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
 
   // Bottom bar visibility state
   var showFloatingBottomBar by remember { mutableStateOf(false) }
-  var showBottomNavigation by remember { mutableStateOf(true) }
+  var showMarkAsSheet by remember { mutableStateOf(false) }
 
   // Animation duration for responsive slide animations
   val animationDuration = 200
@@ -311,21 +313,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val totalCount = folders.size + videos.size
   val isMixedSelection = folderSelectionManager.isInSelectionMode && videoSelectionManager.isInSelectionMode
 
-  // Update bottom bar visibility with optimized animation sequencing
-  LaunchedEffect(isInSelectionMode, videoSelectionManager.isInSelectionMode, isMixedSelection) {
-    // Show floating bar and hide bottom navigation when appropriate.
-    // Play Store gating is intentionally bypassed here.
-    val shouldShowFloatingBar = isInSelectionMode && videoSelectionManager.isInSelectionMode && !isMixedSelection
-    
-    if (shouldShowFloatingBar) {
-      // Entering selection mode: Hide bottom navigation immediately, then show floating bar
-      showBottomNavigation = false
-      showFloatingBottomBar = true
-    } else {
-      // Exiting selection mode: Hide floating bar and show bottom navigation immediately for better responsiveness
-      showFloatingBottomBar = false
-      showBottomNavigation = true
-    }
+  // Show/hide floating bar based on selection state
+  LaunchedEffect(isInSelectionMode) {
+    showFloatingBottomBar = isInSelectionMode
   }
 
   // Permissions
@@ -333,21 +323,12 @@ fun FileSystemBrowserScreen(path: String? = null) {
     onPermissionGranted = { viewModel.refresh() },
   )
 
-  // Combined MainScreen updates for better performance and responsiveness
-  LaunchedEffect(
-    showBottomNavigation, 
-    isInSelectionMode, 
-    isMixedSelection, 
-    videoSelectionManager.isInSelectionMode,
-    permissionState.status
-  ) {
+  // Sync selection state to MainScreen (bottom nav stays visible — floating bar floats above it)
+  LaunchedEffect(isInSelectionMode, isMixedSelection, videoSelectionManager.isInSelectionMode, permissionState.status) {
     if (isAtRoot) {
       try {
         val mainScreenObj = app.marlboroadvance.mpvex.ui.browser.MainScreen
         val onlyVideosSelected = videoSelectionManager.isInSelectionMode && !folderSelectionManager.isInSelectionMode
-
-        // Update all MainScreen states in one call to reduce overhead
-        mainScreenObj.updateBottomBarVisibility(showBottomNavigation)
         mainScreenObj.updateSelectionState(
           isInSelectionMode = isInSelectionMode,
           isOnlyVideosSelected = onlyVideosSelected,
@@ -358,21 +339,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
         )
       } catch (e: Exception) {
         Log.e("FileSystemBrowserScreen", "Failed to update MainScreen state", e)
-      }
-    }
-  }
-
-  // Cleanup: Restore bottom navigation bar when leaving the screen
-  DisposableEffect(Unit) {
-    onDispose {
-      if (isAtRoot) {
-        try {
-          val mainScreenObj = app.marlboroadvance.mpvex.ui.browser.MainScreen
-          // Restore bottom navigation when leaving the screen
-          mainScreenObj.updateBottomBarVisibility(true)
-        } catch (e: Exception) {
-          Log.e("FileSystemBrowserScreen", "Failed to restore MainScreen bottom bar visibility", e)
-        }
       }
     }
   }
@@ -993,8 +959,41 @@ fun FileSystemBrowserScreen(path: String? = null) {
         onRenameClick = { renameDialogOpen.value = true },
         onDeleteClick = { deleteDialogOpen.value = true },
         onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
-        showRename = videoSelectionManager.isSingleSelection,
-        modifier = Modifier.padding(bottom = 0.dp) // Zero bottom padding - absolute bottom
+        onMarkAsClick = { showMarkAsSheet = true },
+        showRename = videoSelectionManager.isSingleSelection && !isMixedSelection,
+        showAddToPlaylist = videoSelectionManager.isInSelectionMode && !isMixedSelection,
+        modifier = Modifier.padding(bottom = navigationBarHeight)
+      )
+    }
+
+    // Mark As Sheet
+    if (showMarkAsSheet) {
+      MarkAsBottomSheet(
+        onDismiss = { showMarkAsSheet = false },
+        onMarkAs = { state ->
+          coroutineScope.launch {
+            // Videos selected directly
+            videoSelectionManager.getSelectedItems().forEach { video ->
+              RecentlyPlayedOps.markAs(
+                filePath = video.path,
+                fileName = video.displayName,
+                duration = video.duration,
+                state = state,
+              )
+            }
+            // Folders selected — apply to all videos inside recursively
+            folderSelectionManager.getSelectedItems().forEach { folder ->
+              collectVideosRecursively(context, folder.path).forEach { video ->
+                RecentlyPlayedOps.markAs(
+                  filePath = video.path,
+                  fileName = video.displayName,
+                  duration = video.duration,
+                  state = state,
+                )
+              }
+            }
+          }
+        },
       )
     }
 

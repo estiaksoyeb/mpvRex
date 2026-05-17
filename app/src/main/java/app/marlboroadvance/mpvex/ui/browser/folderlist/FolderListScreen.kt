@@ -121,8 +121,13 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.ViewModeOption
 import app.marlboroadvance.mpvex.ui.browser.filesystem.FileSystemDirectoryScreen
 import app.marlboroadvance.mpvex.ui.browser.filesystem.FileSystemBrowserRootScreen
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserBottomBar
+import app.marlboroadvance.mpvex.ui.browser.dialogs.FileOperationProgressDialog
+import app.marlboroadvance.mpvex.ui.browser.dialogs.FolderPickerDialog
+import app.marlboroadvance.mpvex.ui.browser.dialogs.RenameDialog
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import app.marlboroadvance.mpvex.ui.browser.sheets.MarkAsBottomSheet
+import app.marlboroadvance.mpvex.utils.media.CopyPasteOps
+import app.marlboroadvance.mpvex.utils.media.OpenDocumentTreeContract
 import app.marlboroadvance.mpvex.ui.browser.sheets.MultiSelectionInfoSheet
 import app.marlboroadvance.mpvex.ui.browser.sheets.PlayLinkSheet
 import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
@@ -282,6 +287,11 @@ object FolderListScreen : Screen {
     val deleteDialogOpen = rememberSaveable { mutableStateOf(false) }
     val showLinkDialog = remember { mutableStateOf(false) }
     var showMarkAsSheet by remember { mutableStateOf(false) }
+    val folderPickerOpen = rememberSaveable { mutableStateOf(false) }
+    val operationType = remember { mutableStateOf<CopyPasteOps.OperationType?>(null) }
+    val progressDialogOpen = rememberSaveable { mutableStateOf(false) }
+    var renameDialogOpen by rememberSaveable { mutableStateOf(false) }
+    val operationProgress by CopyPasteOps.operationProgress.collectAsState()
 
     // Search state
     var folderSelectionInfo by remember { mutableStateOf<Triple<Int, Long, Long>?>(null) }
@@ -331,7 +341,7 @@ object FolderListScreen : Screen {
     }
 
     val filteredFolders = sortedFolders
-    
+
     // Selection manager
     val selectionManager = rememberSelectionManager(
       items = sortedFolders,
@@ -344,6 +354,32 @@ object FolderListScreen : Screen {
       },
       onOperationComplete = { viewModel.refresh() },
     )
+
+    val treePickerLauncher = rememberLauncherForActivityResult(
+      contract = OpenDocumentTreeContract(),
+    ) { uri ->
+      if (uri == null || operationType.value == null) return@rememberLauncherForActivityResult
+      runCatching {
+        context.contentResolver.takePersistableUriPermission(
+          uri,
+          Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+        )
+      }
+      progressDialogOpen.value = true
+      coroutineScope.launch {
+        val selectedFolders = selectionManager.getSelectedItems()
+        val selectedVideos = selectedFolders.flatMap { folder ->
+          MediaFileRepository.getVideosForBuckets(context, setOf(folder.bucketId))
+        }
+        if (selectedVideos.isNotEmpty()) {
+          when (operationType.value) {
+            is CopyPasteOps.OperationType.Copy -> CopyPasteOps.copyFilesToTreeUri(context, selectedVideos, uri)
+            is CopyPasteOps.OperationType.Move -> CopyPasteOps.moveFilesToTreeUri(context, selectedVideos, uri)
+            else -> {}
+          }
+        }
+      }
+    }
 
     // Permissions
     val permissionState = PermissionUtils.handleStoragePermission(
@@ -706,14 +742,28 @@ object FolderListScreen : Screen {
         ) {
           BrowserBottomBar(
             isSelectionMode = true,
-            onCopyClick = { /* phase 2 */ },
-            onMoveClick = { /* phase 2 */ },
-            onRenameClick = { /* phase 2 */ },
+            onCopyClick = {
+              operationType.value = CopyPasteOps.OperationType.Copy
+              if (CopyPasteOps.canUseDirectFileOperations()) {
+                folderPickerOpen.value = true
+              } else {
+                treePickerLauncher.launch(null)
+              }
+            },
+            onMoveClick = {
+              operationType.value = CopyPasteOps.OperationType.Move
+              if (CopyPasteOps.canUseDirectFileOperations()) {
+                folderPickerOpen.value = true
+              } else {
+                treePickerLauncher.launch(null)
+              }
+            },
+            onRenameClick = { renameDialogOpen = true },
             onDeleteClick = { deleteDialogOpen.value = true },
-            onAddToPlaylistClick = { /* disabled */ },
-            showCopy = false,
-            showMove = false,
-            showRename = false,
+            onAddToPlaylistClick = { },
+            showCopy = true,
+            showMove = true,
+            showRename = selectionManager.isSingleSelection,
             showAddToPlaylist = false,
             onMarkAsClick = { showMarkAsSheet = true },
             modifier = Modifier.padding(bottom = navigationBarHeight),
@@ -739,6 +789,93 @@ object FolderListScreen : Screen {
             }
           },
         )
+      }
+
+      FolderPickerDialog(
+        isOpen = folderPickerOpen.value,
+        onDismiss = { folderPickerOpen.value = false },
+        onFolderSelected = { destinationPath ->
+          folderPickerOpen.value = false
+          val op = operationType.value
+          if (op != null) {
+            coroutineScope.launch {
+              val selectedFolders = selectionManager.getSelectedItems()
+              if (selectedFolders.isNotEmpty()) {
+                when (op) {
+                  is CopyPasteOps.OperationType.Move -> {
+                    val needFallback = mutableListOf<VideoFolder>()
+                    for (folder in selectedFolders) {
+                      val dst = File(destinationPath, folder.name)
+                      if (!File(folder.path).renameTo(dst)) needFallback.add(folder)
+                    }
+                    if (needFallback.isNotEmpty()) {
+                      progressDialogOpen.value = true
+                      for (folder in needFallback) {
+                        val videos = MediaFileRepository.getVideosForBuckets(context, setOf(folder.bucketId))
+                        if (videos.isNotEmpty()) {
+                          val subDest = File(destinationPath, folder.name).also { it.mkdirs() }.absolutePath
+                          CopyPasteOps.moveFiles(context, videos, subDest)
+                        }
+                      }
+                    } else {
+                      selectionManager.clear()
+                      viewModel.refresh()
+                    }
+                  }
+                  is CopyPasteOps.OperationType.Copy -> {
+                    progressDialogOpen.value = true
+                    for (folder in selectedFolders) {
+                      val videos = MediaFileRepository.getVideosForBuckets(context, setOf(folder.bucketId))
+                      if (videos.isNotEmpty()) {
+                        val subDest = File(destinationPath, folder.name).also { it.mkdirs() }.absolutePath
+                        CopyPasteOps.copyFiles(context, videos, subDest)
+                      }
+                    }
+                  }
+                  else -> {}
+                }
+              }
+            }
+          }
+        },
+      )
+
+      if (operationType.value != null) {
+        FileOperationProgressDialog(
+          isOpen = progressDialogOpen.value,
+          operationType = operationType.value!!,
+          progress = operationProgress,
+          onCancel = { CopyPasteOps.cancelOperation() },
+          onDismiss = {
+            progressDialogOpen.value = false
+            operationType.value = null
+            selectionManager.clear()
+            viewModel.refresh()
+          },
+        )
+      }
+
+      if (renameDialogOpen && selectionManager.isSingleSelection) {
+        val folder = selectionManager.getSelectedItems().firstOrNull()
+        if (folder != null) {
+          RenameDialog(
+            isOpen = true,
+            onDismiss = { renameDialogOpen = false },
+            onConfirm = { newName ->
+              renameDialogOpen = false
+              coroutineScope.launch {
+                val ok = viewModel.renameFolder(folder, newName)
+                if (!ok) {
+                  android.widget.Toast.makeText(context, "Rename failed", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                selectionManager.clear()
+                viewModel.refresh()
+              }
+            },
+            currentName = folder.name,
+            itemType = "folder",
+          )
+        }
       }
 
       DeleteConfirmationDialog(

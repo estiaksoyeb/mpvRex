@@ -261,6 +261,18 @@ class FolderListViewModel(
     }
   }
 
+  suspend fun renameFolder(folder: VideoFolder, newName: String): Boolean {
+    val src = java.io.File(folder.path)
+    val dst = java.io.File(src.parent ?: return false, newName)
+    if (dst.exists()) return false
+    val ok = src.renameTo(dst)
+    if (ok) {
+      android.media.MediaScannerConnection.scanFile(getApplication(), arrayOf(dst.absolutePath), null, null)
+      _foldersWereDeleted.value = true
+    }
+    return ok
+  }
+
   /**
    * Delete folders and update state
    */

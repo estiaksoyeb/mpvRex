@@ -1297,6 +1297,7 @@ class PlayerActivity :
   override fun onResume() {
     super.onResume()
     viewModel.isActivityResumed = true
+    enableVideoAfterBackground()
     updateVolume()
     viewModel.handlePendingResumeOnUnlock()
   }

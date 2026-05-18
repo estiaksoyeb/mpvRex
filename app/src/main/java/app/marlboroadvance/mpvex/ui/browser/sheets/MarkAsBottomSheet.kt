@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
@@ -70,12 +69,6 @@ fun MarkAsBottomSheet(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            MarkAsRow(
-                icon = Icons.Filled.AutoAwesome,
-                label = "New",
-                description = "Remove progress — card appears as unplayed",
-                onClick = { onMarkAs(MarkAsState.New); onDismiss() },
-            )
             MarkAsRow(
                 icon = Icons.Filled.History,
                 label = "Last Played",

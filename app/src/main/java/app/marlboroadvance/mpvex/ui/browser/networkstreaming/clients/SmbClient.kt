@@ -39,7 +39,7 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
     }
 
     /**
-     * Recursively digs through the exception chain to identify transport, socket, or timeout failures.
+     * Recursively traverses the exception chain to detect underlying network transport or timeout failures.
      */
     private fun isNetworkError(e: Throwable?): Boolean {
         var current = e
@@ -48,7 +48,8 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
                 current is com.hierynomus.protocol.transport.TransportException ||
                 current is com.hierynomus.smbj.common.SMBRuntimeException ||
                 current is java.net.SocketException ||
-                current is java.net.SocketTimeoutException) {
+                current is java.net.SocketTimeoutException ||
+                current is java.io.EOFException) {
                 return true
             }
             current = current.cause
@@ -61,14 +62,17 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
      * Prevents race conditions during concurrent reconnects via strict session reference tracking.
      */
     private suspend fun <T> executeWithRetry(block: suspend () -> T): T {
-        // Capture the exact session reference used when we started
         val sessionAtStart = session
         
         return try {
+            // Pre-flight check: Force a reconnect immediately if the session is inherently dead
+            if (session == null) {
+                throw java.net.SocketException("Session is null on execute")
+            }
             block()
         } catch (e: Exception) {
             if (isNetworkError(e)) {
-                Log.w(TAG, "SMB socket dead (likely backgrounded). Reconnecting...", e)
+                Log.w(TAG, "SMB socket dead. Reconnecting...", e)
                 
                 connectionMutex.withLock {
                     // Reconnect only if another coroutine hasn't already rebuilt this specific session
@@ -137,7 +141,7 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
 
     override suspend fun performListFiles(path: String): List<NetworkFile> {
         return executeWithRetry {
-            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw Exception("Failed to connect to share")
+            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw java.net.SocketException("Session is null or share failed")
             
             try {
                 val smbPath = path.trim('/').replace('/', '\\')
@@ -166,7 +170,7 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
 
     override suspend fun performGetFileStream(path: String): InputStream {
         return executeWithRetry {
-            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw Exception("Failed to connect to share")
+            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw java.net.SocketException("Session is null or share failed")
             val smbPath = path.trim('/').replace('/', '\\')
             
             val file = diskShare.openFile(
@@ -194,7 +198,7 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
 
     override suspend fun performGetFileSize(path: String): Long {
         return executeWithRetry {
-            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw Exception("Failed to connect to share")
+            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw java.net.SocketException("Session is null or share failed")
             try {
                 val smbPath = path.trim('/').replace('/', '\\')
                 diskShare.getFileInformation(smbPath).standardInformation.endOfFile

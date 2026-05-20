@@ -14,6 +14,8 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -30,9 +32,61 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
     private var session: Session? = null
     private var shareName: String = ""
     private var resolvedHostIp: String = ""
+    private val connectionMutex = Mutex()
 
     companion object {
         private const val TAG = "SmbClient"
+    }
+
+    /**
+     * Recursively traverses the exception chain to detect underlying network transport or timeout failures.
+     */
+    private fun isNetworkError(e: Throwable?): Boolean {
+        var current = e
+        while (current != null) {
+            if (current is java.util.concurrent.TimeoutException ||
+                current is com.hierynomus.protocol.transport.TransportException ||
+                current is com.hierynomus.smbj.common.SMBRuntimeException ||
+                current is java.net.SocketException ||
+                current is java.net.SocketTimeoutException ||
+                current is java.io.EOFException) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    /**
+     * Executes a network operation with a single-retry mechanism.
+     * Prevents race conditions during concurrent reconnects via strict session reference tracking.
+     */
+    private suspend fun <T> executeWithRetry(block: suspend () -> T): T {
+        val sessionAtStart = session
+        
+        return try {
+            // Pre-flight check: Force a reconnect immediately if the session is inherently dead
+            if (session == null) {
+                throw java.net.SocketException("Session is null on execute")
+            }
+            block()
+        } catch (e: Exception) {
+            if (isNetworkError(e)) {
+                Log.w(TAG, "SMB socket dead. Reconnecting...", e)
+                
+                connectionMutex.withLock {
+                    // Reconnect only if another coroutine hasn't already rebuilt this specific session
+                    if (session === sessionAtStart) {
+                        performDisconnect()
+                        performConnect()
+                    }
+                }
+                
+                block()
+            } else {
+                throw e
+            }
+        }
     }
 
     override suspend fun performConnect() {
@@ -86,46 +140,50 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
     override fun checkIsConnected(): Boolean = session != null
 
     override suspend fun performListFiles(path: String): List<NetworkFile> {
-        val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw Exception("Failed to connect to share")
-        
-        return try {
-            val smbPath = path.trim('/').replace('/', '\\')
-            val fileList = diskShare.list(smbPath)
+        return executeWithRetry {
+            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw java.net.SocketException("Session is null or share failed")
             
-            fileList.filter { it.fileName != "." && it.fileName != ".." }
-                .map { info ->
-                    val fileName = info.fileName
-                    val filePath = if (path.isEmpty() || path == "/") fileName 
-                    else "${path.trimEnd('/')}/$fileName"
+            try {
+                val smbPath = path.trim('/').replace('/', '\\')
+                val fileList = diskShare.list(smbPath)
+                
+                fileList.filter { it.fileName != "." && it.fileName != ".." }
+                    .map { info ->
+                        val fileName = info.fileName
+                        val filePath = if (path.isEmpty() || path == "/") fileName 
+                        else "${path.trimEnd('/')}/$fileName"
 
-                    NetworkFile(
-                        name = fileName,
-                        path = filePath,
-                        isDirectory = info.fileAttributes and 0x10L != 0L,
-                        size = info.endOfFile,
-                        lastModified = info.changeTime.toEpoch(TimeUnit.MILLISECONDS),
-                        mimeType = if (info.fileAttributes and 0x10L != 0L) null else getMimeType(fileName)
-                    )
-                }
-        } finally {
-            diskShare.close()
+                        NetworkFile(
+                            name = fileName,
+                            path = filePath,
+                            isDirectory = info.fileAttributes and 0x10L != 0L,
+                            size = info.endOfFile,
+                            lastModified = info.changeTime.toEpoch(TimeUnit.MILLISECONDS),
+                            mimeType = if (info.fileAttributes and 0x10L != 0L) null else getMimeType(fileName)
+                        )
+                    }
+            } finally {
+                diskShare.close()
+            }
         }
     }
 
     override suspend fun performGetFileStream(path: String): InputStream {
-        val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw Exception("Failed to connect to share")
-        val smbPath = path.trim('/').replace('/', '\\')
-        
-        val file = diskShare.openFile(
-            smbPath,
-            EnumSet.of(AccessMask.GENERIC_READ),
-            null,
-            EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
-            SMB2CreateDisposition.FILE_OPEN,
-            null
-        )
-        
-        return file.inputStream
+        return executeWithRetry {
+            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw java.net.SocketException("Session is null or share failed")
+            val smbPath = path.trim('/').replace('/', '\\')
+            
+            val file = diskShare.openFile(
+                smbPath,
+                EnumSet.of(AccessMask.GENERIC_READ),
+                null,
+                EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
+                SMB2CreateDisposition.FILE_OPEN,
+                null
+            )
+            
+            file.inputStream
+        }
     }
 
     override suspend fun performGetFileUri(path: String): Uri {
@@ -139,12 +197,14 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
     }
 
     override suspend fun performGetFileSize(path: String): Long {
-        val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw Exception("Failed to connect to share")
-        return try {
-            val smbPath = path.trim('/').replace('/', '\\')
-            diskShare.getFileInformation(smbPath).standardInformation.endOfFile
-        } finally {
-            diskShare.close()
+        return executeWithRetry {
+            val diskShare = session?.connectShare(shareName) as? DiskShare ?: throw java.net.SocketException("Session is null or share failed")
+            try {
+                val smbPath = path.trim('/').replace('/', '\\')
+                diskShare.getFileInformation(smbPath).standardInformation.endOfFile
+            } finally {
+                diskShare.close()
+            }
         }
     }
 

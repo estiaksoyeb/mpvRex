@@ -274,6 +274,72 @@ object SubtitlesPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              val openAtVideoLocation by preferences.openPickerAtVideoLocation.collectAsState()
+              SwitchPreference(
+                value = openAtVideoLocation,
+                onValueChange = { preferences.openPickerAtVideoLocation.set(it) },
+                title = { Text(stringResource(R.string.pref_subtitles_open_at_video_location_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_subtitles_open_at_video_location_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
+              val customSubtitleFolder by preferences.customSubtitleFolder.collectAsState()
+              val customFolderPicker =
+                rememberLauncherForActivityResult(
+                  OpenDocumentTreeContract(),
+                ) { uri ->
+                  if (uri == null) return@rememberLauncherForActivityResult
+
+                  val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                  context.contentResolver.takePersistableUriPermission(uri, flags)
+                  
+                  val path = getSimplifiedPathFromUri(uri.toString())
+                  preferences.customSubtitleFolder.set(path)
+                }
+
+              Box(
+                modifier =
+                  Modifier
+                    .fillMaxWidth()
+                    .clickable { customFolderPicker.launch(null) }
+                    .padding(vertical = 16.dp, horizontal = 16.dp),
+              ) {
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                  Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                      stringResource(R.string.pref_subtitles_custom_picker_folder_title),
+                      style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                      if (customSubtitleFolder.isBlank()) stringResource(R.string.not_set_video_default) else customSubtitleFolder,
+                      style = MaterialTheme.typography.bodyMedium,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                  }
+                  if (customSubtitleFolder.isNotBlank()) {
+                    IconButton(onClick = { preferences.customSubtitleFolder.set("") }) {
+                      Icon(
+                        Icons.Default.Clear,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                      )
+                    }
+                  }
+                }
+              }
+
+              PreferenceDivider()
+
               // Directory picker preference with reload and clear icons on the right
               Box(
                 modifier =

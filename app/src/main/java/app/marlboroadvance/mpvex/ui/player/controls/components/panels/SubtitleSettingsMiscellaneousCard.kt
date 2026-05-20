@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
+import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.preferences.preference.deleteAndGet
 import app.marlboroadvance.mpvex.presentation.components.ExpandableCard
 import app.marlboroadvance.mpvex.presentation.components.SliderItem
@@ -83,6 +84,15 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
           { Text(stringResource(R.string.player_sheets_sub_scale_by_window)) },
           summary = { Text(stringResource(R.string.player_sheets_sub_scale_by_window_summary)) },
         )
+        
+        val openAtVideoLocation by preferences.openPickerAtVideoLocation.collectAsState()
+        SwitchPreference(
+          openAtVideoLocation,
+          onValueChange = { preferences.openPickerAtVideoLocation.set(it) },
+          { Text(stringResource(R.string.pref_subtitles_open_at_video_location_title)) },
+          summary = { Text(stringResource(R.string.pref_subtitles_open_at_video_location_summary)) },
+        )
+
         val subScale by MPVLib.propFloat["sub-scale"].collectAsState()
         val subPos by MPVLib.propInt["sub-pos"].collectAsState()
         SliderItem(

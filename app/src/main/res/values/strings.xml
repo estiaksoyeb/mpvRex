@@ -252,6 +252,10 @@
     <string name="pref_subtitles_fonts_dir">Fonts directory</string>
     <string name="pref_subtitles_autoload_title">Automatically load subtitles</string>
     <string name="pref_subtitles_autoload_summary">Automatically load external subtitles with the same name.</string>
+    <string name="pref_subtitles_open_at_video_location_title">Open at video location</string>
+    <string name="pref_subtitles_open_at_video_location_summary">Open file picker in the same folder as the current video</string>
+    <string name="pref_subtitles_custom_picker_folder_title">Default selection folder</string>
+    <string name="pref_subtitles_custom_picker_folder_summary">Chosen folder to open when manually adding subtitles</string>
     <string name="pref_subtitles_save_location">Subtitle Save Location</string>
     <string name="pref_subtitles_search_online">Online Subtitle Search…</string>
     <string name="pref_subtitles_subdl_languages">Subtitle Languages</string>

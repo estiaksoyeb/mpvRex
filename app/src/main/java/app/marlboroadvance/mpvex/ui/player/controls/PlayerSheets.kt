@@ -85,6 +85,8 @@ fun PlayerSheets(
 
       val subtitlesPreferences = koinInject<app.marlboroadvance.mpvex.preferences.SubtitlesPreferences>()
       val savedPickerPath = subtitlesPreferences.pickerPath.get()
+      val customFolder = subtitlesPreferences.customSubtitleFolder.get()
+      val openAtVideoLocation = subtitlesPreferences.openPickerAtVideoLocation.get()
 
       val currentMediaTitle = viewModel.currentMediaTitle
       val matchToName = if (currentMediaTitle.isNotBlank()) {
@@ -95,9 +97,18 @@ fun PlayerSheets(
       var showFilePicker by remember { mutableStateOf(false) }
 
       if (showFilePicker) {
+          val initialPath = remember {
+              val videoPath = `is`.xyz.mpv.MPVLib.getPropertyString("path")
+              val videoDir = if (openAtVideoLocation && videoPath != null && videoPath.startsWith("/")) {
+                  java.io.File(videoPath).parent
+              } else null
+
+              videoDir ?: customFolder.takeIf { it.isNotBlank() } ?: savedPickerPath ?: android.os.Environment.getExternalStorageDirectory().absolutePath
+          }
+
           app.marlboroadvance.mpvex.ui.browser.dialogs.FilePickerDialog(
               isOpen = true,
-              currentPath = savedPickerPath ?: android.os.Environment.getExternalStorageDirectory().absolutePath,
+              currentPath = initialPath,
               onDismiss = { showFilePicker = false },
               onPathChanged = { path ->
                   if (path != null) {

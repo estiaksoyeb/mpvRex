@@ -605,14 +605,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
             onSettingsClick = {
               backstack.add(app.marlboroadvance.mpvex.ui.preferences.PreferencesScreen)
             },
-            onDeleteClick = if (videoSelectionManager.isInSelectionMode && !isMixedSelection) {
-              null
-            } else if (!BuildConfig.ENABLE_UPDATE_FEATURE && folderSelectionManager.isInSelectionMode) {
-              // Hide delete button for folders in Play Store build
-              null
-            } else {
-              { deleteDialogOpen.value = true }
-            },
             onRenameClick = if (videoSelectionManager.isSingleSelection && !isMixedSelection) {
               null
             } else {
@@ -717,7 +709,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
               folderSelectionManager.clear()
               videoSelectionManager.clear()
             },
-            deleteInOverflow = folderSelectionManager.isInSelectionMode,
             selectionOverflowActions = buildList {
               add(SelectionOverflowAction(
                 icon = Icons.Filled.Share,

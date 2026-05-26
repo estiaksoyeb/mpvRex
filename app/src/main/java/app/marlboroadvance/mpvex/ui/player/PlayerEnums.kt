@@ -106,6 +106,7 @@ enum class Sheets {
   AspectRatios,
   Playlist,
   FrameNavigation,
+  CustomSkipDuration,
 }
 
 enum class Panels {

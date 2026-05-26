@@ -17,6 +17,7 @@ import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.AspectRatioSheet
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.AudioTracksSheet
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.ChaptersSheet
+import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.CustomSkipDurationSheet
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.DecodersSheet
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.FrameNavigationSheet
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.MoreSheet
@@ -366,6 +367,17 @@ fun PlayerSheets(
           playerPreferences = playerPreferences,
         )
       }
+    }
+
+
+    Sheets.CustomSkipDuration -> {
+      val playerPreferences = koinInject<app.marlboroadvance.mpvex.preferences.PlayerPreferences>()
+      val customSkipDuration by playerPreferences.customSkipDuration.collectAsState()
+      CustomSkipDurationSheet(
+        duration = customSkipDuration,
+        onDurationChange = { playerPreferences.customSkipDuration.set(it) },
+        onDismissRequest = onDismissRequest,
+      )
     }
   }
 }

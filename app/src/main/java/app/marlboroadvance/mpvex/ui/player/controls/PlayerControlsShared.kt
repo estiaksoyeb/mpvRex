@@ -919,7 +919,9 @@ fun RenderPlayerButton(
 
     PlayerButton.CUSTOM_SKIP -> {
       val playerPreferences = org.koin.compose.koinInject<app.marlboroadvance.mpvex.preferences.PlayerPreferences>()
+      val customSkipDuration by playerPreferences.customSkipDuration.collectAsState()
       if (isMoreSheet) {
+          @OptIn(ExperimentalFoundationApi::class)
           Surface(
             shape = CircleShape,
             color = surfaceColor,
@@ -928,7 +930,16 @@ fun RenderPlayerButton(
             modifier = Modifier
               .height(buttonSize)
               .clip(CircleShape)
-              .clickable { viewModel.seekBy(playerPreferences.customSkipDuration.get()) }
+              .combinedClickable(
+                onClick = {
+                  clickEvent()
+                  viewModel.seekBy(customSkipDuration)
+                },
+                onLongClick = {
+                  clickEvent()
+                  onOpenSheet(Sheets.CustomSkipDuration)
+                }
+              )
           ) {
             Row(
               verticalAlignment = Alignment.CenterVertically,
@@ -941,7 +952,7 @@ fun RenderPlayerButton(
                 modifier = Modifier.size(24.dp)
               )
               Text(
-                text = "Skip ${playerPreferences.customSkipDuration.get()}s",
+                text = "Skip ${customSkipDuration}s",
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
               )
@@ -950,7 +961,11 @@ fun RenderPlayerButton(
       } else {
           ControlsButton(
             icon = Icons.Default.FastForward,
-            onClick = { viewModel.seekBy(playerPreferences.customSkipDuration.get()) },
+            onClick = { viewModel.seekBy(customSkipDuration) },
+            onLongClick = {
+              clickEvent()
+              onOpenSheet(Sheets.CustomSkipDuration)
+            },
             modifier = Modifier.size(buttonSize),
           )
       }

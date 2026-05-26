@@ -480,8 +480,6 @@ object FolderListScreen : Screen {
             onSettingsClick = {
               backstack.add(app.marlboroadvance.mpvex.ui.preferences.PreferencesScreen)
             },
-            onDeleteClick = { deleteDialogOpen.value = true },
-            deleteInOverflow = true,
             onRenameClick = null,
             isSingleSelection = selectionManager.isSingleSelection,
             onInfoClick = {

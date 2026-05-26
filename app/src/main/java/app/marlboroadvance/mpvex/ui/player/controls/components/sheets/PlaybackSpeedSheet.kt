@@ -58,8 +58,7 @@ import app.marlboroadvance.mpvex.presentation.components.SliderItem
 import app.marlboroadvance.mpvex.ui.theme.spacing
 import `is`.xyz.mpv.MPVLib
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
-import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 import app.marlboroadvance.mpvex.presentation.components.RepeatingIconButton
 import kotlin.math.pow
@@ -245,7 +244,7 @@ fun PlaybackSpeedSheet(
         // Audio Pitch Correction
         val pitchCorrection by audioPreferences.audioPitchCorrection.collectAsState()
         
-        AnimatedIconSwitchPreference(
+        SwitchPreference(
             value = pitchCorrection,
             onValueChange = { newValue ->
                 audioPreferences.audioPitchCorrection.set(newValue)

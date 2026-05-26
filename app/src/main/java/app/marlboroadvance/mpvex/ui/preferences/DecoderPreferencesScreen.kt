@@ -47,8 +47,7 @@ import app.marlboroadvance.mpvex.ui.preferences.VulkanUtils
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
-import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -115,7 +114,7 @@ object DecoderPreferencesScreen : Screen {
               PreferenceDivider()
 
               val tryHWDecoding by preferences.tryHWDecoding.collectAsState()
-              AnimatedIconSwitchPreference(
+              SwitchPreference(
                 value = tryHWDecoding,
                 onValueChange = {
                   preferences.tryHWDecoding.set(it)
@@ -127,7 +126,7 @@ object DecoderPreferencesScreen : Screen {
 
               val gpuNext by preferences.gpuNext.collectAsState()
               val useVulkan by preferences.useVulkan.collectAsState() // Added to check Vulkan state
-              AnimatedIconSwitchPreference(
+              SwitchPreference(
                 value = gpuNext,
                 onValueChange = { enabled ->
                     if (enabled && !gpuNext && !useVulkan) { // Only show warning if Vulkan is disabled
@@ -196,7 +195,7 @@ object DecoderPreferencesScreen : Screen {
               PreferenceDivider()
 
               // val useVulkan by preferences.useVulkan.collectAsState() // Moved up for gpuNext logic
-              AnimatedIconSwitchPreference(
+             SwitchPreference(
                 value = useVulkan,
                 onValueChange = { enabled ->
                   preferences.useVulkan.set(enabled)
@@ -243,7 +242,7 @@ object DecoderPreferencesScreen : Screen {
               PreferenceDivider()
 
               val useYUV420p by preferences.useYUV420P.collectAsState()
-              AnimatedIconSwitchPreference(
+              SwitchPreference(
                 value = useYUV420p,
                 onValueChange = {
                   preferences.useYUV420P.set(it)
@@ -260,7 +259,7 @@ object DecoderPreferencesScreen : Screen {
               PreferenceDivider()
               
               val enableAnime4K by preferences.enableAnime4K.collectAsState()
-              AnimatedIconSwitchPreference(
+              SwitchPreference(
                 value = enableAnime4K,
                 onValueChange = { enabled ->
                     preferences.enableAnime4K.set(enabled)

@@ -82,6 +82,7 @@ import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.getPlayerButtonLabel
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.components.PlayerSheet
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import app.marlboroadvance.mpvex.ui.player.Panels
 import app.marlboroadvance.mpvex.ui.player.PlayerActivity
 import app.marlboroadvance.mpvex.ui.player.PlayerViewModel
@@ -687,23 +688,21 @@ private fun InteractionSwitch(
   onCheckedChange: (Boolean) -> Unit,
 ) {
   Surface(
-    onClick = { onCheckedChange(!checked) },
     shape = MaterialTheme.shapes.medium,
     color = MaterialTheme.colorScheme.surfaceContainerLow,
     modifier = Modifier.fillMaxWidth()
   ) {
-    ListItem(
-      headlineContent = { Text(label, style = MaterialTheme.typography.bodyLarge) },
-      supportingContent = { Text(description, style = MaterialTheme.typography.bodySmall) },
-      trailingContent = {
-        Switch(
-          checked = checked,
-          onCheckedChange = onCheckedChange
-        )
-      },
-      colors = androidx.compose.material3.ListItemDefaults.colors(
-        containerColor = Color.Transparent
-      )
+    SwitchPreference(
+      value = checked,
+      onValueChange = onCheckedChange,
+      title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
+      summary = { 
+        Text(
+          text = description, 
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.outline
+        ) 
+      }
     )
   }
 }

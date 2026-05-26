@@ -44,8 +44,7 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.FooterPreference
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
-import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -196,7 +195,7 @@ object GesturePreferencesScreen : Screen {
           PreferenceDivider()
 
           val reverseDoubleTap by preferences.reverseDoubleTap.collectAsState()
-          AnimatedIconSwitchPreference(
+          SwitchPreference(
             value = reverseDoubleTap,
             onValueChange = { preferences.reverseDoubleTap.set(it) },
             title = { Text(text = stringResource(id = R.string.pref_gesture_reverse_double_tap_title)) },
@@ -275,7 +274,7 @@ object GesturePreferencesScreen : Screen {
           PreferenceDivider()
 
           val useSingleTapForCenter by preferences.useSingleTapForCenter.collectAsState()
-          AnimatedIconSwitchPreference(
+          SwitchPreference(
             value = useSingleTapForCenter,
             onValueChange = { preferences.useSingleTapForCenter.set(it) },
             title = {
@@ -291,7 +290,7 @@ object GesturePreferencesScreen : Screen {
             },
           )
 
-          AnimatedIconSwitchPreference(
+          SwitchPreference(
             value = useSingleTapForLeftRight,
             onValueChange = { preferences.useSingleTapForLeftRight.set(it) },
             title = {
@@ -308,7 +307,7 @@ object GesturePreferencesScreen : Screen {
           )
 
           val preventSeekbarTap by preferences.preventSeekbarTap.collectAsState()
-          AnimatedIconSwitchPreference(
+          SwitchPreference(
             value = preventSeekbarTap,
             onValueChange = { preferences.preventSeekbarTap.set(it) },
             title = {
@@ -324,7 +323,7 @@ object GesturePreferencesScreen : Screen {
           )
 
           val useRelativeSeeking by preferences.useRelativeSeeking.collectAsState()
-          AnimatedIconSwitchPreference(
+          SwitchPreference(
             value = useRelativeSeeking,
             onValueChange = { preferences.useRelativeSeeking.set(it) },
             title = {

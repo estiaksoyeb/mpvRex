@@ -31,8 +31,7 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
-import me.zhanghai.compose.preference.SwitchPreference
-import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -83,7 +82,7 @@ object ShortsPreferencesScreen : Screen {
 
                     item {
                         PreferenceCard {
-                            AnimatedIconSwitchPreference(
+                            SwitchPreference(
                                 value = enableShorts,
                                 onValueChange = { browserPreferences.enableShorts.set(it) },
                                 title = { Text("Enable RexShorts") },
@@ -99,7 +98,7 @@ object ShortsPreferencesScreen : Screen {
 
                             PreferenceDivider()
 
-                            AnimatedIconSwitchPreference(
+                            SwitchPreference(
                                 value = autoSwipeShorts,
                                 onValueChange = { browserPreferences.autoSwipeShorts.set(it) },
                                 title = { Text("Auto Swipe to Next Short") },
@@ -121,7 +120,7 @@ object ShortsPreferencesScreen : Screen {
 
                     item {
                         PreferenceCard {
-                            AnimatedIconSwitchPreference(
+                            SwitchPreference(
                                 value = includeHorizontal,
                                 onValueChange = { browserPreferences.includeShortHorizontalVideos.set(it) },
                                 title = { Text("Include Short Normal Videos") },

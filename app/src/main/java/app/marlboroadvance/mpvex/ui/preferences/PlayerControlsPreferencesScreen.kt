@@ -49,15 +49,13 @@ import app.marlboroadvance.mpvex.preferences.PlayerButton
 import app.marlboroadvance.mpvex.preferences.allPlayerButtons
 import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.SeekbarStyle
-import app.marlboroadvance.mpvex.ui.player.controls.components.SeekbarPreview
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
-import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import me.zhanghai.compose.preference.SliderPreference
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.toFixed
 import app.marlboroadvance.mpvex.ui.preferences.components.PlayerButtonChip
@@ -272,7 +270,7 @@ object PlayerControlsPreferencesScreen : Screen {
             val bottomControlsBelowSeekbar by playerPrefs.bottomControlsBelowSeekbar.collectAsState()
             
             PreferenceCard {
-              AnimatedIconSwitchPreference(
+              SwitchPreference(
                 value = bottomControlsBelowSeekbar,
                 onValueChange = { playerPrefs.bottomControlsBelowSeekbar.set(it) },
                 title = {
@@ -307,7 +305,7 @@ object PlayerControlsPreferencesScreen : Screen {
             var customTimeValue by remember { mutableStateOf("") }
             
             PreferenceCard {
-              AnimatedIconSwitchPreference(
+            SwitchPreference(
                 value = enableBounceAnimation,
                 onValueChange = { appearancePrefs.enableBounceAnimation.set(it) },
                 title = {
@@ -324,7 +322,7 @@ object PlayerControlsPreferencesScreen : Screen {
               
               PreferenceDivider()
 
-              AnimatedIconSwitchPreference(
+              SwitchPreference(
                 value = hidePlayerButtonsBackground,
                 onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },
                 title = {
@@ -341,7 +339,7 @@ object PlayerControlsPreferencesScreen : Screen {
               
               PreferenceDivider()
 
-              AnimatedIconSwitchPreference(
+              SwitchPreference(
                 value = playerAlwaysDarkMode,
                 onValueChange = { appearancePrefs.playerAlwaysDarkMode.set(it) },
                 title = {

@@ -31,6 +31,7 @@ import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
 import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -97,7 +98,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = savePositionOnQuit,
                 onValueChange = preferences.savePositionOnQuit::set,
                 title = { Text(stringResource(R.string.pref_player_save_position_on_quit)) },
@@ -106,7 +107,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val closeAfterEndOfVideo by preferences.closeAfterReachingEndOfVideo.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = closeAfterEndOfVideo,
                 onValueChange = preferences.closeAfterReachingEndOfVideo::set,
                 title = { Text(stringResource(id = R.string.pref_player_close_after_eof)) },
@@ -115,7 +116,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val autoplayNextVideo by preferences.autoplayNextVideo.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = autoplayNextVideo,
                 onValueChange = preferences.autoplayNextVideo::set,
                 title = { Text(text = "Autoplay next video") },
@@ -133,7 +134,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val playlistMode by preferences.playlistMode.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = playlistMode,
                 onValueChange = preferences.playlistMode::set,
                 title = { Text(text = "Enable next/previous navigation") },
@@ -151,7 +152,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
 
               val rememberBrightness by preferences.rememberBrightness.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = rememberBrightness,
                 onValueChange = preferences.rememberBrightness::set,
                 title = { Text(text = stringResource(R.string.pref_player_remember_brightness)) },
@@ -160,7 +161,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
 
               val autoPiPOnNavigation by preferences.autoPiPOnNavigation.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = autoPiPOnNavigation,
                 onValueChange = preferences.autoPiPOnNavigation::set,
                 title = { Text("Auto Picture-in-Picture") },
@@ -175,7 +176,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
 
               val keepScreenOnWhenPaused by preferences.keepScreenOnWhenPaused.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = keepScreenOnWhenPaused,
                 onValueChange = preferences.keepScreenOnWhenPaused::set,
                 title = { Text("Keep screen on when paused") },
@@ -193,7 +194,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
 
               val resumeOnUnlock by preferences.resumeOnUnlock.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = resumeOnUnlock,
                 onValueChange = preferences.resumeOnUnlock::set,
                 title = { Text(stringResource(R.string.pref_player_resume_on_unlock_title)) },
@@ -217,7 +218,7 @@ object PlayerPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val showDoubleTapOvals by preferences.showDoubleTapOvals.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = showDoubleTapOvals,
                 onValueChange = preferences.showDoubleTapOvals::set,
                 title = { Text(stringResource(R.string.show_splash_ovals_on_double_tap_to_seek)) },
@@ -226,7 +227,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val showSeekTimeWhileSeeking by preferences.showSeekTimeWhileSeeking.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = showSeekTimeWhileSeeking,
                 onValueChange = preferences.showSeekTimeWhileSeeking::set,
                 title = { Text(stringResource(R.string.show_time_on_double_tap_to_seek)) },
@@ -235,7 +236,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val usePreciseSeeking by preferences.usePreciseSeeking.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = usePreciseSeeking,
                 onValueChange = preferences.usePreciseSeeking::set,
                 title = { Text(stringResource(R.string.pref_player_use_precise_seeking)) },
@@ -244,7 +245,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
 
               val showSeekBarWhenSeeking by preferences.showSeekBarWhenSeeking.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = showSeekBarWhenSeeking,
                 onValueChange = preferences.showSeekBarWhenSeeking::set,
                 title = { Text(stringResource(R.string.pref_player_show_seekbar_when_seeking_title)) },
@@ -279,7 +280,7 @@ object PlayerPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val brightnessGesture by preferences.brightnessGesture.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = brightnessGesture,
                 onValueChange = preferences.brightnessGesture::set,
                 title = { Text(stringResource(R.string.pref_player_gestures_brightness)) },
@@ -288,7 +289,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val volumeGesture by preferences.volumeGesture.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = volumeGesture,
                 onValueChange = preferences.volumeGesture::set,
                 title = { Text(stringResource(R.string.pref_player_gestures_volume)) },
@@ -297,7 +298,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val pinchToZoomGesture by preferences.pinchToZoomGesture.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = pinchToZoomGesture,
                 onValueChange = preferences.pinchToZoomGesture::set,
                 title = { Text(stringResource(R.string.pref_player_gestures_pinch_to_zoom)) },
@@ -306,7 +307,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val horizontalSwipeToSeek by preferences.horizontalSwipeToSeek.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = horizontalSwipeToSeek,
                 onValueChange = preferences.horizontalSwipeToSeek::set,
                 title = { Text(stringResource(R.string.pref_player_gestures_horizontal_swipe_to_seek)) },
@@ -315,7 +316,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
 
               val swipeToSubtitleSeek by preferences.swipeToSubtitleSeek.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = swipeToSubtitleSeek,
                 onValueChange = preferences.swipeToSubtitleSeek::set,
                 title = { Text(stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_title)) },
@@ -366,7 +367,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val showDynamicSpeedOverlay by preferences.showDynamicSpeedOverlay.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = showDynamicSpeedOverlay,
                 onValueChange = preferences.showDynamicSpeedOverlay::set,
                 title = { Text("Dynamic Speed Overlay") },
@@ -387,7 +388,7 @@ object PlayerPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val disableMediaButtons by preferences.disableMediaButtons.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = disableMediaButtons,
                 onValueChange = preferences.disableMediaButtons::set,
                 title = { Text(stringResource(id = R.string.pref_player_controls_disable_media_buttons_title)) },
@@ -402,7 +403,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val allowGesturesInPanels by preferences.allowGesturesInPanels.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = allowGesturesInPanels,
                 onValueChange = preferences.allowGesturesInPanels::set,
                 title = {
@@ -415,7 +416,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val swapVolumeAndBrightness by preferences.swapVolumeAndBrightness.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = swapVolumeAndBrightness,
                 onValueChange = preferences.swapVolumeAndBrightness::set,
                 title = { Text(stringResource(R.string.swap_the_volume_and_brightness_slider)) },
@@ -424,7 +425,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val showLoadingCircle by preferences.showLoadingCircle.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = showLoadingCircle,
                 onValueChange = preferences.showLoadingCircle::set,
                 title = { Text(stringResource(R.string.pref_player_controls_show_loading_circle)) },
@@ -439,7 +440,7 @@ object PlayerPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val showSystemStatusBar by preferences.showSystemStatusBar.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = showSystemStatusBar,
                 onValueChange = preferences.showSystemStatusBar::set,
                 title = { Text(stringResource(R.string.pref_player_display_show_status_bar)) },
@@ -448,7 +449,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
 
               val showSystemNavigationBar by preferences.showSystemNavigationBar.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = showSystemNavigationBar,
                 onValueChange = preferences.showSystemNavigationBar::set,
                 title = { Text("Show navigation bar with controls") },
@@ -457,7 +458,7 @@ object PlayerPreferencesScreen : Screen {
               PreferenceDivider()
               
               val reduceMotion by preferences.reduceMotion.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = reduceMotion,
                 onValueChange = preferences.reduceMotion::set,
                 title = { Text(stringResource(R.string.pref_player_display_reduce_player_animation)) },

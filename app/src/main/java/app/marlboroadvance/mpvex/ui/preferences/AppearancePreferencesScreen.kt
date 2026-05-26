@@ -37,6 +37,7 @@ import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.MultiChoiceSegmentedButton
 import app.marlboroadvance.mpvex.ui.preferences.components.ThemePicker
+import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.theme.DarkMode
@@ -168,7 +169,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             // AMOLED mode toggle
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = amoledMode,
                                 onValueChange = { newValue ->
                                     preferences.amoledMode.set(newValue)
@@ -188,7 +189,7 @@ object AppearancePreferencesScreen : Screen {
                             // System font toggle
                             val useSystemFont by preferences.useSystemFont.collectAsState()
 
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = useSystemFont,
                                 onValueChange = { newValue ->
                                     preferences.useSystemFont.set(newValue)
@@ -205,7 +206,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             val matchPlayerControlsToTheme by preferences.matchPlayerControlsToTheme.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = matchPlayerControlsToTheme,
                                 onValueChange = { preferences.matchPlayerControlsToTheme.set(it) },
                                 title = {
@@ -223,7 +224,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             val hidePlayerButtonsBackground by preferences.hidePlayerButtonsBackground.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = hidePlayerButtonsBackground,
                                 onValueChange = { preferences.hidePlayerButtonsBackground.set(it) },
                                 title = {
@@ -241,7 +242,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = playerAlwaysDarkMode,
                                 onValueChange = { preferences.playerAlwaysDarkMode.set(it) },
                                 title = {
@@ -264,7 +265,7 @@ object AppearancePreferencesScreen : Screen {
                     item {
                         PreferenceCard {
                             val unlimitedNameLines by preferences.unlimitedNameLines.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = unlimitedNameLines,
                                 onValueChange = { preferences.unlimitedNameLines.set(it) },
                                 title = {
@@ -283,7 +284,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             val showUnplayedOldVideoLabel by preferences.showUnplayedOldVideoLabel.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = showUnplayedOldVideoLabel,
                                 onValueChange = { preferences.showUnplayedOldVideoLabel.set(it) },
                                 title = {
@@ -324,7 +325,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = autoScrollToLastPlayed,
                                 onValueChange = { browserPreferences.autoScrollToLastPlayed.set(it) },
                                 title = {
@@ -363,7 +364,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = showAudioFiles,
                                 onValueChange = { browserPreferences.showAudioFiles.set(it) },
                                 title = {
@@ -388,7 +389,7 @@ object AppearancePreferencesScreen : Screen {
                     item {
                         PreferenceCard {
                             val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = tapThumbnailToSelect,
                                 onValueChange = { gesturePreferences.tapThumbnailToSelect.set(it) },
                                 title = {
@@ -407,7 +408,7 @@ object AppearancePreferencesScreen : Screen {
                             PreferenceDivider()
 
                             val showNetworkThumbnails by preferences.showNetworkThumbnails.collectAsState()
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = showNetworkThumbnails,
                                 onValueChange = { newValue ->
                                     if (newValue) {
@@ -469,7 +470,7 @@ object AppearancePreferencesScreen : Screen {
                                     text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_summary),
                                     modifier = Modifier.padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 12.dp),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.outline,
                                 )
                                 MultiChoiceSegmentedButton(
                                     choices = persistentListOf(

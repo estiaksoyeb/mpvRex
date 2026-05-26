@@ -63,6 +63,7 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
 import me.zhanghai.compose.preference.TwoTargetIconButtonPreference
 import org.koin.compose.koinInject
 import java.io.File
@@ -449,7 +450,7 @@ object AdvancedPreferencesScreen : Screen {
               val selectedScripts by preferences.selectedLuaScripts.collectAsState()
               val enableLuaScripts by preferences.enableLuaScripts.collectAsState()
               
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = enableLuaScripts,
                 onValueChange = preferences.enableLuaScripts::set,
                 title = { Text("Enable Lua Scripts") },
@@ -520,7 +521,7 @@ object AdvancedPreferencesScreen : Screen {
               val mpvexDatabase = koinInject<MpvExDatabase>()
               val enableRecentlyPlayed by preferences.enableRecentlyPlayed.collectAsState()
               
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = enableRecentlyPlayed,
                 onValueChange = preferences.enableRecentlyPlayed::set,
                 title = { Text(stringResource(R.string.pref_advanced_enable_recently_played_title)) },
@@ -701,7 +702,7 @@ object AdvancedPreferencesScreen : Screen {
             PreferenceCard {
               val enableMediaInfoActivity by preferences.enableMediaInfoActivity.collectAsState()
 
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = enableMediaInfoActivity,
                 onValueChange = {
                   preferences.enableMediaInfoActivity.set(it)
@@ -729,7 +730,7 @@ object AdvancedPreferencesScreen : Screen {
               val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
               val verboseLogging by preferences.verboseLogging.collectAsState()
               
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = verboseLogging,
                 onValueChange = preferences.verboseLogging::set,
                 title = { Text(stringResource(R.string.pref_advanced_verbose_logging_title)) },

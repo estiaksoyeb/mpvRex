@@ -74,6 +74,7 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
 import me.zhanghai.compose.preference.TextFieldPreference
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -230,7 +231,7 @@ object SubtitlesPreferencesScreen : Screen {
               PreferenceDivider()
 
               val autoload by preferences.autoloadMatchingSubtitles.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = autoload,
                 onValueChange = { preferences.autoloadMatchingSubtitles.set(it) },
                 title = { Text(stringResource(R.string.pref_subtitles_autoload_title)) },
@@ -245,7 +246,7 @@ object SubtitlesPreferencesScreen : Screen {
               PreferenceDivider()
 
               val overrideAss by preferences.overrideAssSubs.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = overrideAss,
                 onValueChange = { preferences.overrideAssSubs.set(it) },
                 title = { Text(stringResource(R.string.player_sheets_sub_override_ass)) },
@@ -260,7 +261,7 @@ object SubtitlesPreferencesScreen : Screen {
               PreferenceDivider()
 
               val scaleByWindow by preferences.scaleByWindow.collectAsState()
-              SwitchPreference(
+              AnimatedIconSwitchPreference(
                 value = scaleByWindow,
                 onValueChange = { preferences.scaleByWindow.set(it) },
                 title = { Text(stringResource(R.string.player_sheets_sub_scale_by_window)) },
@@ -395,7 +396,7 @@ object SubtitlesPreferencesScreen : Screen {
                   Text(
                     text = folderPath,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.outline,
                   )
                 }
               }
@@ -472,7 +473,7 @@ object SubtitlesPreferencesScreen : Screen {
                 
                 if (showAdvanced) {
                   Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    SwitchPreference(
+                    AnimatedIconSwitchPreference(
                       value = wyzieHearingImpaired,
                       onValueChange = { preferences.wyzieHearingImpaired.set(it) },
                       title = { Text("Hearing-impaired friendly") },

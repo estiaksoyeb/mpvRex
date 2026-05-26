@@ -32,6 +32,7 @@ import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
 import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -82,7 +83,7 @@ object ShortsPreferencesScreen : Screen {
 
                     item {
                         PreferenceCard {
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = enableShorts,
                                 onValueChange = { browserPreferences.enableShorts.set(it) },
                                 title = { Text("Enable RexShorts") },
@@ -98,7 +99,7 @@ object ShortsPreferencesScreen : Screen {
 
                             PreferenceDivider()
 
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = autoSwipeShorts,
                                 onValueChange = { browserPreferences.autoSwipeShorts.set(it) },
                                 title = { Text("Auto Swipe to Next Short") },
@@ -120,7 +121,7 @@ object ShortsPreferencesScreen : Screen {
 
                     item {
                         PreferenceCard {
-                            SwitchPreference(
+                            AnimatedIconSwitchPreference(
                                 value = includeHorizontal,
                                 onValueChange = { browserPreferences.includeShortHorizontalVideos.set(it) },
                                 title = { Text("Include Short Normal Videos") },
@@ -142,7 +143,12 @@ object ShortsPreferencesScreen : Screen {
                                 sliderValue = maxDuration.toFloat(),
                                 onSliderValueChange = { browserPreferences.maxHorizontalVideoDurationMinutes.set(it.roundToInt()) },
                                 title = { Text("Max Horizontal Duration") },
-                                summary = { Text("Limit horizontal videos to $maxDuration minute${if (maxDuration > 1) "s" else ""}") },
+                                summary = { 
+                                    Text(
+                                        text = "Limit horizontal videos to $maxDuration minute${if (maxDuration > 1) "s" else ""}",
+                                        color = MaterialTheme.colorScheme.outline
+                                    ) 
+                                },
                                 valueRange = 1f..10f,
                                 valueSteps = 9,
                                 enabled = includeHorizontal,
@@ -161,7 +167,12 @@ object ShortsPreferencesScreen : Screen {
                         PreferenceCard {
                             Preference(
                                 title = { Text("Blocked Videos") },
-                                summary = { Text("View and manage blocked shorts") },
+                                summary = { 
+                                    Text(
+                                        text = "View and manage blocked shorts",
+                                        color = MaterialTheme.colorScheme.outline
+                                    ) 
+                                },
                                 icon = {
                                     Icon(
                                         Icons.Outlined.Block,

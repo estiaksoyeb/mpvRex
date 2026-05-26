@@ -35,6 +35,7 @@ import app.marlboroadvance.mpvex.ui.theme.spacing
 import `is`.xyz.mpv.MPVLib
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
 import org.koin.compose.koinInject
 
 @Composable
@@ -58,7 +59,7 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
         var overrideAssSubs by remember {
           mutableStateOf(MPVLib.getPropertyString("sub-ass-override") == "force")
         }
-        SwitchPreference(
+        AnimatedIconSwitchPreference(
           overrideAssSubs,
           onValueChange = {
             overrideAssSubs = it
@@ -71,7 +72,7 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
         var scaleByWindow by remember {
           mutableStateOf(MPVLib.getPropertyString("sub-scale-by-window") == "yes")
         }
-        SwitchPreference(
+        AnimatedIconSwitchPreference(
           scaleByWindow,
           onValueChange = {
             scaleByWindow = it

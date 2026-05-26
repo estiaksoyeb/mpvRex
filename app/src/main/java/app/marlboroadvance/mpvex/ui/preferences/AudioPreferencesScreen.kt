@@ -33,6 +33,7 @@ import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
 import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.AnimatedIconSwitchPreference
 import me.zhanghai.compose.preference.TextFieldPreference
 import org.koin.compose.koinInject
 
@@ -114,7 +115,7 @@ object AudioPreferencesScreen : Screen {
           
           PreferenceDivider()
           val audioPitchCorrection by preferences.audioPitchCorrection.collectAsState()
-          SwitchPreference(
+          AnimatedIconSwitchPreference(
             value = audioPitchCorrection,
             onValueChange = { preferences.audioPitchCorrection.set(it) },
             title = { Text(stringResource(R.string.pref_audio_pitch_correction_title)) },
@@ -128,7 +129,7 @@ object AudioPreferencesScreen : Screen {
           
           PreferenceDivider()
           val volumeNormalization by preferences.volumeNormalization.collectAsState()
-          SwitchPreference(
+          AnimatedIconSwitchPreference(
             value = volumeNormalization,
             onValueChange = { preferences.volumeNormalization.set(it) },
             title = { Text(stringResource(R.string.pref_audio_volume_normalization_title)) },
@@ -142,7 +143,7 @@ object AudioPreferencesScreen : Screen {
           
           PreferenceDivider()
           val automaticBackgroundPlayback by preferences.automaticBackgroundPlayback.collectAsState()
-          SwitchPreference(
+          AnimatedIconSwitchPreference(
             value = automaticBackgroundPlayback,
             onValueChange = { preferences.automaticBackgroundPlayback.set(it) },
             title = { Text(stringResource(R.string.background_playback_title)) },

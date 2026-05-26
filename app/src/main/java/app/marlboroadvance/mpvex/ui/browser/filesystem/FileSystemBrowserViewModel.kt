@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
@@ -194,26 +195,54 @@ class FileSystemBrowserViewModel(
     }
   }
 
-  fun deleteFolders(folders: List<FileSystemItem.Folder>): Pair<Int, Int> {
+  suspend fun deleteFolders(folders: List<FileSystemItem.Folder>): Pair<Int, Int> = withContext(Dispatchers.IO) {
     var successCount = 0
     var failureCount = 0
+    val showAudio = browserPreferences.showAudioFiles.get()
+
     folders.forEach { folder ->
       try {
         val dir = File(folder.path)
-        if (dir.exists() && dir.deleteRecursively()) {
+        if (!dir.exists() || !dir.isDirectory) {
+          failureCount++
+          return@forEach
+        }
+
+        // Targeted deletion: Only delete media files in the immediate folder
+        val children = dir.listFiles() ?: emptyArray()
+        var filesDeleted = 0
+        
+        children.forEach { file ->
+          if (file.isDirectory) return@forEach // Never recurse into subfolders
+          
+          val isVideo = FileTypeUtils.isVideoFile(file)
+          val isSubtitle = FileTypeUtils.isSubtitleFile(file)
+          val isAudio = showAudio && FileTypeUtils.isAudioFile(file)
+          
+          if (isVideo || isSubtitle || isAudio) {
+            if (file.delete()) {
+              filesDeleted++
+            }
+          }
+        }
+
+        if (filesDeleted > 0) {
+          // Successfully cleaned some media
           successCount++
         } else {
+          // Nothing was deleted
           failureCount++
         }
       } catch (e: Exception) {
         failureCount++
       }
     }
+
     if (successCount > 0) {
       _itemsWereDeletedOrMoved.value = true
       MediaLibraryEvents.notifyChanged()
     }
-    return Pair(successCount, failureCount)
+    Pair(successCount, failureCount)
   }
 
   override suspend fun deleteVideos(videos: List<Video>): Pair<Int, Int> {

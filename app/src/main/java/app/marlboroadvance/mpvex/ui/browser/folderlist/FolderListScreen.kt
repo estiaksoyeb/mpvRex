@@ -343,14 +343,11 @@ object FolderListScreen : Screen {
     val filteredFolders = sortedFolders
 
     // Selection manager
-    val selectionManager = rememberSelectionManager(
+    val selectionManager = rememberSelectionManager<VideoFolder, String>(
       items = sortedFolders,
       getId = { it.bucketId },
       onDeleteItems = { folders, _ ->
-        val ids = folders.map { it.bucketId }.toSet()
-        val videos = app.marlboroadvance.mpvex.repository.MediaFileRepository.getVideosForBuckets(context, ids)
-        viewModel.deleteVideos(videos)
-        Pair(videos.size, 0)
+        viewModel.deleteFolders(folders)
       },
       onOperationComplete = { viewModel.refresh() },
     )
@@ -764,6 +761,7 @@ object FolderListScreen : Screen {
             showCopy = true,
             showMove = true,
             showRename = selectionManager.isSingleSelection,
+            showDelete = selectionManager.selectedCount <= 1,
             showAddToPlaylist = false,
             onMarkAsClick = { showMarkAsSheet = true },
             modifier = Modifier.padding(bottom = navigationBarHeight),

@@ -14,6 +14,8 @@ import app.marlboroadvance.mpvex.preferences.FoldersPreferences
 import app.marlboroadvance.mpvex.ui.browser.base.BaseBrowserViewModel
 import app.marlboroadvance.mpvex.utils.media.MediaLibraryEvents
 import app.marlboroadvance.mpvex.utils.media.MetadataRetrieval
+import app.marlboroadvance.mpvex.utils.storage.FileTypeUtils
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -276,20 +279,60 @@ class FolderListViewModel(
   /**
    * Delete folders and update state
    */
-  fun deleteFolders(foldersToDelete: List<VideoFolder>) {
-    viewModelScope.launch(Dispatchers.IO) {
-      // Logic to delete folders from filesystem
-      // ... actual deletion logic would go here
-      
-      // Update local state
+  suspend fun deleteFolders(foldersToDelete: List<VideoFolder>): Pair<Int, Int> = withContext(Dispatchers.IO) {
+    val showAudio = browserPreferences.showAudioFiles.get()
+    var successCount = 0
+    var failureCount = 0
+
+    foldersToDelete.forEach { folder ->
+      try {
+        val dir = File(folder.path)
+        if (!dir.exists() || !dir.isDirectory) {
+          failureCount++
+          return@forEach
+        }
+
+        // Targeted deletion: Only delete media files in the immediate folder
+        val children = dir.listFiles() ?: emptyArray()
+        var filesDeleted = 0
+        
+        children.forEach { file ->
+          if (file.isDirectory) return@forEach // Never recurse into subfolders
+          
+          val isVideo = FileTypeUtils.isVideoFile(file)
+          val isSubtitle = FileTypeUtils.isSubtitleFile(file)
+          val isAudio = showAudio && FileTypeUtils.isAudioFile(file)
+          
+          if (isVideo || isSubtitle || isAudio) {
+            if (file.delete()) {
+              filesDeleted++
+            }
+          }
+        }
+
+        if (filesDeleted > 0) {
+          successCount++
+        } else {
+          failureCount++
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Failed to delete folder contents: ${folder.path}", e)
+        failureCount++
+      }
+    }
+
+    // Update local state if anything was deleted
+    if (successCount > 0) {
       val currentFolders = _allVideoFolders.value.toMutableList()
       foldersToDelete.forEach { folder ->
+        // For simplicity, we remove all requested folders from UI state if we attempted cleaning
         currentFolders.removeAll { it.path == folder.path }
       }
       _allVideoFolders.value = currentFolders
-      
-      // Notify library changes
+      _foldersWereDeleted.value = true
       MediaLibraryEvents.notifyChanged()
     }
+
+    Pair(successCount, failureCount)
   }
 }

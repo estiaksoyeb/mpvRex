@@ -22,6 +22,11 @@ object FileTypeUtils {
         "dsd", "dff", "dsf", "pcm", "mka", "oga"
     )
 
+    // Subtitle file extensions
+    val SUBTITLE_EXTENSIONS = setOf(
+        "srt", "ass", "ssa", "vtt", "sub", "idx"
+    )
+
     /**
      * Checks if a file is a video based on extension
      */
@@ -36,6 +41,14 @@ object FileTypeUtils {
     fun isAudioFile(file: File): Boolean {
         val extension = file.extension.lowercase(Locale.getDefault())
         return AUDIO_EXTENSIONS.contains(extension)
+    }
+
+    /**
+     * Checks if a file is a subtitle file based on extension
+     */
+    fun isSubtitleFile(file: File): Boolean {
+        val extension = file.extension.lowercase(Locale.getDefault())
+        return SUBTITLE_EXTENSIONS.contains(extension)
     }
 
     /**

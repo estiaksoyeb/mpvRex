@@ -970,6 +970,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
         onMarkAsClick = { showMarkAsSheet = true },
         showRename = (videoSelectionManager.isSingleSelection || folderSelectionManager.isSingleSelection) && !isMixedSelection,
         showAddToPlaylist = videoSelectionManager.isInSelectionMode && !isMixedSelection,
+        showDelete = !isMixedSelection && folderSelectionManager.selectedCount <= 1,
         modifier = Modifier.padding(bottom = navigationBarHeight)
       )
     }

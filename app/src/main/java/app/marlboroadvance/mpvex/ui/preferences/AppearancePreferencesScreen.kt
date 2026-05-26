@@ -257,6 +257,109 @@ object AppearancePreferencesScreen : Screen {
                             )
                         }
                     }
+
+                    item {
+                        PreferenceSectionHeader(title = stringResource(id = R.string.pref_appearance_category_bottom_nav))
+                    }
+
+                    item {
+                        PreferenceCard {
+                            SwitchPreference(
+                                value = true,
+                                onValueChange = {},
+                                enabled = false,
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_home_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_home_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            )
+
+                            PreferenceDivider()
+
+                            val enableShorts by browserPreferences.enableShorts.collectAsState()
+                            val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
+                            val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
+                            val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
+
+                            SwitchPreference(
+                                value = enableShorts,
+                                onValueChange = { browserPreferences.enableShorts.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_shorts_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_shorts_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            )
+
+                            PreferenceDivider()
+
+                            SwitchPreference(
+                                value = enableTabRecents,
+                                onValueChange = { browserPreferences.enableTabRecents.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_recents_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_recents_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            )
+
+                            PreferenceDivider()
+
+                            SwitchPreference(
+                                value = enableTabPlaylists,
+                                onValueChange = { browserPreferences.enableTabPlaylists.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_playlists_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_playlists_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            )
+
+                            PreferenceDivider()
+
+                            SwitchPreference(
+                                value = enableTabNetwork,
+                                onValueChange = { browserPreferences.enableTabNetwork.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_network_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_tab_network_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            )
+                        }
+                    }
+
                     item {
                         PreferenceSectionHeader(title = stringResource(id = R.string.pref_appearance_category_file_browser))
                     }

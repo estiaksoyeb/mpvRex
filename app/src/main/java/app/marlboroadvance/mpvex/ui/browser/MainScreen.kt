@@ -150,9 +150,58 @@ object MainScreen : Screen {
     val density = LocalDensity.current
     val browserPreferences = koinInject<BrowserPreferences>()
     val isShortsEnabled by browserPreferences.enableShorts.collectAsState()
-    
+    val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
+    val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
+    val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
+
+    val visibleTabs = remember(isShortsEnabled, enableTabRecents, enableTabPlaylists, enableTabNetwork) {
+      buildList {
+        add(
+          VisibleTab("home", "Home", Icons.Filled.Home) {
+            FolderListScreen.Content()
+          }
+        )
+        if (isShortsEnabled) {
+          add(
+            VisibleTab("shorts", "Shorts", Icons.Filled.VideoLibrary) {
+              ShortsScreen().Content()
+            }
+          )
+        }
+        if (enableTabRecents) {
+          add(
+            VisibleTab("recents", "Recents", Icons.Filled.History) {
+              RecentlyPlayedScreen.Content()
+            }
+          )
+        }
+        if (enableTabPlaylists) {
+          add(
+            VisibleTab("playlists", "Playlists", Icons.AutoMirrored.Filled.PlaylistPlay) {
+              PlaylistScreen.Content()
+            }
+          )
+        }
+        if (enableTabNetwork) {
+          add(
+            VisibleTab("network", "Network", Icons.Filled.Language) {
+              NetworkStreamingScreen.Content()
+            }
+          )
+        }
+      }
+    }
+
+    // Ensure selectedTab is always clamped within active tabs range
+    LaunchedEffect(visibleTabs) {
+      if (selectedTab >= visibleTabs.size) {
+        selectedTab = 0
+      }
+    }
+
     // Intercept back button when on Shorts tab to return to previous tab
-    androidx.activity.compose.BackHandler(enabled = isShortsEnabled && selectedTab == 1) {
+    val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
+    androidx.activity.compose.BackHandler(enabled = shortsIdx != -1 && selectedTab == shortsIdx) {
       selectedTab = previousTab
     }
 
@@ -210,10 +259,11 @@ object MainScreen : Screen {
       bottomBar = {
         // Animated bottom navigation bar with slide animations
         // Also hide if Shorts tab is active (index 1 when enabled, index -1 when disabled)
-        val isShortsTabActive = isShortsEnabled && selectedTab == 1
+        val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
+        val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
         
         AnimatedVisibility(
-          visible = !hideNavigationBar.value && !isShortsTabActive,
+          visible = !hideNavigationBar.value && !isShortsTabActive && visibleTabs.size > 1,
           enter = slideInVertically(
             animationSpec = tween(durationMillis = 300),
             initialOffsetY = { fullHeight -> fullHeight }
@@ -248,50 +298,15 @@ object MainScreen : Screen {
               NavigationBarItemDefaults.colors()
             }
 
-            NavigationBarItem(
-              icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-              label = { Text("Home") },
-              selected = selectedTab == 0,
-              onClick = { selectedTab = 0 },
-              colors = itemColors
-            )
-            
-            if (isShortsEnabled) {
+            visibleTabs.forEachIndexed { index, tab ->
               NavigationBarItem(
-                icon = { Icon(Icons.Filled.VideoLibrary, contentDescription = "Shorts") },
-                label = { Text("Shorts") },
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
+                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                label = { Text(tab.label) },
+                selected = selectedTab == index,
+                onClick = { selectedTab = index },
                 colors = itemColors
               )
             }
-
-            // Adjust indices for remaining items if shorts is disabled
-            val recentsIdx = if (isShortsEnabled) 2 else 1
-            val playlistIdx = if (isShortsEnabled) 3 else 2
-            val networkIdx = if (isShortsEnabled) 4 else 3
-
-            NavigationBarItem(
-              icon = { Icon(Icons.Filled.History, contentDescription = "Recents") },
-              label = { Text("Recents") },
-              selected = selectedTab == recentsIdx,
-              onClick = { selectedTab = recentsIdx },
-              colors = itemColors
-            )
-            NavigationBarItem(
-              icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = "Playlists") },
-              label = { Text("Playlists") },
-              selected = selectedTab == playlistIdx,
-              onClick = { selectedTab = playlistIdx },
-              colors = itemColors
-            )
-            NavigationBarItem(
-              icon = { Icon(Icons.Filled.Language, contentDescription = "Network") },
-              label = { Text("Network") },
-              selected = selectedTab == networkIdx,
-              onClick = { selectedTab = networkIdx },
-              colors = itemColors
-            )
           }
         }
       }
@@ -358,23 +373,12 @@ object MainScreen : Screen {
           label = "tab_animation"
         ) { targetTab ->
           CompositionLocalProvider(
-            LocalNavigationBarHeight provides fabBottomPadding
+            LocalNavigationBarHeight provides if (visibleTabs.size == 1) 0.dp else fabBottomPadding
           ) {
-            if (isShortsEnabled) {
-              when (targetTab) {
-                0 -> FolderListScreen.Content()
-                1 -> ShortsScreen().Content()
-                2 -> RecentlyPlayedScreen.Content()
-                3 -> PlaylistScreen.Content()
-                4 -> NetworkStreamingScreen.Content()
-              }
+            if (targetTab in visibleTabs.indices) {
+              visibleTabs[targetTab].content()
             } else {
-              when (targetTab) {
-                0 -> FolderListScreen.Content()
-                1 -> RecentlyPlayedScreen.Content()
-                2 -> PlaylistScreen.Content()
-                3 -> NetworkStreamingScreen.Content()
-              }
+              FolderListScreen.Content()
             }
           }
         }
@@ -385,3 +389,10 @@ object MainScreen : Screen {
 
 // CompositionLocal for navigation bar height
 val LocalNavigationBarHeight = compositionLocalOf { 0.dp }
+
+private data class VisibleTab(
+  val id: String,
+  val label: String,
+  val icon: androidx.compose.ui.graphics.vector.ImageVector,
+  val content: @Composable () -> Unit
+)

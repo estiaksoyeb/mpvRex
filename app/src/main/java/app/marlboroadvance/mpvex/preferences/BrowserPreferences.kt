@@ -59,6 +59,11 @@ class BrowserPreferences(
   val autoSwipeShorts = preferenceStore.getBoolean("shorts_auto_swipe", false)
   val includeShortHorizontalVideos = preferenceStore.getBoolean("shorts_include_horizontal", false)
   val maxHorizontalVideoDurationMinutes = preferenceStore.getInt("shorts_max_horizontal_minutes", 1)
+
+  // Bottom navigation visibility preferences
+  val enableTabRecents = preferenceStore.getBoolean("enable_tab_recents", true)
+  val enableTabPlaylists = preferenceStore.getBoolean("enable_tab_playlists", true)
+  val enableTabNetwork = preferenceStore.getBoolean("enable_tab_network", true)
 }
 
 /**

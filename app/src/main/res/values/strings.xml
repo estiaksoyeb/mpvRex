@@ -13,6 +13,17 @@
     <string name="pref_preferences">Preferences</string>
 
     <string name="pref_appearance_title">Appearance</string>
+    <string name="pref_appearance_category_bottom_nav">Bottom Navigation Tabs</string>
+    <string name="pref_appearance_tab_home_title">Home / Files</string>
+    <string name="pref_appearance_tab_home_summary">Show local folders &amp; file explorer</string>
+    <string name="pref_appearance_tab_shorts_title">RexShorts</string>
+    <string name="pref_appearance_tab_shorts_summary">Toggle high-tempo vertical video feeds</string>
+    <string name="pref_appearance_tab_recents_title">Recently Played</string>
+    <string name="pref_appearance_tab_recents_summary">Quickly resume previous video sessions</string>
+    <string name="pref_appearance_tab_playlists_title">Playlists</string>
+    <string name="pref_appearance_tab_playlists_summary">Show local custom video playlists</string>
+    <string name="pref_appearance_tab_network_title">Network Streaming</string>
+    <string name="pref_appearance_tab_network_summary">Access SMB, FTP, and WebDAV drives</string>
     <string name="pref_appearance_summary">Dark mode, Material You</string>
     <string name="pref_appearance_category_theme">Theme</string>
     <string name="pref_appearance_darkmode_system">System</string>

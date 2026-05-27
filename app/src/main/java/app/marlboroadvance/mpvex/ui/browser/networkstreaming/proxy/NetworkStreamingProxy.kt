@@ -740,6 +740,8 @@ class NetworkStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
         .withTimeout(120000, TimeUnit.MILLISECONDS) 
         .withSoTimeout(120000, TimeUnit.MILLISECONDS)
         .withReadTimeout(120000, TimeUnit.MILLISECONDS)
+        .withSigningRequired(false)
+        .withEncryptData(false)
         .build()
         
       smbClient = SMBClient(smbConfig)
@@ -771,7 +773,8 @@ class NetworkStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
         private var currentPosition = offset
         private val fileHandle = file!!
         private var closed = false
-
+        private var scratch = ByteArray(0)
+        
         override fun read(): Int {
           if (closed) return -1
           val buf = ByteArray(1)
@@ -788,15 +791,28 @@ class NetworkStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
           if (len == 0) return 0
 
           try {
-            // SMBJ's file.read() signature: read(ByteArray, Long) -> Int
-            // We need to read into a temp buffer then copy to the output buffer
-            val readBuffer = ByteArray(len)
+            // ZERO-COPY OPTIMIZATION: 
+            // If NanoHTTPD asks for a full buffer array, we inject that exact 
+            // array directly into the SMB client. No copying needed.
+            val readBuffer = if (off == 0 && len == b.size) {
+              b
+            } else {
+              // If an offset is requested, we reuse our scratch array to prevent GC thrashing.
+              // We ONLY allocate memory if the requested length is bigger than our current scratch pad.
+              if (scratch.size < len) {
+                scratch = ByteArray(len)
+              }
+              scratch
+            }
+
             val bytesRead = fileHandle.read(readBuffer, currentPosition)
 
             if (bytesRead <= 0) return -1
 
-            // Copy the data to the output buffer
-            System.arraycopy(readBuffer, 0, b, off, bytesRead)
+            // If we had to use the scratch array, we copy the bytes over to the final destination.
+            if (readBuffer !== b) {
+              System.arraycopy(readBuffer, 0, b, off, bytesRead)
+            }
             currentPosition += bytesRead
             return bytesRead
           } catch (e: Exception) {

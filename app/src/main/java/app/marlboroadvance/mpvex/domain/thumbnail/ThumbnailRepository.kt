@@ -6,6 +6,8 @@ import android.graphics.BitmapFactory
 import android.util.LruCache
 import app.marlboroadvance.mpvex.domain.media.model.Video
 import app.marlboroadvance.mpvex.utils.media.MediaInfoOps
+import app.marlboroadvance.mpvex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
+import app.marlboroadvance.mpvex.domain.network.NetworkConnection
 import `is`.xyz.mpv.FastThumbnails
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -710,5 +712,100 @@ class ThumbnailRepository(
       md.update(";".toByteArray())
     }
     return md.digest().joinToString("") { b -> "%02x".format(b) }
+  }
+  
+  
+/**
+ * Resolves network video thumbnails via a localized proxy stream.
+ * 
+ * Strategy: MemCache -> DiskCache -> Proxy Extraction -> Cache/Fail.
+ * Bypasses network extraction limits by registering a temporary [NetworkStreamingProxy] 
+ * stream and feeding a mocked localhost URI to standard extractors. Guarantees proxy cleanup.
+ */
+  suspend fun getThumbnailViaProxy(
+    path: String,
+    name: String,
+    size: Long,
+    connection: NetworkConnection,
+    dimension: Int
+  ): Bitmap? = withContext(Dispatchers.IO) {
+    if (!appearancePreferences.showNetworkThumbnails.get()) return@withContext null
+
+    val videoKey = "$path|networkProxy|$dimension"
+    
+    if (networkThumbnailFailed.containsKey(path)) return@withContext null
+
+    // Check Memory Cache
+    memoryCache.get(videoKey)?.let { return@withContext it }
+
+    // Check Disk Cache
+    val diskFile = File(networkDiskDir, keyToFileName(videoKey))
+    if (diskFile.exists()) {
+      runCatching {
+        BitmapFactory.decodeFile(diskFile.absolutePath)
+      }.getOrNull()?.let {
+        memoryCache.put(videoKey, it)
+        return@withContext it
+      }
+    }
+
+    // Spin up Proxy
+    val proxy = NetworkStreamingProxy.getInstance()
+    val streamId = "thumb_${path.hashCode()}_${System.nanoTime()}"
+
+    val localUrl = proxy.registerStream(
+      streamId = streamId,
+      connection = connection,
+      filePath = path,
+      fileSize = size
+    )
+
+    var bitmap: Bitmap? = null
+    try {
+      // Create a dummy Video object with the LOCALHOST URL to trick the extractors
+      val tempVideo = Video(
+        id = path.hashCode().toLong(),
+        title = name,
+        displayName = name,
+        path = localUrl,
+        uri = android.net.Uri.parse(localUrl),
+        duration = 0,
+        durationFormatted = "",
+        size = size,
+        sizeFormatted = "",
+        dateModified = 0,
+        dateAdded = 0,
+        mimeType = "video/*",
+        bucketId = "",
+        bucketDisplayName = "",
+        width = 0,
+        height = 0,
+        fps = 0f,
+        resolution = ""
+      )
+
+      // Extract using existing logic
+      bitmap = generateWithFastThumbnails(tempVideo, dimension)
+      if (bitmap == null) {
+        bitmap = generateWithMediaMetadataRetriever(tempVideo, dimension)
+      }
+    } finally {
+      // kill the proxy stream to prevent memory/connection leaks
+      proxy.unregisterStream(streamId)
+    }
+
+    // Cache or mark as failed
+    if (bitmap != null) {
+      memoryCache.put(videoKey, bitmap)
+      runCatching {
+        FileOutputStream(diskFile).use { out ->
+          bitmap.compress(Bitmap.CompressFormat.JPEG, diskJpegQuality, out)
+        }
+      }
+    } else {
+      networkThumbnailFailed[path] = true
+    }
+
+    return@withContext bitmap
   }
 }

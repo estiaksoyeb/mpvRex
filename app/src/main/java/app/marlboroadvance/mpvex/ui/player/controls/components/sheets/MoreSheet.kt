@@ -595,84 +595,84 @@ fun InteractionTab() {
     verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
   ) {
     Text(
-      text = "Player Interaction",
+      text = stringResource(R.string.pref_player_interaction_header),
       style = MaterialTheme.typography.titleLarge,
       modifier = Modifier.padding(bottom = MaterialTheme.spacing.small)
     )
 
     InteractionSwitch(
-      label = "Enable next/previous navigation",
-      description = "Show buttons for all videos in folder",
+      label = stringResource(R.string.pref_autoplay_title),
+      description = stringResource(R.string.pref_autoplay_summary),
       checked = playlistMode,
       onCheckedChange = { playerPreferences.playlistMode.set(it) }
     )
 
     InteractionSwitch(
-      label = "Show seekbar when seeking",
-      description = "Display progress bar during gesture seeking",
+      label = stringResource(R.string.pref_player_show_seekbar_when_seeking_title),
+      description = stringResource(R.string.pref_player_show_seekbar_when_seeking_summary),
       checked = showSeekBarWhenSeeking,
       onCheckedChange = { playerPreferences.showSeekBarWhenSeeking.set(it) }
     )
     
     InteractionSwitch(
-      label = "Single tap for center",
-      description = "Use single tap for gesture action",
+      label = stringResource(R.string.pref_gesture_use_single_tap_for_center_title),
+      description = stringResource(R.string.pref_gesture_use_single_tap_for_center_summary),
       checked = useSingleTapForCenter,
       onCheckedChange = { gesturePreferences.useSingleTapForCenter.set(it) }
     )
 
     InteractionSwitch(
-      label = "Single tap for left/right gestures",
-      description = "Use single tap for gesture action",
+      label = stringResource(R.string.pref_gesture_use_single_tap_for_left_right_title),
+      description = stringResource(R.string.pref_gesture_use_single_tap_for_left_right_summary),
       checked = useSingleTapForLeftRight,
       onCheckedChange = { gesturePreferences.useSingleTapForLeftRight.set(it) }
     )
 
     InteractionSwitch(
-      label = "Bounce animation",
-      description = "Seekbar and volume/brightness sliders animate with a bounce effect",
+      label = stringResource(R.string.pref_appearance_enable_bounce_animation_title),
+      description = stringResource(R.string.pref_appearance_enable_bounce_animation_summary),
       checked = enableBounceAnimation,
       onCheckedChange = { appearancePreferences.enableBounceAnimation.set(it) }
     )
 
     InteractionSwitch(
-      label = "Hide button backgrounds",
-      description = "Makes player controls transparent",
+      label = stringResource(R.string.pref_appearance_hide_player_buttons_background_title),
+      description = stringResource(R.string.pref_appearance_hide_player_buttons_background_summary),
       checked = hideBackground,
       onCheckedChange = { appearancePreferences.hidePlayerButtonsBackground.set(it) }
     )
 
     InteractionSwitch(
-      label = "Prevent accidental seeking",
-      description = "Disables seekbar jumping on tap",
+      label = stringResource(R.string.pref_gesture_prevent_seekbar_tap_title),
+      description = stringResource(R.string.pref_gesture_prevent_seekbar_tap_summary),
       checked = preventSeekbarTap,
       onCheckedChange = { gesturePreferences.preventSeekbarTap.set(it) }
     )
 
     InteractionSwitch(
-      label = "Swipe to subtitle seek",
-      description = "Swipe horizontally top or bottom to seek subtitle",
+      label = stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_title),
+      description = stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_summary),
       checked = swipeToSubtitleSeek,
       onCheckedChange = { playerPreferences.swipeToSubtitleSeek.set(it) }
     )
 
     InteractionSwitch(
-      label = "Keep screen on when paused",
-      description = "Prevents screen timeout during pause",
+      label = stringResource(R.string.pref_player_keep_screen_on_when_paused_title),
+      description = stringResource(R.string.pref_player_keep_screen_on_when_paused_summary),
       checked = keepScreenOnWhenPaused,
       onCheckedChange = { playerPreferences.keepScreenOnWhenPaused.set(it) }
     )
 
     InteractionSwitch(
-      label = "Save playback position",
-      description = "Remember where you left off",
+      label = stringResource(R.string.pref_player_save_position_on_quit),
+      description = stringResource(R.string.pref_player_save_position_on_quit_summary),
       checked = savePositionOnQuit,
       onCheckedChange = { playerPreferences.savePositionOnQuit.set(it) }
     )
 
     InteractionSwitch(
-      label = "Auto PiP on navigation",
-      description = "Enter Picture-in-Picture when leaving the app",
+      label = stringResource(R.string.pref_auto_pip_title),
+      description = stringResource(R.string.pref_auto_pip_summary),
       checked = autoPiPOnNavigation,
       onCheckedChange = { playerPreferences.autoPiPOnNavigation.set(it) }
     )

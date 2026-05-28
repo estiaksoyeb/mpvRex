@@ -136,7 +136,7 @@ object PlayerPreferencesScreen : Screen {
               SwitchPreference(
                 value = playlistMode,
                 onValueChange = preferences.playlistMode::set,
-                title = { Text(text = "Enable next/previous navigation") },
+                title = { Text(text = stringResource(R.string.pref_autoplay_title)) },
                 summary = {
                   Text(
                     text = if (playlistMode)
@@ -178,7 +178,7 @@ object PlayerPreferencesScreen : Screen {
               SwitchPreference(
                 value = keepScreenOnWhenPaused,
                 onValueChange = preferences.keepScreenOnWhenPaused::set,
-                title = { Text("Keep screen on when paused") },
+                title = { Text(stringResource(R.string.pref_player_keep_screen_on_when_paused_title)) },
                 summary = {
                   Text(
                     text = if (keepScreenOnWhenPaused)

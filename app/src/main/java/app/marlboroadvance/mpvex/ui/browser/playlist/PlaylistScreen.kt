@@ -407,6 +407,8 @@ object PlaylistScreen : Screen {
       onLongClick = onPlaylistLongClick,
       modifier = modifier,
       emptyTitle = "No playlists found",
-      emptyMessage = "Create a playlist to see it listed here"
+      emptyMessage = "Create a playlist to see it listed here",
+      isRefreshing = isRefreshing,
+      onRefresh = onRefresh
     )
   }

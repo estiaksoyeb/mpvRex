@@ -1389,7 +1389,9 @@ private fun FileSystemBrowserContent(
       },
       modifier = Modifier.weight(1f),
       emptyTitle = "Empty folder",
-      emptyMessage = "This folder contains no videos or subfolders"
+      emptyMessage = "This folder contains no videos or subfolders",
+      isRefreshing = isRefreshing,
+      onRefresh = onRefresh
     )
   }
 }

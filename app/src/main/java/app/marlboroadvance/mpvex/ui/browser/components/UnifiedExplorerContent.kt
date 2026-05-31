@@ -33,6 +33,7 @@ import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.MediaLayoutMode
 import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
+import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
 
 @Composable
 fun <T> UnifiedExplorerContent(
@@ -46,6 +47,8 @@ fun <T> UnifiedExplorerContent(
   emptyTitle: String = "No items",
   emptyMessage: String = "This folder is empty",
   onThumbClick: ((T) -> Unit)? = null,
+  isRefreshing: MutableState<Boolean>? = null,
+  onRefresh: (suspend () -> Unit)? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -88,71 +91,87 @@ fun <T> UnifiedExplorerContent(
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
 
-    if (mediaLayoutMode == MediaLayoutMode.GRID) {
-      LazyVerticalGrid(
-        columns = GridCells.Fixed(columns),
-        state = gridState,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-      ) {
-        items(
-          items = items,
-          key = { getItemId(it) }
-        ) { item ->
-          ExplorerItemCard(
-            item = item,
-            isSelected = isSelected(item),
-            showSubtitleIndicator = showSubtitleIndicator,
-            isGridMode = true,
-            columns = columns,
-            uiSettings = uiSettings,
-            onClick = { onClick(item) },
-            onLongClick = { onLongClick(item) },
-            onThumbClick = {
-              if (onThumbClick != null) {
-                onThumbClick(item)
-              } else if (tapThumbnailToSelect) {
-                onLongClick(item)
-              } else {
-                onClick(item)
+    val contentBlock: @Composable BoxScope.() -> Unit = {
+      if (mediaLayoutMode == MediaLayoutMode.GRID) {
+        LazyVerticalGrid(
+          columns = GridCells.Fixed(columns),
+          state = gridState,
+          modifier = Modifier.fillMaxSize(),
+          contentPadding = PaddingValues(8.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          items(
+            items = items,
+            key = { getItemId(it) }
+          ) { item ->
+            ExplorerItemCard(
+              item = item,
+              isSelected = isSelected(item),
+              showSubtitleIndicator = showSubtitleIndicator,
+              isGridMode = true,
+              columns = columns,
+              uiSettings = uiSettings,
+              onClick = { onClick(item) },
+              onLongClick = { onLongClick(item) },
+              onThumbClick = {
+                if (onThumbClick != null) {
+                  onThumbClick(item)
+                } else if (tapThumbnailToSelect) {
+                  onLongClick(item)
+                } else {
+                  onClick(item)
+                }
               }
-            }
-          )
+            )
+          }
+        }
+      } else {
+        LazyColumn(
+          state = listState,
+          modifier = Modifier.fillMaxSize(),
+          contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          items(
+            items = items,
+            key = { getItemId(it) }
+          ) { item ->
+            ExplorerItemCard(
+              item = item,
+              isSelected = isSelected(item),
+              showSubtitleIndicator = showSubtitleIndicator,
+              isGridMode = false,
+              columns = 1,
+              uiSettings = uiSettings,
+              onClick = { onClick(item) },
+              onLongClick = { onLongClick(item) },
+              onThumbClick = {
+                if (onThumbClick != null) {
+                  onThumbClick(item)
+                } else if (tapThumbnailToSelect) {
+                  onLongClick(item)
+                } else {
+                  onClick(item)
+                }
+              }
+            )
+          }
         }
       }
-    } else {
-      LazyColumn(
-        state = listState,
+    }
+
+    if (isRefreshing != null && onRefresh != null) {
+      PullRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-      ) {
-        items(
-          items = items,
-          key = { getItemId(it) }
-        ) { item ->
-          ExplorerItemCard(
-            item = item,
-            isSelected = isSelected(item),
-            showSubtitleIndicator = showSubtitleIndicator,
-            isGridMode = false,
-            columns = 1,
-            uiSettings = uiSettings,
-            onClick = { onClick(item) },
-            onLongClick = { onLongClick(item) },
-            onThumbClick = {
-              if (onThumbClick != null) {
-                onThumbClick(item)
-              } else if (tapThumbnailToSelect) {
-                onLongClick(item)
-              } else {
-                onClick(item)
-              }
-            }
-          )
-        }
+        listState = listState,
+        content = contentBlock
+      )
+    } else {
+      Box(modifier = modifier.fillMaxSize()) {
+        contentBlock()
       }
     }
   }

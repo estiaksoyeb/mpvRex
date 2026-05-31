@@ -930,7 +930,9 @@ private fun FolderListContent(
     onClick = { onFolderClick(it) },
     onLongClick = { onFolderLongClick(it) },
     emptyTitle = "No video folders found",
-    emptyMessage = "Add videos to your device to see folders here"
+    emptyMessage = "Add videos to your device to see folders here",
+    isRefreshing = isRefreshing,
+    onRefresh = onRefresh
   )
 }
 

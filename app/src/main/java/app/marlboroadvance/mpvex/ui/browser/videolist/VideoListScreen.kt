@@ -643,7 +643,9 @@ fun VideoListContent(
     onLongClick = { onVideoLongClick(it.video) },
     modifier = modifier,
     emptyTitle = "No videos in this folder",
-    emptyMessage = "Videos you add to this folder will appear here"
+    emptyMessage = "Videos you add to this folder will appear here",
+    isRefreshing = isRefreshing,
+    onRefresh = onRefresh
   )
 }
 

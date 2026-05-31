@@ -645,7 +645,8 @@ fun VideoListContent(
     emptyTitle = "No videos in this folder",
     emptyMessage = "Videos you add to this folder will appear here",
     isRefreshing = isRefreshing,
-    onRefresh = onRefresh
+    onRefresh = onRefresh,
+    isInSelectionMode = selectionManager.isInSelectionMode
   )
 }
 

@@ -409,6 +409,7 @@ object PlaylistScreen : Screen {
       emptyTitle = "No playlists found",
       emptyMessage = "Create a playlist to see it listed here",
       isRefreshing = isRefreshing,
-      onRefresh = onRefresh
+      onRefresh = onRefresh,
+      isInSelectionMode = isInSelectionMode
     )
   }

@@ -49,6 +49,7 @@ fun <T> UnifiedExplorerContent(
   onThumbClick: ((T) -> Unit)? = null,
   isRefreshing: MutableState<Boolean>? = null,
   onRefresh: (suspend () -> Unit)? = null,
+  isInSelectionMode: Boolean = false,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -105,6 +106,25 @@ fun <T> UnifiedExplorerContent(
             items = items,
             key = { getItemId(it) }
           ) { item ->
+            val effectiveOnClick = {
+              if (isInSelectionMode) {
+                onLongClick(item)
+              } else {
+                onClick(item)
+              }
+            }
+            val effectiveOnThumbClick = {
+              if (isInSelectionMode) {
+                onLongClick(item)
+              } else if (onThumbClick != null) {
+                onThumbClick(item)
+              } else if (tapThumbnailToSelect) {
+                onLongClick(item)
+              } else {
+                onClick(item)
+              }
+            }
+
             ExplorerItemCard(
               item = item,
               isSelected = isSelected(item),
@@ -112,17 +132,9 @@ fun <T> UnifiedExplorerContent(
               isGridMode = true,
               columns = columns,
               uiSettings = uiSettings,
-              onClick = { onClick(item) },
+              onClick = effectiveOnClick,
               onLongClick = { onLongClick(item) },
-              onThumbClick = {
-                if (onThumbClick != null) {
-                  onThumbClick(item)
-                } else if (tapThumbnailToSelect) {
-                  onLongClick(item)
-                } else {
-                  onClick(item)
-                }
-              }
+              onThumbClick = effectiveOnThumbClick
             )
           }
         }
@@ -137,6 +149,25 @@ fun <T> UnifiedExplorerContent(
             items = items,
             key = { getItemId(it) }
           ) { item ->
+            val effectiveOnClick = {
+              if (isInSelectionMode) {
+                onLongClick(item)
+              } else {
+                onClick(item)
+              }
+            }
+            val effectiveOnThumbClick = {
+              if (isInSelectionMode) {
+                onLongClick(item)
+              } else if (onThumbClick != null) {
+                onThumbClick(item)
+              } else if (tapThumbnailToSelect) {
+                onLongClick(item)
+              } else {
+                onClick(item)
+              }
+            }
+
             ExplorerItemCard(
               item = item,
               isSelected = isSelected(item),
@@ -144,17 +175,9 @@ fun <T> UnifiedExplorerContent(
               isGridMode = false,
               columns = 1,
               uiSettings = uiSettings,
-              onClick = { onClick(item) },
+              onClick = effectiveOnClick,
               onLongClick = { onLongClick(item) },
-              onThumbClick = {
-                if (onThumbClick != null) {
-                  onThumbClick(item)
-                } else if (tapThumbnailToSelect) {
-                  onLongClick(item)
-                } else {
-                  onClick(item)
-                }
-              }
+              onThumbClick = effectiveOnThumbClick
             )
           }
         }

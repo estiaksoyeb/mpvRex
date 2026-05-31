@@ -572,7 +572,8 @@ private fun PlaylistVideoListContent(
     onLongClick = onVideoItemLongClick,
     modifier = modifier,
     emptyTitle = "No videos in this playlist",
-    emptyMessage = "Add videos from the browser to build your playlist"
+    emptyMessage = "Add videos from the browser to build your playlist",
+    isInSelectionMode = selectionManager.isInSelectionMode
   )
 }
 

@@ -111,10 +111,10 @@ object RecentlyPlayedScreen : Screen {
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
     val navigationBarHeight = app.marlboroadvance.mpvex.ui.browser.LocalNavigationBarHeight.current
 
-    // FAB visibility for scroll-based hiding
     val isFabVisible = remember { mutableStateOf(true) }
     val isFabExpanded = remember { mutableStateOf(false) }
     val showLinkDialog = remember { mutableStateOf(false) }
+    val isRefreshing = remember { mutableStateOf(false) }
     
     val coroutineScope = rememberCoroutineScope()
     
@@ -333,6 +333,8 @@ object RecentlyPlayedScreen : Screen {
             isInSelectionMode = selectionManager.isInSelectionMode,
             listState = listState,
             gridState = gridState,
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() }
           )
         }
       }
@@ -416,6 +418,8 @@ private fun RecentItemsContent(
   isInSelectionMode: Boolean = false,
   listState: LazyListState,
   gridState: LazyGridState,
+  isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
+  onRefresh: suspend () -> Unit,
 ) {
   val coroutineScope = rememberCoroutineScope()
 
@@ -436,6 +440,10 @@ private fun RecentItemsContent(
     },
     onLongClick = { item -> selectionManager.handleLongClick(item) },
     emptyTitle = "No recently played items",
-    emptyMessage = "Your recently played videos and playlists will appear here"
+    emptyMessage = "Your recently played videos and playlists will appear here",
+    isRefreshing = isRefreshing,
+    onRefresh = onRefresh,
+    modifier = modifier,
+    isInSelectionMode = isInSelectionMode
   )
 }

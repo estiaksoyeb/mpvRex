@@ -932,7 +932,8 @@ private fun FolderListContent(
     emptyTitle = "No video folders found",
     emptyMessage = "Add videos to your device to see folders here",
     isRefreshing = isRefreshing,
-    onRefresh = onRefresh
+    onRefresh = onRefresh,
+    isInSelectionMode = selectionManager.isInSelectionMode
   )
 }
 

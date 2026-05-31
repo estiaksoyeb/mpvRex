@@ -929,6 +929,7 @@ private fun FolderListContent(
     isSelected = { selectionManager.isSelected(it) },
     onClick = { onFolderClick(it) },
     onLongClick = { onFolderLongClick(it) },
+    onToggleSelection = { selectionManager.toggle(it) },
     emptyTitle = "No video folders found",
     emptyMessage = "Add videos to your device to see folders here",
     isRefreshing = isRefreshing,

@@ -570,6 +570,7 @@ private fun PlaylistVideoListContent(
     isSelected = { selectionManager.isSelected(it) },
     onClick = onVideoItemClick,
     onLongClick = onVideoItemLongClick,
+    onToggleSelection = { selectionManager.toggle(it) },
     modifier = modifier,
     emptyTitle = "No videos in this playlist",
     emptyMessage = "Add videos from the browser to build your playlist",

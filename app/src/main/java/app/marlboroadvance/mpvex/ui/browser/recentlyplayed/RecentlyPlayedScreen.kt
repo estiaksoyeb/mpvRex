@@ -439,6 +439,7 @@ private fun RecentItemsContent(
       }
     },
     onLongClick = { item -> selectionManager.handleLongClick(item) },
+    onToggleSelection = { selectionManager.toggle(it) },
     emptyTitle = "No recently played items",
     emptyMessage = "Your recently played videos and playlists will appear here",
     isRefreshing = isRefreshing,

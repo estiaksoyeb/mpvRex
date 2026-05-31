@@ -405,6 +405,7 @@ object PlaylistScreen : Screen {
       isSelected = { selectionManager.isSelected(it) },
       onClick = onPlaylistClick,
       onLongClick = onPlaylistLongClick,
+      onToggleSelection = { selectionManager.toggle(it) },
       modifier = modifier,
       emptyTitle = "No playlists found",
       emptyMessage = "Create a playlist to see it listed here",

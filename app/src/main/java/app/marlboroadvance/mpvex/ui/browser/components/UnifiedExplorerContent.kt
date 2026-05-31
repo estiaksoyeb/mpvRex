@@ -43,6 +43,7 @@ fun <T> UnifiedExplorerContent(
   isSelected: (T) -> Boolean,
   onClick: (T) -> Unit,
   onLongClick: (T) -> Unit,
+  onToggleSelection: (T) -> Unit,
   modifier: Modifier = Modifier,
   emptyTitle: String = "No items",
   emptyMessage: String = "This folder is empty",
@@ -108,18 +109,18 @@ fun <T> UnifiedExplorerContent(
           ) { item ->
             val effectiveOnClick = {
               if (isInSelectionMode) {
-                onLongClick(item)
+                onToggleSelection(item)
               } else {
                 onClick(item)
               }
             }
             val effectiveOnThumbClick = {
               if (isInSelectionMode) {
-                onLongClick(item)
+                onToggleSelection(item)
               } else if (onThumbClick != null) {
                 onThumbClick(item)
               } else if (tapThumbnailToSelect) {
-                onLongClick(item)
+                onToggleSelection(item)
               } else {
                 onClick(item)
               }
@@ -151,18 +152,18 @@ fun <T> UnifiedExplorerContent(
           ) { item ->
             val effectiveOnClick = {
               if (isInSelectionMode) {
-                onLongClick(item)
+                onToggleSelection(item)
               } else {
                 onClick(item)
               }
             }
             val effectiveOnThumbClick = {
               if (isInSelectionMode) {
-                onLongClick(item)
+                onToggleSelection(item)
               } else if (onThumbClick != null) {
                 onThumbClick(item)
               } else if (tapThumbnailToSelect) {
-                onLongClick(item)
+                onToggleSelection(item)
               } else {
                 onClick(item)
               }
@@ -235,6 +236,7 @@ private fun <T> ExplorerItemCard(
         isSelected = isSelected,
         onClick = onClick,
         onLongClick = onLongClick,
+        onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns
       )
@@ -329,6 +331,7 @@ private fun <T> ExplorerItemCard(
         isSelected = isSelected,
         onClick = onClick,
         onLongClick = onLongClick,
+        onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns
       )

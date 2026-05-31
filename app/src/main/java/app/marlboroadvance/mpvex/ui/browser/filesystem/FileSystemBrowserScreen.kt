@@ -1387,6 +1387,12 @@ private fun FileSystemBrowserContent(
           is FileSystemItem.VideoFile -> onVideoLongClick(item.video)
         }
       },
+      onToggleSelection = { item ->
+        when (item) {
+          is FileSystemItem.Folder -> folderSelectionManager.toggle(item)
+          is FileSystemItem.VideoFile -> videoSelectionManager.toggle(item.video)
+        }
+      },
       modifier = Modifier.weight(1f),
       emptyTitle = "Empty folder",
       emptyMessage = "This folder contains no videos or subfolders",

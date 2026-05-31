@@ -641,6 +641,7 @@ fun VideoListContent(
     isSelected = { selectionManager.isSelected(it.video) },
     onClick = { onVideoClick(it.video) },
     onLongClick = { onVideoLongClick(it.video) },
+    onToggleSelection = { selectionManager.toggle(it.video) },
     modifier = modifier,
     emptyTitle = "No videos in this folder",
     emptyMessage = "Videos you add to this folder will appear here",

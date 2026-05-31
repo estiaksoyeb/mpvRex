@@ -51,6 +51,11 @@ fun <T> UnifiedExplorerContent(
   isRefreshing: MutableState<Boolean>? = null,
   onRefresh: (suspend () -> Unit)? = null,
   isInSelectionMode: Boolean = false,
+  recentlyPlayedFilePath: String? = null,
+  playedFolderPaths: Set<String> = emptySet(),
+  newVideoIds: Set<Long> = emptySet(),
+  watchedVideoIds: Set<Long> = emptySet(),
+  autoScrollToLastPlayed: Boolean = false,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -92,6 +97,29 @@ fun <T> UnifiedExplorerContent(
   } else {
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
+
+    if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && items.isNotEmpty()) {
+      val lastPlayedIndex = items.indexOfFirst { item ->
+        when (item) {
+          is Video -> item.path == recentlyPlayedFilePath
+          is VideoWithPlaybackInfo -> item.video.path == recentlyPlayedFilePath
+          is RecentlyPlayedItem.VideoItem -> item.video.path == recentlyPlayedFilePath
+          is FileSystemItem.VideoFile -> item.video.path == recentlyPlayedFilePath
+          is VideoFolder -> recentlyPlayedFilePath.let { java.io.File(it).parent == item.path }
+          is FileSystemItem.Folder -> recentlyPlayedFilePath.let { java.io.File(it).parent == item.path }
+          else -> false
+        }
+      }
+      if (lastPlayedIndex != -1) {
+        LaunchedEffect(recentlyPlayedFilePath) {
+          if (mediaLayoutMode == MediaLayoutMode.GRID) {
+            gridState.scrollToItem(lastPlayedIndex)
+          } else {
+            listState.scrollToItem(lastPlayedIndex)
+          }
+        }
+      }
+    }
 
     val contentBlock: @Composable BoxScope.() -> Unit = {
       if (mediaLayoutMode == MediaLayoutMode.GRID) {
@@ -135,7 +163,11 @@ fun <T> UnifiedExplorerContent(
               uiSettings = uiSettings,
               onClick = effectiveOnClick,
               onLongClick = { onLongClick(item) },
-              onThumbClick = effectiveOnThumbClick
+              onThumbClick = effectiveOnThumbClick,
+              recentlyPlayedFilePath = recentlyPlayedFilePath,
+              playedFolderPaths = playedFolderPaths,
+              newVideoIds = newVideoIds,
+              watchedVideoIds = watchedVideoIds
             )
           }
         }
@@ -178,7 +210,11 @@ fun <T> UnifiedExplorerContent(
               uiSettings = uiSettings,
               onClick = effectiveOnClick,
               onLongClick = { onLongClick(item) },
-              onThumbClick = effectiveOnThumbClick
+              onThumbClick = effectiveOnThumbClick,
+              recentlyPlayedFilePath = recentlyPlayedFilePath,
+              playedFolderPaths = playedFolderPaths,
+              newVideoIds = newVideoIds,
+              watchedVideoIds = watchedVideoIds
             )
           }
         }
@@ -227,13 +263,26 @@ private fun <T> ExplorerItemCard(
   onClick: () -> Unit,
   onLongClick: () -> Unit,
   onThumbClick: () -> Unit,
+  recentlyPlayedFilePath: String? = null,
+  playedFolderPaths: Set<String> = emptySet(),
+  newVideoIds: Set<Long> = emptySet(),
+  watchedVideoIds: Set<Long> = emptySet(),
 ) {
   when (item) {
     is VideoFolder -> {
+      val isRecentlyPlayed = recentlyPlayedFilePath?.let {
+        java.io.File(it).parent == item.path
+      } ?: false
+      val isNeverPlayed = item.path !in playedFolderPaths
+      val isWatched = (item.videoCount > 0 || item.audioCount > 0) && item.unwatchedVideoCount == 0
+
       FolderCard(
         folder = item,
         uiSettings = uiSettings,
         isSelected = isSelected,
+        isRecentlyPlayed = isRecentlyPlayed,
+        isNeverPlayed = isNeverPlayed,
+        isWatched = isWatched,
         onClick = onClick,
         onLongClick = onLongClick,
         onThumbClick = onThumbClick,
@@ -242,6 +291,9 @@ private fun <T> ExplorerItemCard(
       )
     }
     is Video -> {
+      val isOldAndUnplayed = newVideoIds.contains(item.id)
+      val isWatched = watchedVideoIds.contains(item.id)
+
       VideoCard(
         video = item,
         uiSettings = uiSettings,
@@ -251,7 +303,9 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        showSubtitleIndicator = showSubtitleIndicator
+        showSubtitleIndicator = showSubtitleIndicator,
+        isOldAndUnplayed = isOldAndUnplayed,
+        isWatched = isWatched
       )
     }
     is VideoWithPlaybackInfo -> {
@@ -266,7 +320,9 @@ private fun <T> ExplorerItemCard(
         gridColumns = columns,
         showSubtitleIndicator = showSubtitleIndicator,
         progressPercentage = item.progressPercentage,
-        isWatched = item.isWatched
+        isWatched = item.isWatched,
+        isOldAndUnplayed = item.isOldAndUnplayed,
+        isNeverPlayed = item.isNeverPlayed
       )
     }
     is PlaylistWithCount -> {
@@ -325,10 +381,19 @@ private fun <T> ExplorerItemCard(
         newCount = item.newCount,
         unwatchedVideoCount = item.unwatchedVideoCount,
       )
+      val isRecentlyPlayed = recentlyPlayedFilePath?.let {
+        java.io.File(it).parent == item.path
+      } ?: false
+      val isNeverPlayed = item.path !in playedFolderPaths
+      val isWatched = (item.videoCount > 0 || item.audioCount > 0) && item.unwatchedVideoCount == 0
+
       FolderCard(
         folder = folderModel,
         uiSettings = uiSettings,
         isSelected = isSelected,
+        isRecentlyPlayed = isRecentlyPlayed,
+        isNeverPlayed = isNeverPlayed,
+        isWatched = isWatched,
         onClick = onClick,
         onLongClick = onLongClick,
         onThumbClick = onThumbClick,
@@ -337,6 +402,9 @@ private fun <T> ExplorerItemCard(
       )
     }
     is FileSystemItem.VideoFile -> {
+      val isOldAndUnplayed = newVideoIds.contains(item.video.id)
+      val isWatched = watchedVideoIds.contains(item.video.id)
+
       VideoCard(
         video = item.video,
         uiSettings = uiSettings,
@@ -346,7 +414,9 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        showSubtitleIndicator = showSubtitleIndicator
+        showSubtitleIndicator = showSubtitleIndicator,
+        isOldAndUnplayed = isOldAndUnplayed,
+        isWatched = isWatched
       )
     }
     is PlaylistVideoItem -> {

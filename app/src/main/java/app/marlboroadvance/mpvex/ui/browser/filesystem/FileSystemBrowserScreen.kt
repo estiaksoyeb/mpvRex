@@ -1398,7 +1398,10 @@ private fun FileSystemBrowserContent(
       emptyMessage = "This folder contains no videos or subfolders",
       isRefreshing = isRefreshing,
       onRefresh = onRefresh,
-      isInSelectionMode = isInSelectionMode
+      isInSelectionMode = isInSelectionMode,
+      recentlyPlayedFilePath = recentlyPlayedFilePath,
+      newVideoIds = newVideoIds,
+      watchedVideoIds = watchedVideoIds
     )
   }
 }

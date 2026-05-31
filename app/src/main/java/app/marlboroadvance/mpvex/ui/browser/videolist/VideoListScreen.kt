@@ -647,7 +647,9 @@ fun VideoListContent(
     emptyMessage = "Videos you add to this folder will appear here",
     isRefreshing = isRefreshing,
     onRefresh = onRefresh,
-    isInSelectionMode = selectionManager.isInSelectionMode
+    isInSelectionMode = selectionManager.isInSelectionMode,
+    recentlyPlayedFilePath = recentlyPlayedFilePath,
+    autoScrollToLastPlayed = autoScrollToLastPlayed
   )
 }
 

@@ -934,7 +934,9 @@ private fun FolderListContent(
     emptyMessage = "Add videos to your device to see folders here",
     isRefreshing = isRefreshing,
     onRefresh = onRefresh,
-    isInSelectionMode = selectionManager.isInSelectionMode
+    isInSelectionMode = selectionManager.isInSelectionMode,
+    recentlyPlayedFilePath = recentlyPlayedFilePath,
+    playedFolderPaths = playedFolderPaths
   )
 }
 

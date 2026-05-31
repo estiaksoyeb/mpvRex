@@ -1,0 +1,631 @@
+<resources>
+    <string name="app_name" translatable="false">mpvRex</string>
+    <string name="author_name" translatable="false">Sakhawat</string>
+
+    <string name="generic_reset">Restablecer</string>
+    <string name="generic_share">Compartir</string>
+    <string name="generic_confirm">Confirmar</string>
+    <string name="generic_cancel">Cancelar</string>
+    <string name="generic_ok">Aceptar</string>
+    <string name="generic_unit_ms">ms</string>
+    <string name="generic_disabled">Desactivado</string>
+
+    <string name="pref_preferences">Preferencias</string>
+
+    <string name="pref_appearance_title">Apariencia</string>
+    <string name="pref_appearance_category_bottom_nav">Pestañas de navegación inferior</string>
+    <string name="pref_appearance_tab_home_title">Inicio / Archivos</string>
+    <string name="pref_appearance_tab_home_summary">Mostrar carpetas locales y el explorador de archivos</string>
+    <string name="pref_appearance_tab_shorts_title">RexShorts</string>
+    <string name="pref_appearance_tab_shorts_summary">Alternar fuentes de video vertical de ritmo rápido</string>
+    <string name="pref_appearance_tab_recents_title">Reproducidos recientemente</string>
+    <string name="pref_appearance_tab_recents_summary">Reanudar rápidamente sesiones de video anteriores</string>
+    <string name="pref_appearance_tab_playlists_title">Listas de reproducción</string>
+    <string name="pref_appearance_tab_playlists_summary">Mostrar listas de reproducción de video personalizadas locales</string>
+    <string name="pref_appearance_tab_network_title">Transmisión en red</string>
+    <string name="pref_appearance_tab_network_summary">Acceder a unidades SMB, FTP y WebDAV</string>
+    <string name="pref_appearance_summary">Modo oscuro, Material You</string>
+    <string name="pref_appearance_category_theme">Tema</string>
+    <string name="pref_appearance_darkmode_system">Sistema</string>
+    <string name="pref_appearance_darkmode_light">Claro</string>
+    <string name="pref_appearance_darkmode_dark">Oscuro</string>
+    <string name="pref_appearance_amoled_mode_title">Modo negro AMOLED</string>
+    <string name="pref_appearance_amoled_mode_summary">Usar fondo negro puro para temas oscuros</string>
+    <string name="pref_appearance_material_you_title">Material You</string>
+    <string name="pref_appearance_material_you_summary">Activar colores dinámicos</string>
+    <string name="pref_appearance_material_you_summary_disabled">Solo disponible en Android 12 y versiones superiores</string>
+    <string name="pref_appearance_unlimited_name_lines_title">Mostrar nombres completos</string>
+    <string name="pref_appearance_unlimited_name_lines_summary">Mostrar nombres completos de carpetas y videos sin truncar</string>
+    <string name="pref_appearance_enable_bounce_animation_title">Activar animaciones con rebote</string>
+    <string name="pref_appearance_enable_bounce_animation_summary">La barra de búsqueda y los deslizadores de volumen/brillo se animan con un efecto de rebote</string>
+    <string name="pref_appearance_hide_player_buttons_background_title">Ocultar fondo de botones del reproductor</string>
+    <string name="pref_appearance_hide_player_buttons_background_summary">Ocultar el fondo de todos los botones de control del reproductor</string>
+    <string name="pref_appearance_match_player_controls_to_theme_title">Combinar controles con el tema</string>
+    <string name="pref_appearance_match_player_controls_to_theme_summary">Colorear los botones del reproductor usando los colores del tema actual</string>
+    <string name="pref_appearance_player_always_dark_mode_title">Reproductor siempre en modo oscuro</string>
+    <string name="pref_appearance_player_always_dark_mode_summary">Mantener los controles del reproductor en tema oscuro independientemente del tema de la app</string>
+    <string name="pref_appearance_use_system_font_title">Usar fuente del sistema</string>
+    <string name="pref_appearance_use_system_font_summary">Usar la fuente predeterminada de tu dispositivo en lugar de la fuente de la app</string>  
+    <string name="pref_appearance_category_file_browser">Explorador de archivos</string>
+    <string name="pref_appearance_show_hidden_files_title">Mostrar archivos ocultos</string>
+    <string name="pref_appearance_show_hidden_files_summary">Mostrar carpetas ocultas que comienzan con un punto (.) incluyendo carpetas de android, data, system y archivos .nomedia</string>
+    <string name="pref_appearance_show_unplayed_old_video_label_title">Mostrar etiqueta para videos nuevos no reproducidos</string>
+    <string name="pref_appearance_show_unplayed_old_video_label_summary">Mostrar una etiqueta \"Nuevo\" en los videos agregados dentro de los días especificados que nunca se han reproducido</string>
+    <string name="pref_appearance_unplayed_old_video_days_title">Límite de días para la etiqueta de video nuevo</string>
+    <string name="pref_appearance_unplayed_old_video_days_summary">Los videos agregados dentro de los últimos %d días sin historial de reproducción se marcarán como nuevos</string>
+    <string name="pref_appearance_category_thumbnails">Miniatura</string>
+    <string name="pref_appearance_show_network_thumbnails_title">Mostrar miniaturas de red (Experimental)</string>
+    <string name="pref_appearance_show_network_thumbnails_summary">Generar miniaturas para transmisiones de red (Puede aumentar el uso de datos en redes móviles)</string>
+    <string name="pref_appearance_thumbnail_strategy_title">Estrategia de generación de miniaturas</string>
+    <string name="pref_appearance_thumbnail_strategy_summary">Elegir cómo se extraen las miniaturas de los videos</string>
+    <string name="pref_appearance_thumbnail_strategy_first_frame_title">Primer fotograma</string>
+    <string name="pref_appearance_thumbnail_strategy_first_frame_summary">Extracción más rápida. Utiliza la marca de los 10 segundos del video.</string>
+    <string name="pref_appearance_thumbnail_strategy_position_title">Fotograma en posición</string>
+    <string name="pref_appearance_thumbnail_strategy_position_summary">Requiere más procesamiento. Extrae un fotograma más avanzado en el video para evitar portadas en blanco.</string>
+    <string name="pref_appearance_thumbnail_position_title">Posición del fotograma de miniatura</string>
+    <string name="pref_appearance_thumbnail_position_summary">Extraer miniatura al %d%% de la duración del video</string>
+    <string name="pref_appearance_thumbnail_position_reset">Restablecer posición de miniatura por defecto</string>
+    <string name="pref_appearance_theme_picker_label">Tema de la app</string>
+    <string name="pref_appearance_auto_scroll_title">Desplazamiento automático al último reproducido</string>
+    <string name="pref_appearance_auto_scroll_summary">Desplazarse automáticamente al último video reproducido al abrir listas de videos</string>
+    <string name="pref_appearance_watched_threshold_title">Umbral de visto</string>
+    <string name="pref_appearance_watched_threshold_summary">Marcar el video como visto cuando la reproducción alcance el %d%%</string>
+    <string name="video_label_new">NUEVO</string>
+
+    <!-- Theme names -->
+    <string name="theme_default">Predeterminado</string>
+    <string name="theme_dynamic">Dinámico</string>
+    <string name="theme_cloudflare">Cloudflare</string>
+    <string name="theme_cotton_candy">Algodón de azúcar</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_green_apple">Manzana verde</string>
+    <string name="theme_lavender">Lavanda</string>
+    <string name="theme_midnight">Medianoche</string>
+    <string name="theme_mocha">Mocha</string>
+    <string name="theme_strawberry">Fresa</string>
+    <string name="theme_tidal">Tidal</string>
+    <string name="theme_nord">Nord</string>
+    <string name="theme_tako_green">Tako</string>
+    <string name="theme_yin_yang">Yin Yang</string>
+    <string name="theme_yotsuba">Yotsuba</string>
+    <string name="theme_sapphire">Zafiro</string>
+    <string name="theme_sunset">Atardecer</string>
+    <string name="theme_ocean">Océano</string>
+    <string name="theme_forest">Bosque</string>
+    <string name="theme_rose_gold">Oro rosa</string>
+    <string name="theme_violet">Violeta</string>
+    <string name="theme_amber">Ámbar</string>
+    <string name="theme_coral">Coral</string>
+    <string name="theme_slate">Pizarra</string>
+    <string name="theme_dracula">Dracula</string>
+    <string name="theme_monochrome">Monocromo</string>
+    <string name="theme_catppuccin">Catppuccin</string>
+    <string name="theme_gruvbox">Gruvbox</string>
+    <string name="theme_tokyo_night">Tokyo Night</string>
+    <string name="theme_kanagawa">Kanagawa</string>
+    <string name="theme_rose_pine">Rosé Pine</string>
+
+    <!-- Settings Search -->
+    <string name="settings_search_hint">Buscar ajustes…</string>
+    <string name="settings_search_no_results">No se encontraron ajustes</string>
+    <string name="settings_search_title">Buscar</string>
+
+    <!-- Player Preferences Hardcoded -->
+    <string name="pref_autoplay_title">Activar navegación siguiente/anterior</string>
+    <string name="pref_autoplay_summary">Mostrar botones de siguiente/anterior para todos los videos de la carpeta</string>
+    <string name="pref_autoplay_next_video_title">Reproducir automáticamente el siguiente video</string>
+    <string name="pref_autoplay_next_video_summary">Reproducir automáticamente el siguiente video cuando termine el actual</string>
+    <string name="pref_auto_pip_title">Imagen en imagen automática (PIP)</string>
+    <string name="pref_auto_pip_summary">Entrar automáticamente en modo PIP al presionar inicio o volver</string>
+    <string name="pref_player_resume_on_unlock_title">Reanudar al desbloquear</string>
+    <string name="pref_player_resume_on_unlock_summary_on">Reanudar el video automáticamente después de desbloquear si se estaba reproduciendo antes de bloquear la pantalla</string>
+    <string name="pref_player_resume_on_unlock_summary_off">Mantener el video pausado después de desbloquear la pantalla</string>
+    <string name="pref_dynamic_speed_overlay_title">Superposición de velocidad dinámica</string>
+    <string name="pref_dynamic_speed_overlay_summary">Mostrar superposición avanzada para el control de velocidad durante pulsaciones largas y deslizamientos</string>
+    <string name="pref_show_navigation_bar_title">Mostrar barra de navegación con controles</string>
+
+    <!-- Gesture Preferences Hardcoded -->
+    <string name="pref_double_tap_seek_area_width_title">Ancho del área de búsqueda con doble toque</string>
+    <string name="pref_double_tap_seek_area_width_summary">Actual: %d%%</string>
+
+    <!-- Advanced Preferences Hardcoded -->
+    <string name="pref_export_settings_title">Exportar ajustes</string>
+    <string name="pref_export_settings_summary">Exportar ajustes a un archivo XML</string>
+    <string name="pref_import_settings_title">Importar ajustes</string>
+    <string name="pref_import_settings_summary">Importar ajustes desde un archivo XML</string>
+    <string name="pref_enable_lua_scripts_title">Activar scripts de Lua</string>
+    <string name="pref_enable_lua_scripts_summary">Cargar scripts de Lua desde el directorio de configuración</string>
+    <string name="pref_manage_lua_scripts_title">Gestionar scripts de Lua</string>
+    <string name="pref_manage_lua_scripts_summary">Gestionar scripts de Lua activados</string>
+    <string name="pref_clear_config_cache_title">Borrar caché de configuración</string>
+    <string name="pref_clear_config_cache_summary">Borrar los ajustes guardados en caché de mpv.conf</string>
+    <string name="pref_clear_thumbnail_cache_title">Borrar caché de miniaturas</string>
+    <string name="pref_clear_thumbnail_cache_summary">Eliminar todas las miniaturas de video guardadas en caché (se regenerarán al explorar carpetas)</string>
+
+    <string name="pref_layout_title">Diseño del reproductor</string>
+    <string name="pref_layout_summary">Personalizar el diseño de los botones del reproductor</string>
+    <string name="pref_layout_reset_default">Restablecer valores predeterminados</string>
+    <string name="pref_layout_top_right_controls">Controles superiores derechos</string>
+    <string name="pref_layout_bottom_right_controls">Controles inferiores derechos</string>
+    <string name="pref_layout_bottom_left_controls">Controles inferiores izquierdos</string>
+    <string name="pref_layout_portrait_bottom_controls">Controles inferiores en vertical</string>
+    <string name="pref_layout_preview">Vista previa</string>
+    <string name="pref_layout_reset_title">¿Restablecer diseño?</string>
+    <string name="pref_layout_reset_summary">Todos los diseños personalizados de los controles del reproductor se restablecerán a sus posiciones predeterminadas</string>
+
+    <string name="pref_player">Reproductor</string>
+    <string name="pref_player_summary">Orientación, gestos y controles</string>
+    <string name="pref_player_orientation">Orientación</string>
+    <string name="pref_player_orientation_free">Libre</string>
+    <string name="pref_player_orientation_video">Video</string>
+    <string name="pref_player_orientation_smart">Inteligente</string>
+    <string name="pref_player_orientation_smart_summary">Seguir la orientación del video a menos que se cambie manualmente</string>
+    <string name="pref_player_orientation_portrait">Vertical</string>
+    <string name="pref_player_orientation_reverse_portrait">Vertical inverso</string>
+    <string name="pref_player_orientation_sensor_portrait">Vertical por sensor</string>
+    <string name="pref_player_orientation_landscape">Horizontal</string>
+    <string name="pref_player_orientation_reverse_landscape">Horizontal inverso</string>
+    <string name="pref_player_orientation_sensor_landscape">Horizontal por sensor</string>
+    <string name="pref_player_save_position_on_quit">Guardar posición al salir</string>
+    <string name="pref_player_double_tap_seek_duration">Duración de búsqueda por doble toque</string>
+    <string name="pref_player_custom_skip_duration_title">Duración de salto personalizada</string>
+    <string name="pref_player_custom_skip_duration_summary">Duración para saltar hacia adelante con el botón de salto personalizado</string>
+    <string name="pref_player_seeking_title">Búsqueda / Salto</string>
+    <string name="pref_player_close_after_eof">Cerrar tras finalizar la reproducción</string>
+    <string name="pref_player_remember_brightness">Recordar brillo de la pantalla</string>
+
+    <string name="pref_player_gestures">Gestos</string>
+    <string name="pref_player_gestures_brightness">Gestos de brillo</string>
+    <string name="pref_player_gestures_volume">Gestos de volumen</string>
+    <string name="pref_player_gestures_pinch_to_zoom">Pellizcar para hacer zoom</string>
+    <string name="pref_player_gestures_horizontal_swipe_to_seek">Deslizar horizontalmente para buscar</string>
+    <string name="pref_player_gestures_horizontal_swipe_to_seek_summary">Deslizar hacia la izquierda o derecha en la pantalla para retroceder o avanzar</string>
+    <string name="pref_player_gestures_swipe_to_subtitle_seek_title">Deslizar para buscar subtítulos</string>
+    <string name="pref_player_gestures_swipe_to_subtitle_seek_summary">Deslizar hacia la izquierda o derecha en la parte superior o inferior de la pantalla para pasar subtítulos</string>
+    <string name="pref_player_gestures_horizontal_swipe_sensitivity">Sensibilidad de deslizamiento horizontal</string>
+    <string name="pref_player_gestures_horizontal_swipe_sensitivity_summary">Ajustar cuánta distancia de video se cubre por deslizamiento</string>
+    <string name="pref_player_gestures_hold_for_multiple_speed">Mantener presionado para velocidad múltiple</string>
+
+    <string name="pref_player_controls">Controles</string>
+    <string name="pref_player_controls_disable_media_buttons_title">Desactivar botones multimedia</string>
+    <string name="pref_player_controls_disable_media_buttons_summary">Ignorar comandos de reproducción de auriculares, dispositivos Bluetooth, etc.</string>
+    <string name="pref_player_controls_allow_gestures_in_panels">Permitir gestos en los paneles</string>
+    <string name="pref_player_controls_display_volume_as_percentage">Mostrar volumen como porcentaje</string>
+    <string name="pref_player_controls_show_loading_circle">Mostrar círculo de carga</string>
+    <string name="pref_player_display_show_status_bar">Mostrar barra de estado del sistema con controles</string>
+
+    <string name="pref_player_display">Pantalla</string>
+    <string name="pref_player_display_panel_opacity">Opacidad del panel</string>
+    <string name="pref_player_display_panel_transparency_summary" translatable="false">%d%%</string>
+
+    <string name="pref_gesture">Gestos</string>
+    <string name="pref_gesture_summary">Doble toque, controles multimedia</string>
+    <string name="pref_gesture_double_tap_title">Doble toque</string>
+    <string name="pref_gesture_double_tap_none">Ninguno</string>
+    <string name="pref_gesture_double_tap_seek">Buscar en video</string>
+    <string name="pref_gesture_double_tap_subseek">Buscar en subtítulos</string>
+    <string name="pref_gesture_reverse_double_tap_title">Invertir gestos izquierda/derecha</string>
+    <string name="pref_gesture_reverse_double_tap_summary">Intercambiar los gestos de doble/un solo toque de la izquierda y la derecha</string>
+    <string name="pref_gesture_double_tap_play">Reproducir/Pausar</string>
+    <string name="pref_gesture_double_tap_custom">Personalizado</string>
+    <string name="pref_gesture_double_tap_left_title">Doble toque (izquierda)</string>
+    <string name="pref_gesture_double_tap_center_title">Doble toque (centro)</string>
+    <string name="pref_gesture_single_tap_center_title">Un toque (centro)</string>
+    <string name="pref_gesture_double_tap_right_title">Doble toque (derecha)</string>
+    <string name="pref_gesture_single_tap_right_title">Un toque (derecha)</string>
+    <string name="pref_gesture_single_tap_left_title">Un toque (izquierda)</string>
+    <string name="pref_gesture_use_single_tap_for_center_title">Usar un toque para gesto central</string>
+    <string name="pref_gesture_use_single_tap_for_center_summary">Usar un solo toque en el centro para gestos (como reproducir/pausar) en lugar de un doble toque.</string>
+    <string name="pref_gesture_use_single_tap_for_left_right_title">Usar un toque para gesto izquierda/derecha</string>
+    <string name="pref_gesture_use_single_tap_for_left_right_summary">Usar un solo toque en las áreas izquierda y derecha para gestos en lugar de un doble toque.</string>
+    <string name="pref_gesture_prevent_seekbar_tap_title">Evitar saltos por toques accidentales</string>
+    <string name="pref_gesture_prevent_seekbar_tap_summary">El video solo buscará posición arrastrando la barra, no tocándola.</string>
+    <string name="pref_gesture_use_relative_seeking_title">Usar búsqueda relativa</string>
+    <string name="pref_gesture_use_relative_seeking_summary">Buscar en relación con la posición inicial del arrastre en lugar de la posición absoluta del dedo.</string>
+
+    <string name="pref_gesture_double_tap_custom_info">Puedes asignar acciones personalizadas a estos gestos en input.conf usando los siguientes códigos de tecla:\n\nIzquierda: MBTN_LEFT_DBL\nCentro: MBTN_MID_DBL\nDerecha: MBTN_RIGHT_DBL</string>
+
+    <string name="pref_gesture_media_title">Controles multimedia</string>
+    <string name="pref_gesture_media_previous">Anterior</string>
+    <string name="pref_gesture_media_play">Reproducir/Pausar</string>
+    <string name="pref_gesture_media_next">Siguiente</string>
+    <string name="pref_gesture_media_custom_info">Puedes asignar acciones personalizadas a los controles multimedia en input.conf usando los siguientes códigos de tecla:\n\nAnterior: PREV\nReproducir/Pausar: PLAYPAUSE\nSiguiente: NEXT</string>
+
+    <string name="pref_gesture_view_title">Vista</string>
+    <string name="pref_gesture_tap_thumbnail_to_select_title">Tocar miniatura para seleccionar</string>
+    <string name="pref_gesture_tap_thumbnail_to_select_summary">Cuando está activado, tocar las miniaturas entra en modo de selección. Cuando está desactivado, tocar las miniaturas reproduce el video.</string>
+
+    <string name="pref_decoder">Decodificador</string>
+    <string name="pref_decoder_summary">Decodificación de hardware, formato de píxel, debanding</string>
+    <string name="pref_decoder_profile_title">Perfil de MPV</string>
+    <string name="pref_decoder_try_hw_dec_title">Intentar decodificación por hardware</string>
+    <string name="pref_decoder_gpu_next_title">Usar gpu-next</string>
+    <string name="pref_decoder_gpu_next_summary">Un nuevo motor de renderizado</string>
+    <string name="pref_decoder_gpu_next_enable_title">¿Activar gpu-next?</string>
+    <string name="pref_decoder_gpu_next_warning">Activar gpu-next puede causar problemas de pantalla morada durante la reproducción en algunos dispositivos.</string>
+    <string name="pref_decoder_gpu_next_purple_screen_fix">Si experimentas pantallas moradas, intenta desactivar opengl-pbo en los ajustes Avanzados (mpv.conf):</string>
+    <string name="pref_decoder_gpu_next_enable_anyway">Activar de todos modos</string>
+    <string name="pref_decoder_debanding_title">Debanding (Bandas de color)</string>
+    <string name="pref_decoder_yuv420p_title">Usar formato de píxel YUV420P</string>
+    <string name="pref_decoder_yuv420p_summary">Puede solucionar pantallas negras en ciertos códecs de video, también puede mejorar el rendimiento a costa de la calidad</string>
+    <string name="pref_decoder_vulkan_title">Usar Vulkan</string>
+    <string name="pref_decoder_vulkan_summary">Activar renderizado Vulkan en dispositivos compatibles (puede mejorar el rendimiento)</string>
+    <string name="pref_decoder_vulkan_not_supported">No compatible (requiere Android 13+ con Vulkan 1.3)</string>
+
+    <string name="pref_subtitles">Subtítulos</string>
+    <string name="pref_subtitles_summary">Idiomas preferidos, fuentes y búsqueda</string>
+    <string name="pref_subtitle_search_title">Búsqueda de subtítulos en línea</string>
+    <string name="pref_subtitle_search_summary">Buscar y descargar subtítulos desde fuentes en línea</string>
+    <string name="pref_custom_lua_title">Botones Lua personalizados</string>
+    <string name="pref_custom_lua_summary">Gestionar botones personalizados del reproductor con código Lua</string>
+    <string name="pref_preferred_languages">Idiomas preferidos</string>
+    <string name="pref_subtitles_fonts_dir">Directorio de fuentes</string>
+    <string name="pref_subtitles_autoload_title">Cargar subtítulos automáticamente</string>
+    <string name="pref_subtitles_autoload_summary">Cargar automáticamente subtítulos externos con el mismo nombre.</string>
+    <string name="pref_subtitles_open_at_video_location_title">Abrir en la ubicación del video</string>
+    <string name="pref_subtitles_open_at_video_location_summary">Abrir el selector de archivos en la misma carpeta que el video actual</string>
+    <string name="pref_subtitles_custom_picker_folder_title">Carpeta de selección predeterminada</string>
+    <string name="pref_subtitles_custom_picker_folder_summary">Carpeta elegida para abrir al añadir subtítulos manualmente</string>
+    <string name="pref_subtitles_save_location">Ubicación para guardar subtítulos</string>
+    <string name="pref_subtitles_search_online">Buscar subtítulos en línea…</string>
+    <string name="pref_subtitles_subdl_languages">Idiomas de subtítulos</string>
+    <string name="all_languages">Todos (Filtrado selectivo)</string>
+    <string name="pref_subtitles_clear_downloads">Borrar subtítulos descargados</string>
+    <string name="pref_subtitles_clear_downloads_summary">Eliminar todos los archivos en la ubicación de guardado actual</string>
+    <string name="pref_subtitles_clear_downloads_confirmation">¿Estás seguro de que deseas eliminar todos los subtítulos descargados? Esta acción no se puede deshacer.</string>
+    <string name="toast_subtitles_cleared">Subtítulos descargados eliminados</string>
+    <string name="pref_subtitles_searching">Buscando…</string>
+    <string name="pref_subtitles_found">%d subtítulos encontrados</string>
+    <string name="pref_subtitles_online_search_title">Búsqueda de subtítulos en línea</string>
+    <string name="pref_subtitles_wyzie_api_key_title">Clave API de Wyzie</string>
+    <string name="pref_subtitles_wyzie_api_key_summary">Requerido para la búsqueda de subtítulos. Obtén la tuya en sub.wyzie.io/redeem</string>
+    <string name="pref_subtitles_wyzie_api_key_hint">Introduce la clave API</string>
+    <string name="pref_subtitles_wyzie_api_key_not_set">No establecida</string>
+    <string name="pref_subtitles_wyzie_api_key_masked">••••••••••••••••••••••</string>
+
+    <string name="pref_audio">Audio</string>
+    <string name="pref_audio_summary">Idiomas preferidos, canales de audio, corrección de tono</string>
+    <string name="pref_audio_pitch_correction_title">Activar corrección de tono de audio</string>
+    <string name="pref_audio_pitch_correction_summary">Evita que el audio se vuelva muy agudo a velocidades rápidas y muy grave a velocidades lentas</string>
+    <string name="pref_audio_volume_normalization_title">Normalización de volumen</string>
+    <string name="pref_audio_volume_normalization_summary">Ajustar automáticamente el volumen del audio para mantener niveles de sonoridad consistentes</string>
+    <string name="pref_audio_channels">Canales de audio</string>
+    <string name="pref_audio_channels_auto">Auto</string>
+    <string name="pref_audio_channels_auto_safe">Auto seguro</string>
+    <string name="pref_audio_channels_mono">Mono</string>
+    <string name="pref_audio_channels_stereo">Estéreo</string>
+    <string name="pref_audio_channels_stereo_reversed">Estéreo invertido</string>
+    <string name="pref_audio_preferred_language">Idioma(s) de audio a seleccionar por defecto en videos con múltiples pistas de audio. Sirven los códigos de dos o tres letras. Se pueden separar varios valores por comas.</string>
+    <string name="pref_audio_volume_boost_cap">Límite de amplificación de volumen</string>
+
+    <string name="pref_advanced">Avanzado</string>
+    <string name="pref_advanced_summary">Ubicación de configuración, mpv.conf</string>
+    <string name="pref_advanced_mpv_conf_storage_location">Elegir ubicación del almacenamiento de configuración</string>
+    <string name="pref_advanced_mpv_conf">Editar mpv.conf</string>
+    <string name="pref_advanced_input_conf">Editar input.conf</string>
+    <string name="pref_advanced_dump_logs_title">Volcar registros (Logs)</string>
+    <string name="pref_advanced_dump_logs_summary">Vuelca y copia los registros para compartirlos con los desarrolladores</string>
+    <string name="pref_advanced_verbose_logging_title">Registro detallado (Verbose)</string>
+    <string name="pref_advanced_verbose_logging_summary">Ayuda en la depuración pero puede reducir el rendimiento</string>
+    <string name="pref_advanced_clear_playback_history">Borrar historial de reproducción</string>
+    <string name="pref_advanced_clear_playback_history_confirm_title">¿Estás seguro de que deseas borrar tu historial de reproducción?</string>
+    <string name="pref_advanced_clear_playback_history_confirm_subtitle">Esto borrará todas las posiciones de reproducción de tus archivos anteriores, los subtítulos seleccionados y las pistas de audio junto con sus retrasos y velocidades</string>
+    <string name="pref_advanced_cleared_playback_history">Historial de reproducción borrado</string>
+    <string name="pref_advanced_clear_fonts_cache">Borrar caché de fuentes</string>
+    <string name="pref_advanced_cleared_fonts_cache">Caché de fuentes borrada</string>
+    <string name="pref_advanced_enable_recently_played_title">Reproducidos recientemente</string>
+    <string name="pref_advanced_enable_recently_played_summary">Seguir y mostrar videos y listas de reproducción recientes</string>
+
+    <string name="pref_advanced_features_tooltip">Activar funciones experimentales o avanzadas como la página de estadísticas y el escalado Anime4K</string>
+    <string name="pref_anime4k_title">Escalado Anime4K (Experimental)</string>
+    <string name="pref_anime4k_summary">Activar el filtro de escalado Anime4K</string>
+    <string name="pref_anime4k_incompatibility">Incompatibilidad de Anime4K</string>
+    <string name="pref_anime4k_gpu_next_error">gpu-next es incompatible con los shaders de Anime4K. Cuando Anime4K esté activado, la app usará automáticamente el motor heredado \'gpu\' para mantener la compatibilidad.</string>
+    <string name="pref_anime4k_cannot_use_with_gpu_next">No se puede usar Anime4K cuando gpu-next está activado</string>
+    <string name="anime4k_mode_title">Ajustes preestablecidos de Anime4K</string>
+    <string name="anime4k_quality_title">Variantes de Anime4K</string>
+    <string name="anime4k_mode_toast">Anime4K: Ajuste preestablecido %1$s</string>
+    <string name="anime4k_quality_toast">Variante de Anime4K: %1$s</string>
+
+    <!-- Anime4K Modes (Renamed to Presets in UI) -->
+    <string name="anime4k_mode_off">Apagado</string>
+    <string name="anime4k_mode_a">A</string>
+    <string name="anime4k_mode_b">B</string>
+    <string name="anime4k_mode_c">C</string>
+    <string name="anime4k_mode_a_plus">A+</string>
+    <string name="anime4k_mode_b_plus">B+</string>
+    <string name="anime4k_mode_c_plus">C+</string>
+
+    <!-- Anime4K Qualities (Renamed to Mode in UI) -->
+    <string name="anime4k_quality_fast">Rápido</string>
+    <string name="anime4k_quality_balanced">Equilibrado</string>
+    <string name="anime4k_quality_high">Alto</string>
+
+    <string name="pref_about_title">Acerca de</string>
+    <string name="pref_about_summary">Agradecimientos, licencias</string>
+    <string name="pref_about_oss_libraries">Bibliotecas</string>
+    <string name="pref_about_donate_title">Donar</string>
+    <string name="pref_about_donate_kofi">Ko-fi</string>
+    <string name="pref_about_donate_kofi_summary">Apoyar al desarrollador en Ko-fi</string>
+    <string name="pref_about_donate_kofi_url" translatable="false">https://ko-fi.com/adityanarvekar</string>
+    <string name="pref_about_donate_paypal">PayPal</string>
+    <string name="pref_about_donate_paypal_summary">Apoyar al desarrollador en PayPal</string>
+    <string name="pref_about_donate_paypal_url" translatable="false">https://paypal.me/aadinarvekar</string>
+    <string name="pref_about_donate_upi">UPI</string>
+    <string name="pref_about_donate_upi_id" translatable="false">aadiinarvekar@upi</string>
+
+    <string name="player_sheets_add_ext_sub">Añadir subtítulos externos</string>
+    <string name="player_sheets_add_ext_audio">Añadir pistas de audio externas</string>
+    <string name="player_sheets_tracks_off">Desactivado</string>
+    <string name="player_sheets_track_title_w_lang" translatable="false">#%d: %s (%s)</string>
+    <string name="player_sheets_track_title_wo_lang" translatable="false">#%d: %s</string>
+    <string name="player_sheets_track_lang_wo_title" translatable="false">#%d: %s</string>
+    <string name="player_sheets_chapter_title_substitute_subtitle" translatable="false">Subtitle #%d</string>
+    <string name="player_sheets_chapter_title_substitute_audio" translatable="false">Audio #%d</string>
+    <string name="player_sheets_subtitles_settings_title">Ajustes de subtítulos</string>
+    <string name="player_sheets_subtitles_color_text">Texto</string>
+    <string name="player_sheets_subtitles_color_border">Borde</string>
+    <string name="player_sheets_subtitles_color_background">Fondo</string>
+    <string name="player_sheets_subtitles_border_style">Estilo de borde</string>
+    <string name="player_sheets_subtitles_border_style_outline_and_shadow">Contorno y sombra</string>
+    <string name="player_sheets_subtitles_border_style_opaque_box">Caja opaca</string>
+    <string name="player_sheets_subtitles_shadow_offset">Desplazamiento de sombra</string>
+    <string name="player_sheets_sub_color_red">Rojo</string>
+    <string name="player_sheets_sub_color_green">Verde</string>
+    <string name="player_sheets_sub_color_blue">Azul</string>
+    <string name="player_sheets_sub_color_alpha">Alfa</string>
+    <string name="player_sheets_sub_override_ass">Anular subtítulos ASS/SSA</string>
+    <string name="player_sheets_sub_override_ass_subtitle">Forzar la anulación del formato de subtítulos ASS/SSA</string>
+    <string name="player_sheets_sub_scale_by_window">Escalar según la ventana</string>
+    <string name="player_sheets_sub_scale_by_window_summary">Escalar los subtítulos según el tamaño de la ventana y usar los márgenes del video</string>
+    <string name="player_sheets_sub_scale">Escala</string>
+    <string name="player_sheets_sub_position">Posición</string>
+    <string name="player_sheets_sub_typography_card_title">Tipografía</string>
+    <string name="player_sheets_sub_typography_font">Fuente</string>
+    <string name="player_sheets_sub_typography_font_size">Tamaño de fuente</string>
+    <string name="player_sheets_sub_typography_border_size">Tamaño del borde</string>
+    <string name="player_sheets_sub_colors_card_title">Colores</string>
+    <string name="player_sheets_sub_misc_card_title">Miscelánea</string>
+    <string name="player_sheets_sub_delay_card_title">Retraso de subtítulos</string>
+    <string name="player_sheets_sub_delay_card_delay">Retraso</string>
+    <string name="player_sheets_sub_delay_card_speed">Velocidad</string>
+    <string name="player_sheets_sub_delay_subtitle_type_primary">Subtítulo primario</string>
+    <string name="player_sheets_sub_delay_subtitle_type_secondary">Subtítulo secundario</string>
+    <string name="player_sheets_sub_delay_subtitle_type_primary_and_secondary">Ambos</string>
+    <string name="player_sheets_sub_delay_subtitle_voice_heard">Voz escuchada</string>
+    <string name="player_sheets_sub_delay_subtitle_text_seen">Texto visto</string>
+    <string name="player_sheets_delay_set_as_default">Establecer como predeterminado</string>
+    <string name="player_sheets_audio_delay_card_title">Retraso de audio</string>
+    <string name="player_sheets_sub_delay_audio_sound_heard">Sonido escuchado</string>
+    <string name="player_sheets_sub_delay_sound_sound_spotted">Sonido detectado</string>
+
+    <string name="player_sheets_video_settings_title">Ajustes de video</string>
+    <string name="player_sheets_deband_title">Deband</string>
+    <string name="player_sheets_deband_none">Ninguno</string>
+    <string name="player_sheets_deband_cpu">CPU</string>
+    <string name="player_sheets_deband_gpu">GPU</string>
+    <string name="player_sheets_deband_iterations">Iteraciones</string>
+    <string name="player_sheets_deband_threshold">Umbral</string>
+    <string name="player_sheets_deband_range">Rango</string>
+    <string name="player_sheets_deband_grain">Grano</string>
+    <string name="player_sheets_filters_title">Filtros</string>
+    <string name="player_sheets_filters_brightness">Brillo</string>
+    <string name="player_sheets_filters_contrast">Contraste</string>
+    <string name="player_sheets_filters_gamma">Gamma</string>
+    <string name="player_sheets_filters_Saturation">Saturación</string>
+    <string name="player_sheets_filters_hue">Tono</string>
+    <string name="player_sheets_filters_sharpness">Nitidez</string>
+    <string name="player_sheets_filters_warning">Es posible que algunos filtros no funcionen con tu controlador de video actual</string>
+
+    <string name="player_sheets_speed_slider_label">Velocidad</string>
+    <string name="player_sheets_speed_make_default">Hacer velocidad predeterminada</string>
+
+    <string name="player_sheets_decoder_formatted" formatted="false">%s (%s)</string>
+
+    <string name="numeric_chooser_value_too_big">Valor demasiado grande</string>
+    <string name="numeric_chooser_value_too_small">Valor demasiado pequeño</string>
+
+    <string name="player_sheets_more_title">Más</string>
+    <string name="player_sheets_stats_page_title">Página de estadísticas por defecto</string>
+    <string name="player_sheets_stats_page_chip">Página %d</string>
+    <string name="player_sheets_stats_page_0_desc">Desactivado. Sin estadísticas superpuestas.</string>
+    <string name="player_sheets_stats_page_1_desc">Resumen. Uso de CPU/GPU, sincronización A/V, fotogramas perdidos, velocidad de reloj.</string>
+    <string name="player_sheets_stats_page_2_desc">Tiempos de fotogramas. Tiempos de decodificación/renderizado, información del escalador.</string>
+    <string name="player_sheets_stats_page_3_desc">Estado de caché. Salud del búfer, caché del demuxer, rangos buscables.</string>
+    <string name="player_sheets_stats_page_4_desc">Asignación de teclas actual. Lista de atajos de teclado asignados.</string>
+    <string name="player_sheets_stats_page_5_desc">Lista de pistas. Detalles de las pistas de video, audio y subtítulos.</string>
+    <string name="player_speed" translatable="false">%.2fx</string>
+
+    <string name="player_aspect_fit">Ajustar a la pantalla</string>
+    <string name="player_aspect_crop">Recortar</string>
+    <string name="player_aspect_stretch">Estirar</string>
+
+    <string name="crash_screen_title">¡Oops!</string>
+    <string name="crash_screen_subtitle">Parece que %s experimentó un error inesperado. Considera compartir los registros de cierre (crash logs) en un problema de GitHub.</string>
+    <string name="crash_screen_logs_title">Registros de error:</string>
+    <string name="crash_screen_share">Compartir registros de error</string>
+    <string name="crash_screen_restart">Reiniciar la app</string>
+    <string name="crash_screen_fix_crash">Solucionar error (Eliminar Base de Datos)</string>
+    <string name="crash_screen_database_deleted">Base de datos eliminada correctamente. Por favor, reinicia la app.</string>
+    <string name="crash_screen_database_hint">Este error parece estar relacionado con la base de datos. Intenta eliminarla para solucionarlo.</string>
+
+    <string name="timer_picker_enter_timer">Introduce el tiempo</string>
+    <string name="timer_picker_pick_time">Elige el tiempo</string>
+    <string name="timer_title">Temporizador de apagado</string>
+    <string name="timer_remaining">Faltan %s</string>
+
+    <string name="toast_sleep_timer_ended">El temporizador de apagado ha finalizado</string>
+
+    <string name="volume_slider_absolute_value" translatable="false">%d</string>
+
+    <string name="value_percentage_int" translatable="false">%d%%</string>
+
+    <string name="github_repo_url" translatable="false">https://github.com/sfsakhawat999/mpvRex</string>
+    <string name="swap_the_volume_and_brightness_slider">Intercambiar deslizadores de volumen y brillo</string>
+    <string name="pref_player_display_reduce_player_animation">Reducir animaciones del reproductor</string>
+    <string name="pref_player_display_hide_player_control_time">Ocultar tiempo de los controles del reproductor</string>
+    <string name="show_splash_ovals_on_double_tap_to_seek">Mostrar ondas al buscar con doble toque</string>
+    <string name="show_time_on_double_tap_to_seek">Mostrar el tiempo de salto</string>
+    <string name="player_gesture_seek_indicator" translatable="false">[%1$s%2$s] (%3$s)</string>
+
+    <string name="pref_audio_channels_auto_safe_desc">Predeterminado, selección automática segura</string>
+    <string name="pref_audio_channels_auto_desc">Selección automática</string>
+    <string name="pref_audio_channels_mono_desc">Mezclar a mono (Downmix)</string>
+    <string name="pref_audio_channels_stereo_desc">Mezclar a estéreo (Downmix)</string>
+    <string name="pref_audio_channels_reverse_stereo_desc">Intercambiar canales izquierdo y derecho</string>
+
+    <string name="player_sheets_frame_navigation_title">Navegación por fotogramas</string>
+    <string name="player_sheets_frame_navigation_snapshot_saved" translatable="false">Saved to Pictures/mpvSnaps</string>
+    <string name="player_sheets_frame_navigation_include_subtitles">Incluir subtítulos en la captura de pantalla</string>
+
+    <string name="player_sheets_zoom_slider_label">Zoom de video</string>
+
+    <plurals name="seconds">
+        <item quantity="one">%1$d segundo</item>
+        <item quantity="other">%1$d segundos</item>
+    </plurals>
+
+    <!-- Background Playback -->
+    <string name="background_playback_title">Reproducción en segundo plano</string>
+    <string name="deselect_all">Deseleccionar todo</string>
+    <string name="select_all">Seleccionar todo</string>
+    <string name="invert_selection">Invertir selección</string>
+    <string name="selected_items">%1$d / %2$d seleccionados</string>
+    <string name="selection_options">Opciones de selección</string>
+    <string name="back">Atrás</string>
+    <string name="sort">Ordenar</string>
+    <string name="settings">Ajustes</string>
+    <string name="rename">Renombrar</string>
+    <string name="info">Información</string>
+    <string name="delete">Eliminar</string>
+    <string name="got_it">Entendido</string>
+    <string name="general">General</string>
+    <string name="not_set_video_default">No establecido (usará el predeterminado del video)</string>
+    <string name="enter_language_codes">Introduce los códigos de idioma separados por comas (ej. eng,jpn,spa)</string>
+    <string name="language_codes_placeholder">eng,jpn,spa</string>
+    <string name="not_set_system_fonts">No establecido (usando fuentes del sistema)</string>
+    <string name="fonts_loaded">%1$d fuentes cargadas</string>
+    <string name="reload_fonts">Recargar fuentes</string>
+    <string name="clear_font_directory">Borrar directorio de fuentes</string>
+    <string name="reset_to_default_font">Restablecer a la fuente por defecto</string>
+    <string name="set_as_default">Establecer como predeterminado</string>
+
+    <!-- Notification strings -->
+    <string name="notification_channel_name">Reproducción multimedia</string>
+    <string name="notification_channel_description">Controles de reproducción multimedia</string>
+    <string name="notification_playing">Reproduciendo</string>
+
+    <!-- Media Info Activity -->
+
+    <string name="pref_player_use_precise_seeking">Usar búsqueda precisa</string>
+    <string name="pref_player_show_seekbar_when_seeking_title">Mostrar barra de búsqueda al desplazarse</string>
+    <string name="pref_player_show_seekbar_when_seeking_summary">Mostrar la barra de progreso del video durante las búsquedas por gestos</string>
+
+    <!-- Folders Preferences -->
+    <string name="pref_folders_title">Carpetas</string>
+    <string name="pref_folders_summary">Gestionar lista negra de carpetas</string>
+    <string name="pref_folders_empty_title">No hay carpetas en la lista negra</string>
+    <string name="pref_folders_empty_message">Toca el botón de abajo para añadir carpetas que quieras ocultar de la lista de carpetas</string>
+    <string name="pref_folders_add_folder">Añadir carpeta a la lista negra</string>
+    <string name="pref_folders_select_folders">Seleccionar carpeta(s)</string>
+    <string name="pref_folders_loading">Cargando carpetas…</string>
+    <string name="pref_folders_no_folders">No se encontraron carpetas</string>
+    <string name="pref_folders_clear_all">Limpiar todas las carpetas de la lista negra</string>
+    <string name="pref_folders_clear_all_confirm_title">¿Limpiar todas las carpetas de la lista negra?</string>
+    <string name="pref_folders_clear_all_confirm_message">Esto eliminará todas las carpetas de la lista negra. Podrás volver a añadirlas más tarde.</string>
+    <string name="pref_folders_blacklist">Lista negra</string>
+    <string name="pref_folders_blacklisted">Carpeta(s) en la lista negra</string>
+
+    <!-- M3U Playlist Strings -->
+    <string name="playlist_add_m3u_title">Añadir lista de reproducción M3U</string>
+    <string name="playlist_add_m3u_description">Introduce la URL de un archivo de lista de reproducción M3U</string>
+    <string name="playlist_url_label">URL de la lista de reproducción</string>
+    <string name="playlist_url_placeholder">https://example.com/playlist.m3u</string>
+    <string name="playlist_url_hint">Soporta formatos .m3u y .m3u8</string>
+    <string name="playlist_add_success">Lista de reproducción M3U añadida correctamente</string>
+    <string name="playlist_add_error">Error al añadir la lista de reproducción M3U: %s</string>
+    <string name="playlist_create_empty">Crear lista de reproducción vacía</string>
+    <string name="playlist_add_from_url">Añadir desde URL M3U/M3U8</string>
+    <string name="playlist_refresh_m3u">Actualizar lista de reproducción M3U</string>
+    <string name="playlist_refresh_success">Lista de reproducción actualizada correctamente</string>
+    <string name="playlist_refresh_error">Error al actualizar la lista de reproducción: %s</string>
+    <string name="playlist_m3u_badge">M3U</string>
+
+    <string name="open_file">Abrir archivo</string>
+    <string name="recently_played">Reproducidos recientemente</string>
+    <string name="open_link">Abrir enlace</string>
+    <string name="install">Instalar</string>
+    <string name="download">Descargar</string>
+    <string name="failed_load_audio_invalid_uri">Error al cargar el archivo de audio: URI no válida</string>
+    <string name="audio_track_added">Pista de audio añadida</string>
+    <string name="failed_load_audio">Error al cargar el audio: %s</string>
+    <string name="invalid_subtitle_format">Formato de archivo de subtítulos no válido</string>
+    <string name="subtitle_added">%s añadido</string>
+    <string name="failed_load_subtitle">Error al cargar el subtítulo</string>
+    <string name="remove_from_playlist">¿Eliminar %1$d %2$s de la lista de reproducción?</string>
+    <string name="remove_playlist_items_confirm">Los %2$s seleccionados se eliminarán de esta lista de reproducción. Los %3$s originales no se borrarán.</string>
+    <string name="search_videos">Buscar videos…</string>
+    <string name="search_folders_and_videos">Buscar carpetas y videos…</string>
+    <string name="search_playlists">Buscar listas de reproducción…</string>
+    <string name="play_recently_played_or_first">Reproducir el reciente o el primer video</string>
+    <string name="toggle_menu">Alternar menú</string>
+    <string name="close">Cerrar</string>
+    <string name="copy">Copiar</string>
+    <string name="done">Listo</string>
+    <string name="create">Crear</string>
+    <string name="select">Seleccionar</string>
+    <string name="browse">Explorar</string>
+    <string name="disconnect">Desconectar</string>
+    <string name="connect">Conectar</string>
+    <string name="remove">Quitar</string>
+    <string name="add">Añadir</string>
+    <string name="ignore">Ignorar</string>
+    <string name="check_for_updates_now">Buscar actualizaciones ahora</string>
+    <string name="loading_detailed_information">Cargando información detallada…</string>
+    <string name="stream_url">URL de transmisión</string>
+    <string name="export_complete">Exportación completada</string>
+    <string name="import_complete">Importación completada</string>
+    <string name="auto_picture_in_picture">Imagen en imagen automática</string>
+    <string name="dynamic_speed_overlay">Superposición de velocidad dinámica</string>
+    <string name="show_navigation_bar_with_controls">Mostrar barra de navegación con controles</string>
+    <string name="enable_lua_scripts">Activar scripts de Lua</string>
+    <string name="manage_lua_scripts">Gestionar scripts de Lua</string>
+    <string name="rename_playlist">Renombrar lista de reproducción</string>
+    <string name="create_playlist">Crear lista de reproducción</string>
+    <string name="add_connection">Añadir conexión</string>
+    <string name="playlist_name">Nombre de la lista de reproducción</string>
+    <string name="playlist_url">URL de la lista de reproducción</string>
+    <string name="enter_url">Introduce la URL</string>
+    <string name="new_name">Nombre nuevo</string>
+    <string name="folder_name">Nombre de la carpeta</string>
+    <string name="video_url">URL del video</string>
+    <string name="choose_local_m3u_file">Elegir archivo M3U local</string>
+    <string name="add_from_url">Añadir desde URL</string>
+    <string name="home">Inicio</string>
+    <string name="recents">Recientes</string>
+    <string name="playlists">Listas</string>
+    <string name="network">Red</string>
+    <string name="seconds">Segundos</string>
+    <string name="milliseconds">Milisegundos</string>
+    <string name="name">Nombre</string>
+    <string name="protocol">Protocolo</string>
+    <string name="host_ip_address">Host/Dirección IP</string>
+    <string name="port">Puerto</string>
+    <string name="path">Ruta</string>
+    <string name="anonymous_guest_access">Acceso anónimo/invitado</string>
+    <string name="use_https_secure_connection">Usar HTTPS (conexión segura)</string>
+    <string name="username">Nombre de usuario</string>
+    <string name="password">Contraseña</string>
+    <string name="selected_long_press_to_reorder">Seleccionado (mantén pulsado para reordenar)</string>
+    <string name="available">Disponible</string>
+    <string name="width">Ancho</string>
+    <string name="height">Alto</string>
+    <string name="filter_presets">Filtros preestablecidos</string>
+    <string name="no_storage_devices_found">No se encontraron dispositivos de almacenamiento</string>
+    <string name="no_folders_or_supported_files">No hay carpetas ni archivos compatibles</string>
+    <string name="hello_world">Hola mundo</string>
+
+    <!-- Browser Preferences -->
+    <string name="pref_show_audio_files_title">Mostrar archivos de audio</string>
+    <string name="pref_show_audio_files_summary">Mostrar e indexar archivos de audio en el explorador y las listas de reproducción</string>
+</resources>

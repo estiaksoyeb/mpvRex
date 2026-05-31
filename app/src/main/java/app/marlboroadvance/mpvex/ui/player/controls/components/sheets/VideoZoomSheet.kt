@@ -37,6 +37,12 @@ import app.marlboroadvance.mpvex.preferences.PlayerPreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.components.PlayerSheet
 import app.marlboroadvance.mpvex.presentation.components.SliderItem
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.draw.scale
 import app.marlboroadvance.mpvex.ui.theme.spacing
 import `is`.xyz.mpv.MPVLib
 import org.koin.compose.koinInject
@@ -172,6 +178,30 @@ private fun ZoomVideoSheet(
         Switch(
           checked = panAndZoomEnabled,
           onCheckedChange = onPanAndZoomToggle,
+          modifier = Modifier.scale(0.8f),
+          thumbContent = {
+            Crossfade(
+              targetState = panAndZoomEnabled,
+              animationSpec = tween(durationMillis = 200),
+              label = "SwitchIconAnimation"
+            ) { isChecked ->
+              if (isChecked) {
+                Icon(
+                  imageVector = Icons.Filled.Check,
+                  contentDescription = null,
+                  modifier = Modifier.size(SwitchDefaults.IconSize),
+                  tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+              } else {
+                Icon(
+                  imageVector = Icons.Filled.Close,
+                  contentDescription = null,
+                  modifier = Modifier.size(SwitchDefaults.IconSize),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+              }
+            }
+          }
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(

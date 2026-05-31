@@ -47,7 +47,7 @@ import app.marlboroadvance.mpvex.ui.preferences.VulkanUtils
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -195,7 +195,7 @@ object DecoderPreferencesScreen : Screen {
               PreferenceDivider()
 
               // val useVulkan by preferences.useVulkan.collectAsState() // Moved up for gpuNext logic
-              SwitchPreference(
+             SwitchPreference(
                 value = useVulkan,
                 onValueChange = { enabled ->
                   preferences.useVulkan.set(enabled)

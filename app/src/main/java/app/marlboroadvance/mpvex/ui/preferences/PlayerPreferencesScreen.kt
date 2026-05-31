@@ -30,7 +30,7 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
-import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -370,11 +370,11 @@ object PlayerPreferencesScreen : Screen {
                 value = showDynamicSpeedOverlay,
                 onValueChange = preferences.showDynamicSpeedOverlay::set,
                 title = { Text("Dynamic Speed Overlay") },
-                summary = { 
+                summary = {
                   Text(
                     "Show advance overlay for speed control during long press and swipe",
                     color = MaterialTheme.colorScheme.outline,
-                  ) 
+                  )
                 }
               )
             }

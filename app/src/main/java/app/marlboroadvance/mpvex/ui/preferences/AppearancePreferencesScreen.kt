@@ -37,6 +37,7 @@ import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.GesturePreferences
 import app.marlboroadvance.mpvex.preferences.MultiChoiceSegmentedButton
 import app.marlboroadvance.mpvex.ui.preferences.components.ThemePicker
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.theme.DarkMode
@@ -46,7 +47,6 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
-import me.zhanghai.compose.preference.SwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 import androidx.compose.runtime.remember
@@ -572,7 +572,7 @@ object AppearancePreferencesScreen : Screen {
                                     text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_summary),
                                     modifier = Modifier.padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 12.dp),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.outline,
                                 )
                                 MultiChoiceSegmentedButton(
                                     choices = persistentListOf(

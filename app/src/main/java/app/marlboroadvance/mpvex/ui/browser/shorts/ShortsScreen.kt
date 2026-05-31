@@ -37,6 +37,10 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.draw.scale
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -728,7 +732,31 @@ private fun MoreActionsSheet(
                 trailingContent = {
                     Switch(
                         checked = isAutoSwipeEnabled,
-                        onCheckedChange = { onToggleAutoSwipe() }
+                        onCheckedChange = { onToggleAutoSwipe() },
+                        modifier = Modifier.scale(0.8f),
+                        thumbContent = {
+                            Crossfade(
+                                targetState = isAutoSwipeEnabled,
+                                animationSpec = tween(durationMillis = 200),
+                                label = "SwitchIconAnimation"
+                            ) { isChecked ->
+                                if (isChecked) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     )
                 },
                 modifier = Modifier.clickable { onToggleAutoSwipe() },

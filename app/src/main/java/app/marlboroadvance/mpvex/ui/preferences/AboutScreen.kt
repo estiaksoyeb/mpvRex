@@ -59,7 +59,7 @@ import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.crash.CrashActivity.Companion.collectDeviceInfo
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import me.zhanghai.compose.preference.Preference
-import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable

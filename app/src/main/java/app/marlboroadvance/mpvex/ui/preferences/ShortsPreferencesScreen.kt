@@ -31,7 +31,7 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
-import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -142,7 +142,12 @@ object ShortsPreferencesScreen : Screen {
                                 sliderValue = maxDuration.toFloat(),
                                 onSliderValueChange = { browserPreferences.maxHorizontalVideoDurationMinutes.set(it.roundToInt()) },
                                 title = { Text("Max Horizontal Duration") },
-                                summary = { Text("Limit horizontal videos to $maxDuration minute${if (maxDuration > 1) "s" else ""}") },
+                                summary = { 
+                                    Text(
+                                        text = "Limit horizontal videos to $maxDuration minute${if (maxDuration > 1) "s" else ""}",
+                                        color = MaterialTheme.colorScheme.outline
+                                    ) 
+                                },
                                 valueRange = 1f..10f,
                                 valueSteps = 9,
                                 enabled = includeHorizontal,
@@ -161,7 +166,12 @@ object ShortsPreferencesScreen : Screen {
                         PreferenceCard {
                             Preference(
                                 title = { Text("Blocked Videos") },
-                                summary = { Text("View and manage blocked shorts") },
+                                summary = { 
+                                    Text(
+                                        text = "View and manage blocked shorts",
+                                        color = MaterialTheme.colorScheme.outline
+                                    ) 
+                                },
                                 icon = {
                                     Icon(
                                         Icons.Outlined.Block,

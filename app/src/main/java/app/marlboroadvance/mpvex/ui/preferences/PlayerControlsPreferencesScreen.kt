@@ -55,7 +55,7 @@ import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import me.zhanghai.compose.preference.SliderPreference
 import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.toFixed
 import app.marlboroadvance.mpvex.ui.preferences.components.PlayerButtonChip
@@ -305,7 +305,7 @@ object PlayerControlsPreferencesScreen : Screen {
             var customTimeValue by remember { mutableStateOf("") }
             
             PreferenceCard {
-              SwitchPreference(
+            SwitchPreference(
                 value = enableBounceAnimation,
                 onValueChange = { appearancePrefs.enableBounceAnimation.set(it) },
                 title = {
@@ -397,6 +397,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     } else {
                       "$playerTimeToDisappear ms"
                     },
+                      color = MaterialTheme.colorScheme.outline,
                   )
                 },
               )

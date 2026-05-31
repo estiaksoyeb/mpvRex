@@ -36,6 +36,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.ripple
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -570,6 +575,30 @@ private fun ContentTogglesSection(
         Switch(
           checked = toggle.checked,
           onCheckedChange = toggle.onCheckedChange,
+          modifier = Modifier.scale(0.8f),
+          thumbContent = {
+            Crossfade(
+              targetState = toggle.checked,
+              animationSpec = tween(durationMillis = 200),
+              label = "SwitchIconAnimation"
+            ) { isChecked ->
+              if (isChecked) {
+                Icon(
+                  imageVector = Icons.Filled.Check,
+                  contentDescription = null,
+                  modifier = Modifier.size(SwitchDefaults.IconSize),
+                  tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+              } else {
+                Icon(
+                  imageVector = Icons.Filled.Close,
+                  contentDescription = null,
+                  modifier = Modifier.size(SwitchDefaults.IconSize),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+              }
+            }
+          }
         )
       }
     }

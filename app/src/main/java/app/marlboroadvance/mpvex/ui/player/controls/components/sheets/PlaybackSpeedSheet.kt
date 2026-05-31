@@ -58,7 +58,7 @@ import app.marlboroadvance.mpvex.presentation.components.SliderItem
 import app.marlboroadvance.mpvex.ui.theme.spacing
 import `is`.xyz.mpv.MPVLib
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
+import app.marlboroadvance.mpvex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 import app.marlboroadvance.mpvex.presentation.components.RepeatingIconButton
 import kotlin.math.pow
@@ -244,41 +244,28 @@ fun PlaybackSpeedSheet(
         // Audio Pitch Correction
         val pitchCorrection by audioPreferences.audioPitchCorrection.collectAsState()
         
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { 
-                    val newValue = !pitchCorrection
-                    audioPreferences.audioPitchCorrection.set(newValue)
-                    MPVLib.setPropertyBoolean("audio-pitch-correction", newValue)
-                }
-                .padding(horizontal = MaterialTheme.spacing.medium, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+        SwitchPreference(
+            value = pitchCorrection,
+            onValueChange = { newValue ->
+                audioPreferences.audioPitchCorrection.set(newValue)
+                MPVLib.setPropertyBoolean("audio-pitch-correction", newValue)
+            },
+            title = {
                 Text(
                     text = stringResource(id = R.string.pref_audio_pitch_correction_title),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
+            },
+            summary = {
                 Text(
                     text = stringResource(id = R.string.pref_audio_pitch_correction_summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            androidx.compose.material3.Switch(
-                checked = pitchCorrection,
-                onCheckedChange = { 
-                    audioPreferences.audioPitchCorrection.set(it)
-                    MPVLib.setPropertyBoolean("audio-pitch-correction", it)
-                },
-                modifier = Modifier.scale(0.8f) // Make switch slightly smaller
-            )
-        }
-
-
+            },
+            switchModifier = Modifier.scale(0.8f)
+        )
       }
 
       Row(

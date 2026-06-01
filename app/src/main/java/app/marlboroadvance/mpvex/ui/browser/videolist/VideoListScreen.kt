@@ -649,7 +649,8 @@ fun VideoListContent(
     onRefresh = onRefresh,
     isInSelectionMode = selectionManager.isInSelectionMode,
     recentlyPlayedFilePath = recentlyPlayedFilePath,
-    autoScrollToLastPlayed = autoScrollToLastPlayed
+    autoScrollToLastPlayed = autoScrollToLastPlayed,
+    scrollTriggerKey = "${sortType.name}:${sortOrder.name}"
   )
 }
 

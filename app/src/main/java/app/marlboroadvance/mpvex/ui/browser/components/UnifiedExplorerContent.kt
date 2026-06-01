@@ -57,6 +57,7 @@ fun <T> UnifiedExplorerContent(
   newVideoIds: Set<Long> = emptySet(),
   watchedVideoIds: Set<Long> = emptySet(),
   autoScrollToLastPlayed: Boolean = false,
+  scrollTriggerKey: Any? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -99,6 +100,17 @@ fun <T> UnifiedExplorerContent(
   } else {
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
+
+    // Scroll to top whenever the caller changes the sort key, skipping the initial composition
+    val isInitialTrigger = remember { mutableStateOf(true) }
+    LaunchedEffect(scrollTriggerKey) {
+      if (isInitialTrigger.value) {
+        isInitialTrigger.value = false
+        return@LaunchedEffect
+      }
+      listState.scrollToItem(0)
+      gridState.scrollToItem(0)
+    }
 
     if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && items.isNotEmpty()) {
       val lastPlayedIndex = items.indexOfFirst { item ->

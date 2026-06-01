@@ -1616,6 +1616,42 @@ fun FileSystemSortDialog(
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
+  val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
+  val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
+  val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
+  val videoGridColumnsPortrait by browserPreferences.videoGridColumnsPortrait.collectAsState()
+  val videoGridColumnsLandscape by browserPreferences.videoGridColumnsLandscape.collectAsState()
+
+  val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+  val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+  val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+  val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+
+  val folderGridColumnSelector = if (mediaLayoutMode == app.marlboroadvance.mpvex.preferences.MediaLayoutMode.GRID) {
+    app.marlboroadvance.mpvex.ui.browser.dialogs.GridColumnSelector(
+      label = "Grid Columns (${if (isLandscape) "Landscape" else "Portrait"})",
+      currentValue = folderGridColumns,
+      onValueChange = {
+        if (isLandscape) browserPreferences.folderGridColumnsLandscape.set(it)
+        else browserPreferences.folderGridColumnsPortrait.set(it)
+      },
+      valueRange = if (isLandscape) 3f..5f else 2f..4f,
+      steps = if (isLandscape) 1 else 1,
+    )
+  } else null
+
+  val videoGridColumnSelector = if (mediaLayoutMode == app.marlboroadvance.mpvex.preferences.MediaLayoutMode.GRID) {
+    app.marlboroadvance.mpvex.ui.browser.dialogs.GridColumnSelector(
+      label = "Video Grid Columns (${if (isLandscape) "Landscape" else "Portrait"})",
+      currentValue = videoGridColumns,
+      onValueChange = {
+        if (isLandscape) browserPreferences.videoGridColumnsLandscape.set(it)
+        else browserPreferences.videoGridColumnsPortrait.set(it)
+      },
+      valueRange = if (isLandscape) 3f..5f else 1f..3f,
+      steps = if (isLandscape) 1 else 1,
+    )
+  } else null
 
   SortDialog(
     isOpen = isOpen,
@@ -1682,13 +1718,18 @@ fun FileSystemSortDialog(
       secondOptionLabel = "Grid",
       firstOptionIcon = Icons.AutoMirrored.Filled.ViewList,
       secondOptionIcon = Icons.Filled.GridView,
-      isFirstOptionSelected = true, // Always list mode
-      onViewModeChange = { /* Disabled - do nothing */ },
+      isFirstOptionSelected = mediaLayoutMode == app.marlboroadvance.mpvex.preferences.MediaLayoutMode.LIST,
+      onViewModeChange = { isFirstOption ->
+        browserPreferences.mediaLayoutMode.set(
+          if (isFirstOption) app.marlboroadvance.mpvex.preferences.MediaLayoutMode.LIST
+          else app.marlboroadvance.mpvex.preferences.MediaLayoutMode.GRID
+        )
+      },
     ),
-    folderGridColumnSelector = null,
-    videoGridColumnSelector = null,
+    folderGridColumnSelector = folderGridColumnSelector,
+    videoGridColumnSelector = videoGridColumnSelector,
     enableViewModeOptions = isAtRoot,
-    enableLayoutModeOptions = false, // Disabled/grayed out
+    enableLayoutModeOptions = true, // Enabled for FileSystem/Tree view too!
     contentToggles = listOf(
       ContentToggle(
         label = "Audio Files",

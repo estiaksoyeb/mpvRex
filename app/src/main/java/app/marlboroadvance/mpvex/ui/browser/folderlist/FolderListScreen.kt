@@ -940,6 +940,7 @@ private fun FolderListContent(
     recentlyPlayedFilePath = recentlyPlayedFilePath,
     playedFolderPaths = playedFolderPaths,
     scrollTriggerKey = scrollTriggerKey,
+    gridColumns = folderGridColumns,
   )
 }
 

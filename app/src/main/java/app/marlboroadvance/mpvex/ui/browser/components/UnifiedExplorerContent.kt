@@ -58,17 +58,33 @@ fun <T> UnifiedExplorerContent(
   watchedVideoIds: Set<Long> = emptySet(),
   autoScrollToLastPlayed: Boolean = false,
   scrollTriggerKey: Any? = null,
+  gridColumns: Int? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
 
   val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
+  val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
+  val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
   val videoGridColumnsPortrait by browserPreferences.videoGridColumnsPortrait.collectAsState()
   val videoGridColumnsLandscape by browserPreferences.videoGridColumnsLandscape.collectAsState()
 
   val configuration = LocalConfiguration.current
   val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-  val columns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+  
+  val columns = gridColumns ?: run {
+    val isFolder = remember(items) {
+      items.firstOrNull()?.let {
+        it is VideoFolder || 
+        it is FileSystemItem.Folder
+      } ?: false
+    }
+    if (isFolder) {
+      if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+    } else {
+      if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+    }
+  }
 
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()

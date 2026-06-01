@@ -183,6 +183,8 @@
     <string name="pref_player_gestures_horizontal_swipe_to_seek_summary">Swipe left or right on screen to seek forward or backward</string>
     <string name="pref_player_gestures_swipe_to_subtitle_seek_title">Swipe to subtitle seek</string>
     <string name="pref_player_gestures_swipe_to_subtitle_seek_summary">Swipe left or right on the top or bottom of the screen to seek subtitles</string>
+    <string name="pref_player_gestures_move_subtitle_by_dragging_title">Drag subtitle to reposition</string>
+    <string name="pref_player_gestures_move_subtitle_by_dragging_summary">Touch the subtitle and drag up or down to move it. Brightness and volume swipes still work elsewhere</string>
     <string name="pref_player_gestures_horizontal_swipe_sensitivity">Horizontal swipe sensitivity</string>
     <string name="pref_player_gestures_horizontal_swipe_sensitivity_summary">Adjust how much distance is covered per swipe</string>
     <string name="pref_player_gestures_hold_for_multiple_speed">Hold for multi - x speed</string>

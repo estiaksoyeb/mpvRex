@@ -324,6 +324,8 @@ private fun <T> ExplorerItemCard(
       )
     }
     is VideoWithPlaybackInfo -> {
+      val isRecentlyPlayed = recentlyPlayedFilePath == item.video.path
+
       VideoCard(
         video = item.video,
         uiSettings = uiSettings,
@@ -337,7 +339,8 @@ private fun <T> ExplorerItemCard(
         progressPercentage = item.progressPercentage,
         isWatched = item.isWatched,
         isOldAndUnplayed = item.isOldAndUnplayed,
-        isNeverPlayed = item.isNeverPlayed
+        isNeverPlayed = item.isNeverPlayed,
+        isRecentlyPlayed = isRecentlyPlayed
       )
     }
     is PlaylistWithCount -> {
@@ -355,6 +358,8 @@ private fun <T> ExplorerItemCard(
       )
     }
     is RecentlyPlayedItem.VideoItem -> {
+      val isRecentlyPlayed = recentlyPlayedFilePath == item.video.path
+
       VideoCard(
         video = item.video,
         uiSettings = uiSettings,
@@ -366,7 +371,8 @@ private fun <T> ExplorerItemCard(
         gridColumns = columns,
         showSubtitleIndicator = showSubtitleIndicator,
         progressPercentage = item.progress,
-        isWatched = item.isWatched
+        isWatched = item.isWatched,
+        isRecentlyPlayed = isRecentlyPlayed
       )
     }
     is RecentlyPlayedItem.PlaylistItem -> {

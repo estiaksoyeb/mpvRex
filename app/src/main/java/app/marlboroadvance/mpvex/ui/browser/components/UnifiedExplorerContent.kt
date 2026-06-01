@@ -59,6 +59,7 @@ fun <T> UnifiedExplorerContent(
   autoScrollToLastPlayed: Boolean = false,
   scrollTriggerKey: Any? = null,
   gridColumns: Int? = null,
+  showSections: Boolean = false,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -152,7 +153,240 @@ fun <T> UnifiedExplorerContent(
     }
 
     val contentBlock: @Composable BoxScope.() -> Unit = {
-      if (mediaLayoutMode == MediaLayoutMode.GRID) {
+      if (showSections) {
+        val folderItems = items.filter { it is VideoFolder || it is FileSystemItem.Folder }
+        val videoItems = items.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+
+        val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+        val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+
+        LazyColumn(
+          state = listState,
+          modifier = Modifier.fillMaxSize(),
+          contentPadding = PaddingValues(
+            start = 8.dp,
+            end = 8.dp,
+            top = 8.dp,
+            bottom = navigationBarHeight + 8.dp
+          ),
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          // --- FOLDERS SECTION ---
+          if (folderItems.isNotEmpty()) {
+            item(key = "folders_header") {
+              SectionHeader(title = "Folders (${folderItems.size})")
+            }
+
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              val chunkedFolders = folderItems.chunked(folderGridColumns)
+              items(
+                items = chunkedFolders,
+                key = { chunk -> "folder_row_${getItemId(chunk.first())}" }
+              ) { rowItems ->
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                  for (item in rowItems) {
+                    Box(modifier = Modifier.weight(1f)) {
+                      val effectiveOnClick = {
+                        if (isInSelectionMode) {
+                          onToggleSelection(item)
+                        } else {
+                          onClick(item)
+                        }
+                      }
+                      val effectiveOnThumbClick = {
+                        if (isInSelectionMode) {
+                          onToggleSelection(item)
+                        } else if (onThumbClick != null) {
+                          onThumbClick(item)
+                        } else if (tapThumbnailToSelect) {
+                          onToggleSelection(item)
+                        } else {
+                          onClick(item)
+                        }
+                      }
+
+                      ExplorerItemCard(
+                        item = item,
+                        isSelected = isSelected(item),
+                        showSubtitleIndicator = showSubtitleIndicator,
+                        isGridMode = true,
+                        columns = folderGridColumns,
+                        uiSettings = uiSettings,
+                        onClick = effectiveOnClick,
+                        onLongClick = { onLongClick(item) },
+                        onThumbClick = effectiveOnThumbClick,
+                        recentlyPlayedFilePath = recentlyPlayedFilePath,
+                        playedFolderPaths = playedFolderPaths,
+                        newVideoIds = newVideoIds,
+                        watchedVideoIds = watchedVideoIds
+                      )
+                    }
+                  }
+                  val emptySlots = folderGridColumns - rowItems.size
+                  repeat(emptySlots) {
+                    Spacer(modifier = Modifier.weight(1f))
+                  }
+                }
+              }
+            } else {
+              // List Mode
+              items(
+                items = folderItems,
+                key = { getItemId(it) }
+              ) { item ->
+                val effectiveOnClick = {
+                  if (isInSelectionMode) {
+                    onToggleSelection(item)
+                  } else {
+                    onClick(item)
+                  }
+                }
+                val effectiveOnThumbClick = {
+                  if (isInSelectionMode) {
+                    onToggleSelection(item)
+                  } else if (onThumbClick != null) {
+                    onThumbClick(item)
+                  } else if (tapThumbnailToSelect) {
+                    onToggleSelection(item)
+                  } else {
+                    onClick(item)
+                  }
+                }
+
+                ExplorerItemCard(
+                  item = item,
+                  isSelected = isSelected(item),
+                  showSubtitleIndicator = showSubtitleIndicator,
+                  isGridMode = false,
+                  columns = 1,
+                  uiSettings = uiSettings,
+                  onClick = effectiveOnClick,
+                  onLongClick = { onLongClick(item) },
+                  onThumbClick = effectiveOnThumbClick,
+                  recentlyPlayedFilePath = recentlyPlayedFilePath,
+                  playedFolderPaths = playedFolderPaths,
+                  newVideoIds = newVideoIds,
+                  watchedVideoIds = watchedVideoIds
+                )
+              }
+            }
+          }
+
+          // Section Spacer
+          if (folderItems.isNotEmpty() && videoItems.isNotEmpty()) {
+            item(key = "section_divider") {
+              Spacer(modifier = Modifier.height(8.dp))
+            }
+          }
+
+          // --- MEDIA SECTION ---
+          if (videoItems.isNotEmpty()) {
+            item(key = "media_header") {
+              SectionHeader(title = "Media (${videoItems.size})")
+            }
+
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              val chunkedVideos = videoItems.chunked(videoGridColumns)
+              items(
+                items = chunkedVideos,
+                key = { chunk -> "video_row_${getItemId(chunk.first())}" }
+              ) { rowItems ->
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                  for (item in rowItems) {
+                    Box(modifier = Modifier.weight(1f)) {
+                      val effectiveOnClick = {
+                        if (isInSelectionMode) {
+                          onToggleSelection(item)
+                        } else {
+                          onClick(item)
+                        }
+                      }
+                      val effectiveOnThumbClick = {
+                        if (isInSelectionMode) {
+                          onToggleSelection(item)
+                        } else if (onThumbClick != null) {
+                          onThumbClick(item)
+                        } else if (tapThumbnailToSelect) {
+                          onToggleSelection(item)
+                        } else {
+                          onClick(item)
+                        }
+                      }
+
+                      ExplorerItemCard(
+                        item = item,
+                        isSelected = isSelected(item),
+                        showSubtitleIndicator = showSubtitleIndicator,
+                        isGridMode = true,
+                        columns = videoGridColumns,
+                        uiSettings = uiSettings,
+                        onClick = effectiveOnClick,
+                        onLongClick = { onLongClick(item) },
+                        onThumbClick = effectiveOnThumbClick,
+                        recentlyPlayedFilePath = recentlyPlayedFilePath,
+                        playedFolderPaths = playedFolderPaths,
+                        newVideoIds = newVideoIds,
+                        watchedVideoIds = watchedVideoIds
+                      )
+                    }
+                  }
+                  val emptySlots = videoGridColumns - rowItems.size
+                  repeat(emptySlots) {
+                    Spacer(modifier = Modifier.weight(1f))
+                  }
+                }
+              }
+            } else {
+              // List Mode
+              items(
+                items = videoItems,
+                key = { getItemId(it) }
+              ) { item ->
+                val effectiveOnClick = {
+                  if (isInSelectionMode) {
+                    onToggleSelection(item)
+                  } else {
+                    onClick(item)
+                  }
+                }
+                val effectiveOnThumbClick = {
+                  if (isInSelectionMode) {
+                    onToggleSelection(item)
+                  } else if (onThumbClick != null) {
+                    onThumbClick(item)
+                  } else if (tapThumbnailToSelect) {
+                    onToggleSelection(item)
+                  } else {
+                    onClick(item)
+                  }
+                }
+
+                ExplorerItemCard(
+                  item = item,
+                  isSelected = isSelected(item),
+                  showSubtitleIndicator = showSubtitleIndicator,
+                  isGridMode = false,
+                  columns = 1,
+                  uiSettings = uiSettings,
+                  onClick = effectiveOnClick,
+                  onLongClick = { onLongClick(item) },
+                  onThumbClick = effectiveOnThumbClick,
+                  recentlyPlayedFilePath = recentlyPlayedFilePath,
+                  playedFolderPaths = playedFolderPaths,
+                  newVideoIds = newVideoIds,
+                  watchedVideoIds = watchedVideoIds
+                )
+              }
+            }
+          }
+        }
+      } else if (mediaLayoutMode == MediaLayoutMode.GRID) {
         LazyVerticalGrid(
           columns = GridCells.Fixed(columns),
           state = gridState,
@@ -485,4 +719,17 @@ private fun <T> ExplorerItemCard(
       )
     }
   }
+}
+
+@Composable
+private fun SectionHeader(title: String, modifier: Modifier = Modifier) {
+  Text(
+    text = title,
+    style = MaterialTheme.typography.titleMedium,
+    color = MaterialTheme.colorScheme.primary,
+    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 8.dp, vertical = 12.dp)
+  )
 }

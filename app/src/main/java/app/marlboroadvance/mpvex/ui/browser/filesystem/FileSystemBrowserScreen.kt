@@ -856,6 +856,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 isAtRoot = isAtRoot,
                 navigationBarHeight = navigationBarHeight,
                 isFabVisible = isFabVisible, // Pass FAB visibility state
+                recentlyPlayedFilePath = recentlyPlayedFilePath,
                 onVideoClick = { video ->
                   MediaUtils.playFile(video, context, "search")
                 },
@@ -883,6 +884,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 itemsWereDeletedOrMoved = itemsWereDeletedOrMoved,
                 showSubtitleIndicator = showSubtitleIndicator,
                 recentlyPlayedFilePath = recentlyPlayedFilePath,
+                autoScrollToLastPlayed = autoScrollToLastPlayed,
                 navigationBarHeight = navigationBarHeight,
                 onRefresh = { viewModel.refresh() },
                 onFolderClick = { folder ->
@@ -1317,6 +1319,7 @@ private fun FileSystemBrowserContent(
   itemsWereDeletedOrMoved: Boolean,
   showSubtitleIndicator: Boolean,
   recentlyPlayedFilePath: String?,
+  autoScrollToLastPlayed: Boolean,
   navigationBarHeight: Dp,
   onRefresh: suspend () -> Unit,
   onFolderClick: (FileSystemItem.Folder) -> Unit,
@@ -1409,6 +1412,8 @@ private fun FileSystemBrowserContent(
       onRefresh = onRefresh,
       isInSelectionMode = isInSelectionMode,
       recentlyPlayedFilePath = recentlyPlayedFilePath,
+      autoScrollToLastPlayed = autoScrollToLastPlayed,
+      listState = listState,
       newVideoIds = newVideoIds,
       watchedVideoIds = watchedVideoIds,
       scrollTriggerKey = scrollTriggerKey,
@@ -1431,6 +1436,7 @@ private fun FileSystemSearchContent(
   isAtRoot: Boolean,
   navigationBarHeight: Dp,
   isFabVisible: androidx.compose.runtime.MutableState<Boolean>, // Add FAB visibility state
+  recentlyPlayedFilePath: String?,
   onVideoClick: (app.marlboroadvance.mpvex.domain.media.model.Video) -> Unit,
   onFolderClick: (FileSystemItem.Folder) -> Unit,
   modifier: Modifier = Modifier,
@@ -1546,7 +1552,9 @@ private fun FileSystemSearchContent(
                 folder = folderModel,
                 uiSettings = uiSettings,
                 isSelected = false,
-                isRecentlyPlayed = false,
+                isRecentlyPlayed = recentlyPlayedFilePath?.let {
+                  java.io.File(it).parent == folder.path
+                } ?: false,
                 isWatched = (folder.videoCount > 0 || folder.audioCount > 0) && folder.unwatchedVideoCount == 0,
                 newVideoCount = folder.newCount,
                 onClick = { onFolderClick(folder) },
@@ -1567,7 +1575,7 @@ private fun FileSystemSearchContent(
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                 isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
                 isWatched = watchedVideoIds.contains(videoFile.video.id),
-                isRecentlyPlayed = false,
+                isRecentlyPlayed = recentlyPlayedFilePath == videoFile.video.path,
                 isSelected = false,
                 isNeverPlayed = videoFilesWithPlayback[videoFile.video.id] == null,
                 onClick = { onVideoClick(videoFile.video) },

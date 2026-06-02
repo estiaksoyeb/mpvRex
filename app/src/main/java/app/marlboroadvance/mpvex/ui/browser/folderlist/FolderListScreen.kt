@@ -664,6 +664,7 @@ object FolderListScreen : Screen {
             FolderListContent(
               folders = filteredFolders,
               foldersWithNewCount = foldersWithNewCount,
+              autoScrollToLastPlayed = autoScrollToLastPlayed,
               uiSettings = uiSettings,
               scanStatus = scanStatus,
               listState = listState,
@@ -917,6 +918,7 @@ private fun FolderListContent(
   gridState: androidx.compose.foundation.lazy.grid.LazyGridState,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
   selectionManager: app.marlboroadvance.mpvex.ui.browser.selection.SelectionManager<VideoFolder, String>,
+  autoScrollToLastPlayed: Boolean,
   onRefresh: suspend () -> Unit,
   onFolderClick: (VideoFolder) -> Unit,
   onFolderLongClick: (VideoFolder) -> Unit,
@@ -939,6 +941,9 @@ private fun FolderListContent(
     isInSelectionMode = selectionManager.isInSelectionMode,
     recentlyPlayedFilePath = recentlyPlayedFilePath,
     playedFolderPaths = playedFolderPaths,
+    autoScrollToLastPlayed = autoScrollToLastPlayed,
+    listState = listState,
+    gridState = gridState,
     scrollTriggerKey = scrollTriggerKey,
     gridColumns = folderGridColumns,
   )

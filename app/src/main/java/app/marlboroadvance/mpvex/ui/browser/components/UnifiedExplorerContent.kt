@@ -2,7 +2,9 @@ package app.marlboroadvance.mpvex.ui.browser.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -60,6 +62,8 @@ fun <T> UnifiedExplorerContent(
   scrollTriggerKey: Any? = null,
   gridColumns: Int? = null,
   showSections: Boolean = false,
+  listState: LazyListState? = null,
+  gridState: LazyGridState? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -115,8 +119,8 @@ fun <T> UnifiedExplorerContent(
       )
     }
   } else {
-    val listState = rememberLazyListState()
-    val gridState = rememberLazyGridState()
+    val listState = listState ?: rememberLazyListState()
+    val gridState = gridState ?: rememberLazyGridState()
 
     // Scroll to top whenever the caller changes the sort key, skipping the initial composition
     val isInitialTrigger = remember { mutableStateOf(true) }
@@ -136,17 +140,58 @@ fun <T> UnifiedExplorerContent(
           is VideoWithPlaybackInfo -> item.video.path == recentlyPlayedFilePath
           is RecentlyPlayedItem.VideoItem -> item.video.path == recentlyPlayedFilePath
           is FileSystemItem.VideoFile -> item.video.path == recentlyPlayedFilePath
-          is VideoFolder -> recentlyPlayedFilePath.let { java.io.File(it).parent == item.path }
-          is FileSystemItem.Folder -> recentlyPlayedFilePath.let { java.io.File(it).parent == item.path }
+          is VideoFolder -> recentlyPlayedFilePath.startsWith(item.path + "/") || recentlyPlayedFilePath == item.path || java.io.File(recentlyPlayedFilePath).parent == item.path
+          is FileSystemItem.Folder -> recentlyPlayedFilePath.startsWith(item.path + "/") || recentlyPlayedFilePath == item.path || java.io.File(recentlyPlayedFilePath).parent == item.path
           else -> false
         }
       }
       if (lastPlayedIndex != -1) {
         LaunchedEffect(recentlyPlayedFilePath) {
-          if (mediaLayoutMode == MediaLayoutMode.GRID) {
-            gridState.scrollToItem(lastPlayedIndex)
+          if (showSections) {
+            val matchedItem = items[lastPlayedIndex]
+            val isFolder = matchedItem is VideoFolder || matchedItem is FileSystemItem.Folder
+            val folderItems = items.filter { it is VideoFolder || it is FileSystemItem.Folder }
+            val videoItems = items.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+
+            val targetIndex = if (isFolder) {
+              val folderIndex = folderItems.indexOf(matchedItem)
+              if (folderIndex != -1) {
+                if (mediaLayoutMode == MediaLayoutMode.GRID) {
+                  val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+                  1 + (folderIndex / folderGridColumns)
+                } else {
+                  1 + folderIndex
+                }
+              } else 0
+            } else {
+              val videoIndex = videoItems.indexOf(matchedItem)
+              if (videoIndex != -1) {
+                if (folderItems.isNotEmpty()) {
+                  if (mediaLayoutMode == MediaLayoutMode.GRID) {
+                    val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+                    val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+                    val numFolderRows = (folderItems.size + folderGridColumns - 1) / folderGridColumns
+                    numFolderRows + 3 + (videoIndex / videoGridColumns)
+                  } else {
+                    folderItems.size + 3 + videoIndex
+                  }
+                } else {
+                  if (mediaLayoutMode == MediaLayoutMode.GRID) {
+                    val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+                    1 + (videoIndex / videoGridColumns)
+                  } else {
+                    1 + videoIndex
+                  }
+                }
+              } else 0
+            }
+            listState.scrollToItem(targetIndex)
           } else {
-            listState.scrollToItem(lastPlayedIndex)
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              gridState.scrollToItem(lastPlayedIndex)
+            } else {
+              listState.scrollToItem(lastPlayedIndex)
+            }
           }
         }
       }

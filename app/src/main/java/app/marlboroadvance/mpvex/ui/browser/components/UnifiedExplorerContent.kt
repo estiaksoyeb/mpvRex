@@ -201,7 +201,7 @@ fun <T> UnifiedExplorerContent(
                           onToggleSelection(item)
                         } else if (onThumbClick != null) {
                           onThumbClick(item)
-                        } else if (tapThumbnailToSelect) {
+                        } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
                           onToggleSelection(item)
                         } else {
                           onClick(item)
@@ -249,7 +249,7 @@ fun <T> UnifiedExplorerContent(
                     onToggleSelection(item)
                   } else if (onThumbClick != null) {
                     onThumbClick(item)
-                  } else if (tapThumbnailToSelect) {
+                  } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
                     onToggleSelection(item)
                   } else {
                     onClick(item)
@@ -312,7 +312,7 @@ fun <T> UnifiedExplorerContent(
                           onToggleSelection(item)
                         } else if (onThumbClick != null) {
                           onThumbClick(item)
-                        } else if (tapThumbnailToSelect) {
+                        } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
                           onToggleSelection(item)
                         } else {
                           onClick(item)
@@ -360,7 +360,7 @@ fun <T> UnifiedExplorerContent(
                     onToggleSelection(item)
                   } else if (onThumbClick != null) {
                     onThumbClick(item)
-                  } else if (tapThumbnailToSelect) {
+                  } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
                     onToggleSelection(item)
                   } else {
                     onClick(item)
@@ -416,7 +416,7 @@ fun <T> UnifiedExplorerContent(
                 onToggleSelection(item)
               } else if (onThumbClick != null) {
                 onThumbClick(item)
-              } else if (tapThumbnailToSelect) {
+              } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
                 onToggleSelection(item)
               } else {
                 onClick(item)
@@ -468,7 +468,7 @@ fun <T> UnifiedExplorerContent(
                 onToggleSelection(item)
               } else if (onThumbClick != null) {
                 onThumbClick(item)
-              } else if (tapThumbnailToSelect) {
+              } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
                 onToggleSelection(item)
               } else {
                 onClick(item)

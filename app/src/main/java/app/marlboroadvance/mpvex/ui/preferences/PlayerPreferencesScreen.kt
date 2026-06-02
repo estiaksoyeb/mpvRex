@@ -321,7 +321,17 @@ object PlayerPreferencesScreen : Screen {
                 title = { Text(stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_title)) },
                 summary = { Text(stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_summary)) },
               )
-              
+
+              PreferenceDivider()
+
+              val moveSubtitleByDragging by preferences.moveSubtitleByDragging.collectAsState()
+              SwitchPreference(
+                value = moveSubtitleByDragging,
+                onValueChange = preferences.moveSubtitleByDragging::set,
+                title = { Text(stringResource(R.string.pref_player_gestures_move_subtitle_by_dragging_title)) },
+                summary = { Text(stringResource(R.string.pref_player_gestures_move_subtitle_by_dragging_summary)) },
+              )
+
               PreferenceDivider()
               
               val horizontalSwipeSensitivity by preferences.horizontalSwipeSensitivity.collectAsState()

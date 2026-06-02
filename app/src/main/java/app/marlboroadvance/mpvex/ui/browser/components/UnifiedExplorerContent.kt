@@ -266,7 +266,8 @@ fun <T> UnifiedExplorerContent(
                         recentlyPlayedFilePath = recentlyPlayedFilePath,
                         playedFolderPaths = playedFolderPaths,
                         newVideoIds = newVideoIds,
-                        watchedVideoIds = watchedVideoIds
+                        watchedVideoIds = watchedVideoIds,
+                        showSections = showSections
                       )
                     }
                   }
@@ -314,7 +315,8 @@ fun <T> UnifiedExplorerContent(
                   recentlyPlayedFilePath = recentlyPlayedFilePath,
                   playedFolderPaths = playedFolderPaths,
                   newVideoIds = newVideoIds,
-                  watchedVideoIds = watchedVideoIds
+                  watchedVideoIds = watchedVideoIds,
+                  showSections = showSections
                 )
               }
             }
@@ -377,7 +379,8 @@ fun <T> UnifiedExplorerContent(
                         recentlyPlayedFilePath = recentlyPlayedFilePath,
                         playedFolderPaths = playedFolderPaths,
                         newVideoIds = newVideoIds,
-                        watchedVideoIds = watchedVideoIds
+                        watchedVideoIds = watchedVideoIds,
+                        showSections = showSections
                       )
                     }
                   }
@@ -425,7 +428,8 @@ fun <T> UnifiedExplorerContent(
                   recentlyPlayedFilePath = recentlyPlayedFilePath,
                   playedFolderPaths = playedFolderPaths,
                   newVideoIds = newVideoIds,
-                  watchedVideoIds = watchedVideoIds
+                  watchedVideoIds = watchedVideoIds,
+                  showSections = showSections
                 )
               }
             }
@@ -481,7 +485,8 @@ fun <T> UnifiedExplorerContent(
               recentlyPlayedFilePath = recentlyPlayedFilePath,
               playedFolderPaths = playedFolderPaths,
               newVideoIds = newVideoIds,
-              watchedVideoIds = watchedVideoIds
+              watchedVideoIds = watchedVideoIds,
+              showSections = showSections
             )
           }
         }
@@ -533,7 +538,8 @@ fun <T> UnifiedExplorerContent(
               recentlyPlayedFilePath = recentlyPlayedFilePath,
               playedFolderPaths = playedFolderPaths,
               newVideoIds = newVideoIds,
-              watchedVideoIds = watchedVideoIds
+              watchedVideoIds = watchedVideoIds,
+              showSections = showSections
             )
           }
         }
@@ -586,11 +592,16 @@ private fun <T> ExplorerItemCard(
   playedFolderPaths: Set<String> = emptySet(),
   newVideoIds: Set<Long> = emptySet(),
   watchedVideoIds: Set<Long> = emptySet(),
+  showSections: Boolean = false,
 ) {
   when (item) {
     is VideoFolder -> {
       val isRecentlyPlayed = recentlyPlayedFilePath?.let {
-        java.io.File(it).parent == item.path
+        if (showSections) {
+          it.startsWith(item.path + "/") || it == item.path || java.io.File(it).parent == item.path
+        } else {
+          java.io.File(it).parent == item.path
+        }
       } ?: false
       val isNeverPlayed = item.path !in playedFolderPaths
       val isWatched = (item.videoCount > 0 || item.audioCount > 0) && item.unwatchedVideoCount == 0
@@ -710,7 +721,11 @@ private fun <T> ExplorerItemCard(
         unwatchedVideoCount = item.unwatchedVideoCount,
       )
       val isRecentlyPlayed = recentlyPlayedFilePath?.let {
-        java.io.File(it).parent == item.path
+        if (showSections) {
+          it.startsWith(item.path + "/") || it == item.path || java.io.File(it).parent == item.path
+        } else {
+          java.io.File(it).parent == item.path
+        }
       } ?: false
       val isNeverPlayed = item.path !in playedFolderPaths
       val isWatched = (item.videoCount > 0 || item.audioCount > 0) && item.unwatchedVideoCount == 0

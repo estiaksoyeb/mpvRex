@@ -108,6 +108,7 @@ import app.marlboroadvance.mpvex.ui.browser.LocalNavigationBarHeight
 import app.marlboroadvance.mpvex.ui.browser.cards.FolderCard
 import app.marlboroadvance.mpvex.ui.browser.cards.VideoCard
 import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
+import app.marlboroadvance.mpvex.ui.browser.components.UnifiedExplorerContent
 import app.marlboroadvance.mpvex.ui.browser.components.SelectionOverflowAction
 import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.GridColumnSelector
@@ -689,6 +690,7 @@ object FolderListScreen : Screen {
               onFolderLongClick = { folder ->
                 selectionManager.handleLongClick(folder)
               },
+              scrollTriggerKey = "${folderSortType.name}:${folderSortOrder.name}",
             )
             }
           }
@@ -918,100 +920,28 @@ private fun FolderListContent(
   onRefresh: suspend () -> Unit,
   onFolderClick: (VideoFolder) -> Unit,
   onFolderLongClick: (VideoFolder) -> Unit,
+  scrollTriggerKey: Any? = null,
 ) {
-  val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
   val showLoading = isLoading && !hasCompletedInitialLoad
-  val showEmpty = folders.isEmpty() && hasCompletedInitialLoad && !foldersWereDeleted
 
-  // Scrollbar alpha animation
-  val isAtTop by remember {
-    derivedStateOf {
-      if (isGridMode) {
-        gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset == 0
-      } else {
-        listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-      }
-    }
-  }
-
-  val hasEnoughItems = folders.size > 20
-  val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
-    targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-    animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
-    label = "scrollbarAlpha",
-  )
-
-  PullRefreshBox(
+  UnifiedExplorerContent(
+    items = folders,
+    isLoading = showLoading,
+    uiSettings = uiSettings,
+    isSelected = { selectionManager.isSelected(it) },
+    onClick = { onFolderClick(it) },
+    onLongClick = { onFolderLongClick(it) },
+    onToggleSelection = { selectionManager.toggle(it) },
+    emptyTitle = "No video folders found",
+    emptyMessage = "Add videos to your device to see folders here",
     isRefreshing = isRefreshing,
     onRefresh = onRefresh,
-    listState = listState,
-    modifier = Modifier.fillMaxSize(),
-  ) {
-    if (showLoading || showEmpty) {
-      Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-      ) {
-        if (showLoading) {
-          LoadingState(
-            icon = Icons.Filled.Folder,
-            title = "Scanning for videos...",
-            message = scanStatus ?: "Please wait while we search your device",
-          )
-        } else if (showEmpty) {
-          EmptyState(
-            icon = Icons.Filled.Folder,
-            title = "No video folders found",
-            message = "Add some video files to your device to see them here",
-          )
-        }
-      }
-    } else {
-      if (isGridMode) {
-        GridContent(
-          folders = folders,
-          foldersWithNewCount = foldersWithNewCount,
-          uiSettings = uiSettings,
-          recentlyPlayedFilePath = recentlyPlayedFilePath,
-          playedFolderPaths = playedFolderPaths,
-          folderGridColumns = folderGridColumns,
-          tapThumbnailToSelect = tapThumbnailToSelect,
-          navigationBarHeight = navigationBarHeight,
-          gridState = gridState,
-          scrollbarAlpha = scrollbarAlpha,
-          selectionManager = selectionManager,
-          onFolderClick = onFolderClick,
-          onFolderLongClick = onFolderLongClick,
-        )
-      } else {
-        ListContent(
-          folders = folders,
-          foldersWithNewCount = foldersWithNewCount,
-          uiSettings = uiSettings,
-          recentlyPlayedFilePath = recentlyPlayedFilePath,
-          playedFolderPaths = playedFolderPaths,
-          tapThumbnailToSelect = tapThumbnailToSelect,
-          navigationBarHeight = navigationBarHeight,
-          listState = listState,
-          scrollbarAlpha = scrollbarAlpha,
-          selectionManager = selectionManager,
-          onFolderClick = onFolderClick,
-          onFolderLongClick = onFolderLongClick,
-        )
-      }
-
-      // Show background enrichment progress
-      if (scanStatus != null && !showLoading) {
-        androidx.compose.material3.LinearProgressIndicator(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(2.dp),
-          color = MaterialTheme.colorScheme.secondary,
-          trackColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-      }
-    }
-  }
+    isInSelectionMode = selectionManager.isInSelectionMode,
+    recentlyPlayedFilePath = recentlyPlayedFilePath,
+    playedFolderPaths = playedFolderPaths,
+    scrollTriggerKey = scrollTriggerKey,
+    gridColumns = folderGridColumns,
+  )
 }
 
 @Composable

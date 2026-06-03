@@ -726,6 +726,7 @@ object AdvancedPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val activity = LocalActivity.current!!
+              @Suppress("DEPRECATION")
               val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
               val verboseLogging by preferences.verboseLogging.collectAsState()
               

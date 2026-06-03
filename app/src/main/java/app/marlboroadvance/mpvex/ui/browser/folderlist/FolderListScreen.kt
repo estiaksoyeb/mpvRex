@@ -831,7 +831,6 @@ object FolderListScreen : Screen {
                       }
                     }
                   }
-                  else -> {}
                 }
               }
             }

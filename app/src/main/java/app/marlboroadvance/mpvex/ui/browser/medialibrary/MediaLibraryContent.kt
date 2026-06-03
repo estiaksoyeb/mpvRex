@@ -52,6 +52,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.material.icons.filled.ContentCopy
+import android.widget.Toast
+import app.marlboroadvance.mpvex.R
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -142,6 +147,7 @@ fun MediaLibraryContent() {
 
   val keyboardController = LocalSoftwareKeyboardController.current
   val focusRequester = remember { FocusRequester() }
+  val clipboardManager = LocalClipboardManager.current
 
   // Auto-focus search input when search is opened
   LaunchedEffect(isSearching) {
@@ -226,8 +232,6 @@ fun MediaLibraryContent() {
           onSettingsClick = {
             backstack.add(app.marlboroadvance.mpvex.ui.preferences.PreferencesScreen)
           },
-          onDeleteClick = { deleteDialogOpen.value = true },
-          deleteInOverflow = true,
           isSingleSelection = selectionManager.isSingleSelection,
           onInfoClick = {
             val selected = selectionManager.getSelectedItems()
@@ -242,13 +246,29 @@ fun MediaLibraryContent() {
             }
           },
           onPlayClick = { selectionManager.playSelected() },
-          selectionOverflowActions = listOf(
-            SelectionOverflowAction(
-              icon = Icons.Filled.Share,
-              label = "Share",
-              onClick = { selectionManager.shareSelected() },
-            ),
-          ),
+          selectionOverflowActions = buildList {
+            add(
+              SelectionOverflowAction(
+                icon = Icons.Filled.Share,
+                label = "Share",
+                onClick = { selectionManager.shareSelected() },
+              )
+            )
+            val selectedVideos = selectionManager.getSelectedItems()
+            if (selectedVideos.isNotEmpty()) {
+              add(
+                SelectionOverflowAction(
+                  icon = Icons.Filled.ContentCopy,
+                  label = stringResource(R.string.copy_video_path),
+                  onClick = {
+                    val paths = selectedVideos.joinToString("\n") { it.path }
+                    clipboardManager.setText(AnnotatedString(paths))
+                    Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
+                  }
+                )
+              )
+            }
+          },
           onSelectAll = { selectionManager.selectAll() },
           onInvertSelection = { selectionManager.invertSelection() },
           onDeselectAll = { selectionManager.clear() },

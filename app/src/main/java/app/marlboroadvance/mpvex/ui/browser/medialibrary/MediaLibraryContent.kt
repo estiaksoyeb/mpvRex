@@ -64,7 +64,7 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.RenameDialog
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import app.marlboroadvance.mpvex.ui.browser.videolist.VideoListContent
-import app.marlboroadvance.mpvex.ui.browser.videolist.VideoSortDialog
+import app.marlboroadvance.mpvex.ui.browser.dialogs.VideoSortDialog
 import app.marlboroadvance.mpvex.ui.browser.videolist.VideoWithPlaybackInfo
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import app.marlboroadvance.mpvex.ui.browser.sheets.MarkAsBottomSheet

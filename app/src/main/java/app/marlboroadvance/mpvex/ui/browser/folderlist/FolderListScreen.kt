@@ -1005,11 +1005,9 @@ private fun GridContent(
           isWatched = (folder.videoCount > 0 || folder.audioCount > 0) && folder.unwatchedVideoCount == 0,
           onClick = { onFolderClick(folder) },
           onLongClick = { onFolderLongClick(folder) },
-          onThumbClick = if (tapThumbnailToSelect) {
+          onThumbClick = if (tapThumbnailToSelect && !selectionManager.isInSelectionMode) {
             { onFolderLongClick(folder) }
-          } else {
-            { onFolderClick(folder) }
-          },
+          } else null,
           newVideoCount = newCount,
           isGridMode = true,
           gridColumns = folderGridColumns,
@@ -1080,11 +1078,9 @@ private fun ListContent(
           isWatched = (folder.videoCount > 0 || folder.audioCount > 0) && folder.unwatchedVideoCount == 0,
           onClick = { onFolderClick(folder) },
           onLongClick = { onFolderLongClick(folder) },
-          onThumbClick = if (tapThumbnailToSelect) {
+          onThumbClick = if (tapThumbnailToSelect && !selectionManager.isInSelectionMode) {
             { onFolderLongClick(folder) }
-          } else {
-            { onFolderClick(folder) }
-          },
+          } else null,
           newVideoCount = newCount,
           isGridMode = false,
         )

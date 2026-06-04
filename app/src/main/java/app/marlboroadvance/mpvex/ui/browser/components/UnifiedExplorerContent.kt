@@ -243,16 +243,12 @@ fun <T> UnifiedExplorerContent(
                           onClick(item)
                         }
                       }
-                      val effectiveOnThumbClick = {
-                        if (isInSelectionMode) {
-                          onToggleSelection(item)
-                        } else if (onThumbClick != null) {
-                          onThumbClick(item)
-                        } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
-                          onToggleSelection(item)
-                        } else {
-                          onClick(item)
-                        }
+                      val effectiveOnThumbClick = if (onThumbClick != null) {
+                        { onThumbClick(item) }
+                      } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID && !isInSelectionMode) {
+                        { onToggleSelection(item) }
+                      } else {
+                        null
                       }
 
                       ExplorerItemCard(
@@ -292,16 +288,12 @@ fun <T> UnifiedExplorerContent(
                     onClick(item)
                   }
                 }
-                val effectiveOnThumbClick = {
-                  if (isInSelectionMode) {
-                    onToggleSelection(item)
-                  } else if (onThumbClick != null) {
-                    onThumbClick(item)
-                  } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
-                    onToggleSelection(item)
-                  } else {
-                    onClick(item)
-                  }
+                val effectiveOnThumbClick = if (onThumbClick != null) {
+                  { onThumbClick(item) }
+                } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID && !isInSelectionMode) {
+                  { onToggleSelection(item) }
+                } else {
+                  null
                 }
 
                 ExplorerItemCard(
@@ -356,16 +348,12 @@ fun <T> UnifiedExplorerContent(
                           onClick(item)
                         }
                       }
-                      val effectiveOnThumbClick = {
-                        if (isInSelectionMode) {
-                          onToggleSelection(item)
-                        } else if (onThumbClick != null) {
-                          onThumbClick(item)
-                        } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
-                          onToggleSelection(item)
-                        } else {
-                          onClick(item)
-                        }
+                      val effectiveOnThumbClick = if (onThumbClick != null) {
+                        { onThumbClick(item) }
+                      } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID && !isInSelectionMode) {
+                        { onToggleSelection(item) }
+                      } else {
+                        null
                       }
 
                       ExplorerItemCard(
@@ -405,16 +393,12 @@ fun <T> UnifiedExplorerContent(
                     onClick(item)
                   }
                 }
-                val effectiveOnThumbClick = {
-                  if (isInSelectionMode) {
-                    onToggleSelection(item)
-                  } else if (onThumbClick != null) {
-                    onThumbClick(item)
-                  } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
-                    onToggleSelection(item)
-                  } else {
-                    onClick(item)
-                  }
+                val effectiveOnThumbClick = if (onThumbClick != null) {
+                  { onThumbClick(item) }
+                } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID && !isInSelectionMode) {
+                  { onToggleSelection(item) }
+                } else {
+                  null
                 }
 
                 ExplorerItemCard(
@@ -462,16 +446,12 @@ fun <T> UnifiedExplorerContent(
                 onClick(item)
               }
             }
-            val effectiveOnThumbClick = {
-              if (isInSelectionMode) {
-                onToggleSelection(item)
-              } else if (onThumbClick != null) {
-                onThumbClick(item)
-              } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
-                onToggleSelection(item)
-              } else {
-                onClick(item)
-              }
+            val effectiveOnThumbClick = if (onThumbClick != null) {
+              { onThumbClick(item) }
+            } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID && !isInSelectionMode) {
+              { onToggleSelection(item) }
+            } else {
+              null
             }
 
             ExplorerItemCard(
@@ -515,16 +495,12 @@ fun <T> UnifiedExplorerContent(
                 onClick(item)
               }
             }
-            val effectiveOnThumbClick = {
-              if (isInSelectionMode) {
-                onToggleSelection(item)
-              } else if (onThumbClick != null) {
-                onThumbClick(item)
-              } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID) {
-                onToggleSelection(item)
-              } else {
-                onClick(item)
-              }
+            val effectiveOnThumbClick = if (onThumbClick != null) {
+              { onThumbClick(item) }
+            } else if (tapThumbnailToSelect && mediaLayoutMode != MediaLayoutMode.GRID && !isInSelectionMode) {
+              { onToggleSelection(item) }
+            } else {
+              null
             }
 
             ExplorerItemCard(
@@ -589,7 +565,7 @@ private fun <T> ExplorerItemCard(
   uiSettings: UiSettings,
   onClick: () -> Unit,
   onLongClick: () -> Unit,
-  onThumbClick: () -> Unit,
+  onThumbClick: (() -> Unit)? = null,
   recentlyPlayedFilePath: String? = null,
   playedFolderPaths: Set<String> = emptySet(),
   newVideoIds: Set<Long> = emptySet(),

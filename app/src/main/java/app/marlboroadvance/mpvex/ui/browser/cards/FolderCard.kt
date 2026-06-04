@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,10 +85,15 @@ fun FolderCard(
       Icon(
         customIcon ?: Icons.Filled.Folder,
         contentDescription = "Folder",
-        modifier = Modifier.size(if (isGridMode) 56.dp else 40.dp),
+        modifier = if (isGridMode) {
+          Modifier.fillMaxWidth().aspectRatio(thumbnailAspectRatio).scale(1.2f)
+        } else {
+          Modifier.size(thumbnailSize).scale(1.2f)
+        },
         tint = MaterialTheme.colorScheme.secondary,
       )
     },
+    showThumbnailBackground = thumbnail != null,
     onClick = onClick,
     onLongClick = onLongClick,
     onThumbClick = onThumbClick,

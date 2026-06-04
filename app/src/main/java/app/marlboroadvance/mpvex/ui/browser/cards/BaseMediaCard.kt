@@ -68,6 +68,7 @@ fun BaseMediaCard(
     thumbnailSize: Dp = 64.dp,
     thumbnailAspectRatio: Float = 16f / 9f,
     listTitleStyle: TextStyle? = null,
+    showThumbnailBackground: Boolean = true,
     infoContent: @Composable (RowScope.() -> Unit)? = null,
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
@@ -95,19 +96,32 @@ fun BaseMediaCard(
             ) {
                 // Thumbnail Box
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(thumbnailAspectRatio)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .then(
-                            if (onThumbClick != null) {
-                                Modifier.combinedClickable(
-                                    onClick = { onThumbClick() },
-                                    onLongClick = onLongClick
-                                )
-                            } else Modifier
-                        ),
+                    modifier = if (showThumbnailBackground) {
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(thumbnailAspectRatio)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .then(
+                                if (onThumbClick != null) {
+                                    Modifier.combinedClickable(
+                                        onClick = { onThumbClick() },
+                                        onLongClick = onLongClick
+                                    )
+                                } else Modifier
+                            )
+                    } else {
+                        if (onThumbClick != null) {
+                            Modifier.combinedClickable(
+                                interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null,
+                                onLongClick = onLongClick,
+                                onClick = { onThumbClick() }
+                            )
+                        } else {
+                            Modifier
+                        }
+                    },
                     contentAlignment = Alignment.Center
                 ) {
                     if (thumbnail != null) {
@@ -200,19 +214,32 @@ fun BaseMediaCard(
             ) {
         // Thumbnail Box
         Box(
-          modifier = Modifier
-            .width(thumbnailSize)
-            .aspectRatio(thumbnailAspectRatio)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .then(
-                if (onThumbClick != null) {
-                    Modifier.combinedClickable(
-                        onClick = { onThumbClick() },
-                        onLongClick = onLongClick
-                    )
-                } else Modifier
-            ),
+          modifier = if (showThumbnailBackground) {
+            Modifier
+              .width(thumbnailSize)
+              .aspectRatio(thumbnailAspectRatio)
+              .clip(RoundedCornerShape(12.dp))
+              .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+              .then(
+                  if (onThumbClick != null) {
+                      Modifier.combinedClickable(
+                          onClick = { onThumbClick() },
+                          onLongClick = onLongClick
+                      )
+                  } else Modifier
+              )
+          } else {
+            if (onThumbClick != null) {
+                Modifier.combinedClickable(
+                    interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null,
+                    onLongClick = onLongClick,
+                    onClick = { onThumbClick() }
+                )
+            } else {
+                Modifier
+            }
+          },
           contentAlignment = Alignment.Center,
         ) {
                     if (thumbnail != null) {

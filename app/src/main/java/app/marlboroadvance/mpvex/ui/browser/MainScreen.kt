@@ -68,6 +68,9 @@ object MainScreen : Screen {
   private val _tabRequest = MutableSharedFlow<Int>(extraBufferCapacity = 1)
   val tabRequest = _tabRequest.asSharedFlow()
 
+  private val _scrollToTopRequest = MutableSharedFlow<String>(extraBufferCapacity = 1)
+  val scrollToTopRequest = _scrollToTopRequest.asSharedFlow()
+
   fun requestTab(tab: Int) {
     _tabRequest.tryEmit(tab)
   }
@@ -303,7 +306,13 @@ object MainScreen : Screen {
                 icon = { Icon(tab.icon, contentDescription = tab.label) },
                 label = { Text(tab.label) },
                 selected = selectedTab == index,
-                onClick = { selectedTab = index },
+                onClick = {
+                  if (selectedTab == index) {
+                    _scrollToTopRequest.tryEmit(tab.id)
+                  } else {
+                    selectedTab = index
+                  }
+                },
                 colors = itemColors
               )
             }

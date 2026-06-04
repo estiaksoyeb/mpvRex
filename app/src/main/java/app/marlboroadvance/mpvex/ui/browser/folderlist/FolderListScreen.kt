@@ -269,8 +269,11 @@ object FolderListScreen : Screen {
       }
       rememberedListIndex.intValue = 0
       rememberedGridIndex.intValue = 0
-      listState.scrollToItem(0)
-      gridState.scrollToItem(0)
+      if (mediaLayoutMode == MediaLayoutMode.GRID) {
+        gridState.scrollToItem(0)
+      } else {
+        listState.scrollToItem(0)
+      }
     }
 
     LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
@@ -281,6 +284,20 @@ object FolderListScreen : Screen {
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
       rememberedGridIndex.intValue = gridState.firstVisibleItemIndex
       rememberedGridOffset.intValue = gridState.firstVisibleItemScrollOffset
+    }
+
+    LaunchedEffect(Unit) {
+      app.marlboroadvance.mpvex.ui.browser.MainScreen.scrollToTopRequest.collect { tabId ->
+        if (tabId == "home") {
+          coroutineScope.launch {
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              gridState.animateScrollToItem(0)
+            } else {
+              listState.animateScrollToItem(0)
+            }
+          }
+        }
+      }
     }
 
     val navigationBarHeight = LocalNavigationBarHeight.current
@@ -412,7 +429,11 @@ object FolderListScreen : Screen {
     }
 
     // Optimized back handler for immediate response
-    val shouldHandleBack = selectionManager.isInSelectionMode || isSearching || isFabExpanded.value
+    val isListScrolled = remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
+    val isGridScrolled = remember { derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0 } }
+    val isScrolled = if (mediaLayoutMode == MediaLayoutMode.GRID) isGridScrolled.value else isListScrolled.value
+    
+    val shouldHandleBack = selectionManager.isInSelectionMode || isSearching || isFabExpanded.value || isScrolled
     androidx.activity.compose.BackHandler(enabled = shouldHandleBack) {
       when {
         isFabExpanded.value -> isFabExpanded.value = false
@@ -420,6 +441,15 @@ object FolderListScreen : Screen {
         isSearching -> {
           isSearching = false
           searchQuery = ""
+        }
+        isScrolled -> {
+          coroutineScope.launch {
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              gridState.animateScrollToItem(0)
+            } else {
+              listState.animateScrollToItem(0)
+            }
+          }
         }
       }
     }

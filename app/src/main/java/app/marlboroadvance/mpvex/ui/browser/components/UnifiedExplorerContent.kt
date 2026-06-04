@@ -131,8 +131,11 @@ fun <T> UnifiedExplorerContent(
         isInitialTrigger.value = false
         return@LaunchedEffect
       }
-      listState.scrollToItem(0)
-      gridState.scrollToItem(0)
+      if (mediaLayoutMode == MediaLayoutMode.GRID && !showSections) {
+        gridState.scrollToItem(0)
+      } else {
+        listState.scrollToItem(0)
+      }
     }
 
     if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && items.isNotEmpty()) {

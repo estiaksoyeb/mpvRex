@@ -171,6 +171,20 @@ object RecentlyPlayedScreen : Screen {
       onExpandedChange = { isFabExpanded.value = it },
     )
 
+    LaunchedEffect(Unit) {
+      app.marlboroadvance.mpvex.ui.browser.MainScreen.scrollToTopRequest.collect { tabId ->
+        if (tabId == "recents") {
+          coroutineScope.launch {
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              gridState.animateScrollToItem(0)
+            } else {
+              listState.animateScrollToItem(0)
+            }
+          }
+        }
+      }
+    }
+
     Scaffold(
         topBar = {
           BrowserTopBar(
@@ -445,6 +459,8 @@ private fun RecentItemsContent(
     isRefreshing = isRefreshing,
     onRefresh = onRefresh,
     modifier = modifier,
-    isInSelectionMode = isInSelectionMode
+    isInSelectionMode = isInSelectionMode,
+    listState = listState,
+    gridState = gridState,
   )
 }

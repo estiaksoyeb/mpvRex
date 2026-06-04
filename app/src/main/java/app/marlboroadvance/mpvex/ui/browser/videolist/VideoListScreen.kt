@@ -27,6 +27,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.AccessTime
@@ -238,6 +240,83 @@ data class VideoListScreen(
     // FAB visibility state
     val isFabVisible = remember { mutableStateOf(true) }
 
+    val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
+    val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
+
+    // UI state - use standalone states to avoid scroll issues with predictive back gesture
+    val rememberedListIndex = rememberSaveable { mutableIntStateOf(0) }
+    val rememberedListOffset = rememberSaveable { mutableIntStateOf(0) }
+    val rememberedGridIndex = rememberSaveable { mutableIntStateOf(0) }
+    val rememberedGridOffset = rememberSaveable { mutableIntStateOf(0) }
+
+    val initialListIndex = if (rememberedListIndex.intValue > 0) {
+      rememberedListIndex.intValue
+    } else if (autoScrollToLastPlayed && lastPlayedInFolderPath != null && sortedVideosWithInfo.isNotEmpty()) {
+      var foundIndex = 0
+      for (i in sortedVideosWithInfo.indices) {
+        if (sortedVideosWithInfo[i].video.path == lastPlayedInFolderPath) {
+          foundIndex = i
+          break
+        }
+      }
+      foundIndex
+    } else 0
+
+    val initialGridIndex = if (rememberedGridIndex.intValue > 0) {
+      rememberedGridIndex.intValue
+    } else if (autoScrollToLastPlayed && lastPlayedInFolderPath != null && sortedVideosWithInfo.isNotEmpty()) {
+      var foundIndex = 0
+      for (i in sortedVideosWithInfo.indices) {
+        if (sortedVideosWithInfo[i].video.path == lastPlayedInFolderPath) {
+          foundIndex = i
+          break
+        }
+      }
+      foundIndex
+    } else 0
+
+    val listState = rememberLazyListState(
+      initialFirstVisibleItemIndex = initialListIndex,
+      initialFirstVisibleItemScrollOffset = rememberedListOffset.intValue
+    )
+    val gridState = rememberLazyGridState(
+      initialFirstVisibleItemIndex = initialGridIndex,
+      initialFirstVisibleItemScrollOffset = rememberedGridOffset.intValue
+    )
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+      rememberedListIndex.intValue = listState.firstVisibleItemIndex
+      rememberedListOffset.intValue = listState.firstVisibleItemScrollOffset
+    }
+
+    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
+      rememberedGridIndex.intValue = gridState.firstVisibleItemIndex
+      rememberedGridOffset.intValue = gridState.firstVisibleItemScrollOffset
+    }
+
+    LaunchedEffect(Unit) {
+      app.marlboroadvance.mpvex.ui.browser.MainScreen.scrollToTopRequest.collect { tabId ->
+        if (tabId == "home") {
+          coroutineScope.launch {
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              gridState.animateScrollToItem(0)
+            } else {
+              listState.animateScrollToItem(0)
+            }
+          }
+        }
+      }
+    }
+
+    // Track scroll for FAB visibility
+    app.marlboroadvance.mpvex.ui.browser.fab.FabScrollHelper.trackScrollForFabVisibility(
+      listState = listState,
+      gridState = if (mediaLayoutMode == MediaLayoutMode.GRID) gridState else null,
+      isFabVisible = isFabVisible,
+      expanded = false,
+      onExpandedChange = { },
+    )
+
     // Bottom bar animation state
     var showFloatingBottomBar by remember { mutableStateOf(false) }
     var showMarkAsSheet by remember { mutableStateOf(false) }
@@ -403,6 +482,8 @@ data class VideoListScreen(
           showFloatingBottomBar = showFloatingBottomBar,
           sortType = videoSortType,
           sortOrder = videoSortOrder,
+          listState = listState,
+          gridState = gridState,
         )
         
         // Floating Material 3 Button Group overlay with animation
@@ -633,6 +714,8 @@ fun VideoListContent(
   sortType: VideoSortType = VideoSortType.Title,
   sortOrder: SortOrder = SortOrder.Ascending,
   searchQuery: String? = null,
+  listState: LazyListState = rememberLazyListState(),
+  gridState: LazyGridState = rememberLazyGridState(),
 ) {
   val thumbnailRepository = koinInject<ThumbnailRepository>()
   val browserPreferences = koinInject<BrowserPreferences>()
@@ -680,7 +763,9 @@ fun VideoListContent(
     isInSelectionMode = selectionManager.isInSelectionMode,
     recentlyPlayedFilePath = recentlyPlayedFilePath,
     autoScrollToLastPlayed = autoScrollToLastPlayed,
-    scrollTriggerKey = "${sortType.name}:${sortOrder.name}"
+    scrollTriggerKey = "${sortType.name}:${sortOrder.name}",
+    listState = listState,
+    gridState = gridState,
   )
 }
 

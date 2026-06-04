@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -144,9 +146,24 @@ object PlaylistScreen : Screen {
       onOperationComplete = { viewModel.refresh() },
     )
 
-    // Use the shared LazyListState from CompositionLocal instead of creating a new one
-    val listState = LazyListState()
-    val gridState = LazyGridState()
+    // Use the remembered states
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+    val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
+
+    LaunchedEffect(Unit) {
+      app.marlboroadvance.mpvex.ui.browser.MainScreen.scrollToTopRequest.collect { tabId ->
+        if (tabId == "playlists") {
+          scope.launch {
+            if (mediaLayoutMode == MediaLayoutMode.GRID) {
+              gridState.animateScrollToItem(0)
+            } else {
+              listState.animateScrollToItem(0)
+            }
+          }
+        }
+      }
+    }
     val isRefreshing = remember { mutableStateOf(false) }
     var showRenameDialog by rememberSaveable { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
@@ -169,7 +186,6 @@ object PlaylistScreen : Screen {
     }
 
     // Track scroll for FAB visibility
-    val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
     app.marlboroadvance.mpvex.ui.browser.fab.FabScrollHelper.trackScrollForFabVisibility(
       listState = listState,
       gridState = if (mediaLayoutMode == MediaLayoutMode.GRID) gridState else null,
@@ -411,6 +427,8 @@ object PlaylistScreen : Screen {
       emptyMessage = "Create a playlist to see it listed here",
       isRefreshing = isRefreshing,
       onRefresh = onRefresh,
-      isInSelectionMode = isInSelectionMode
+      isInSelectionMode = isInSelectionMode,
+      listState = listState,
+      gridState = gridState,
     )
   }

@@ -90,7 +90,7 @@ fun FolderCard(
         } else {
           Modifier.size(thumbnailSize).scale(1.2f)
         },
-        tint = MaterialTheme.colorScheme.secondary,
+        tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
       )
     },
     showThumbnailBackground = thumbnail != null,

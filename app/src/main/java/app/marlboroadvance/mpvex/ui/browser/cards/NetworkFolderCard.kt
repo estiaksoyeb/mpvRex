@@ -69,7 +69,7 @@ fun NetworkFolderCard(
         Icons.Filled.Folder,
         contentDescription = "Folder",
         modifier = Modifier.size(64.dp).scale(1.2f),
-        tint = MaterialTheme.colorScheme.secondary,
+        tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
       )
       Spacer(modifier = Modifier.width(16.dp))
       Column(

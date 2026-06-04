@@ -1363,6 +1363,7 @@ private fun FileSystemBrowserContent(
   val thumbnailRepository = koinInject<app.marlboroadvance.mpvex.domain.thumbnail.ThumbnailRepository>()
   val browserPreferences = koinInject<BrowserPreferences>()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
+  val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
 
   // Calculate thumbnail dimensions
   val thumbWidthDp = 160.dp
@@ -1395,8 +1396,8 @@ private fun FileSystemBrowserContent(
   }
 
   Column(modifier = modifier.fillMaxSize()) {
-    // Breadcrumb navigation (if not at root)
-    if (!isAtRoot && breadcrumbs.isNotEmpty()) {
+    // Breadcrumb navigation (if not at root and enabled)
+    if (showTreeViewPath && !isAtRoot && breadcrumbs.isNotEmpty()) {
       app.marlboroadvance.mpvex.ui.browser.filesystem.BreadcrumbNavigation(
         breadcrumbs = breadcrumbs,
         onBreadcrumbClick = onBreadcrumbClick,

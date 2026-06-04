@@ -53,6 +53,7 @@ class BrowserPreferences(
 
   // Media visibility preferences
   val showAudioFiles = preferenceStore.getBoolean("show_audio_files", false)
+  val showTreeViewPath = preferenceStore.getBoolean("show_tree_view_path", false)
 
   // RexShorts preferences
   val enableShorts = preferenceStore.getBoolean("enable_shorts", true)

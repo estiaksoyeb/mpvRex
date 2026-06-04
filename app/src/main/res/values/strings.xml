@@ -639,6 +639,8 @@
     <!-- Browser Preferences -->
     <string name="pref_show_audio_files_title">Show audio files</string>
     <string name="pref_show_audio_files_summary">Show and index audio files in the browser and playlists</string>
+    <string name="pref_show_tree_view_path_title">Show path breadcrumbs</string>
+    <string name="pref_show_tree_view_path_summary">Show the folder path breadcrumbs at the top of Tree View</string>
 
     <string name="copy_path">Copy path</string>
     <string name="copy_video_path">Copy video file path</string>

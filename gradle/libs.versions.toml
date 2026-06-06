@@ -16,9 +16,11 @@ okhttp = "5.3.2"
 sardineAndroid = "0.8"
 reorderable = "3.0.0"
 compose-markdown = "0.5.0"
+splashScreen = "1.0.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+splashScreen = { module = "androidx.core:core-splashscreen", version.ref = "splashScreen" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
 smbj = { module = "com.hierynomus:smbj", version.ref = "smbj" }

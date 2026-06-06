@@ -3,6 +3,13 @@
 
     <style name="Theme.mpvex" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
 
+    <style name="Theme.mpvex.Launcher" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_screen_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo_animated</item>
+        <item name="windowSplashScreenAnimationDuration">800</item>
+        <item name="postSplashScreenTheme">@style/Theme.mpvex</item>
+    </style>
+
     <style name="Theme.mpvex.Player" parent="Theme.mpvex">
         <item name="android:windowBackground">@android:color/black</item>
     </style>

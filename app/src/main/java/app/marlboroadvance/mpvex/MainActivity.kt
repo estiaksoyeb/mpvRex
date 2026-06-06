@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.content.Intent
 import androidx.core.net.toUri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    installSplashScreen()
     super.onCreate(savedInstanceState)
     
     PermissionUtils.setMediaAccessLauncher(mediaAccessLauncher)

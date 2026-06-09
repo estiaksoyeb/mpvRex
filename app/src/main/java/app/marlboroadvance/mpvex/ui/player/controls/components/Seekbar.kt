@@ -489,36 +489,7 @@ private fun SquigglySeekbar(
         sign * heightFraction * lineAmplitude
       }
 
-    // Build wavy path for played portion
-    val path = Path()
     val waveStart = -phaseOffset - waveLength / 2f
-    val waveEnd = if (transitionEnabled) totalWidth else waveProgressPx
-
-    path.moveTo(waveStart, centerY)
-
-    var currentX = waveStart
-    var waveSign = 1f
-    var currentAmp = computeAmplitude(currentX, waveSign)
-    val dist = waveLength / 2f
-
-    while (currentX < waveEnd) {
-      waveSign = -waveSign
-      val nextX = currentX + dist
-      val midX = currentX + dist / 2f
-      val nextAmp = computeAmplitude(nextX, waveSign)
-
-      path.cubicTo(
-        midX,
-        centerY + currentAmp,
-        midX,
-        centerY + nextAmp,
-        nextX,
-        centerY + nextAmp,
-      )
-
-      currentAmp = nextAmp
-      currentX = nextX
-    }
 
     // Draw path up to progress position using clipping
     val clipTop = lineAmplitude + strokeWidth
@@ -530,11 +501,56 @@ private fun SquigglySeekbar(
       color: Color,
     ) {
       if (endX <= startX) return
+      
+      // Build wavy path dynamically up to endX to get a natural round cap at the end
+      val path = Path()
+      path.moveTo(waveStart, centerY)
+
+      var currentX = waveStart
+      var waveSign = 1f
+      var currentAmp = computeAmplitude(currentX, waveSign)
+      val dist = waveLength / 2f
+
+      while (currentX < endX) {
+        waveSign = -waveSign
+        val nextX = currentX + dist
+        
+        if (nextX >= endX) {
+          val remainingDist = endX - currentX
+          val targetAmp = computeAmplitude(endX, waveSign)
+          val controlX = currentX + remainingDist / 2f
+          path.cubicTo(
+            controlX,
+            centerY + currentAmp,
+            controlX,
+            centerY + targetAmp,
+            endX,
+            centerY + targetAmp,
+          )
+          break
+        }
+
+        val nextAmp = computeAmplitude(nextX, waveSign)
+        val midX = currentX + dist / 2f
+
+        path.cubicTo(
+          midX,
+          centerY + currentAmp,
+          midX,
+          centerY + nextAmp,
+          nextX,
+          centerY + nextAmp,
+        )
+
+        currentAmp = nextAmp
+        currentX = nextX
+      }
+
       if (duration <= 0f) {
         clipRect(
           left = startX,
           top = centerY - clipTop,
-          right = endX,
+          right = endX + strokeWidth,
           bottom = centerY + clipTop,
         ) {
           drawPath(
@@ -574,7 +590,7 @@ private fun SquigglySeekbar(
         clipRect(
           left = segmentStart,
           top = centerY - clipTop,
-          right = endX,
+          right = endX + strokeWidth,
           bottom = centerY + clipTop,
         ) {
           drawPath(
@@ -861,9 +877,10 @@ fun StandardSeekbar(
 
                     val isOuterRight = endX >= size.width - 0.5f
                     val isInnerRight = kotlin.math.abs(endX - thumbGapStart) < 0.5f
+                    val isBufferRight = kotlin.math.abs(endX - readAheadPx) < 0.5f && readAheadPx > playedPx
 
                     val cornerRadiusRight = when {
-                        isOuterRight -> androidx.compose.ui.geometry.CornerRadius(outerRadius)
+                        isOuterRight || isBufferRight -> androidx.compose.ui.geometry.CornerRadius(outerRadius)
                         isInnerRight -> androidx.compose.ui.geometry.CornerRadius(innerRadius)
                         else -> androidx.compose.ui.geometry.CornerRadius.Zero
                     }

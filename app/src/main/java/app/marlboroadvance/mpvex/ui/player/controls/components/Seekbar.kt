@@ -141,10 +141,10 @@ fun SeekbarWithTimers(
   // Only animate position updates when user is not interacting
   LaunchedEffect(currentPosVal) {
     if (!isUserInteracting && currentPosVal != animatedPosition.value) {
-      // If we recently interacted (within 2s) and the position is significantly different (>1s),
+      // If we recently interacted (within 2s) and the position is significantly different from the seeked target (>10s),
       // assume it's the old position and ignore it to prevent "back and forth" glitches.
       val timeSinceInteraction = System.currentTimeMillis() - lastInteractionTime
-      if (timeSinceInteraction < 2000 && kotlin.math.abs(currentPosVal - animatedPosition.value) > 1f) {
+      if (timeSinceInteraction < 2000 && kotlin.math.abs(currentPosVal - userPosition) > 10f) {
         return@LaunchedEffect
       }
 

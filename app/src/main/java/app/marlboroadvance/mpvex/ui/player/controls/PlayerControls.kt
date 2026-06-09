@@ -1161,7 +1161,7 @@ fun PlayerControls(
           }
 
           SeekbarWithTimers(
-            position = precisePosition,
+            position = { precisePosition },
             duration = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f,
             onValueChange = {
               isSeeking = true
@@ -1182,7 +1182,7 @@ fun PlayerControls(
             positionTimerOnClick = {},
             chapters = chapters.toImmutableList(),
             paused = paused ?: false,
-            readAheadValue = readAheadPosition,
+            readAheadValue = { readAheadPosition },
             seekbarStyle = seekbarStyle,
             loopStart = abLoopA?.toFloat(),
             loopEnd = abLoopB?.toFloat(),

@@ -39,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,7 +75,7 @@ import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 
 @Composable
 fun SeekbarWithTimers(
-  position: Float,
+  position: () -> Float,
   duration: Float,
   onValueChange: (Float) -> Unit,
   onValueChangeFinished: () -> Unit,
@@ -85,7 +84,7 @@ fun SeekbarWithTimers(
   durationTimerOnCLick: () -> Unit,
   chapters: ImmutableList<Segment>,
   paused: Boolean,
-  readAheadValue: Float = position,
+  readAheadValue: () -> Float = position,
   seekbarStyle: SeekbarStyle = SeekbarStyle.Wavy,
   loopStart: Float? = null,
   loopEnd: Float? = null,
@@ -94,10 +93,10 @@ fun SeekbarWithTimers(
 ) {
   val clickEvent = LocalPlayerButtonsClickEvent.current
   var isUserInteracting by remember { mutableStateOf(false) }
-  var userPosition by remember { mutableFloatStateOf(position) }
+  var userPosition by remember { mutableFloatStateOf(position()) }
 
   // Animated position for smooth transitions
-  val animatedPosition = remember { Animatable(position) }
+  val animatedPosition = remember { Animatable(position()) }
   val scope = rememberCoroutineScope()
   var lastInteractionTime by remember { mutableLongStateOf(0L) }
 
@@ -138,19 +137,20 @@ fun SeekbarWithTimers(
 
   val squeezeScale = squeezeAnim.value
 
+  val currentPosVal = position()
   // Only animate position updates when user is not interacting
-  LaunchedEffect(position) {
-    if (!isUserInteracting && position != animatedPosition.value) {
+  LaunchedEffect(currentPosVal) {
+    if (!isUserInteracting && currentPosVal != animatedPosition.value) {
       // If we recently interacted (within 2s) and the position is significantly different (>1s),
       // assume it's the old position and ignore it to prevent "back and forth" glitches.
       val timeSinceInteraction = System.currentTimeMillis() - lastInteractionTime
-      if (timeSinceInteraction < 2000 && kotlin.math.abs(position - animatedPosition.value) > 1f) {
+      if (timeSinceInteraction < 2000 && kotlin.math.abs(currentPosVal - animatedPosition.value) > 1f) {
         return@LaunchedEffect
       }
 
       scope.launch {
         animatedPosition.animateTo(
-          targetValue = position,
+          targetValue = currentPosVal,
           animationSpec =
             tween(
               durationMillis = 200,
@@ -167,7 +167,7 @@ fun SeekbarWithTimers(
     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
   ) {
     VideoTimer(
-      value = if (isUserInteracting) userPosition else position,
+      value = if (isUserInteracting) userPosition else position(),
       timersInverted.first,
       onClick = {
         clickEvent()
@@ -191,7 +191,7 @@ fun SeekbarWithTimers(
       when (seekbarStyle) {
         SeekbarStyle.Standard -> {
           StandardSeekbar(
-            position = if (isUserInteracting) userPosition else animatedPosition.value,
+            position = { if (isUserInteracting) userPosition else animatedPosition.value },
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
@@ -210,7 +210,7 @@ fun SeekbarWithTimers(
         }
         SeekbarStyle.Wavy -> {
           SquigglySeekbar(
-            position = if (isUserInteracting) userPosition else animatedPosition.value,
+            position = { if (isUserInteracting) userPosition else animatedPosition.value },
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
@@ -233,7 +233,7 @@ fun SeekbarWithTimers(
         }
         SeekbarStyle.Circular -> {
            SquigglySeekbar(
-            position = if (isUserInteracting) userPosition else animatedPosition.value,
+            position = { if (isUserInteracting) userPosition else animatedPosition.value },
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
@@ -256,7 +256,7 @@ fun SeekbarWithTimers(
         }
         SeekbarStyle.Simple -> {
              SquigglySeekbar(
-            position = if (isUserInteracting) userPosition else animatedPosition.value,
+            position = { if (isUserInteracting) userPosition else animatedPosition.value },
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
@@ -279,7 +279,7 @@ fun SeekbarWithTimers(
         }
         SeekbarStyle.Thick -> {
           StandardSeekbar(
-            position = if (isUserInteracting) userPosition else animatedPosition.value,
+            position = { if (isUserInteracting) userPosition else animatedPosition.value },
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
@@ -303,7 +303,7 @@ fun SeekbarWithTimers(
     }
 
     VideoTimer(
-      value = if (timersInverted.second) position - duration else duration,
+      value = if (timersInverted.second) position() - duration else duration,
       isInverted = timersInverted.second,
       onClick = {
         clickEvent()
@@ -316,9 +316,9 @@ fun SeekbarWithTimers(
 
 @Composable
 private fun SquigglySeekbar(
-  position: Float,
+  position: () -> Float,
   duration: Float,
-  readAheadValue: Float,
+  readAheadValue: () -> Float,
   chapters: ImmutableList<Segment>,
   isPaused: Boolean,
   isScrubbing: Boolean,
@@ -390,14 +390,14 @@ private fun SquigglySeekbar(
   LaunchedEffect(isPaused, useWavySeekbar) {
     if (isPaused || !useWavySeekbar) return@LaunchedEffect
 
-    var lastFrameTime = withFrameMillis { it }
+    var lastFrameTime = System.currentTimeMillis()
     while (isActive) {
-      withFrameMillis { frameTimeMillis ->
-        val deltaTime = (frameTimeMillis - lastFrameTime) / 1000f
-        phaseOffset += deltaTime * phaseSpeed
-        phaseOffset %= waveLength
-        lastFrameTime = frameTimeMillis
-      }
+      val currentTime = System.currentTimeMillis()
+      val deltaTime = (currentTime - lastFrameTime) / 1000f
+      phaseOffset += deltaTime * phaseSpeed
+      phaseOffset %= waveLength
+      lastFrameTime = currentTime
+      kotlinx.coroutines.delay(33) // Target ~30 FPS
     }
   }
 
@@ -431,7 +431,7 @@ private fun SquigglySeekbar(
           detectDragGestures(
             onDragStart = { 
                 isDragged = true
-                dragStartValue = currentPosition
+                dragStartValue = currentPosition()
                 accumulatedDragPx = 0f
             },
             onDragEnd = { 
@@ -460,8 +460,8 @@ private fun SquigglySeekbar(
         },
   ) {
     val strokeWidth = 5.dp.toPx()
-    val progress = if (duration > 0f) (position / duration).coerceIn(0f, 1f) else 0f
-    val readAheadProgress = if (duration > 0f) (readAheadValue / duration).coerceIn(0f, 1f) else 0f
+    val progress = if (duration > 0f) (position() / duration).coerceIn(0f, 1f) else 0f
+    val readAheadProgress = if (duration > 0f) (readAheadValue() / duration).coerceIn(0f, 1f) else 0f
     val totalWidth = size.width
     val totalProgressPx = totalWidth * progress
     val totalReadAheadPx = totalWidth * readAheadProgress
@@ -725,9 +725,9 @@ fun VideoTimer(
 
 @Composable
 fun StandardSeekbar(
-    position: Float,
+    position: () -> Float,
     duration: Float,
-    readAheadValue: Float,
+    readAheadValue: () -> Float,
     chapters: ImmutableList<Segment>,
     isPaused: Boolean = false,
     isScrubbing: Boolean = false,
@@ -758,12 +758,12 @@ fun StandardSeekbar(
     var isDragging by remember { mutableStateOf(false) }
     var dragStartValue by remember { mutableFloatStateOf(0f) }
     var accumulatedDragPx by remember { mutableFloatStateOf(0f) }
-    var userPosition by remember { mutableFloatStateOf(position) }
+    var userPosition by remember { mutableFloatStateOf(position()) }
     var isUserInteracting by remember { mutableStateOf(false) }
 
     // Update userPosition when not interacting
     if (!isUserInteracting) {
-        userPosition = position
+        userPosition = position()
     }
 
     Box(
@@ -784,7 +784,7 @@ fun StandardSeekbar(
                     onDragStart = {
                         isDragging = true
                         isUserInteracting = true
-                        dragStartValue = currentPosition
+                        dragStartValue = currentPosition()
                         accumulatedDragPx = 0f
                     },
                     onDragEnd = {
@@ -805,7 +805,7 @@ fun StandardSeekbar(
                         if (currentDuration > 0f) {
                             dragStartValue + (accumulatedDragPx / size.width) * currentDuration
                         } else {
-                            currentPosition
+                            currentPosition()
                         }
                     } else {
                         // Absolute seeking: use current finger position
@@ -817,7 +817,7 @@ fun StandardSeekbar(
             }
     ) {
         Slider(
-            value = if (isUserInteracting) userPosition else position,
+            value = if (isUserInteracting) userPosition else position(),
             onValueChange = { /* Handled by custom gestures */ },
             onValueChangeFinished = { /* Handled by custom gestures */ },
             valueRange = 0f..duration.coerceAtLeast(0.1f),
@@ -838,7 +838,7 @@ fun StandardSeekbar(
                 val range = (max - min).takeIf { it > 0f } ?: 1f
 
                 val playedFraction = ((sliderState.value - min) / range).coerceIn(0f, 1f)
-                val readAheadFraction = ((readAheadValue - min) / range).coerceIn(0f, 1f)
+                val readAheadFraction = ((readAheadValue() - min) / range).coerceIn(0f, 1f)
 
                 val playedPx = size.width * playedFraction
                 val readAheadPx = size.width * readAheadFraction
@@ -995,7 +995,7 @@ fun StandardSeekbar(
 @Composable
 private fun PreviewSeekBar() {
   SeekbarWithTimers(
-    position = 30f,
+    position = { 30f },
     duration = 180f,
     onValueChange = {},
     onValueChangeFinished = {},
@@ -1004,7 +1004,7 @@ private fun PreviewSeekBar() {
     durationTimerOnCLick = {},
     chapters = persistentListOf(),
     paused = false,
-    readAheadValue = 90f,
+    readAheadValue = { 90f },
   )
 }
 @Composable
@@ -1042,9 +1042,9 @@ fun SeekbarPreview(
     when (style) {
       SeekbarStyle.Standard -> {
         StandardSeekbar(
-          position = position,
+          position = { position },
           duration = duration,
-          readAheadValue = position,
+          readAheadValue = { position },
           chapters = dummyChapters,
           isPaused = false,
           isScrubbing = false,
@@ -1056,9 +1056,9 @@ fun SeekbarPreview(
       }
       SeekbarStyle.Wavy -> {
         SquigglySeekbar(
-          position = position,
+          position = { position },
           duration = duration,
-          readAheadValue = position,
+          readAheadValue = { position },
           chapters = dummyChapters,
           isPaused = false,
           isScrubbing = false,
@@ -1070,9 +1070,9 @@ fun SeekbarPreview(
       }
       SeekbarStyle.Circular -> {
         SquigglySeekbar(
-          position = position,
+          position = { position },
           duration = duration,
-          readAheadValue = position,
+          readAheadValue = { position },
           chapters = dummyChapters,
           isPaused = false,
           isScrubbing = false,
@@ -1084,9 +1084,9 @@ fun SeekbarPreview(
       }
       SeekbarStyle.Simple -> {
            SquigglySeekbar(
-          position = position,
+          position = { position },
           duration = duration,
-          readAheadValue = position,
+          readAheadValue = { position },
           chapters = dummyChapters,
           isPaused = false,
           isScrubbing = false,
@@ -1098,9 +1098,9 @@ fun SeekbarPreview(
       }
       SeekbarStyle.Thick -> {
         StandardSeekbar(
-          position = position,
+          position = { position },
           duration = duration,
-          readAheadValue = position,
+          readAheadValue = { position },
           chapters = dummyChapters,
           isPaused = false,
           isScrubbing = false,

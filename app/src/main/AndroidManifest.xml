@@ -226,6 +226,7 @@
             android:name=".MediaInfoIntentHandler"
             android:targetActivity=".ui.mediainfo.MediaInfoActivity"
             android:exported="true"
+            android:enabled="false"
             android:label="Media Info">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

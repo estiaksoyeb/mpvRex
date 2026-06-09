@@ -514,6 +514,7 @@ object FolderListScreen : Screen {
             selectedCount = selectionManager.selectedCount,
             totalCount = videoFolders.size,
             onBackClick = null,
+            isHomeScreen = true,
             onCancelSelection = { selectionManager.clear() },
             onSortClick = { sortDialogOpen.value = true },
             onSearchClick = { isSearching = !isSearching },

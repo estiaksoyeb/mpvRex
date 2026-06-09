@@ -66,6 +66,14 @@ import app.marlboroadvance.mpvex.ui.theme.LocalThemeTransitionState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import app.marlboroadvance.mpvex.ui.utils.CommunityIcon
+import app.marlboroadvance.mpvex.ui.browser.dialogs.CommunityLinksDialog
 
 /**
  * An action that appears in the selection-mode overflow (⋮) menu.
@@ -107,6 +115,7 @@ fun BrowserTopBar(
   onTitleLongPress: (() -> Unit)? = null,
   useRemoveIcon: Boolean = false,
   deleteInOverflow: Boolean = false,
+  isHomeScreen: Boolean = false,
 ) {
   if (isInSelectionMode) {
     SelectionTopBar(
@@ -137,6 +146,7 @@ fun BrowserTopBar(
       additionalActions = additionalActions,
       modifier = modifier,
       onTitleLongPress = onTitleLongPress,
+      isHomeScreen = isHomeScreen,
     )
   }
 }
@@ -156,12 +166,15 @@ private fun NormalTopBar(
   additionalActions: @Composable RowScope.() -> Unit,
   modifier: Modifier = Modifier,
   onTitleLongPress: (() -> Unit)?,
+  isHomeScreen: Boolean = false,
 ) {
   val preferences = koinInject<AppearancePreferences>()
   val darkMode by preferences.darkMode.collectAsState()
   val darkTheme = isSystemInDarkTheme()
   val themeTransition = LocalThemeTransitionState.current
   val coroutineScope = rememberCoroutineScope()
+  val showCommunityIcon by preferences.showCommunityIcon.collectAsState()
+  var showCommunityDialog by remember { mutableStateOf(false) }
   
   // Track title bounds for animation position
   val titleBounds = remember { mutableStateOf(Rect.Zero) }
@@ -274,6 +287,45 @@ private fun NormalTopBar(
           )
         }
       }
+      if (isHomeScreen && showCommunityIcon) {
+        val infiniteTransition = rememberInfiniteTransition(label = "communityIconAnim")
+        val rotation by infiniteTransition.animateFloat(
+          initialValue = -8f,
+          targetValue = 8f,
+          animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = androidx.compose.animation.core.EaseInOutQuad),
+            repeatMode = RepeatMode.Reverse
+          ),
+          label = "rotation"
+        )
+        val scale by infiniteTransition.animateFloat(
+          initialValue = 0.95f,
+          targetValue = 1.05f,
+          animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = androidx.compose.animation.core.EaseInOutQuad),
+            repeatMode = RepeatMode.Reverse
+          ),
+          label = "scale"
+        )
+
+        IconButton(
+          onClick = { showCommunityDialog = true },
+          modifier = Modifier
+            .padding(horizontal = 2.dp)
+            .graphicsLayer {
+              rotationZ = rotation
+              scaleX = scale
+              scaleY = scale
+            },
+        ) {
+          Icon(
+            imageVector = CommunityIcon,
+            contentDescription = "Community Links",
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.secondary,
+          )
+        }
+      }
       if (onSortClick != null) {
         IconButton(
           onClick = onSortClick,
@@ -341,6 +393,12 @@ private fun NormalTopBar(
     },
     modifier = modifier,
   )
+
+  if (showCommunityDialog) {
+    CommunityLinksDialog(
+      onDismissRequest = { showCommunityDialog = false }
+    )
+  }
 }
 
 /**

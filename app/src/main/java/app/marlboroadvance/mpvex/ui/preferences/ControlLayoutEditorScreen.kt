@@ -137,10 +137,13 @@ data class ControlLayoutEditorScreen(
     }
 
     var showResetDialog by remember { mutableStateOf(false) }
+    var isReset by remember { mutableStateOf(false) }
 
     DisposableEffect(selectedButtons) {
       onDispose {
-        prefToEdit.set(selectedButtons.joinToString(","))
+        if (!isReset) {
+          prefToEdit.set(selectedButtons.joinToString(","))
+        }
       }
     }
 
@@ -157,6 +160,7 @@ data class ControlLayoutEditorScreen(
         title = "Reset Layout",
         subtitle = "Are you sure you want to reset this region to defaults?",
         onConfirm = {
+          isReset = true
           prefToEdit.deleteAndGet()
           backstack.removeLastOrNull()
         },

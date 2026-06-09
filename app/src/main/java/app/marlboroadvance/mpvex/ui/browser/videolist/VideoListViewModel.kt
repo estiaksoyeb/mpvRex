@@ -100,16 +100,6 @@ class VideoListViewModel(
           videoList = videoList.filterNot { it.isAudio }
         }
 
-        // Enrich with metadata only if chips are enabled
-        if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
-          videoList = MetadataRetrieval.enrichVideosIfNeeded(
-            context = getApplication(),
-            videos = videoList,
-            browserPreferences = browserPreferences,
-            metadataCache = metadataCache
-          )
-        }
-
         // Check if folder became empty
         if (previousVideoCount > 0 && videoList.isEmpty()) {
           _videosWereDeletedOrMoved.value = true
@@ -127,9 +117,35 @@ class VideoListViewModel(
           }
           _videos.value = retryVideoList
           loadPlaybackInfo(retryVideoList)
+          _isLoading.value = false
+
+          // Enrich with metadata in the background only if chips are enabled
+          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && retryVideoList.isNotEmpty()) {
+            val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
+              context = getApplication(),
+              videos = retryVideoList,
+              browserPreferences = browserPreferences,
+              metadataCache = metadataCache
+            )
+            _videos.value = enrichedList
+            loadPlaybackInfo(enrichedList)
+          }
         } else {
           _videos.value = videoList
           loadPlaybackInfo(videoList)
+          _isLoading.value = false
+
+          // Enrich with metadata in the background only if chips are enabled
+          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+            val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
+              context = getApplication(),
+              videos = videoList,
+              browserPreferences = browserPreferences,
+              metadataCache = metadataCache
+            )
+            _videos.value = enrichedList
+            loadPlaybackInfo(enrichedList)
+          }
         }
       } catch (e: Exception) {
         Log.e(tag, "Error loading videos for bucket $bucketId", e)

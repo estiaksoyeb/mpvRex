@@ -299,72 +299,43 @@ class FileSystemBrowserViewModel(
                 items
               }
 
-              val enrichedItems = if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
-                val videoFiles = filteredItems.filterIsInstance<FileSystemItem.VideoFile>()
-                val videos = videoFiles.map { it.video }
-                val enrichedVideos = MetadataRetrieval.enrichVideosIfNeeded(
-                  context = getApplication(),
-                  videos = videos,
-                  browserPreferences = browserPreferences,
-                  metadataCache = metadataCache
-                )
-                
-                val enrichedVideoMap = enrichedVideos.associateBy { it.id }
-                filteredItems.map { item ->
-                  when (item) {
-                    is FileSystemItem.VideoFile -> {
-                      val enrichedVideo = enrichedVideoMap[item.video.id]
-                      if (enrichedVideo != null) item.copy(video = enrichedVideo) else item
-                    }
-                    else -> item
-                  }
-                }
-              } else {
-                filteredItems
-              }
+              // 1. Map playback info on basic items immediately (fast, local DB query)
+              val basicPlaybackStates = playbackStateRepository.getAllPlaybackStates()
+              val basicPlaybackMap = mutableMapOf<Long, Float>()
+              val basicNewIds = mutableSetOf<Long>()
+              val basicWatchedIds = mutableSetOf<Long>()
+              val basicCurrentTime = System.currentTimeMillis()
+              val basicThresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+              val basicThresholdMillis = basicThresholdDays * 24 * 60 * 60 * 1000L
+              val basicWatchedThreshold = browserPreferences.watchedThreshold.get()
 
-              // Apply playback info (progress and orientation)
-              val playbackStates = playbackStateRepository.getAllPlaybackStates()
-              val playbackMap = mutableMapOf<Long, Float>()
-              val newIds = mutableSetOf<Long>()
-              val watchedIds = mutableSetOf<Long>()
-              val currentTime = System.currentTimeMillis()
-              val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
-              val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
-              val watchedThreshold = browserPreferences.watchedThreshold.get()
-
-              val fullyEnrichedItems = enrichedItems.map { item ->
+              val basicEnrichedItems = filteredItems.map { item ->
                 if (item is FileSystemItem.VideoFile) {
                   val video = item.video
-                  val state = playbackStates.find { it.mediaTitle == video.displayName }
+                  val state = basicPlaybackStates.find { it.mediaTitle == video.displayName }
                   
                   var updatedVideo = video
                   if (state != null) {
-                    // 1. Map saved orientation
                     if (state.savedOrientation != null) {
                       updatedVideo = updatedVideo.copy(savedOrientation = state.savedOrientation)
                     }
-                    
-                    // 2. Map progress and watched status
                     if (video.duration > 0) {
                       val durationSeconds = video.duration / 1000
                       val watched = durationSeconds - state.timeRemaining.toLong()
                       val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
                       
-                      // Check if watched
-                      if (state.hasBeenWatched || progressValue >= (watchedThreshold / 100f)) {
-                        watchedIds.add(video.id)
+                      if (state.hasBeenWatched || progressValue >= (basicWatchedThreshold / 100f)) {
+                        basicWatchedIds.add(video.id)
                       }
                       
                       if (progressValue in 0.01f..0.99f) {
-                        playbackMap[video.id] = progressValue
+                        basicPlaybackMap[video.id] = progressValue
                       }
                     }
                   } else {
-                    // 3. Map NEW status
-                    val videoAge = currentTime - (video.dateModified * 1000)
-                    if (videoAge <= thresholdMillis) {
-                      newIds.add(video.id)
+                    val videoAge = basicCurrentTime - (video.dateModified * 1000)
+                    if (videoAge <= basicThresholdMillis) {
+                      basicNewIds.add(video.id)
                     }
                   }
                   item.copy(video = updatedVideo)
@@ -373,10 +344,79 @@ class FileSystemBrowserViewModel(
                 }
               }
 
-              _videoFilesWithPlayback.value = playbackMap
-              _newVideoIds.value = newIds
-              _watchedVideoIds.value = watchedIds
-              _unsortedItems.value = fullyEnrichedItems
+              // Instantly publish the basic items so the UI displays immediately
+              _videoFilesWithPlayback.value = basicPlaybackMap
+              _newVideoIds.value = basicNewIds
+              _watchedVideoIds.value = basicWatchedIds
+              _unsortedItems.value = basicEnrichedItems
+              _isLoading.value = false
+
+              // 2. Fetch detailed video metadata (MediaInfo) asynchronously in the background
+              if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+                val videoFiles = filteredItems.filterIsInstance<FileSystemItem.VideoFile>()
+                if (videoFiles.isNotEmpty()) {
+                  val videos = videoFiles.map { it.video }
+                  val enrichedVideos = MetadataRetrieval.enrichVideosIfNeeded(
+                    context = getApplication(),
+                    videos = videos,
+                    browserPreferences = browserPreferences,
+                    metadataCache = metadataCache
+                  )
+                  
+                  val enrichedVideoMap = enrichedVideos.associateBy { it.id }
+                  
+                  // Re-apply playback states to the enriched videos
+                  val finalPlaybackStates = playbackStateRepository.getAllPlaybackStates()
+                  val finalPlaybackMap = mutableMapOf<Long, Float>()
+                  val finalNewIds = mutableSetOf<Long>()
+                  val finalWatchedIds = mutableSetOf<Long>()
+                  val finalCurrentTime = System.currentTimeMillis()
+                  val finalThresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+                  val finalThresholdMillis = finalThresholdDays * 24 * 60 * 60 * 1000L
+                  val finalWatchedThreshold = browserPreferences.watchedThreshold.get()
+
+                  val finalEnrichedItems = filteredItems.map { item ->
+                    when (item) {
+                      is FileSystemItem.VideoFile -> {
+                        var video = enrichedVideoMap[item.video.id] ?: item.video
+                        val state = finalPlaybackStates.find { it.mediaTitle == video.displayName }
+                        
+                        if (state != null) {
+                          if (state.savedOrientation != null) {
+                            video = video.copy(savedOrientation = state.savedOrientation)
+                          }
+                          if (video.duration > 0) {
+                            val durationSeconds = video.duration / 1000
+                            val watched = durationSeconds - state.timeRemaining.toLong()
+                            val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+                            
+                            if (state.hasBeenWatched || progressValue >= (finalWatchedThreshold / 100f)) {
+                              finalWatchedIds.add(video.id)
+                            }
+                            
+                            if (progressValue in 0.01f..0.99f) {
+                              finalPlaybackMap[video.id] = progressValue
+                            }
+                          }
+                        } else {
+                          val videoAge = finalCurrentTime - (video.dateModified * 1000)
+                          if (videoAge <= finalThresholdMillis) {
+                            finalNewIds.add(video.id)
+                          }
+                        }
+                        item.copy(video = video)
+                      }
+                      else -> item
+                    }
+                  }
+
+                  // Publish the final fully-enriched list
+                  _videoFilesWithPlayback.value = finalPlaybackMap
+                  _newVideoIds.value = finalNewIds
+                  _watchedVideoIds.value = finalWatchedIds
+                  _unsortedItems.value = finalEnrichedItems
+                }
+              }
             }.onFailure { error ->
               _error.value = error.message
               _unsortedItems.value = emptyList()

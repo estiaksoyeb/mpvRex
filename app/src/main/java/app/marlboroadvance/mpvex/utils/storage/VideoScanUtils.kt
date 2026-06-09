@@ -84,8 +84,8 @@ object VideoScanUtils {
             projection.add(MediaStore.Video.Media.ORIENTATION)
         }
         
-        val selection = "${MediaStore.Video.Media.DATA} LIKE ?"
-        val selectionArgs = arrayOf("$folderPath/%")
+        val selection = "${MediaStore.Video.Media.DATA} LIKE ? AND ${MediaStore.Video.Media.DATA} NOT LIKE ?"
+        val selectionArgs = arrayOf("$folderPath/%", "$folderPath/%/%")
         
         try {
             context.contentResolver.query(
@@ -186,8 +186,8 @@ object VideoScanUtils {
             MediaStore.Audio.Media.ALBUM
         )
         
-        val selection = "${MediaStore.Audio.Media.DATA} LIKE ?"
-        val selectionArgs = arrayOf("$folderPath/%")
+        val selection = "${MediaStore.Audio.Media.DATA} LIKE ? AND ${MediaStore.Audio.Media.DATA} NOT LIKE ?"
+        val selectionArgs = arrayOf("$folderPath/%", "$folderPath/%/%")
         
         try {
             context.contentResolver.query(

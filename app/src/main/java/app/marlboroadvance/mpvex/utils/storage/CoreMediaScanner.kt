@@ -23,7 +23,7 @@ object CoreMediaScanner {
     // Smart cache with configurable TTL
     private var cachedMediaData: Map<String, FolderNode>? = null
     private var cacheTimestamp: Long = 0
-    private const val CACHE_TTL_MS = 10_000L // 10 seconds for standard refreshes
+    private const val CACHE_TTL_MS = 180_000L // 3 minutes for standard refreshes
     
     /**
      * Clear all scanning caches

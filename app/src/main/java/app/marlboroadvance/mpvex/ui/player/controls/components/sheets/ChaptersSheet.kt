@@ -24,7 +24,7 @@ import kotlinx.collections.immutable.ImmutableList
 @Composable
 fun ChaptersSheet(
   chapters: ImmutableList<Segment>,
-  currentChapter: Segment,
+  currentChapter: Segment?,
   onClick: (Segment) -> Unit,
   onDismissRequest: () -> Unit,
   modifier: Modifier = Modifier,
@@ -32,7 +32,7 @@ fun ChaptersSheet(
   val listState = rememberLazyListState()
 
   LaunchedEffect(currentChapter, chapters) {
-    val index = chapters.indexOf(currentChapter)
+    val index = if (currentChapter != null) chapters.indexOf(currentChapter) else -1
     if (index >= 0) {
       listState.scrollToItem(index)
     }

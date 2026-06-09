@@ -227,7 +227,6 @@ fun PlayerSheets(
     }
 
     Sheets.Chapters -> {
-      if (chapter == null) return
       ChaptersSheet(
         chapters,
         currentChapter = chapter,

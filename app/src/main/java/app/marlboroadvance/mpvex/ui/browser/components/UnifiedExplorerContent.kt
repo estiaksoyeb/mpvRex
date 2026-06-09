@@ -38,6 +38,9 @@ import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
 import app.marlboroadvance.mpvex.ui.browser.LocalNavigationBarHeight
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
+import androidx.compose.material.icons.filled.DragHandle
 
 @Composable
 fun <T> UnifiedExplorerContent(
@@ -64,6 +67,8 @@ fun <T> UnifiedExplorerContent(
   scrollTriggerKey: Any? = null,
   gridColumns: Int? = null,
   showSections: Boolean = false,
+  isReorderMode: Boolean = false,
+  onReorder: ((Int, Int) -> Unit)? = null,
   listState: LazyListState? = null,
   gridState: LazyGridState? = null,
 ) {
@@ -476,6 +481,12 @@ fun <T> UnifiedExplorerContent(
           }
         }
       } else {
+        val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+          if (isReorderMode && onReorder != null) {
+            onReorder(from.index, to.index)
+          }
+        }
+
         LazyColumn(
           state = listState,
           modifier = Modifier.fillMaxSize(),
@@ -506,22 +517,62 @@ fun <T> UnifiedExplorerContent(
               null
             }
 
-            ExplorerItemCard(
-              item = item,
-              isSelected = isSelected(item),
-              showSubtitleIndicator = showSubtitleIndicator,
-              isGridMode = false,
-              columns = 1,
-              uiSettings = uiSettings,
-              onClick = effectiveOnClick,
-              onLongClick = { onLongClick(item) },
-              onThumbClick = effectiveOnThumbClick,
-              recentlyPlayedFilePath = recentlyPlayedFilePath,
-              playedFolderPaths = playedFolderPaths,
-              newVideoIds = newVideoIds,
-              watchedVideoIds = watchedVideoIds,
-              showSections = showSections
-            )
+            if (isReorderMode) {
+              ReorderableItem(reorderState, key = getItemId(item)) { _ ->
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  Box(modifier = Modifier.weight(1f)) {
+                    ExplorerItemCard(
+                      item = item,
+                      isSelected = isSelected(item),
+                      showSubtitleIndicator = showSubtitleIndicator,
+                      isGridMode = false,
+                      columns = 1,
+                      uiSettings = uiSettings,
+                      onClick = effectiveOnClick,
+                      onLongClick = { onLongClick(item) },
+                      onThumbClick = effectiveOnThumbClick,
+                      recentlyPlayedFilePath = recentlyPlayedFilePath,
+                      playedFolderPaths = playedFolderPaths,
+                      newVideoIds = newVideoIds,
+                      watchedVideoIds = watchedVideoIds,
+                      showSections = showSections
+                    )
+                  }
+                  IconButton(
+                    onClick = { },
+                    modifier = Modifier
+                      .size(48.dp)
+                      .draggableHandle(),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Filled.DragHandle,
+                      contentDescription = "Drag to reorder",
+                      tint = MaterialTheme.colorScheme.primary,
+                    )
+                  }
+                }
+              }
+            } else {
+              ExplorerItemCard(
+                item = item,
+                isSelected = isSelected(item),
+                showSubtitleIndicator = showSubtitleIndicator,
+                isGridMode = false,
+                columns = 1,
+                uiSettings = uiSettings,
+                onClick = effectiveOnClick,
+                onLongClick = { onLongClick(item) },
+                onThumbClick = effectiveOnThumbClick,
+                recentlyPlayedFilePath = recentlyPlayedFilePath,
+                playedFolderPaths = playedFolderPaths,
+                newVideoIds = newVideoIds,
+                watchedVideoIds = watchedVideoIds,
+                showSections = showSections
+              )
+            }
           }
         }
       }
@@ -652,8 +703,7 @@ private fun <T> ExplorerItemCard(
         onLongClick = onLongClick,
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
-        thumbnailSize = if (isGridMode) 160.dp else 128.dp,
-        thumbnailAspectRatio = 16f / 9f
+        gridColumns = columns,
       )
     }
     is RecentlyPlayedItem.VideoItem -> {
@@ -684,8 +734,7 @@ private fun <T> ExplorerItemCard(
         onLongClick = onLongClick,
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
-        thumbnailSize = if (isGridMode) 160.dp else 128.dp,
-        thumbnailAspectRatio = 16f / 9f
+        gridColumns = columns,
       )
     }
     is FileSystemItem.Folder -> {

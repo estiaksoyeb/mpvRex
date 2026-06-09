@@ -574,7 +574,10 @@ private fun PlaylistVideoListContent(
     modifier = modifier,
     emptyTitle = "No videos in this playlist",
     emptyMessage = "Add videos from the browser to build your playlist",
-    isInSelectionMode = selectionManager.isInSelectionMode
+    isInSelectionMode = selectionManager.isInSelectionMode,
+    isReorderMode = isReorderMode,
+    onReorder = onReorder,
+    listState = listState
   )
 }
 

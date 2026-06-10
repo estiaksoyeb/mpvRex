@@ -598,6 +598,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
             isInSelectionMode = isInSelectionMode,
             selectedCount = selectedCount,
             totalCount = totalCount,
+            isHomeScreen = isAtRoot,
             onBackClick = if (isAtRoot) {
               null
             } else {

@@ -226,6 +226,7 @@ fun MediaLibraryContent() {
           selectedCount = selectionManager.selectedCount,
           totalCount = sortedVideosWithInfo.size,
           onBackClick = null, // Unified header: no back button at root
+          isHomeScreen = true,
           onCancelSelection = { selectionManager.clear() },
           onSortClick = { sortDialogOpen.value = true },
           onSearchClick = { isSearching = true },

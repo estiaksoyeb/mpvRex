@@ -84,6 +84,7 @@ enum class SortOrder {
  */
 enum class FolderSortType {
   Title,
+  Duration,
   Date,
   Size,
   VideoCount,
@@ -93,6 +94,7 @@ enum class FolderSortType {
     get() =
       when (this) {
         Title -> "Title"
+        Duration -> "Duration"
         Date -> "Date"
         Size -> "Size"
         VideoCount -> "Count"

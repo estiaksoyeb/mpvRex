@@ -888,17 +888,20 @@ fun FolderSortDialog(
     },
     types = listOf(
       FolderSortType.Title.displayName,
+      FolderSortType.Duration.displayName,
       FolderSortType.Date.displayName,
       FolderSortType.Size.displayName,
     ),
     icons = listOf(
       Icons.Filled.Title,
+      Icons.Filled.AccessTime,
       Icons.Filled.CalendarToday,
       Icons.Filled.SwapVert,
     ),
     getLabelForType = { type, _ ->
       when (type) {
         FolderSortType.Title.displayName -> Pair("A-Z", "Z-A")
+        FolderSortType.Duration.displayName -> Pair("Shortest", "Longest")
         FolderSortType.Date.displayName -> Pair("Oldest", "Newest")
         FolderSortType.Size.displayName -> Pair("Smallest", "Largest")
         else -> Pair("Asc", "Desc")
@@ -1258,17 +1261,20 @@ fun FileSystemSortDialog(
     },
     types = listOf(
       FolderSortType.Title.displayName,
+      FolderSortType.Duration.displayName,
       FolderSortType.Date.displayName,
       FolderSortType.Size.displayName,
     ),
     icons = listOf(
       Icons.Filled.Title,
+      Icons.Filled.AccessTime,
       Icons.Filled.CalendarToday,
       Icons.Filled.SwapVert,
     ),
     getLabelForType = { type, _ ->
       when (type) {
         FolderSortType.Title.displayName -> Pair("A-Z", "Z-A")
+        FolderSortType.Duration.displayName -> Pair("Shortest", "Longest")
         FolderSortType.Date.displayName -> Pair("Oldest", "Newest")
         FolderSortType.Size.displayName -> Pair("Smallest", "Largest")
         else -> Pair("Asc", "Desc")

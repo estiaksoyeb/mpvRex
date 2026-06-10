@@ -37,6 +37,7 @@ object SortUtils {
     val sorted =
       when (sortType) {
         FolderSortType.Title -> folders.sortedWith { t1, t2 -> NaturalOrderComparator.DEFAULT.compare(t1.name, t2.name) }
+        FolderSortType.Duration -> folders.sortedBy { it.totalDuration }
         FolderSortType.Date -> folders.sortedBy { it.lastModified }
         FolderSortType.Size -> folders.sortedBy { it.totalSize }
         FolderSortType.VideoCount -> folders.sortedBy { it.videoCount }
@@ -61,6 +62,7 @@ object SortUtils {
     val sortedFolders =
       when (sortType) {
         FolderSortType.Title -> folders.sortedWith { t1, t2 -> NaturalOrderComparator.DEFAULT.compare(t1.name, t2.name) }
+        FolderSortType.Duration -> folders.sortedBy { it.totalDuration }
         FolderSortType.Date -> folders.sortedBy { it.lastModified }
         FolderSortType.Size -> folders.sortedBy { it.totalSize }
         FolderSortType.VideoCount -> folders.sortedBy { it.videoCount }
@@ -70,6 +72,7 @@ object SortUtils {
     val sortedVideos =
       when (sortType) {
         FolderSortType.Title -> videos.sortedWith { t1, t2 -> NaturalOrderComparator.DEFAULT.compare(t1.name, t2.name) }
+        FolderSortType.Duration -> videos.sortedBy { it.video.duration }
         FolderSortType.Date -> videos.sortedBy { it.lastModified }
         FolderSortType.Size -> videos.sortedBy { it.video.size }
         FolderSortType.VideoCount -> videos.sortedBy { it.video.duration } // Use duration for videos

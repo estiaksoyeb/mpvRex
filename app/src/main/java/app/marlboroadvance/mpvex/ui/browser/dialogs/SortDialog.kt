@@ -288,7 +288,7 @@ private fun SortTypeSelector(
       Row(
         modifier = Modifier
           .clip(RoundedCornerShape(8.dp))
-          .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+          .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f))
           .clickable { onSortOrderChange(!sortOrderAsc) }
           .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -330,7 +330,7 @@ private fun SortTypeSelector(
                 .background(
                   color =
                     if (selected) {
-                      MaterialTheme.colorScheme.primaryContainer
+                      MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                     } else {
                       Color.Transparent
                     },
@@ -355,7 +355,7 @@ private fun SortTypeSelector(
               contentDescription = type,
               tint =
                 if (selected) {
-                  MaterialTheme.colorScheme.onPrimaryContainer
+                  MaterialTheme.colorScheme.primary
                 } else {
                   MaterialTheme.colorScheme.onSurfaceVariant
                 },
@@ -416,7 +416,7 @@ private fun MultiViewModeSelectorComponent(
           modifier = Modifier
             .clip(shape)
             .background(
-              if (selected && enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+              if (selected && enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
               else Color.Transparent
             )
             .clickable(enabled = enabled) {
@@ -432,7 +432,7 @@ private fun MultiViewModeSelectorComponent(
               .clip(shape)
               .background(
                 color = if (selected && enabled) {
-                  MaterialTheme.colorScheme.primaryContainer
+                  MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 } else if (enabled) {
                   MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f)
                 } else {
@@ -446,7 +446,7 @@ private fun MultiViewModeSelectorComponent(
               contentDescription = null,
               modifier = Modifier.size(18.dp),
               tint = if (selected && enabled) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.primary
               } else if (enabled) {
                 MaterialTheme.colorScheme.onSurfaceVariant
               } else {
@@ -458,6 +458,7 @@ private fun MultiViewModeSelectorComponent(
           Text(
             text = option.label,
             style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected && enabled) FontWeight.Bold else FontWeight.Normal,
             color = if (selected && enabled) {
               MaterialTheme.colorScheme.primary
             } else if (enabled) {
@@ -512,7 +513,7 @@ private fun ViewModeSelectorComponent(
           modifier = Modifier
             .clip(shape)
             .background(
-              if (selected && enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+              if (selected && enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
               else Color.Transparent
             )
             .clickable(enabled = enabled) { 
@@ -528,7 +529,7 @@ private fun ViewModeSelectorComponent(
               .clip(shape)
               .background(
                 color = if (selected && enabled) {
-                  MaterialTheme.colorScheme.primaryContainer
+                  MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 } else if (enabled) {
                   MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f)
                 } else {
@@ -541,7 +542,7 @@ private fun ViewModeSelectorComponent(
               imageVector = icons[index],
               contentDescription = label,
               tint = if (selected && enabled) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.primary
               } else if (enabled) {
                 MaterialTheme.colorScheme.onSurfaceVariant
               } else {
@@ -699,8 +700,8 @@ private fun VisibilityTogglesSection(
               )
             },
             colors = FilterChipDefaults.filterChipColors(
-              selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-              selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+              selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+              selectedLabelColor = MaterialTheme.colorScheme.primary,
               containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
               labelColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),

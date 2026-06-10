@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -53,6 +54,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ripple
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -115,7 +117,7 @@ fun SortDialog(
           Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         if (showSortOptions) {
           SortTypeSelector(
@@ -123,10 +125,6 @@ fun SortDialog(
             onSortTypeChange = onSortTypeChange,
             types = types,
             icons = icons,
-            modifier = Modifier.fillMaxWidth(),
-          )
-
-          SortOrderSelector(
             sortOrderAsc = sortOrderAsc,
             onSortOrderChange = onSortOrderChange,
             ascLabel = ascLabel,
@@ -136,32 +134,34 @@ fun SortDialog(
         }
 
         if (viewModeSelector != null || layoutModeSelector != null) {
-          Row(
-            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Top,
-          ) {
-            if (viewModeSelector != null) {
-              MultiViewModeSelectorComponent(
-                selector = viewModeSelector,
-                enabled = enableViewModeOptions,
-                modifier = Modifier.weight(3f),
-              )
-            }
+          SectionCard {
+            Row(
+              modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              verticalAlignment = Alignment.Top,
+            ) {
+              if (viewModeSelector != null) {
+                MultiViewModeSelectorComponent(
+                  selector = viewModeSelector,
+                  enabled = enableViewModeOptions,
+                  modifier = Modifier.weight(3f),
+                )
+              }
 
-            if (viewModeSelector != null && layoutModeSelector != null) {
-              VerticalDivider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-              )
-            }
+              if (viewModeSelector != null && layoutModeSelector != null) {
+                VerticalDivider(
+                  modifier = Modifier.padding(vertical = 8.dp),
+                  color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                )
+              }
 
-            if (layoutModeSelector != null) {
-              ViewModeSelectorComponent(
-                viewModeSelector = layoutModeSelector,
-                enabled = enableLayoutModeOptions,
-                modifier = Modifier.weight(2f),
-              )
+              if (layoutModeSelector != null) {
+                ViewModeSelectorComponent(
+                  viewModeSelector = layoutModeSelector,
+                  enabled = enableLayoutModeOptions,
+                  modifier = Modifier.weight(2f),
+                )
+              }
             }
           }
         }
@@ -241,23 +241,73 @@ data class GridColumnSelector(
 // -----------------------------------------------------------------------------
 
 @Composable
+private fun SectionCard(
+  modifier: Modifier = Modifier,
+  content: @Composable ColumnScope.() -> Unit
+) {
+  Column(
+    modifier = modifier
+      .fillMaxWidth()
+      .clip(RoundedCornerShape(16.dp))
+      .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+      .padding(12.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+    content = content
+  )
+}
+
+@Composable
 private fun SortTypeSelector(
   sortType: String,
   onSortTypeChange: (String) -> Unit,
   types: List<String>,
   icons: List<ImageVector>,
+  sortOrderAsc: Boolean,
+  onSortOrderChange: (Boolean) -> Unit,
+  ascLabel: String,
+  descLabel: String,
   modifier: Modifier = Modifier,
 ) {
-  Column(
-    modifier = modifier,
-    verticalArrangement = Arrangement.spacedBy(12.dp),
-  ) {
-    Text(
-      text = "Sort by",
-      style = MaterialTheme.typography.titleMedium,
-      fontWeight = FontWeight.Medium,
-      color = MaterialTheme.colorScheme.onSurface,
-    )
+  SectionCard(modifier = modifier) {
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(
+        text = "Sort by",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurface,
+      )
+
+      // Compact order toggle
+      val activeLabel = if (sortOrderAsc) ascLabel else descLabel
+      val icon = if (sortOrderAsc) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown
+      
+      Row(
+        modifier = Modifier
+          .clip(RoundedCornerShape(8.dp))
+          .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+          .clickable { onSortOrderChange(!sortOrderAsc) }
+          .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+      ) {
+        Text(
+          text = activeLabel,
+          style = MaterialTheme.typography.labelMedium,
+          color = MaterialTheme.colorScheme.onSecondaryContainer,
+          fontWeight = FontWeight.Medium
+        )
+        Icon(
+          imageVector = icon,
+          contentDescription = "Toggle Sort Order",
+          tint = MaterialTheme.colorScheme.onSecondaryContainer,
+          modifier = Modifier.size(16.dp)
+        )
+      }
+    }
 
     Row(
       modifier = Modifier.fillMaxWidth(),
@@ -325,43 +375,6 @@ private fun SortTypeSelector(
               },
           )
         }
-      }
-    }
-  }
-}
-
-@Composable
-private fun SortOrderSelector(
-  sortOrderAsc: Boolean,
-  onSortOrderChange: (Boolean) -> Unit,
-  ascLabel: String,
-  descLabel: String,
-  modifier: Modifier = Modifier,
-) {
-  val options = listOf(ascLabel, descLabel)
-  val selectedIndex = if (sortOrderAsc) 0 else 1
-
-  SingleChoiceSegmentedButtonRow(
-    modifier = modifier.fillMaxWidth(),
-  ) {
-    options.forEachIndexed { index, label ->
-      SegmentedButton(
-        shape =
-          SegmentedButtonDefaults.itemShape(
-            index = index,
-            count = options.size,
-          ),
-        onClick = { onSortOrderChange(index == 0) },
-        selected = index == selectedIndex,
-        icon = {
-          Icon(
-            if (index == 0) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-          )
-        },
-      ) {
-        Text(label)
       }
     }
   }
@@ -561,10 +574,7 @@ private fun ContentTogglesSection(
   toggles: List<ContentToggle>,
   modifier: Modifier = Modifier,
 ) {
-  Column(
-    modifier = modifier,
-    verticalArrangement = Arrangement.spacedBy(4.dp),
-  ) {
+  SectionCard(modifier = modifier) {
     Text(
       text = "Filters",
       style = MaterialTheme.typography.titleMedium,
@@ -572,52 +582,57 @@ private fun ContentTogglesSection(
       color = MaterialTheme.colorScheme.onSurface,
     )
 
-    toggles.forEach { toggle ->
-      Row(
-        modifier = Modifier
-          .fillMaxWidth()
-          .clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = ripple(bounded = true),
-            onClick = { toggle.onCheckedChange(!toggle.checked) },
+    Column(
+      verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+      toggles.forEach { toggle ->
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(
+              interactionSource = remember { MutableInteractionSource() },
+              indication = ripple(bounded = true),
+              onClick = { toggle.onCheckedChange(!toggle.checked) },
+            )
+            .padding(vertical = 4.dp, horizontal = 4.dp),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Text(
+            text = toggle.label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
           )
-          .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text(
-          text = toggle.label,
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurface,
-        )
-        Switch(
-          checked = toggle.checked,
-          onCheckedChange = toggle.onCheckedChange,
-          modifier = Modifier.scale(0.8f),
-          thumbContent = {
-            Crossfade(
-              targetState = toggle.checked,
-              animationSpec = tween(durationMillis = 200),
-              label = "SwitchIconAnimation"
-            ) { isChecked ->
-              if (isChecked) {
-                Icon(
-                  imageVector = Icons.Filled.Check,
-                  contentDescription = null,
-                  modifier = Modifier.size(SwitchDefaults.IconSize),
-                  tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-              } else {
-                Icon(
-                  imageVector = Icons.Filled.Close,
-                  contentDescription = null,
-                  modifier = Modifier.size(SwitchDefaults.IconSize),
-                  tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+          Switch(
+            checked = toggle.checked,
+            onCheckedChange = toggle.onCheckedChange,
+            modifier = Modifier.scale(0.8f),
+            thumbContent = {
+              Crossfade(
+                targetState = toggle.checked,
+                animationSpec = tween(durationMillis = 200),
+                label = "SwitchIconAnimation"
+              ) { isChecked ->
+                if (isChecked) {
+                  Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                  )
+                } else {
+                  Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                  )
+                }
               }
             }
-          }
-        )
+          )
+        }
       }
     }
   }
@@ -632,12 +647,21 @@ private fun VisibilityTogglesSection(
   var expanded by remember { mutableStateOf(false) }
 
   Column(
-    modifier = modifier,
-    verticalArrangement = Arrangement.spacedBy(12.dp),
+    modifier = modifier
+      .fillMaxWidth()
+      .clip(RoundedCornerShape(16.dp))
+      .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
   ) {
     // Header row with Fields text and dropdown button
     Row(
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable(
+          interactionSource = remember { MutableInteractionSource() },
+          indication = ripple(bounded = true),
+          onClick = { expanded = !expanded }
+        )
+        .padding(12.dp),
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -648,21 +672,19 @@ private fun VisibilityTogglesSection(
         color = MaterialTheme.colorScheme.onSurface,
       )
 
-      IconButton(
-        onClick = { expanded = !expanded },
-      ) {
-        Icon(
-          imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.ArrowDropDown,
-          contentDescription = if (expanded) "Collapse" else "Expand",
-          tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
+      Icon(
+        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.ArrowDropDown,
+        contentDescription = if (expanded) "Collapse" else "Expand",
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
     }
 
     // Expandable filter chips section
     if (expanded) {
       FlowRow(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
       ) {
@@ -673,9 +695,16 @@ private fun VisibilityTogglesSection(
             label = {
               Text(
                 text = toggle.label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
               )
             },
+            colors = FilterChipDefaults.filterChipColors(
+              selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+              selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+              containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+              labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            border = null,
             leadingIcon = null,
           )
         }
@@ -725,10 +754,7 @@ private fun GridColumnsSection(
 ) {
   if (folderGridColumnSelector == null && videoGridColumnSelector == null) return
 
-  Column(
-    modifier = modifier,
-    verticalArrangement = Arrangement.spacedBy(12.dp),
-  ) {
+  SectionCard(modifier = modifier) {
     Text(
       text = "Grid Columns",
       style = MaterialTheme.typography.titleMedium,

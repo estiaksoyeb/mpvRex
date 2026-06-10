@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -163,6 +164,7 @@ fun CommunityLinksDialog(
                         onValueChange = { newValue ->
                             preferences.showCommunityIcon.set(newValue)
                         },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         title = { 
                             Text(
                                 text = stringResource(id = R.string.pref_about_show_community_icon_title),

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,13 +34,14 @@ fun SwitchPreference(
     enabled: Boolean = true,
     titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
     summaryStyle: TextStyle = MaterialTheme.typography.bodyMedium,
-    switchModifier: Modifier = Modifier
+    switchModifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled) { onValueChange(!value) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.preferences.DecoderPreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
+import app.marlboroadvance.mpvex.domain.hdr.HdrToysManager
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.player.Debanding
 import app.marlboroadvance.mpvex.ui.player.MPVProfile
@@ -263,8 +264,11 @@ object DecoderPreferencesScreen : Screen {
                 value = enableAnime4K,
                 onValueChange = { enabled ->
                     preferences.enableAnime4K.set(enabled)
-                    if (enabled && !useVulkan) { // Only disable GPU Next if Vulkan is disabled
-                        preferences.gpuNext.set(false)
+                    if (enabled) {
+                        preferences.enableHdrToys.set(false)
+                        if (!useVulkan) { // Only disable GPU Next if Vulkan is disabled
+                            preferences.gpuNext.set(false)
+                        }
                     }
                 },
                 title = { Text(stringResource(R.string.pref_anime4k_title)) },
@@ -287,6 +291,71 @@ object DecoderPreferencesScreen : Screen {
                   }
                 },
               )
+
+              PreferenceDivider()
+
+              val enableHdrToys by preferences.enableHdrToys.collectAsState()
+              SwitchPreference(
+                value = enableHdrToys,
+                onValueChange = { enabled ->
+                  preferences.enableHdrToys.set(enabled)
+                  if (enabled) {
+                    preferences.gpuNext.set(true)
+                    preferences.enableAnime4K.set(false)
+                  }
+                },
+                title = { Text("HDR-to-SDR Tone Mapping (hdr-toys)") },
+                summary = {
+                  Column {
+                    Text(
+                      "Apply high quality GLSL shaders for HDR-to-SDR conversion. Requires gpu-next.",
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                    Text(
+                      text = "github.com/natural-harmonia-gropius/hdr-toys",
+                      color = MaterialTheme.colorScheme.primary,
+                      style = MaterialTheme.typography.bodySmall,
+                      textDecoration = TextDecoration.Underline,
+                      modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/natural-harmonia-gropius/hdr-toys"))
+                        context.startActivity(intent)
+                      }
+                    )
+                  }
+                },
+              )
+
+              if (enableHdrToys) {
+                val toneMapping by preferences.hdrToysToneMapping.collectAsState()
+                val currentTone = runCatching { HdrToysManager.ToneMapping.valueOf(toneMapping) }.getOrDefault(HdrToysManager.ToneMapping.ASTRA)
+                ListPreference(
+                  value = currentTone,
+                  onValueChange = { preferences.hdrToysToneMapping.set(it.name) },
+                  values = HdrToysManager.ToneMapping.entries,
+                  title = { Text("  Tone Mapping Algorithm") },
+                  summary = {
+                    Text(
+                      "  " + currentTone.name,
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  }
+                )
+
+                val gamutMapping by preferences.hdrToysGamutMapping.collectAsState()
+                val currentGamut = runCatching { HdrToysManager.GamutMapping.valueOf(gamutMapping) }.getOrDefault(HdrToysManager.GamutMapping.BOTTOSSON)
+                ListPreference(
+                  value = currentGamut,
+                  onValueChange = { preferences.hdrToysGamutMapping.set(it.name) },
+                  values = HdrToysManager.GamutMapping.entries,
+                  title = { Text("  Gamut Mapping Algorithm") },
+                  summary = {
+                    Text(
+                      "  " + currentGamut.name,
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  }
+                )
+              }
             }
           }
         }

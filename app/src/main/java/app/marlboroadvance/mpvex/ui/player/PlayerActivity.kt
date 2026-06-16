@@ -39,6 +39,8 @@ import app.marlboroadvance.mpvex.database.entities.PlaybackStateEntity
 import app.marlboroadvance.mpvex.databinding.PlayerLayoutBinding
 import app.marlboroadvance.mpvex.domain.playbackstate.repository.PlaybackStateRepository
 import app.marlboroadvance.mpvex.preferences.AdvancedPreferences
+import app.marlboroadvance.mpvex.preferences.DecoderPreferences
+import app.marlboroadvance.mpvex.domain.hdr.HdrToysManager
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.AudioPreferences
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
@@ -162,6 +164,16 @@ class PlayerActivity :
    * Repository for video metadata cache.
    */
   private val metadataCache: VideoMetadataCacheRepository by inject()
+
+  /**
+   * Preferences for decoder settings (hardware dec, gpu-next, shaders).
+   */
+  private val decoderPreferences: DecoderPreferences by inject()
+
+  /**
+   * Manager for hdr-toys shaders.
+   */
+  private val hdrToysManager: HdrToysManager by inject()
 
   /**
    * Track selector for automatic audio/subtitle selection
@@ -930,6 +942,17 @@ class PlayerActivity :
     runCatching {
       Utils.copyAssets(this@PlayerActivity)
       syncFromUserMpvDirectory()
+
+      // Configure hdr-toys conditional profile in mpv.conf if enabled
+      val isEnabled = decoderPreferences.enableHdrToys.get()
+      val toneStr = decoderPreferences.hdrToysToneMapping.get()
+      val gamutStr = decoderPreferences.hdrToysGamutMapping.get()
+
+      val tone = runCatching { HdrToysManager.ToneMapping.valueOf(toneStr) }.getOrDefault(HdrToysManager.ToneMapping.ASTRA)
+      val gamut = runCatching { HdrToysManager.GamutMapping.valueOf(gamutStr) }.getOrDefault(HdrToysManager.GamutMapping.BOTTOSSON)
+
+      hdrToysManager.configureMpvConf(filesDir, isEnabled, tone, gamut)
+
       Log.d(TAG, "MPV config and scripts prepared successfully")
     }.onFailure { e ->
       Log.e(TAG, "Error copying MPV config and scripts", e)
@@ -1117,29 +1140,43 @@ class PlayerActivity :
     val shadersSubdir = findSubdirCaseInsensitive(tree, "shaders")
     val sourceDir = shadersSubdir ?: tree
     val shaderExtensions = setOf("glsl", "hook", "comp")
+    
+    val count = syncShaderDirRecursive(sourceDir, shadersDir, shaderExtensions)
+    Log.d(TAG, "Shaders sync: $count file(s) completed")
+  }
+
+  private fun syncShaderDirRecursive(
+    sourceDir: DocumentFile,
+    targetDir: File,
+    shaderExtensions: Set<String>
+  ): Int {
     var count = 0
-
     sourceDir.listFiles().forEach { file ->
-      if (!file.isFile) return@forEach
       val name = file.name ?: return@forEach
-      val ext = name.substringAfterLast('.', "").lowercase()
-      if (ext !in shaderExtensions) return@forEach
-
-      runCatching {
-        contentResolver.openInputStream(file.uri)?.use { input ->
-          File(shadersDir, name).outputStream().use { output ->
-            input.copyTo(output)
+      if (file.isDirectory) {
+        val nextTarget = File(targetDir, name)
+        nextTarget.mkdirs()
+        count += syncShaderDirRecursive(file, nextTarget, shaderExtensions)
+      } else if (file.isFile) {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        if (ext in shaderExtensions) {
+          runCatching {
+            contentResolver.openInputStream(file.uri)?.use { input ->
+              File(targetDir, name).outputStream().use { output ->
+                input.copyTo(output)
+              }
+              count++
+              Log.d(TAG, "Synced shader: $name")
+            }
+          }.onFailure { e ->
+            Log.e(TAG, "Error syncing shader: $name", e)
           }
-          count++
-          Log.d(TAG, "Synced shader: $name")
         }
-      }.onFailure { e ->
-        Log.e(TAG, "Error syncing shader: $name", e)
       }
     }
-
-    Log.d(TAG, "Shaders sync: $count file(s)")
+    return count
   }
+
 
   // ==================== Fonts Sync ====================
 

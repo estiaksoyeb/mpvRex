@@ -30,4 +30,10 @@ class DecoderPreferences(
   val enableAnime4K = preferenceStore.getBoolean("enable_anime4k", false)
   val anime4kMode = preferenceStore.getString("anime4k_mode", "OFF")
   val anime4kQuality = preferenceStore.getString("anime4k_quality", "FAST")
+
+  // HdrToys Preferences
+  val enableHdrToys = preferenceStore.getBoolean("enable_hdrtoys", false)
+  val hdrToysToneMapping = preferenceStore.getString("hdrtoys_tone_mapping", "ASTRA")
+  val hdrToysGamutMapping = preferenceStore.getString("hdrtoys_gamut_mapping", "BOTTOSSON")
 }
+

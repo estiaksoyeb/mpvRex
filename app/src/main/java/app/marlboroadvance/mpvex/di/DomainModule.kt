@@ -1,6 +1,7 @@
 package app.marlboroadvance.mpvex.di
 
 import app.marlboroadvance.mpvex.domain.anime4k.Anime4KManager
+import app.marlboroadvance.mpvex.domain.hdr.HdrToysManager
 import app.marlboroadvance.mpvex.repository.wyzie.WyzieSearchRepository
 import app.marlboroadvance.mpvex.ui.player.PlaybackManager
 import okhttp3.OkHttpClient
@@ -17,6 +18,8 @@ val domainModule = module {
             .build()
     }
     single { Anime4KManager(androidContext()) }
+    single { HdrToysManager(androidContext()) }
     single { WyzieSearchRepository(androidContext(), get(), get(), get()) }
     single { PlaybackManager(get()) }
 }
+

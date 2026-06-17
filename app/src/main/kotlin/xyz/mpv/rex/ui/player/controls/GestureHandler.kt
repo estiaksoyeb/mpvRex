@@ -397,9 +397,9 @@ fun GestureHandler(
           var lastVolumeValue = currentVolume
           var lastMPVVolumeValue = currentMPVVolume ?: 100
           var lastBrightnessValue = currentBrightness
-          val brightnessGestureSens = 0.001f
-          val volumeGestureSens = 0.017f
-          val mpvVolumeGestureSens = 0.017f
+          val brightnessGestureSens = 0.0022f
+          val volumeGestureSens = 0.035f
+          val mpvVolumeGestureSens = 0.035f
 
           // State for subtitle-position drag (touch on the subtitle, drag up/down)
           var subPosOriginal = 0
@@ -815,8 +815,9 @@ fun GestureHandler(
           // 1 finger pixel = 1 video pixel
           val curX = MPVLib.getPropertyDouble("video-pan-x")?.toFloat() ?: 0f
           val curY = MPVLib.getPropertyDouble("video-pan-y")?.toFloat() ?: 0f
-          val targetX = curX + dx / (bw * scale)
-          val targetY = curY + dy / (bh * scale)
+          val panSensitivity = 2.2f
+          val targetX = curX + (dx * panSensitivity) / (bw * scale)
+          val targetY = curY + (dy * panSensitivity) / (bh * scale)
           // Initialize smoothing on first call
           if (smoothState[2] == 0f) { smoothState[0] = targetX; smoothState[1] = targetY; smoothState[2] = 1f }
           smoothState[0] += (targetX - smoothState[0]) * smoothFactor
@@ -920,11 +921,24 @@ fun GestureHandler(
               val zoom = MPVLib.getPropertyDouble("video-zoom")?.toFloat() ?: 0f
               if (zoom <= 0f) { continue }
 
+              // Ignore panning if long-pressing or speed adjustment is active
+              if (isLongPressing || isDynamicSpeedControlActive) {
+                continue
+              }
+
               val pos = change.position
 
               // Activate after 20px drag threshold
               if (!panning) {
-                val d = sqrt((pos.x - startX).let { it * it } + (pos.y - startY).let { it * it })
+                val dx = pos.x - startX
+                val dy = pos.y - startY
+                // If it's a horizontal seek gesture, let horizontal swipe-to-seek block handle it instead
+                val isHorizontalSeek = horizontalSwipeToSeek && (abs(dx) > abs(dy) * 2f) && (abs(dx) > 30f)
+                if (isHorizontalSeek) {
+                  continue
+                }
+
+                val d = sqrt(dx * dx + dy * dy)
                 if (d > 20f) { panning = true; prevX = pos.x; prevY = pos.y }
               }
 
@@ -936,8 +950,9 @@ fun GestureHandler(
                   val (bw, bh) = videoDisplaySize()
                   val curX = MPVLib.getPropertyDouble("video-pan-x")?.toFloat() ?: 0f
                   val curY = MPVLib.getPropertyDouble("video-pan-y")?.toFloat() ?: 0f
-                  val targetX = curX + (pos.x - prevX) / (bw * scale)
-                  val targetY = curY + (pos.y - prevY) / (bh * scale)
+                  val panSensitivity = 2.2f
+                  val targetX = curX + ((pos.x - prevX) * panSensitivity) / (bw * scale)
+                  val targetY = curY + ((pos.y - prevY) * panSensitivity) / (bh * scale)
                   // Initialize smoothing on first pan frame
                   if (panSmooth[2] == 0f) { panSmooth[0] = targetX; panSmooth[1] = targetY; panSmooth[2] = 1f }
                   panSmooth[0] += (targetX - panSmooth[0]) * 0.5f

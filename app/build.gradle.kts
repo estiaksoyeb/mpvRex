@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-  namespace = "app.marlboroadvance.mpvex"
+  namespace = "xyz.mpv.rex"
   compileSdk = 36
 
   defaultConfig {

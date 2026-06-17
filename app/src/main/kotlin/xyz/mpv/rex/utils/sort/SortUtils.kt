@@ -155,7 +155,10 @@ object SortUtils {
         when {
           numA != null && numB != null -> {
             // Both numeric
-            val cmp = numA.value.compareTo(numB.value)
+            val cmp = compareNumericStrings(
+              a, numA.startIndex, numA.exclusiveEndIndex,
+              b, numB.startIndex, numB.exclusiveEndIndex
+            )
             if (cmp != 0) return cmp
             // Numbers equal => advance past them and continue
             ia = numA.exclusiveEndIndex
@@ -174,11 +177,10 @@ object SortUtils {
       }
     }
 
-    private data class ParsedNumber(val value: Int, val exclusiveEndIndex: Int)
+    private data class ParsedNumber(val startIndex: Int, val exclusiveEndIndex: Int)
 
     private fun parseNumber(s: String, start: Int): ParsedNumber? {
       var i = start
-
       var hasDigit = false
 
       while (i < s.length) {
@@ -192,13 +194,38 @@ object SortUtils {
       }
 
       if (!hasDigit) return null
+      return ParsedNumber(start, i)
+    }
 
-      val numStr = s.substring(start, i)
-      return try {
-        ParsedNumber(numStr.toInt(), i)
-      } catch (_: Exception) {
-        null
+    private fun compareNumericStrings(
+      a: String, startA: Int, endA: Int,
+      b: String, startB: Int, endB: Int
+    ): Int {
+      var firstNonZeroA = startA
+      while (firstNonZeroA < endA && a[firstNonZeroA] == '0') {
+        firstNonZeroA++
       }
+      var firstNonZeroB = startB
+      while (firstNonZeroB < endB && b[firstNonZeroB] == '0') {
+        firstNonZeroB++
+      }
+
+      val lenA = endA - firstNonZeroA
+      val lenB = endB - firstNonZeroB
+
+      if (lenA != lenB) {
+        return lenA.compareTo(lenB)
+      }
+
+      for (i in 0 until lenA) {
+        val ca = a[firstNonZeroA + i]
+        val cb = b[firstNonZeroB + i]
+        if (ca != cb) {
+          return ca.compareTo(cb)
+        }
+      }
+
+      return 0
     }
   }
 }

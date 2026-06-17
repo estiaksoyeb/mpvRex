@@ -68,19 +68,23 @@ abstract class BaseBrowserViewModel<T>(
     // Observe playback state changes and invalidate the media scanner cache.
     // This ensures that 'NEW' counts are updated immediately across all views
     // as soon as a video is watched.
-    viewModelScope.launch(Dispatchers.IO) {
+    viewModelScope.launch(Dispatchers.Main) {
       playbackStateRepository.observeAllPlaybackStates().collectLatest {
         Log.d("BaseBrowserViewModel", "Playback states changed, invalidating scanner cache")
-        MediaFileRepository.clearCache()
+        viewModelScope.launch(Dispatchers.IO) {
+          MediaFileRepository.clearCache()
+        }
         loadData()
       }
     }
 
     // Observe global media library changes (e.g. from MediaScanReceiver)
-    viewModelScope.launch(Dispatchers.IO) {
+    viewModelScope.launch(Dispatchers.Main) {
       MediaLibraryEvents.changes.collectLatest { _ ->
         Log.d("BaseBrowserViewModel", "Media library changed, refreshing")
-        MediaFileRepository.clearCache()
+        viewModelScope.launch(Dispatchers.IO) {
+          MediaFileRepository.clearCache()
+        }
         loadData()
       }
     }

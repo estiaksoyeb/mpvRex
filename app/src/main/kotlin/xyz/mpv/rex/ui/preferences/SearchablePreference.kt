@@ -185,12 +185,18 @@ object SearchablePreferences {
                 category = "Player",
                 screen = PlayerPreferencesScreen,
             ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_player_use_precise_seeking,
-                keywords = listOf("precise", "seek", "keyframes", "accurate", "navigation"),
-                category = "Player",
-                screen = PlayerPreferencesScreen,
-            ))
+             add(SearchablePreference(
+                 titleRes = R.string.pref_player_use_precise_seeking,
+                 keywords = listOf("precise", "seek", "keyframes", "accurate", "navigation"),
+                 category = "Player",
+                 screen = PlayerPreferencesScreen,
+             ))
+             add(SearchablePreference(
+                 titleRes = R.string.pref_player_hide_osd_text_title,
+                 keywords = listOf("osd", "hide", "seek", "subtitle", "gesture", "text"),
+                 category = "Player",
+                 screen = PlayerPreferencesScreen,
+             ))
             add(SearchablePreference(
                 titleRes = R.string.pref_player_gestures_brightness,
                 keywords = listOf("brightness", "gesture", "swipe", "display", "control"),

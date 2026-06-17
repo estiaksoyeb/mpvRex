@@ -474,6 +474,19 @@ class PlayerActivity :
       }
     }
 
+    // Observe hideOsdText preference
+    lifecycleScope.launch {
+      playerPreferences.hideOsdText.changes().collect { hide ->
+        if (mpvInitialized) {
+          runCatching {
+            MPVLib.setPropertyInt("osd-level", if (hide) 0 else 1)
+          }.onFailure { e ->
+            Log.e(TAG, "Error updating osd-level", e)
+          }
+        }
+      }
+    }
+
     window.attributes.layoutInDisplayCutoutMode =
       WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
   }
@@ -962,6 +975,13 @@ class PlayerActivity :
     player.initialize(filesDir.path, cacheDir.path)
     mpvInitialized = true
     Log.d(TAG, "MPV initialized")
+
+    // Configure initial OSD level based on preference
+    runCatching {
+      MPVLib.setPropertyInt("osd-level", if (playerPreferences.hideOsdText.get()) 0 else 1)
+    }.onFailure { e ->
+      Log.e(TAG, "Error setting initial osd-level", e)
+    }
 
     // Add observer after initialization
     MPVLib.addObserver(playerObserver)
@@ -2006,6 +2026,13 @@ class PlayerActivity :
           MPVLib.setPropertyDouble("video-zoom", zoomPreference.toDouble())
           viewModel.setVideoZoom(zoomPreference)
         }
+      }
+
+      // Re-apply OSD level option on file load to prevent resets
+      runCatching {
+        MPVLib.setPropertyInt("osd-level", if (playerPreferences.hideOsdText.get()) 0 else 1)
+      }.onFailure { e ->
+        Log.e(TAG, "Error applying osd-level on file load", e)
       }
       
     }

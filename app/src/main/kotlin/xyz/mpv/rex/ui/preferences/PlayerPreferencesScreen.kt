@@ -252,6 +252,16 @@ object PlayerPreferencesScreen : Screen {
               )
               
               PreferenceDivider()
+
+              val hideOsdText by preferences.hideOsdText.collectAsState()
+              SwitchPreference(
+                value = hideOsdText,
+                onValueChange = preferences.hideOsdText::set,
+                title = { Text(stringResource(R.string.pref_player_hide_osd_text_title)) },
+                summary = { Text(stringResource(R.string.pref_player_hide_osd_text_summary)) },
+              )
+              
+              PreferenceDivider()
               
               val customSkipDuration by preferences.customSkipDuration.collectAsState()
               SliderPreference(

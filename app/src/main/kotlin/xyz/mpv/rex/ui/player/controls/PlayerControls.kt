@@ -187,6 +187,7 @@ fun PlayerControls(
   val doubleTapSeekBasePos by viewModel.doubleTapSeekBasePos.collectAsState()
   val showDoubleTapOvals by playerPreferences.showDoubleTapOvals.collectAsState()
   val showSeekTime by playerPreferences.showSeekTimeWhileSeeking.collectAsState()
+  val hideOsdText by playerPreferences.hideOsdText.collectAsState()
   var isSeeking by remember { mutableStateOf(false) }
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
   val seekText by viewModel.seekText.collectAsState()
@@ -585,12 +586,14 @@ fun PlayerControls(
             }
 
             is PlayerUpdates.HorizontalSeek -> {
-              val seekUpdate = currentPlayerUpdate as PlayerUpdates.HorizontalSeek
-              SeekPlayerUpdate(
-                currentTime = seekUpdate.currentTime,
-                seekDelta = "[${seekUpdate.seekDelta}]",
-                modifier = Modifier, // Let content size determine width
-              )
+              if (!hideOsdText) {
+                val seekUpdate = currentPlayerUpdate as PlayerUpdates.HorizontalSeek
+                SeekPlayerUpdate(
+                  currentTime = seekUpdate.currentTime,
+                  seekDelta = "[${seekUpdate.seekDelta}]",
+                  modifier = Modifier, // Let content size determine width
+                )
+              }
             }
             is PlayerUpdates.RepeatMode -> {
               val mode = (currentPlayerUpdate as PlayerUpdates.RepeatMode).mode
@@ -876,7 +879,7 @@ fun PlayerControls(
           val interaction = remember { MutableInteractionSource() }
 
           when {
-            doubleTapSeekAmount != 0 -> {
+            doubleTapSeekAmount != 0 && !hideOsdText -> {
               val seekAmount = doubleTapSeekAmount
               // Use the position captured before the first seek so the displayed
               // target time stays correct even after MPV's time-pos updates.

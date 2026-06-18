@@ -21,4 +21,8 @@ class GesturePreferences(
   val mediaPlayGesture = preferenceStore.getEnum("media_play_gesture", SingleActionGesture.PlayPause)
   val mediaNextGesture = preferenceStore.getEnum("media_next_gesture", SingleActionGesture.PlaylistNext)
   val tapThumbnailToSelect = preferenceStore.getBoolean("tap_thumbnail_to_select", false)
+  val speedLockHintShownCount = preferenceStore.getInt("speed_lock_hint_shown_count", 0)
+  val hasLockedSpeedBefore = preferenceStore.getBoolean("has_locked_speed_before", false)
+  val subtitlePosHintShownCount = preferenceStore.getInt("subtitle_pos_hint_shown_count", 0)
+  val hasDraggedSubtitleBefore = preferenceStore.getBoolean("has_dragged_subtitle_before", false)
 }

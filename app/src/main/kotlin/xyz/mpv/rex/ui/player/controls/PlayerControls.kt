@@ -1157,7 +1157,8 @@ fun PlayerControls(
           val seekbarStyle by appearancePreferences.seekbarStyle.collectAsState()
 
           // Calculate read-ahead position (current position + buffered cache time)
-          val readAheadPosition by remember(position, demuxerCacheDuration, cacheBufferingState, duration) {
+          // No keys for remember, derivedStateOf reactively tracks read dependencies
+          val readAheadPosition by remember {
             derivedStateOf {
               val currentPos = position?.toFloat() ?: 0f
               val cacheDuration = demuxerCacheDuration ?: 0f

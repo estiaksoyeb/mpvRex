@@ -63,6 +63,7 @@ import xyz.mpv.rex.presentation.components.RightSideOvalShape
 import xyz.mpv.rex.ui.player.Panels
 import xyz.mpv.rex.ui.player.PlayerUpdates
 import xyz.mpv.rex.ui.player.PlayerViewModel
+import xyz.mpv.rex.ui.player.PlayerTutorialManager
 import xyz.mpv.rex.ui.player.SingleActionGesture
 import xyz.mpv.rex.ui.theme.playerRippleConfiguration
 import kotlinx.coroutines.delay
@@ -85,6 +86,7 @@ fun GestureHandler(
   val audioPreferences = koinInject<AudioPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
   val subtitlesPreferences = koinInject<SubtitlesPreferences>()
+  val playerTutorialManager = koinInject<PlayerTutorialManager>()
   val panelShown by viewModel.panelShown.collectAsState()
   val allowGesturesInPanels by playerPreferences.allowGesturesInPanels.collectAsState()
   val paused by MPVLib.propBoolean["pause"].collectAsState()
@@ -128,6 +130,7 @@ fun GestureHandler(
   var hasSwipedEnough by remember { mutableStateOf(false) }
   var longPressTriggeredDuringTouch by remember { mutableStateOf(false) }
   var isVerticalGestureActive by remember { mutableStateOf(false) }
+  var hasIncrementedSpeedLockHint by remember { mutableStateOf(false) }
   val currentVolume by viewModel.currentVolume.collectAsState()
   val currentMPVVolume by MPVLib.propInt["volume"].collectAsState()
   val currentBrightness by viewModel.currentBrightness.collectAsState()
@@ -442,6 +445,7 @@ fun GestureHandler(
                 if (showDynamicSpeedOverlay) {
                   isDynamicSpeedControlActive = true
                   hasSwipedEnough = false
+                  hasIncrementedSpeedLockHint = false
                   dynamicSpeedStartX = startPosition.x
                   dynamicSpeedStartValue = multipleSpeedGesture
                   lastAppliedSpeed = multipleSpeedGesture
@@ -562,6 +566,7 @@ fun GestureHandler(
                             if (deltaY < -lockThreshold && !viewModel.isSpeedLocked.value) {
                                 // Swipe Up -> Lock
                                 viewModel.isSpeedLocked.value = true
+                                playerTutorialManager.markSpeedLockCompleted()
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.playerUpdate.update { PlayerUpdates.SpeedLockHint(lastAppliedSpeed, true) }
                             } else if (deltaY > lockThreshold && viewModel.isSpeedLocked.value) {
@@ -596,11 +601,16 @@ fun GestureHandler(
 
                         // Smart Hint Logic: only show "Swipe up to lock" after 2 seconds of holding
                         val holdDuration = System.currentTimeMillis() - longPressStartTime
-                        val shouldShowLockHint = holdDuration > 2000L || viewModel.isSpeedLocked.value
+                        val isLocked = viewModel.isSpeedLocked.value
+                        val shouldShowLockHint = isLocked || (holdDuration > 2000L && playerTutorialManager.shouldShowSpeedLockHint())
 
                         if (shouldShowLockHint) {
+                            if (!isLocked && !hasIncrementedSpeedLockHint) {
+                                hasIncrementedSpeedLockHint = true
+                                playerTutorialManager.incrementSpeedLockHintCount()
+                            }
                             viewModel.playerUpdate.update { 
-                                PlayerUpdates.SpeedLockHint(lastAppliedSpeed, viewModel.isSpeedLocked.value) 
+                                PlayerUpdates.SpeedLockHint(lastAppliedSpeed, isLocked) 
                             }
                         } else {
                             viewModel.playerUpdate.update { 
@@ -619,6 +629,7 @@ fun GestureHandler(
                       if (newSubPos != lastSubPosValue) {
                         MPVLib.setPropertyInt("sub-pos", newSubPos)
                         lastSubPosValue = newSubPos
+                        playerTutorialManager.markSubtitleDragCompleted()
                         viewModel.playerUpdate.update { PlayerUpdates.ShowText("Sub position: $newSubPos") }
                       }
                       change.consume()

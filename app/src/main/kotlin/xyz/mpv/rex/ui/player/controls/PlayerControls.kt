@@ -106,6 +106,7 @@ import xyz.mpv.rex.ui.player.Panels
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.PlayerUpdates
 import xyz.mpv.rex.ui.player.PlayerViewModel
+import xyz.mpv.rex.ui.player.PlayerTutorialManager
 import xyz.mpv.rex.ui.player.Sheets
 import xyz.mpv.rex.ui.player.VideoAspect
 import xyz.mpv.rex.ui.player.controls.components.BrightnessSlider
@@ -166,6 +167,7 @@ fun PlayerControls(
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
   val playerPreferences = koinInject<PlayerPreferences>()
   val audioPreferences = koinInject<AudioPreferences>()
+  val playerTutorialManager = koinInject<PlayerTutorialManager>()
   val showSystemStatusBar by playerPreferences.showSystemStatusBar.collectAsState()
   val showSystemNavigationBar by playerPreferences.showSystemNavigationBar.collectAsState()
   val playerGradientOpacity by playerPreferences.playerGradientOpacity.collectAsState()
@@ -214,6 +216,23 @@ fun PlayerControls(
 
   val isGestureSeeking by viewModel.isGestureSeeking.collectAsState()
   val isVerticalGestureActive by viewModel.isVerticalGestureActive.collectAsState()
+
+  LaunchedEffect(controlsShown) {
+    if (controlsShown) {
+      val hasActiveSubtitle = (MPVLib.getPropertyInt("sid") ?: 0) != 0
+      if (hasActiveSubtitle && playerTutorialManager.shouldShowSubtitleDragHint()) {
+        viewModel.playerUpdate.value = PlayerUpdates.ShowText("Swipe vertically at bottom to adjust subtitle position")
+        playerTutorialManager.incrementSubtitleDragHintCount()
+        delay(3000L)
+        if (viewModel.playerUpdate.value is PlayerUpdates.ShowText) {
+          val currentText = (viewModel.playerUpdate.value as PlayerUpdates.ShowText).value
+          if (currentText == "Swipe vertically at bottom to adjust subtitle position") {
+            viewModel.playerUpdate.value = PlayerUpdates.None
+          }
+        }
+      }
+    }
+  }
 
   val onOpenSheet: (Sheets) -> Unit = {
     viewModel.sheetShown.update { _ -> it }

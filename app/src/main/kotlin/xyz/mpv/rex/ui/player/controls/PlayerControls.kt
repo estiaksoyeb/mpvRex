@@ -485,7 +485,7 @@ fun PlayerControls(
         val isSpeedLocked by viewModel.isSpeedLocked.collectAsState()
 
         AnimatedVisibility(
-          currentPlayerUpdate !is PlayerUpdates.None || isSpeedLocked,
+          currentPlayerUpdate !is PlayerUpdates.None || isSpeedLocked || (doubleTapSeekAmount != 0 && !hideOsdText),
           enter = fadeIn(playerControlsEnterAnimationSpec()),
           exit = fadeOut(playerControlsExitAnimationSpec()),
           modifier =
@@ -503,7 +503,21 @@ fun PlayerControls(
               },
         ) {
           val currentPlaybackSpeed = playbackSpeed ?: 1f
-          if (isSpeedLocked && currentPlayerUpdate is PlayerUpdates.None && abs(currentPlaybackSpeed - 1f) > 0.01f) {
+          if (doubleTapSeekAmount != 0 && !hideOsdText) {
+            val seekAmount = doubleTapSeekAmount
+            // Use the position captured before the first seek so the displayed
+            // target time stays correct even after MPV's time-pos updates.
+            val basePos = doubleTapSeekBasePos ?: (position ?: 0)
+            val targetTime = Utils.prettyTime(basePos + seekAmount)
+            val deltaSign = if (seekAmount >= 0) "+" else "-"
+            val deltaValue = Utils.prettyTime(abs(seekAmount))
+            val seekDelta = "[$deltaSign$deltaValue]"
+            SeekPlayerUpdate(
+              currentTime = targetTime,
+              seekDelta = seekDelta,
+              modifier = Modifier,
+            )
+          } else if (isSpeedLocked && currentPlayerUpdate is PlayerUpdates.None && abs(currentPlaybackSpeed - 1f) > 0.01f) {
             CompactSpeedIndicator(
               currentSpeed = currentPlaybackSpeed,
               onReset = {
@@ -857,7 +871,7 @@ fun PlayerControls(
 
         AnimatedVisibility(
           visible =
-            ((controlsShown && !areSlidersShown) && !areControlsLocked || doubleTapSeekAmount != 0) || pausedForCache == true,
+            ((controlsShown && !areSlidersShown) && !areControlsLocked) || pausedForCache == true,
           enter = fadeIn(playerControlsEnterAnimationSpec()),
           exit = fadeOut(playerControlsExitAnimationSpec()),
           modifier =
@@ -879,27 +893,6 @@ fun PlayerControls(
           val interaction = remember { MutableInteractionSource() }
 
           when {
-            doubleTapSeekAmount != 0 && !hideOsdText -> {
-              val seekAmount = doubleTapSeekAmount
-              // Use the position captured before the first seek so the displayed
-              // target time stays correct even after MPV's time-pos updates.
-              val basePos = doubleTapSeekBasePos ?: (position ?: 0)
-              Text(
-                stringResource(
-                  R.string.player_gesture_seek_indicator,
-                  if (seekAmount >= 0) '+' else '-',
-                  Utils.prettyTime(abs(seekAmount)),
-                  Utils.prettyTime(basePos + seekAmount),
-                ),
-                style =
-                  MaterialTheme.typography.headlineMedium.copy(
-                    shadow = Shadow(Color.Black, blurRadius = 5f),
-                  ),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-              )
-            }
-
             pausedForCache == true && showLoadingCircle -> {
               LoadingIndicator(
                 modifier = Modifier.size(96.dp),

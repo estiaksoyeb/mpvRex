@@ -41,6 +41,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -139,18 +141,18 @@ fun SeekbarWithTimers(
 
   val squeezeScale = squeezeAnim.value
 
-  val currentPosVal = position()
   // Only animate position updates when user is not interacting
-  LaunchedEffect(currentPosVal) {
-    if (!isUserInteracting && currentPosVal != animatedPosition.value) {
-      // If we recently interacted (within 2s) and the position is significantly different from the seeked target (>10s),
-      // assume it's the old position and ignore it to prevent "back and forth" glitches.
-      val timeSinceInteraction = System.currentTimeMillis() - lastInteractionTime
-      if (timeSinceInteraction < 2000 && kotlin.math.abs(currentPosVal - userPosition) > 10f) {
-        return@LaunchedEffect
-      }
+  // Using snapshotFlow to avoid registering a state read in this composable's scope
+  LaunchedEffect(Unit) {
+    snapshotFlow { position() }.collect { currentPosVal ->
+      if (!isUserInteracting && currentPosVal != animatedPosition.value) {
+        // If we recently interacted (within 2s) and the position is significantly different from the seeked target (>10s),
+        // assume it's the old position and ignore it to prevent "back and forth" glitches.
+        val timeSinceInteraction = System.currentTimeMillis() - lastInteractionTime
+        if (timeSinceInteraction < 2000 && kotlin.math.abs(currentPosVal - userPosition) > 10f) {
+          return@collect
+        }
 
-      scope.launch {
         animatedPosition.animateTo(
           targetValue = currentPosVal,
           animationSpec =
@@ -169,7 +171,7 @@ fun SeekbarWithTimers(
     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
   ) {
     VideoTimer(
-      value = if (isUserInteracting) userPosition else position(),
+      value = { if (isUserInteracting) userPosition else position() },
       timersInverted.first,
       onClick = {
         clickEvent()
@@ -310,7 +312,7 @@ fun SeekbarWithTimers(
     }
 
     VideoTimer(
-      value = if (timersInverted.second) position() - duration else duration,
+      value = { if (timersInverted.second) position() - duration else duration },
       isInverted = timersInverted.second,
       onClick = {
         clickEvent()
@@ -713,7 +715,7 @@ private fun SquigglySeekbar(
 
 @Composable
 fun VideoTimer(
-  value: Float,
+  value: () -> Float,
   isInverted: Boolean,
   modifier: Modifier = Modifier,
   onClick: () -> Unit = {},
@@ -721,6 +723,12 @@ fun VideoTimer(
   val interactionSource = remember { MutableInteractionSource() }
   val appearancePreferences = koinInject<AppearancePreferences>()
   val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+  
+  val timeText by remember(isInverted) {
+    derivedStateOf {
+      Utils.prettyTime(value().toInt(), isInverted)
+    }
+  }
   
   Text(
     modifier =
@@ -732,7 +740,7 @@ fun VideoTimer(
           onClick = onClick,
         )
         .wrapContentHeight(Alignment.CenterVertically),
-    text = Utils.prettyTime(value.toInt(), isInverted),
+    text = timeText,
     color = if (matchTheme) MaterialTheme.colorScheme.primary else Color.White,
     textAlign = TextAlign.Center,
   )

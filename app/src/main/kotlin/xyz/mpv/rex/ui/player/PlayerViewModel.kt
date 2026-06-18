@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
@@ -199,14 +200,26 @@ class PlayerViewModel(
   val isVerticalGestureActive = MutableStateFlow(false)
 
   init {
-    // Poll precise position only when playing
+    // Poll precise position only when playing and controls or seekbar is visible
     viewModelScope.launch {
-      while (isActive) {
-        val time = MPVLib.getPropertyDouble("time-pos")
-        if (time != null) {
-          _precisePosition.value = time.toFloat()
+      combine(
+        MPVLib.propBoolean["pause"],
+        controlsShown,
+        seekBarShown
+      ) { isPaused, controlsVisible, seekbarVisible ->
+        val pausedState = isPaused ?: true
+        val uiVisible = controlsVisible || seekbarVisible
+        !pausedState && uiVisible
+      }.collectLatest { shouldPoll ->
+        if (shouldPoll) {
+          while (isActive) {
+            val time = MPVLib.getPropertyDouble("time-pos")
+            if (time != null) {
+              _precisePosition.value = time.toFloat()
+            }
+            delay(16) // ~60fps updates
+          }
         }
-        delay(16) // ~60fps updates
       }
     }
 

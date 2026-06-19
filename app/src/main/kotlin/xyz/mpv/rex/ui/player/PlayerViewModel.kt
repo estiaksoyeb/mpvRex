@@ -199,49 +199,6 @@ class PlayerViewModel(
   // Gesture state for vertical bouncing animation
   val isVerticalGestureActive = MutableStateFlow(false)
 
-  init {
-    // Poll precise position only when playing and controls or seekbar is visible
-    viewModelScope.launch {
-      combine(
-        MPVLib.propBoolean["pause"],
-        controlsShown,
-        seekBarShown
-      ) { isPaused, controlsVisible, seekbarVisible ->
-        val pausedState = isPaused ?: true
-        val uiVisible = controlsVisible || seekbarVisible
-        !pausedState && uiVisible
-      }.collectLatest { shouldPoll ->
-        if (shouldPoll) {
-          while (isActive) {
-            val time = MPVLib.getPropertyDouble("time-pos")
-            if (time != null) {
-              _precisePosition.value = time.toFloat()
-            }
-            delay(16) // ~60fps updates
-          }
-        }
-      }
-    }
-
-    // Update precise duration when the integer duration changes (avoid polling)
-    viewModelScope.launch {
-      MPVLib.propInt["duration"].collect { _ ->
-        val dur = MPVLib.getPropertyDouble("duration")
-        if (dur != null && dur > 0) {
-          _preciseDuration.value = dur.toFloat()
-
-          // --- AMBIENT FIX: Adapt shader to new file dimensions ---
-          ambientModeManager.resetAmbientMode()
-          viewModelScope.launch {
-            // Slight delay ensures MPV's video-params (w/h/crop) are fully populated
-            delay(250)
-            ambientModeManager.updateAmbientStretch()
-          }
-          // --------------------------------------------------------
-        }
-      }
-    }
-  }
   val maxVolume = host.audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
   val subtitleTracks: StateFlow<List<TrackNode>> =
@@ -463,6 +420,48 @@ class PlayerViewModel(
     }
 
     _customButtonManager.setup()
+
+    // Poll precise position only when playing and controls or seekbar is visible
+    viewModelScope.launch {
+      combine(
+        MPVLib.propBoolean["pause"],
+        controlsShown,
+        seekBarShown
+      ) { isPaused, controlsVisible, seekbarVisible ->
+        val pausedState = isPaused ?: true
+        val uiVisible = controlsVisible || seekbarVisible
+        !pausedState && uiVisible
+      }.collectLatest { shouldPoll ->
+        if (shouldPoll) {
+          while (isActive) {
+            val time = MPVLib.getPropertyDouble("time-pos")
+            if (time != null) {
+              _precisePosition.value = time.toFloat()
+            }
+            delay(16) // ~60fps updates
+          }
+        }
+      }
+    }
+
+    // Update precise duration when the integer duration changes (avoid polling)
+    viewModelScope.launch {
+      MPVLib.propInt["duration"].collect { _ ->
+        val dur = MPVLib.getPropertyDouble("duration")
+        if (dur != null && dur > 0) {
+          _preciseDuration.value = dur.toFloat()
+
+          // --- AMBIENT FIX: Adapt shader to new file dimensions ---
+          ambientModeManager.resetAmbientMode()
+          viewModelScope.launch {
+            // Slight delay ensures MPV's video-params (w/h/crop) are fully populated
+            delay(250)
+            ambientModeManager.updateAmbientStretch()
+          }
+          // --------------------------------------------------------
+        }
+      }
+    }
   }
 
   fun onMpvCoreInitialized() {

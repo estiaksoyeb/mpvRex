@@ -379,25 +379,23 @@ private fun SquigglySeekbar(
       return@LaunchedEffect
     }
 
-    scope.launch {
-      val shouldFlatten = isPaused || isScrubbing
-      val targetHeight = if (shouldFlatten) 0f else 1f
-      val duration = if (shouldFlatten) 550 else 800
-      val startDelay = if (shouldFlatten) 0L else 60L
+    val shouldFlatten = isPaused || isScrubbing
+    val targetHeight = if (shouldFlatten) 0f else 1f
+    val duration = if (shouldFlatten) 550 else 800
+    val startDelay = if (shouldFlatten) 0L else 60L
 
-      kotlinx.coroutines.delay(startDelay)
+    kotlinx.coroutines.delay(startDelay)
 
-      val animator = Animatable(heightFraction)
-      animator.animateTo(
-        targetValue = targetHeight,
-        animationSpec =
-          tween(
-            durationMillis = duration,
-            easing = LinearEasing,
-          ),
-      ) {
-        heightFraction = value
-      }
+    val animator = Animatable(heightFraction)
+    animator.animateTo(
+      targetValue = targetHeight,
+      animationSpec =
+        tween(
+          durationMillis = duration,
+          easing = LinearEasing,
+        ),
+    ) {
+      heightFraction = value
     }
   }
 

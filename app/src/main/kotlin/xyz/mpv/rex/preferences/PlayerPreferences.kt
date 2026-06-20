@@ -22,7 +22,7 @@ class PlayerPreferences(
   val volumeGesture = preferenceStore.getBoolean("volume_brightness", true)
   val pinchToZoomGesture = preferenceStore.getBoolean("pinch_to_zoom_gesture", true)
   val horizontalSwipeToSeek = preferenceStore.getBoolean("horizontal_swipe_to_seek", true)
-  val swipeToSubtitleSeek = preferenceStore.getBoolean("swipe_to_subtitle_seek", false)
+  val swipeToSubtitleSeek = preferenceStore.getBoolean("swipe_to_subtitle_seek", true)
   val moveSubtitleByDragging = preferenceStore.getBoolean("move_subtitle_by_dragging", true)
   val horizontalSwipeSensitivity = preferenceStore.getFloat("horizontal_swipe_sensitivity", 0.05f)
 
@@ -62,7 +62,7 @@ class PlayerPreferences(
   val useWavySeekbar = preferenceStore.getBoolean("use_wavy_seekbar", true)
   val bottomControlsBelowSeekbar = preferenceStore.getBoolean("bottom_controls_below_seekbar", false)
   val showSeekBarWhenSeeking = preferenceStore.getBoolean("show_seekbar_when_seeking", true)
-  val hideOsdText = preferenceStore.getBoolean("hide_osd_text", true)
+  val hideOsdText = preferenceStore.getBoolean("hide_osd_text", false)
 
   val customSkipDuration = preferenceStore.getInt("custom_skip_duration", 90)
 

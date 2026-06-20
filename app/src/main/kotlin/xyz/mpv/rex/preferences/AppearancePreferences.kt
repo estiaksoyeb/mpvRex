@@ -54,19 +54,19 @@ class AppearancePreferences(
   val topRightControls =
     preferenceStore.getString(
       "top_right_controls",
-      "CURRENT_CHAPTER,DECODER,AUDIO_TRACK,SUBTITLES,AMBIENT_MODE,MORE_OPTIONS",
+      "CURRENT_CHAPTER,DECODER,AUDIO_TRACK,SUBTITLES,MORE_OPTIONS",
     )
 
   val bottomRightControls =
     preferenceStore.getString(
       "bottom_right_controls",
-      "FRAME_NAVIGATION,VIDEO_ZOOM,PICTURE_IN_PICTURE,ASPECT_RATIO",
+      "VIDEO_ZOOM,PICTURE_IN_PICTURE,ASPECT_RATIO",
     )
 
   val bottomLeftControls =
     preferenceStore.getString(
       "bottom_left_controls",
-      "BACKGROUND_PLAYBACK,LOCK_CONTROLS,SCREEN_ROTATION,PLAYBACK_SPEED,REPEAT_MODE,SHUFFLE,AB_LOOP",
+      "LOCK_CONTROLS,BACKGROUND_PLAYBACK,SCREEN_ROTATION,PLAYBACK_SPEED,REPEAT_MODE,SHUFFLE,AB_LOOP",
     )
 
   val portraitBottomControls =

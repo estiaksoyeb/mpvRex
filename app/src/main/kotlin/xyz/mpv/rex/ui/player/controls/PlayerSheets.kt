@@ -104,7 +104,7 @@ fun PlayerSheets(
                   java.io.File(videoPath).parent
               } else null
 
-              videoDir ?: customFolder.takeIf { it.isNotBlank() } ?: savedPickerPath ?: android.os.Environment.getExternalStorageDirectory().absolutePath
+              videoDir ?: customFolder.takeIf { it.isNotBlank() } ?: savedPickerPath.takeIf { it.isNotBlank() } ?: android.os.Environment.getExternalStorageDirectory().absolutePath
           }
 
           xyz.mpv.rex.ui.browser.dialogs.FilePickerDialog(
@@ -217,10 +217,58 @@ fun PlayerSheets(
           if (it == null) return@rememberLauncherForActivityResult
           onAddAudio(it)
         }
+
+      val audioPreferences = koinInject<xyz.mpv.rex.preferences.AudioPreferences>()
+      val savedPickerPath = audioPreferences.pickerPath.get()
+      val openAtVideoLocation = audioPreferences.openPickerAtVideoLocation.get()
+
+      val currentMediaTitle = viewModel.currentMediaTitle
+      val matchToName = if (currentMediaTitle.isNotBlank()) {
+          // Remove extension if present to improve matching
+          currentMediaTitle.substringBeforeLast(".")
+      } else null
+
+      var showFilePicker by remember { mutableStateOf(false) }
+
+      if (showFilePicker) {
+          val initialPath = remember {
+              val videoPath = `is`.xyz.mpv.MPVLib.getPropertyString("path")
+              val videoDir = if (openAtVideoLocation && videoPath != null && videoPath.startsWith("/")) {
+                  java.io.File(videoPath).parent
+              } else null
+
+              videoDir ?: savedPickerPath.takeIf { it.isNotBlank() } ?: android.os.Environment.getExternalStorageDirectory().absolutePath
+          }
+
+          xyz.mpv.rex.ui.browser.dialogs.FilePickerDialog(
+              isOpen = true,
+              title = "Select Audio Track",
+              currentPath = initialPath,
+              onDismiss = { showFilePicker = false },
+              onPathChanged = { path ->
+                  if (path != null) {
+                      audioPreferences.pickerPath.set(path)
+                  }
+              },
+              onFileSelected = { path ->
+                  showFilePicker = false
+                  onAddAudio(Uri.parse("file://$path"))
+              },
+              onSystemPickerRequest = {
+                  showFilePicker = false
+                  audioPicker.launch(arrayOf("*/*"))
+              },
+              matchToName = matchToName,
+              allowedExtensions = listOf(
+                "mp3", "m4a", "ogg", "flac", "wav", "opus", "aac", "wma", "ac3", "eac3", "dts", "mka", "m4b", "ape"
+              )
+          )
+      }
+
       AudioTracksSheet(
         tracks = audioTracks,
         onSelect = onSelectAudio,
-        onAddAudioTrack = { audioPicker.launch(arrayOf("*/*")) },
+        onAddAudioTrack = { showFilePicker = true },
         onOpenDelayPanel = { onOpenPanel(Panels.AudioDelay) },
         onDismissRequest,
       )

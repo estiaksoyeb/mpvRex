@@ -57,6 +57,7 @@ import java.io.File
 fun FilePickerDialog(
   modifier: Modifier = Modifier,
   isOpen: Boolean,
+  title: String = "Select Subtitle",
   currentPath: String = Environment.getExternalStorageDirectory().absolutePath,
   onDismiss: () -> Unit,
   onFileSelected: (String) -> Unit,
@@ -182,7 +183,7 @@ fun FilePickerDialog(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                   Column(modifier = Modifier.fillMaxWidth()) {
                       Text(
-                        text = "Select Subtitle",
+                        text = title,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                       )
@@ -219,9 +220,9 @@ fun FilePickerDialog(
                       verticalAlignment = Alignment.CenterVertically
                   ) {
                       Column(modifier = Modifier.weight(1f)) {
-                          Text(
-                            text = "Select Subtitle",
-                            style = MaterialTheme.typography.headlineMedium,
+                           Text(
+                             text = title,
+                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                           )
                           Text(

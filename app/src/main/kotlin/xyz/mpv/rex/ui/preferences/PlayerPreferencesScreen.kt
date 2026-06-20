@@ -315,6 +315,16 @@ object PlayerPreferencesScreen : Screen {
               
               PreferenceDivider()
               
+              val panAndZoomEnabled by preferences.panAndZoomEnabled.collectAsState()
+              SwitchPreference(
+                value = panAndZoomEnabled,
+                onValueChange = preferences.panAndZoomEnabled::set,
+                title = { Text(stringResource(R.string.pref_player_gestures_pan_and_zoom)) },
+                summary = { Text(stringResource(R.string.pref_player_gestures_pan_and_zoom_summary)) },
+              )
+              
+              PreferenceDivider()
+              
               val horizontalSwipeToSeek by preferences.horizontalSwipeToSeek.collectAsState()
               SwitchPreference(
                 value = horizontalSwipeToSeek,

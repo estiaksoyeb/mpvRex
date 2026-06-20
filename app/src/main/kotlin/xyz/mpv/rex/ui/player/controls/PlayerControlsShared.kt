@@ -561,67 +561,6 @@ fun RenderPlayerButton(
       }
     }
 
-    PlayerButton.VIDEO_ZOOM -> {
-      val isZoomed = kotlin.math.abs(currentZoom) >= 0.005f
-      if (isZoomed || isMoreSheet) {
-        @OptIn(ExperimentalFoundationApi::class)
-        Surface(
-          shape = CircleShape,
-          color = if (isZoomed) activeSurfaceColor else surfaceColor,
-          contentColor = if (isZoomed) activeContentColor else contentColor,
-          tonalElevation = 0.dp,
-          shadowElevation = 0.dp,
-          border = if (isZoomed) activeBorderColor else borderColor,
-          modifier = Modifier
-            .height(buttonSize)
-            .clip(CircleShape)
-            .combinedClickable(
-              interactionSource = remember { MutableInteractionSource() },
-              indication = ripple(bounded = true),
-              onClick = {
-                clickEvent()
-                onOpenSheet(Sheets.VideoZoom)
-              },
-              onLongClick = {
-                clickEvent()
-                viewModel.resetVideoZoom()
-              },
-            ),
-        ) {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-            modifier = Modifier.padding(
-              horizontal = MaterialTheme.spacing.small,
-              vertical = MaterialTheme.spacing.small,
-            ),
-          ) {
-            Icon(
-              imageVector = Icons.Default.ZoomIn,
-              contentDescription = "Video Zoom",
-              tint = if (isZoomed) activeContentColor else contentColor,
-              modifier = Modifier.size(24.dp),
-            )
-            Text(
-              text = String.format("%.0f%%", currentZoom * 100),
-              maxLines = 1,
-              style = MaterialTheme.typography.bodyMedium,
-            )
-          }
-        }
-      } else {
-        ControlsButton(
-          Icons.Default.ZoomIn,
-          onClick = {
-            clickEvent()
-            onOpenSheet(Sheets.VideoZoom)
-          },
-          onLongClick = { viewModel.resetVideoZoom() },
-          modifier = Modifier.size(buttonSize),
-        )
-      }
-    }
-
     PlayerButton.PICTURE_IN_PICTURE -> {
       if (isMoreSheet) {
           Surface(

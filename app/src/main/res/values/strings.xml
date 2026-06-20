@@ -179,6 +179,8 @@
     <string name="pref_player_gestures_brightness">Brightness gestures</string>
     <string name="pref_player_gestures_volume">Volume gestures</string>
     <string name="pref_player_gestures_pinch_to_zoom">Pinch to zoom</string>
+    <string name="pref_player_gestures_pan_and_zoom">Pan and Zoom</string>
+    <string name="pref_player_gestures_pan_and_zoom_summary">Allow panning (dragging) the video alongside zooming</string>
     <string name="pref_player_gestures_horizontal_swipe_to_seek">Horizontal swipe to seek</string>
     <string name="pref_player_gestures_horizontal_swipe_to_seek_summary">Swipe left or right on screen to seek forward or backward</string>
     <string name="pref_player_gestures_swipe_to_subtitle_seek_title">Swipe to subtitle seek</string>

@@ -25,7 +25,6 @@ import xyz.mpv.rex.ui.player.controls.components.sheets.PlaybackSpeedSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.PlaylistSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.SubtitlesSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.OnlineSubtitleSearchSheet
-import xyz.mpv.rex.ui.player.controls.components.sheets.VideoZoomSheet
 import xyz.mpv.rex.utils.media.MediaInfoParser
 import dev.vivvvek.seeker.Segment
 import kotlinx.collections.immutable.ImmutableList
@@ -313,16 +312,6 @@ fun PlayerSheets(
         onResetPresets = onResetSpeedPresets,
         onMakeDefault = onMakeDefaultSpeed,
         onResetDefault = onResetDefaultSpeed,
-        onDismissRequest = onDismissRequest,
-      )
-    }
-
-    Sheets.VideoZoom -> {
-      val videoZoom by viewModel.videoZoom.composeCollectAsState()
-      VideoZoomSheet(
-        videoZoom = videoZoom,
-        onSetVideoZoom = viewModel::setVideoZoom,
-        onResetVideoPan = viewModel::resetVideoPan,
         onDismissRequest = onDismissRequest,
       )
     }

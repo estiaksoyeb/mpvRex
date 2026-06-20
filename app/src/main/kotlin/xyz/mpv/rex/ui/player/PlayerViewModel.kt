@@ -965,6 +965,8 @@ class PlayerViewModel(
     aspect: VideoAspect,
     showUpdate: Boolean = true,
   ) {
+    setVideoZoom(0f)
+    setVideoPan(0f, 0f)
     when (aspect) {
       VideoAspect.Fit -> {
         // To FIT: Reset both properties to their defaults.
@@ -1014,6 +1016,8 @@ class PlayerViewModel(
   }
 
   fun setCustomAspectRatio(ratio: Double) {
+    setVideoZoom(0f)
+    setVideoPan(0f, 0f)
     MPVLib.setPropertyDouble("panscan", 0.0)
     MPVLib.setPropertyDouble("video-aspect-override", ratio)
     _currentAspectRatio.value = ratio

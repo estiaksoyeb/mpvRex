@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Headset
 import androidx.compose.material.icons.outlined.BlurOn
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -57,6 +58,7 @@ enum class PlayerButton(
   CUSTOM_SKIP(Icons.Outlined.FastForward),
   BACKGROUND_PLAYBACK(Icons.Outlined.Headset),
   AMBIENT_MODE(Icons.Outlined.BlurOn),
+  SLEEP_TIMER(Icons.Outlined.Timer),
   NONE(Icons.Outlined.Bookmarks),
 }
 
@@ -100,5 +102,6 @@ fun getPlayerButtonLabel(button: PlayerButton): String =
     PlayerButton.CUSTOM_SKIP -> "Custom Skip"
     PlayerButton.BACKGROUND_PLAYBACK -> "Background Playback"
     PlayerButton.AMBIENT_MODE -> "Ambience Mode"
+    PlayerButton.SLEEP_TIMER -> "Sleep Timer"
     PlayerButton.NONE -> "None"
   }

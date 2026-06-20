@@ -18,6 +18,7 @@ import xyz.mpv.rex.ui.player.controls.components.sheets.AspectRatioSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.AudioTracksSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.ChaptersSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.CustomSkipDurationSheet
+import xyz.mpv.rex.ui.player.controls.components.sheets.SleepTimerSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.DecodersSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.FrameNavigationSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.MoreSheet
@@ -412,6 +413,14 @@ fun PlayerSheets(
       CustomSkipDurationSheet(
         duration = customSkipDuration,
         onDurationChange = { playerPreferences.customSkipDuration.set(it) },
+        onDismissRequest = onDismissRequest,
+      )
+    }
+
+    Sheets.SleepTimer -> {
+      SleepTimerSheet(
+        remainingTime = sleepTimerTimeRemaining,
+        onStartTimer = onStartSleepTimer,
         onDismissRequest = onDismissRequest,
       )
     }

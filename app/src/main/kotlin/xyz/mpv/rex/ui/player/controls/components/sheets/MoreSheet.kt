@@ -180,7 +180,8 @@ fun MoreSheet(
             onStartTimer = onStartTimer,
             onEnterFiltersPanel = onEnterFiltersPanel,
             onAnime4KChanged = onAnime4KChanged,
-            onDismissRequest = onDismissRequest
+            onDismissRequest = onDismissRequest,
+            onShowSheet = onShowSheet,
           )
           2 -> InteractionTab()
         }
@@ -199,6 +200,7 @@ fun SettingsTab(
   onEnterFiltersPanel: () -> Unit,
   onAnime4KChanged: () -> Unit,
   onDismissRequest: () -> Unit,
+  onShowSheet: (Sheets) -> Unit,
 ) {
   val advancedPreferences = koinInject<AdvancedPreferences>()
   val decoderPreferences = koinInject<DecoderPreferences>()
@@ -234,8 +236,7 @@ fun SettingsTab(
         Row(
           verticalAlignment = Alignment.CenterVertically,
         ) {
-          var isSleepTimerDialogShown by remember { mutableStateOf(false) }
-          TextButton(onClick = { isSleepTimerDialogShown = true }) {
+          TextButton(onClick = { onShowSheet(Sheets.SleepTimer) }) {
             Row(
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
@@ -252,13 +253,6 @@ fun SettingsTab(
                     )
                   },
               )
-              if (isSleepTimerDialogShown) {
-                TimePickerDialog(
-                  remainingTime = remainingTime,
-                  onDismissRequest = { isSleepTimerDialogShown = false },
-                  onTimeSelect = onStartTimer,
-                )
-              }
             }
           }
           TextButton(onClick = onEnterFiltersPanel) {
@@ -704,124 +698,5 @@ private fun InteractionSwitch(
         ) 
       }
     )
-  }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-fun TimePickerDialog(
-  onDismissRequest: () -> Unit,
-  onTimeSelect: (Int) -> Unit,
-  modifier: Modifier = Modifier,
-  remainingTime: Int = 0,
-) {
-  Dialog(
-    onDismissRequest = onDismissRequest,
-    properties = DialogProperties(usePlatformDefaultWidth = false),
-  ) {
-    Surface(
-      shape = MaterialTheme.shapes.extraLarge,
-      color = MaterialTheme.colorScheme.surfaceContainerHigh,
-      tonalElevation = 6.dp,
-      modifier = modifier
-          .width(360.dp) // Fixed wide width to fit presets
-          .padding(MaterialTheme.spacing.medium),
-    ) {
-      Column(
-        modifier =
-          Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-      ) {
-        // Header
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-              text = stringResource(R.string.timer_title), // "Sleep Timer"
-              style = MaterialTheme.typography.labelMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-              text = stringResource(R.string.timer_picker_enter_timer),
-              style = MaterialTheme.typography.headlineSmall,
-              color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        val state =
-          rememberTimePickerState(
-            remainingTime / 3600,
-            (remainingTime % 3600) / 60,
-            is24Hour = true,
-          )
-
-        TimeInput(state = state)
-        
-        // Quick Presets
-        Column(
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                "Quick Presets",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                val presets = listOf(15, 30, 45, 60)
-                presets.forEach { minutes ->
-                    FilterChip(
-                        selected = false,
-                        onClick = { 
-                            onTimeSelect(minutes * 60)
-                            onDismissRequest()
-                        },
-                        label = { Text("${minutes}m") },
-                        leadingIcon = null,
-                    )
-                }
-            }
-        }
-
-        // Actions
-        Row(
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-          modifier = Modifier.fillMaxWidth(),
-        ) {
-          TextButton(onClick = {
-             onTimeSelect(0)
-             onDismissRequest()
-          }) {
-              Text(stringResource(id = R.string.generic_reset))
-          }
-          Spacer(Modifier.weight(1f))
-          Row(
-              horizontalArrangement = Arrangement.spacedBy(8.dp)
-          ) {
-            TextButton(onClick = onDismissRequest) {
-              Text(stringResource(id = R.string.generic_cancel))
-            }
-            Button(
-              onClick = {
-                onTimeSelect(state.hour * 3600 + state.minute * 60)
-                onDismissRequest()
-              },
-            ) {
-              Text(stringResource(id = R.string.generic_ok))
-            }
-          }
-        }
-      }
-    }
   }
 }

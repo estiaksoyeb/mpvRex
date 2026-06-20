@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.HeadsetOff
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.outlined.BlurOn
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.CircularProgressIndicator
@@ -1117,6 +1118,66 @@ fun RenderPlayerButton(
               }
             }
         }
+    }
+
+    PlayerButton.SLEEP_TIMER -> {
+      val remainingTime by viewModel.remainingTime.collectAsState()
+      val isActive = remainingTime > 0
+
+      if (isMoreSheet) {
+          Surface(
+            shape = CircleShape,
+            color = if (isActive) activeSurfaceColor else surfaceColor,
+            contentColor = if (isActive) activeContentColor else contentColor,
+            border = if (isActive) activeBorderColor else borderColor,
+            modifier = Modifier
+              .height(buttonSize)
+              .clip(CircleShape)
+              .clickable {
+                onOpenSheet(Sheets.SleepTimer)
+              }
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
+            ) {
+              Icon(
+                imageVector = Icons.Outlined.Timer,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+              )
+              Text(
+                text = if (isActive) {
+                  android.text.format.DateUtils.formatElapsedTime(remainingTime.toLong())
+                } else {
+                  "Sleep Timer"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+              )
+            }
+          }
+      } else {
+        Surface(
+          shape = CircleShape,
+          color = if (isActive) activeSurfaceColor else surfaceColor,
+          border = if (isActive) activeBorderColor else borderColor,
+          modifier = Modifier
+            .size(buttonSize)
+            .clip(CircleShape)
+            .clickable(onClick = { onOpenSheet(Sheets.SleepTimer) }),
+        ) {
+          Box(contentAlignment = Alignment.Center) {
+            Icon(
+              imageVector = Icons.Outlined.Timer,
+              contentDescription = "Sleep Timer",
+              tint = if (isActive) activeContentColor else contentColor,
+              modifier = Modifier.size(24.dp),
+            )
+          }
+        }
+      }
     }
 
     PlayerButton.NONE -> { /* Do nothing */

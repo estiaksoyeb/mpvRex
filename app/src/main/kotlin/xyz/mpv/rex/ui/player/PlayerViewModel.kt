@@ -1251,10 +1251,6 @@ class PlayerViewModel(
       }
       updateFrameInfo()
       showFrameInfoOverlay()
-      resetFrameNavigationTimer()
-    } else {
-      // Cancel timer when manually collapsing
-      frameNavigationCollapseJob?.cancel()
     }
   }
 
@@ -1273,8 +1269,6 @@ class PlayerViewModel(
       updateFrameInfo()
       withContext(Dispatchers.Main) {
         showFrameInfoOverlay()
-        // Reset the inactivity timer
-        resetFrameNavigationTimer()
       }
     }
   }
@@ -1290,20 +1284,6 @@ class PlayerViewModel(
       updateFrameInfo()
       withContext(Dispatchers.Main) {
         showFrameInfoOverlay()
-        // Reset the inactivity timer
-        resetFrameNavigationTimer()
-      }
-    }
-  }
-
-  private var frameNavigationCollapseJob: Job? = null
-
-  fun resetFrameNavigationTimer() {
-    frameNavigationCollapseJob?.cancel()
-    frameNavigationCollapseJob = viewModelScope.launch {
-      delay(10000) // 10 seconds
-      if (_isFrameNavigationExpanded.value) {
-        _isFrameNavigationExpanded.value = false
       }
     }
   }

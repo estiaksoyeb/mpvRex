@@ -55,6 +55,11 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.FastRewind
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -213,6 +218,8 @@ fun PlayerControls(
   val abLoopA by viewModel.abLoopA.collectAsState()
   val abLoopB by viewModel.abLoopB.collectAsState()
   val isABLoopExpanded by viewModel.isABLoopExpanded.collectAsState()
+  val isFrameNavigationExpanded by viewModel.isFrameNavigationExpanded.collectAsState()
+  val isSnapshotLoading by viewModel.isSnapshotLoading.collectAsState()
 
   val isGestureSeeking by viewModel.isGestureSeeking.collectAsState()
   val isVerticalGestureActive by viewModel.isVerticalGestureActive.collectAsState()
@@ -358,6 +365,7 @@ fun PlayerControls(
         val (customLeftButtonsRef, customRightButtonsRef) = createRefs()
         val customButtonsPortraitRef = createRef()
         val floatingABLoop = createRef()
+        val floatingFrameNav = createRef()
 
         val bottomControlsBelowSeekbar by playerPreferences.bottomControlsBelowSeekbar.collectAsState()
 
@@ -404,6 +412,23 @@ fun PlayerControls(
 
         val areSlidersShown = isBrightnessSliderShown || isVolumeSliderShown
         val areButtonsVisible = controlsShown && !areControlsLocked && !areSlidersShown
+
+        val abLoopVerticalBias by animateFloatAsState(
+          targetValue = if (areButtonsVisible) {
+            if (isPortrait) 0.80f else 0.65f
+          } else {
+            if (isPortrait) 0.86f else 0.78f
+          },
+          label = "abLoopVerticalBias"
+        )
+
+        val abLoopActive = isABLoopExpanded
+        val frameNavActive = isFrameNavigationExpanded
+
+        val frameNavYOffset by animateDpAsState(
+          targetValue = if (abLoopActive && frameNavActive) -48.dp else 0.dp,
+          label = "frameNavYOffset"
+        )
 
         val osdTopMargin by animateDpAsState(
           targetValue = if (areButtonsVisible) {
@@ -1538,7 +1563,7 @@ fun PlayerControls(
             end.linkTo(parent.end, spacing.extraLarge)
             top.linkTo(parent.top)
             bottom.linkTo(parent.bottom)
-            verticalBias = 0.7f
+            verticalBias = abLoopVerticalBias
           }
         ) {
           val buttonSize = 40.dp
@@ -1610,6 +1635,139 @@ fun PlayerControls(
                     style = MaterialTheme.typography.labelLarge,
                     color = if (abLoopB != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = if (abLoopB != null) 8.dp else 0.dp),
+                  )
+                }
+              }
+            }
+          }
+        }
+
+        AnimatedVisibility(
+          visible = isFrameNavigationExpanded,
+          enter = fadeIn(tween(200)) + slideInHorizontally(initialOffsetX = { it }),
+          exit = fadeOut(tween(200)) + slideOutHorizontally(targetOffsetX = { it }),
+          modifier = Modifier
+            .constrainAs(floatingFrameNav) {
+              end.linkTo(parent.end, spacing.extraLarge)
+              top.linkTo(parent.top)
+              bottom.linkTo(parent.bottom)
+              verticalBias = abLoopVerticalBias
+            }
+            .offset(y = frameNavYOffset)
+        ) {
+          val buttonSize = 40.dp
+          val context = LocalContext.current
+          Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            modifier = Modifier.height(buttonSize),
+          ) {
+            Row(
+              horizontalArrangement = Arrangement.spacedBy(2.dp),
+              verticalAlignment = Alignment.CenterVertically,
+              modifier = Modifier.padding(horizontal = 4.dp),
+            ) {
+              // Previous frame button
+              Surface(
+                shape = CircleShape,
+                color = Color.Transparent,
+                modifier = Modifier
+                  .size(buttonSize - 4.dp)
+                  .clip(CircleShape)
+                  .clickable(onClick = {
+                    viewModel.frameStepBackward()
+                  }),
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Icon(
+                    imageVector = Icons.Default.FastRewind,
+                    contentDescription = "Previous Frame",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(24.dp),
+                  )
+                }
+              }
+
+              // Camera / Loading button
+              if (isSnapshotLoading) {
+                Surface(
+                  shape = CircleShape,
+                  color = Color.Transparent,
+                  modifier = Modifier.size(buttonSize - 4.dp),
+                ) {
+                  Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    CircularProgressIndicator(
+                      modifier = Modifier.size(16.dp),
+                      strokeWidth = 2.dp,
+                      color = MaterialTheme.colorScheme.onSurface,
+                    )
+                  }
+                }
+              } else {
+                @OptIn(ExperimentalFoundationApi::class)
+                Surface(
+                  shape = CircleShape,
+                  color = Color.Transparent,
+                  modifier = Modifier
+                    .size(buttonSize - 4.dp)
+                    .clip(CircleShape)
+                    .combinedClickable(
+                      onClick = {
+                        viewModel.takeSnapshot(context)
+                      },
+                      onLongClick = { onOpenSheet(Sheets.FrameNavigation) },
+                    ),
+                ) {
+                  Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                      imageVector = Icons.Default.CameraAlt,
+                      contentDescription = "Take Screenshot",
+                      tint = MaterialTheme.colorScheme.onSurface,
+                      modifier = Modifier.size(24.dp),
+                    )
+                  }
+                }
+              }
+
+              // Next frame button
+              Surface(
+                shape = CircleShape,
+                color = Color.Transparent,
+                modifier = Modifier
+                  .size(buttonSize - 4.dp)
+                  .clip(CircleShape)
+                  .clickable(onClick = {
+                    viewModel.frameStepForward()
+                  }),
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Icon(
+                    imageVector = Icons.Default.FastForward,
+                    contentDescription = "Next Frame",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(24.dp),
+                  )
+                }
+              }
+
+              // Close button
+              Surface(
+                shape = CircleShape,
+                color = Color.Transparent,
+                modifier = Modifier
+                  .size(buttonSize - 4.dp)
+                  .clip(CircleShape)
+                  .clickable(onClick = {
+                    viewModel.toggleFrameNavigationExpanded()
+                  }),
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close Frame Nav",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(16.dp),
                   )
                 }
               }

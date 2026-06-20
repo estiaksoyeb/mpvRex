@@ -406,19 +406,21 @@ fun RenderPlayerButton(
 
     PlayerButton.FRAME_NAVIGATION -> {
       val isExpanded by viewModel.isFrameNavigationExpanded.collectAsState()
-      val isSnapshotLoading by viewModel.isSnapshotLoading.collectAsState()
-      val context = LocalContext.current
+      val isActive = isExpanded
 
       if (isMoreSheet) {
           Surface(
             shape = CircleShape,
-            color = surfaceColor,
-            contentColor = contentColor,
-            border = borderColor,
+            color = if (isActive) activeSurfaceColor else surfaceColor,
+            contentColor = if (isActive) activeContentColor else contentColor,
+            border = if (isActive) activeBorderColor else borderColor,
             modifier = Modifier
               .height(buttonSize)
               .clip(CircleShape)
-              .clickable { onOpenSheet(Sheets.FrameNavigation) }
+              .clickable {
+                viewModel.toggleFrameNavigationExpanded()
+                onOpenSheet(Sheets.None)
+              }
           ) {
             Row(
               verticalAlignment = Alignment.CenterVertically,
@@ -438,126 +440,24 @@ fun RenderPlayerButton(
             }
           }
       } else {
-          AnimatedContent(
-            targetState = isExpanded,
-            transitionSpec = {
-              (fadeIn(animationSpec = tween(200)) + expandHorizontally(animationSpec = tween(250)))
-                .togetherWith(fadeOut(animationSpec = tween(200)) + shrinkHorizontally(animationSpec = tween(250)))
-                .using(SizeTransform(clip = false))
-            },
-            label = "FrameNavExpandCollapse",
-          ) { expanded ->
-            if (expanded) {
-              Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = surfaceColor,
-                border = borderColor,
-                modifier = Modifier.height(buttonSize),
-              ) {
-                Row(
-                  horizontalArrangement = Arrangement.spacedBy(2.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  modifier = Modifier.padding(horizontal = 4.dp),
-                ) {
-                  // Previous frame button
-                  Surface(
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier
-                      .size(buttonSize - 4.dp)
-                      .clip(CircleShape)
-                      .clickable(onClick = {
-                        viewModel.frameStepBackward()
-                        viewModel.resetFrameNavigationTimer()
-                      }),
-                  ) {
-                    Box(contentAlignment = Alignment.Center) {
-                      Icon(
-                        imageVector = Icons.Default.FastRewind,
-                        contentDescription = "Previous Frame",
-                        tint = contentColor,
-                        modifier = Modifier.size(24.dp),
-                      )
-                    }
-                  }
-
-                  // Camera / Loading button
-                  if (isSnapshotLoading) {
-                    Surface(
-                      shape = CircleShape,
-                      color = surfaceColor,
-                      border = borderColor,
-                      modifier = Modifier.size(buttonSize - 4.dp),
-                    ) {
-                      Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        CircularProgressIndicator(
-                          modifier = Modifier.size(16.dp),
-                          strokeWidth = 2.dp,
-                          color = contentColor,
-                        )
-                      }
-                    }
-                  } else {
-                    @OptIn(ExperimentalFoundationApi::class)
-                    Surface(
-                      shape = CircleShape,
-                      color = surfaceColor,
-                      border = borderColor,
-                      modifier = Modifier
-                        .size(buttonSize - 4.dp)
-                        .clip(CircleShape)
-                        .combinedClickable(
-                          onClick = {
-                            viewModel.takeSnapshot(context)
-                            viewModel.resetFrameNavigationTimer()
-                          },
-                          onLongClick = { onOpenSheet(Sheets.FrameNavigation) },
-                        ),
-                    ) {
-                      Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                          imageVector = Icons.Default.CameraAlt,
-                          contentDescription = "Take Screenshot",
-                          tint = contentColor,
-                          modifier = Modifier.size(24.dp),
-                        )
-                      }
-                    }
-                  }
-
-                  // Next frame button
-                  Surface(
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier
-                      .size(buttonSize - 4.dp)
-                      .clip(CircleShape)
-                      .clickable(onClick = {
-                        viewModel.frameStepForward()
-                        viewModel.resetFrameNavigationTimer()
-                      }),
-                  ) {
-                    Box(contentAlignment = Alignment.Center) {
-                      Icon(
-                        imageVector = Icons.Default.FastForward,
-                        contentDescription = "Next Frame",
-                        tint = contentColor,
-                        modifier = Modifier.size(24.dp),
-                      )
-                    }
-                  }
-                }
-              }
-            } else {
-              // Collapsed: Show camera icon button
-              ControlsButton(
-                icon = Icons.Default.Camera,
-                onClick = viewModel::toggleFrameNavigationExpanded,
-                onLongClick = { onOpenSheet(Sheets.FrameNavigation) },
-                modifier = Modifier.size(buttonSize),
-              )
-            }
+        Surface(
+          shape = CircleShape,
+          color = if (isActive) activeSurfaceColor else surfaceColor,
+          border = if (isActive) activeBorderColor else borderColor,
+          modifier = Modifier
+            .size(buttonSize)
+            .clip(CircleShape)
+            .clickable(onClick = viewModel::toggleFrameNavigationExpanded),
+        ) {
+          Box(contentAlignment = Alignment.Center) {
+            Icon(
+              imageVector = Icons.Default.Camera,
+              contentDescription = "Frame Navigation",
+              tint = if (isActive) activeContentColor else contentColor,
+              modifier = Modifier.size(24.dp),
+            )
           }
+        }
       }
     }
 

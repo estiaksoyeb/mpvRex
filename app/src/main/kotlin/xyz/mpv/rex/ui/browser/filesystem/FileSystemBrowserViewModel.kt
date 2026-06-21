@@ -46,6 +46,7 @@ class FileSystemBrowserViewModel(
   private val STORAGE_ROOTS_MARKER = "__STORAGE_ROOTS__"
 
   private var homeDirectory: String? = null
+  private var isRootResolved = false
 
   private val _currentPath = MutableStateFlow(initialPath ?: STORAGE_ROOTS_MARKER)
   val currentPath: StateFlow<String> = _currentPath.asStateFlow()
@@ -108,10 +109,12 @@ class FileSystemBrowserViewModel(
         } else {
           homeDirectory = null
         }
+        isRootResolved = true
         loadData()
       }
     } else {
       homeDirectory = initialPath
+      isRootResolved = true
       loadData()
     }
 
@@ -270,6 +273,7 @@ class FileSystemBrowserViewModel(
   }
 
   private fun loadCurrentDirectory() {
+    if (!isRootResolved) return
     viewModelScope.launch(Dispatchers.IO) {
       _isLoading.value = true
       _error.value = null

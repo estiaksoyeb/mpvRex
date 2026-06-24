@@ -935,38 +935,57 @@ class PlayerViewModel(
 
   private var _cachedVideoRotation = 0
 
-  // Restores the user's preferred video aspect ratio and resets pan to center
+  // Restores the user's preferred video aspect ratio and restores pan/zoom settings
   fun resetVisualPreferences() {
 
     // Cache the video rotation once it's available (used by stretch mode)
     _cachedVideoRotation = MPVLib.getPropertyInt("video-params/rotate") ?: 0
     
-    // 1. Apply saved aspect ratio preference
+    // 1. Apply saved aspect ratio preference without overriding active zoom and pan
     val savedAspect = playerPreferences.defaultVideoAspect.get()
     val savedCustomRatio = playerPreferences.defaultCustomAspectRatio.get()
 
     if (savedCustomRatio > 0) {
-      setCustomAspectRatio(savedCustomRatio)
+      setCustomAspectRatio(savedCustomRatio, resetZoomAndPan = false)
     } else {
-      changeVideoAspect(savedAspect, showUpdate = false)
+      changeVideoAspect(savedAspect, showUpdate = false, resetZoomAndPan = false)
     }
-    // 2. Reset pan to neutral for the new file
-    if (_videoPanX.value != 0f || _videoPanY.value != 0f) {
-      _videoPanX.value = 0f
-      _videoPanY.value = 0f
-      runCatching {
-        MPVLib.setPropertyDouble("video-pan-x", 0.0)
-        MPVLib.setPropertyDouble("video-pan-y", 0.0)
-      }
+
+    // 2. Load zoom and pan preferences or sync from mpv.conf/engine defaults
+    val prefZoom = playerPreferences.defaultVideoZoom.get()
+    val prefPanX = playerPreferences.defaultVideoPanX.get()
+    val prefPanY = playerPreferences.defaultVideoPanY.get()
+
+    if (prefZoom != 0f) {
+      MPVLib.setPropertyDouble("video-zoom", prefZoom.toDouble())
+      _videoZoom.value = prefZoom
+    } else {
+      val mpvZoom = MPVLib.getPropertyDouble("video-zoom")?.toFloat() ?: 0f
+      _videoZoom.value = mpvZoom
+    }
+
+    if (prefPanX != 0f || prefPanY != 0f) {
+      MPVLib.setPropertyDouble("video-pan-x", prefPanX.toDouble())
+      MPVLib.setPropertyDouble("video-pan-y", prefPanY.toDouble())
+      _videoPanX.value = prefPanX
+      _videoPanY.value = prefPanY
+    } else {
+      val mpvPanX = MPVLib.getPropertyDouble("video-pan-x")?.toFloat() ?: 0f
+      val mpvPanY = MPVLib.getPropertyDouble("video-pan-y")?.toFloat() ?: 0f
+      _videoPanX.value = mpvPanX
+      _videoPanY.value = mpvPanY
     }
   }
 
   fun changeVideoAspect(
     aspect: VideoAspect,
     showUpdate: Boolean = true,
+    resetZoomAndPan: Boolean = true,
   ) {
-    setVideoZoom(0f)
-    setVideoPan(0f, 0f)
+    if (resetZoomAndPan) {
+      setVideoZoom(0f)
+      setVideoPan(0f, 0f)
+    }
     when (aspect) {
       VideoAspect.Fit -> {
         // To FIT: Reset both properties to their defaults.
@@ -1015,9 +1034,14 @@ class PlayerViewModel(
     }
   }
 
-  fun setCustomAspectRatio(ratio: Double) {
-    setVideoZoom(0f)
-    setVideoPan(0f, 0f)
+  fun setCustomAspectRatio(
+    ratio: Double,
+    resetZoomAndPan: Boolean = true,
+  ) {
+    if (resetZoomAndPan) {
+      setVideoZoom(0f)
+      setVideoPan(0f, 0f)
+    }
     MPVLib.setPropertyDouble("panscan", 0.0)
     MPVLib.setPropertyDouble("video-aspect-override", ratio)
     _currentAspectRatio.value = ratio

@@ -321,6 +321,8 @@ fun PlayerSheets(
       val playerPreferences = koinInject<xyz.mpv.rex.preferences.PlayerPreferences>()
       val customRatiosSet by playerPreferences.customAspectRatios.collectAsState()
       val currentRatio by viewModel.currentAspectRatio.composeCollectAsState()
+      val videoZoom by viewModel.videoZoom.composeCollectAsState()
+      val videoPanX by viewModel.videoPanX.composeCollectAsState()
       val customRatios =
         customRatiosSet.mapNotNull { str ->
           val parts = str.split("|")
@@ -338,6 +340,16 @@ fun PlayerSheets(
       AspectRatioSheet(
         currentRatio = currentRatio,
         customRatios = customRatios,
+        videoZoom = videoZoom,
+        videoPanX = videoPanX,
+        onZoomChange = { zoom ->
+          viewModel.setVideoZoom(zoom)
+          playerPreferences.defaultVideoZoom.set(zoom)
+        },
+        onPanXChange = { panX ->
+          viewModel.setVideoPan(panX, viewModel.videoPanY.value)
+          playerPreferences.defaultVideoPanX.set(panX)
+        },
         onSelectRatio = { ratio ->
           if (ratio < 0) {
             // Default selected - apply Fit mode

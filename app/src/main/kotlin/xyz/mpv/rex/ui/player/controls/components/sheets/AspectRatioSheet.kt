@@ -12,14 +12,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,12 +53,18 @@ data class AspectRatio(
 fun AspectRatioSheet(
   currentRatio: Double?,
   customRatios: List<AspectRatio>,
+  videoZoom: Float,
+  videoPanX: Float,
+  onZoomChange: (Float) -> Unit,
+  onPanXChange: (Float) -> Unit,
   onSelectRatio: (Double) -> Unit,
   onAddCustomRatio: (String, Double) -> Unit,
   onDeleteCustomRatio: (AspectRatio) -> Unit,
   onDismissRequest: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  var showCustomInput by remember { mutableStateOf(false) }
+
   val presetRatios =
     listOf(
       AspectRatio("Default", -1.0),
@@ -60,7 +73,6 @@ fun AspectRatioSheet(
       AspectRatio("16:10", 16.0 / 10.0),
       AspectRatio("21:9", 21.0 / 9.0),
       AspectRatio("32:9", 32.0 / 9.0),
-      AspectRatio("1:1", 1.0),
       AspectRatio("2.35:1", 2.35),
       AspectRatio("2.39:1", 2.39),
     )
@@ -104,6 +116,15 @@ fun AspectRatioSheet(
             leadingIcon = null,
           )
         }
+        item {
+          InputChip(
+            selected = showCustomInput,
+            onClick = { showCustomInput = !showCustomInput },
+            label = { Text("Custom...") },
+            modifier = Modifier.animateItem(),
+            leadingIcon = null,
+          )
+        }
       }
 
       // Custom ratios
@@ -140,11 +161,108 @@ fun AspectRatioSheet(
         }
       }
 
-      // Add custom ratio
-      AddCustomRatioRow(
-        onAdd = onAddCustomRatio,
-        modifier = Modifier.padding(top = MaterialTheme.spacing.medium),
+      // Add custom ratio (hidden by default, toggled via Custom... chip)
+      if (showCustomInput) {
+        AddCustomRatioRow(
+          onAdd = { label, ratio ->
+            onAddCustomRatio(label, ratio)
+            showCustomInput = false
+          },
+          modifier = Modifier.padding(top = MaterialTheme.spacing.medium),
+        )
+      }
+
+      HorizontalDivider(
+        modifier = Modifier.padding(vertical = MaterialTheme.spacing.medium),
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
       )
+
+      Text(
+        text = "Manual Zoom & Pan (Camera Offset)",
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier
+          .padding(horizontal = MaterialTheme.spacing.medium)
+          .padding(bottom = MaterialTheme.spacing.small),
+      )
+
+      // Zoom Slider
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = MaterialTheme.spacing.medium)
+      ) {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          val zoomFactor = java.lang.Math.pow(2.0, videoZoom.toDouble())
+          Text(
+            text = String.format("Zoom: %.2fx", zoomFactor),
+            style = MaterialTheme.typography.bodyMedium
+          )
+          
+          if (videoZoom != 0f) {
+            IconButton(
+              onClick = { onZoomChange(0f) },
+              modifier = Modifier.size(24.dp)
+            ) {
+              Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Reset Zoom",
+                modifier = Modifier.size(16.dp)
+              )
+            }
+          }
+        }
+
+        Slider(
+          value = videoZoom,
+          onValueChange = onZoomChange,
+          valueRange = -1f..3f,
+          modifier = Modifier.fillMaxWidth()
+        )
+      }
+
+      Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+
+      // Horizontal Pan Slider
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = MaterialTheme.spacing.medium)
+      ) {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Text(
+            text = String.format("Horizontal Offset: %.3f", videoPanX),
+            style = MaterialTheme.typography.bodyMedium
+          )
+          
+          if (videoPanX != 0f) {
+            IconButton(
+              onClick = { onPanXChange(0f) },
+              modifier = Modifier.size(24.dp)
+            ) {
+              Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Reset Pan",
+                modifier = Modifier.size(16.dp)
+              )
+            }
+          }
+        }
+
+        Slider(
+          value = videoPanX,
+          onValueChange = onPanXChange,
+          valueRange = -1f..1f,
+          modifier = Modifier.fillMaxWidth()
+        )
+      }
     }
   }
 }

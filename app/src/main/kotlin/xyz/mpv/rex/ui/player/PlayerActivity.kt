@@ -2034,8 +2034,13 @@ class PlayerActivity :
       if (!hasState) {
         withContext(Dispatchers.Main) {
           val zoomPreference = playerPreferences.defaultVideoZoom.get()
-          MPVLib.setPropertyDouble("video-zoom", zoomPreference.toDouble())
-          viewModel.setVideoZoom(zoomPreference)
+          if (zoomPreference != 0f) {
+            MPVLib.setPropertyDouble("video-zoom", zoomPreference.toDouble())
+            viewModel.setVideoZoom(zoomPreference)
+          } else {
+            val currentZoom = MPVLib.getPropertyDouble("video-zoom")?.toFloat() ?: 0f
+            viewModel.setVideoZoom(currentZoom)
+          }
         }
       }
 

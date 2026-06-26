@@ -211,10 +211,11 @@ fun FileSystemBrowserScreen(path: String? = null) {
   // Use standalone local states instead of CompositionLocal to avoid scroll issues with predictive back gesture
   val rememberedIndex = rememberSaveable { mutableIntStateOf(0) }
   val rememberedOffset = rememberSaveable { mutableIntStateOf(0) }
+  val hasAutoScrolled = rememberSaveable(inputs = arrayOf(recentlyPlayedFilePath ?: "")) { mutableStateOf(false) }
 
   val initialIndex = if (rememberedIndex.intValue > 0) {
     rememberedIndex.intValue
-  } else if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && items.isNotEmpty()) {
+  } else if (autoScrollToLastPlayed && !hasAutoScrolled.value && recentlyPlayedFilePath != null && items.isNotEmpty()) {
     var foundIndex = 0
     for (i in items.indices) {
       val item = items[i]
@@ -228,7 +229,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
       }
     }
     foundIndex
-  } else 0
+  } else {
+    rememberedIndex.intValue
+  }
 
   val listState = rememberLazyListState(
     initialFirstVisibleItemIndex = initialIndex,
@@ -251,6 +254,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
     rememberedIndex.intValue = listState.firstVisibleItemIndex
     rememberedOffset.intValue = listState.firstVisibleItemScrollOffset
+    hasAutoScrolled.value = true
   }
   
   // UI state

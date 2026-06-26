@@ -248,10 +248,12 @@ data class VideoListScreen(
     val rememberedListOffset = rememberSaveable { mutableIntStateOf(0) }
     val rememberedGridIndex = rememberSaveable { mutableIntStateOf(0) }
     val rememberedGridOffset = rememberSaveable { mutableIntStateOf(0) }
+    val hasListAutoScrolled = rememberSaveable(inputs = arrayOf(lastPlayedInFolderPath ?: "")) { mutableStateOf(false) }
+    val hasGridAutoScrolled = rememberSaveable(inputs = arrayOf(lastPlayedInFolderPath ?: "")) { mutableStateOf(false) }
 
     val initialListIndex = if (rememberedListIndex.intValue > 0) {
       rememberedListIndex.intValue
-    } else if (autoScrollToLastPlayed && lastPlayedInFolderPath != null && sortedVideosWithInfo.isNotEmpty()) {
+    } else if (autoScrollToLastPlayed && !hasListAutoScrolled.value && lastPlayedInFolderPath != null && sortedVideosWithInfo.isNotEmpty()) {
       var foundIndex = 0
       for (i in sortedVideosWithInfo.indices) {
         if (sortedVideosWithInfo[i].video.path == lastPlayedInFolderPath) {
@@ -260,11 +262,13 @@ data class VideoListScreen(
         }
       }
       foundIndex
-    } else 0
+    } else {
+      rememberedListIndex.intValue
+    }
 
     val initialGridIndex = if (rememberedGridIndex.intValue > 0) {
       rememberedGridIndex.intValue
-    } else if (autoScrollToLastPlayed && lastPlayedInFolderPath != null && sortedVideosWithInfo.isNotEmpty()) {
+    } else if (autoScrollToLastPlayed && !hasGridAutoScrolled.value && lastPlayedInFolderPath != null && sortedVideosWithInfo.isNotEmpty()) {
       var foundIndex = 0
       for (i in sortedVideosWithInfo.indices) {
         if (sortedVideosWithInfo[i].video.path == lastPlayedInFolderPath) {
@@ -273,7 +277,9 @@ data class VideoListScreen(
         }
       }
       foundIndex
-    } else 0
+    } else {
+      rememberedGridIndex.intValue
+    }
 
     val listState = rememberLazyListState(
       initialFirstVisibleItemIndex = initialListIndex,
@@ -287,11 +293,13 @@ data class VideoListScreen(
     LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
       rememberedListIndex.intValue = listState.firstVisibleItemIndex
       rememberedListOffset.intValue = listState.firstVisibleItemScrollOffset
+      hasListAutoScrolled.value = true
     }
 
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
       rememberedGridIndex.intValue = gridState.firstVisibleItemIndex
       rememberedGridOffset.intValue = gridState.firstVisibleItemScrollOffset
+      hasGridAutoScrolled.value = true
     }
 
     LaunchedEffect(Unit) {

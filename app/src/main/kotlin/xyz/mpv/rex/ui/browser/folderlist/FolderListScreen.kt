@@ -218,6 +218,8 @@ object FolderListScreen : Screen {
     val rememberedListOffset = rememberSaveable { mutableIntStateOf(0) }
     val rememberedGridIndex = rememberSaveable { mutableIntStateOf(0) }
     val rememberedGridOffset = rememberSaveable { mutableIntStateOf(0) }
+    val hasListAutoScrolled = rememberSaveable(inputs = arrayOf(recentlyPlayedFilePath ?: "")) { mutableStateOf(false) }
+    val hasGridAutoScrolled = rememberSaveable(inputs = arrayOf(recentlyPlayedFilePath ?: "")) { mutableStateOf(false) }
 
     // Sorting and filtering
     val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder) {
@@ -226,7 +228,7 @@ object FolderListScreen : Screen {
 
     val initialListIndex = if (rememberedListIndex.intValue > 0) {
       rememberedListIndex.intValue
-    } else if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && sortedFolders.isNotEmpty()) {
+    } else if (autoScrollToLastPlayed && !hasListAutoScrolled.value && recentlyPlayedFilePath != null && sortedFolders.isNotEmpty()) {
       var foundIndex = 0
       val lastPlayedParentPath = java.io.File(recentlyPlayedFilePath!!).parent ?: "/"
       for (i in sortedFolders.indices) {
@@ -236,11 +238,13 @@ object FolderListScreen : Screen {
         }
       }
       foundIndex
-    } else 0
+    } else {
+      rememberedListIndex.intValue
+    }
 
     val initialGridIndex = if (rememberedGridIndex.intValue > 0) {
       rememberedGridIndex.intValue
-    } else if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && sortedFolders.isNotEmpty()) {
+    } else if (autoScrollToLastPlayed && !hasGridAutoScrolled.value && recentlyPlayedFilePath != null && sortedFolders.isNotEmpty()) {
       var foundIndex = 0
       val lastPlayedParentPath = java.io.File(recentlyPlayedFilePath!!).parent ?: "/"
       for (i in sortedFolders.indices) {
@@ -250,7 +254,9 @@ object FolderListScreen : Screen {
         }
       }
       foundIndex
-    } else 0
+    } else {
+      rememberedGridIndex.intValue
+    }
 
     val listState = rememberLazyListState(
       initialFirstVisibleItemIndex = initialListIndex,
@@ -279,11 +285,13 @@ object FolderListScreen : Screen {
     LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
       rememberedListIndex.intValue = listState.firstVisibleItemIndex
       rememberedListOffset.intValue = listState.firstVisibleItemScrollOffset
+      hasListAutoScrolled.value = true
     }
 
     LaunchedEffect(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) {
       rememberedGridIndex.intValue = gridState.firstVisibleItemIndex
       rememberedGridOffset.intValue = gridState.firstVisibleItemScrollOffset
+      hasGridAutoScrolled.value = true
     }
 
     LaunchedEffect(Unit) {

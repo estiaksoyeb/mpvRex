@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -168,51 +169,55 @@ fun <T> UnifiedExplorerContent(
         }
       }
       if (lastPlayedIndex != -1) {
+        val hasAutoScrolled = rememberSaveable(inputs = arrayOf(recentlyPlayedFilePath)) { mutableStateOf(false) }
         LaunchedEffect(recentlyPlayedFilePath) {
-          if (showSections) {
-            val matchedItem = items[lastPlayedIndex]
-            val isFolder = matchedItem is VideoFolder || matchedItem is FileSystemItem.Folder
-            val folderItems = items.filter { it is VideoFolder || it is FileSystemItem.Folder }
-            val videoItems = items.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+          if (!hasAutoScrolled.value) {
+            hasAutoScrolled.value = true
+            if (showSections) {
+              val matchedItem = items[lastPlayedIndex]
+              val isFolder = matchedItem is VideoFolder || matchedItem is FileSystemItem.Folder
+              val folderItems = items.filter { it is VideoFolder || it is FileSystemItem.Folder }
+              val videoItems = items.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
 
-            val targetIndex = if (isFolder) {
-              val folderIndex = folderItems.indexOf(matchedItem)
-              if (folderIndex != -1) {
-                if (mediaLayoutMode == MediaLayoutMode.GRID) {
-                  val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-                  1 + (folderIndex / folderGridColumns)
-                } else {
-                  1 + folderIndex
-                }
-              } else 0
-            } else {
-              val videoIndex = videoItems.indexOf(matchedItem)
-              if (videoIndex != -1) {
-                if (folderItems.isNotEmpty()) {
+              val targetIndex = if (isFolder) {
+                val folderIndex = folderItems.indexOf(matchedItem)
+                if (folderIndex != -1) {
                   if (mediaLayoutMode == MediaLayoutMode.GRID) {
                     val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-                    val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
-                    val numFolderRows = (folderItems.size + folderGridColumns - 1) / folderGridColumns
-                    numFolderRows + 3 + (videoIndex / videoGridColumns)
+                    1 + (folderIndex / folderGridColumns)
                   } else {
-                    folderItems.size + 3 + videoIndex
+                    1 + folderIndex
                   }
-                } else {
-                  if (mediaLayoutMode == MediaLayoutMode.GRID) {
-                    val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
-                    1 + (videoIndex / videoGridColumns)
+                } else 0
+              } else {
+                val videoIndex = videoItems.indexOf(matchedItem)
+                if (videoIndex != -1) {
+                  if (folderItems.isNotEmpty()) {
+                    if (mediaLayoutMode == MediaLayoutMode.GRID) {
+                      val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+                      val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+                      val numFolderRows = (folderItems.size + folderGridColumns - 1) / folderGridColumns
+                      numFolderRows + 3 + (videoIndex / videoGridColumns)
+                    } else {
+                      folderItems.size + 3 + videoIndex
+                    }
                   } else {
-                    1 + videoIndex
+                    if (mediaLayoutMode == MediaLayoutMode.GRID) {
+                      val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+                      1 + (videoIndex / videoGridColumns)
+                    } else {
+                      1 + videoIndex
+                    }
                   }
-                }
-              } else 0
-            }
-            listState.scrollToItem(targetIndex)
-          } else {
-            if (mediaLayoutMode == MediaLayoutMode.GRID) {
-              gridState.scrollToItem(lastPlayedIndex)
+                } else 0
+              }
+              listState.scrollToItem(targetIndex)
             } else {
-              listState.scrollToItem(lastPlayedIndex)
+              if (mediaLayoutMode == MediaLayoutMode.GRID) {
+                gridState.scrollToItem(lastPlayedIndex)
+              } else {
+                listState.scrollToItem(lastPlayedIndex)
+              }
             }
           }
         }

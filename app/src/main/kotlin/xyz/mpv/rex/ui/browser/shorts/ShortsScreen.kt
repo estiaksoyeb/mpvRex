@@ -175,6 +175,7 @@ data class ShortsScreen(
                 
                 var currentPlaybackProgress by remember { mutableFloatStateOf(0f) }
                 var currentPlaybackPaused by remember { mutableStateOf(false) }
+                var isManuallyPaused by remember { mutableStateOf(false) }
                 
                 val pagerState = rememberPagerState(pageCount = { 
                     if (isExhausted) shorts.size + 1 else shorts.size 
@@ -227,12 +228,23 @@ data class ShortsScreen(
                         )
                     }
 
+                    val isTopScreen = backstack.lastOrNull() == this@ShortsScreen
+                    LaunchedEffect(isTopScreen) {
+                        if (isTopScreen) {
+                            if (!isManuallyPaused && pagerState.settledPage < shorts.size) {
+                                MPVLib.setPropertyBoolean("pause", false)
+                            }
+                        } else {
+                            MPVLib.setPropertyBoolean("pause", true)
+                        }
+                    }
+
                     DisposableEffect(lifecycleOwner) {
                         val observer = LifecycleEventObserver { _, event ->
                             when (event) {
                                 Lifecycle.Event.ON_PAUSE -> MPVLib.setPropertyBoolean("pause", true)
                                 Lifecycle.Event.ON_RESUME -> {
-                                    if (pagerState.settledPage < shorts.size) {
+                                    if (pagerState.settledPage < shorts.size && !isManuallyPaused && backstack.lastOrNull() == this@ShortsScreen) {
                                         MPVLib.setPropertyBoolean("pause", false)
                                     }
                                 }
@@ -253,6 +265,7 @@ data class ShortsScreen(
                                 MPVLib.command("loadfile", video.path)
                                 MPVLib.setPropertyString("loop-file", if (autoSwipe) "no" else "inf")
                                 MPVLib.setPropertyBoolean("pause", false)
+                                isManuallyPaused = false
                                 viewModel.syncPlaybackSpeed()
                                 
                                 // Phase B: Mark as seen in current session
@@ -275,6 +288,12 @@ data class ShortsScreen(
                         playingPageIndex = playingPageIndex,
                         playbackProgress = currentPlaybackProgress,
                         playbackPaused = currentPlaybackPaused,
+                        onTogglePause = {
+                            val currentPause = MPVLib.getPropertyBoolean("pause") ?: false
+                            val nextPause = !currentPause
+                            MPVLib.setPropertyBoolean("pause", nextPause)
+                            isManuallyPaused = nextPause
+                        },
                         viewModel = viewModel,
                         onBack = { 
                             if (isExhausted && pagerState.currentPage >= shorts.size - 1) {
@@ -360,6 +379,7 @@ private fun ShortsPager(
     playingPageIndex: Int,
     playbackProgress: Float,
     playbackPaused: Boolean,
+    onTogglePause: () -> Unit,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
     onLove: (Video) -> Unit,
@@ -383,6 +403,7 @@ private fun ShortsPager(
                 currentSpeed = currentSpeed,
                 playbackProgress = playbackProgress,
                 playbackPaused = playbackPaused,
+                onTogglePause = onTogglePause,
                 viewModel = viewModel,
                 onBack = onBack,
                 onLove = { onLove(video) },
@@ -406,6 +427,7 @@ private fun ShortPageItem(
     currentSpeed: Double,
     playbackProgress: Float,
     playbackPaused: Boolean,
+    onTogglePause: () -> Unit,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
     onLove: () -> Unit,
@@ -468,9 +490,7 @@ private fun ShortPageItem(
                         
                         if (offset.y in topThreshold..bottomThreshold) {
                             if (isSettled && isPlaying) {
-                                val currentPause = MPVLib.getPropertyBoolean("pause") ?: false
-                                MPVLib.setPropertyBoolean("pause", !currentPause)
-                                isPaused = !currentPause
+                                onTogglePause()
                             }
                         }
                     },

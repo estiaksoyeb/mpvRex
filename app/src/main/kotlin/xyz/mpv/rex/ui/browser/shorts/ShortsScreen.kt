@@ -173,11 +173,15 @@ data class ShortsScreen(
                 var isPlayerReady by remember { mutableStateOf(false) }
                 var playingPageIndex by remember { mutableIntStateOf(0) }
                 
+                var currentPlaybackProgress by remember { mutableFloatStateOf(0f) }
+                var currentPlaybackPaused by remember { mutableStateOf(false) }
+                
                 val pagerState = rememberPagerState(pageCount = { 
                     if (isExhausted) shorts.size + 1 else shorts.size 
                 })
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val density = LocalDensity.current
+                val coroutineScope = rememberCoroutineScope()
 
                 BoxWithConstraints(modifier = Modifier.fillMaxSize().background(Color.Black)) {
                     val heightPx = with(density) { maxHeight.toPx() }
@@ -200,6 +204,24 @@ data class ShortsScreen(
                                 isPlayerReady = ready
                                 if (ready) {
                                     playingPageIndex = pagerState.settledPage
+                                }
+                            },
+                            onProgressUpdate = { timePos, duration ->
+                                currentPlaybackProgress = if (duration > 0) {
+                                    (timePos / duration.toDouble()).toFloat().coerceIn(0f, 1f)
+                                } else {
+                                    0f
+                                }
+                            },
+                            onPauseUpdate = { paused ->
+                                currentPlaybackPaused = paused
+                            },
+                            onPlaybackEnd = {
+                                if (autoSwipe && pagerState.currentPage < shorts.size - 1) {
+                                    coroutineScope.launch {
+                                        delay(100)
+                                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                    }
                                 }
                             }
                         )
@@ -242,21 +264,6 @@ data class ShortsScreen(
                         }
                     }
 
-                    // Auto Swipe Transition Logic
-                    LaunchedEffect(isPlayerReady, autoSwipe, pagerState.settledPage) {
-                        if (isPlayerReady && autoSwipe) {
-                            while (isActive) {
-                                val eofReached = MPVLib.getPropertyBoolean("eof-reached") ?: false
-                                if (eofReached && pagerState.currentPage < shorts.size - 1) {
-                                    delay(100) // Small delay to ensure smooth transition
-                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                    break // Stop observing once we start swiping for THIS page
-                                }
-                                delay(500)
-                            }
-                        }
-                    }
-
                     ShortsPager(
                         shorts = shorts,
                         pagerState = pagerState,
@@ -266,6 +273,8 @@ data class ShortsScreen(
                         isExhausted = isExhausted,
                         currentSpeed = currentSpeed,
                         playingPageIndex = playingPageIndex,
+                        playbackProgress = currentPlaybackProgress,
+                        playbackPaused = currentPlaybackPaused,
                         viewModel = viewModel,
                         onBack = { 
                             if (isExhausted && pagerState.currentPage >= shorts.size - 1) {
@@ -349,6 +358,8 @@ private fun ShortsPager(
     isExhausted: Boolean,
     currentSpeed: Double,
     playingPageIndex: Int,
+    playbackProgress: Float,
+    playbackPaused: Boolean,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
     onLove: (Video) -> Unit,
@@ -370,6 +381,8 @@ private fun ShortsPager(
                 isLoved = lovedPaths.contains(video.path),
                 isBlocked = blockedPaths.contains(video.path),
                 currentSpeed = currentSpeed,
+                playbackProgress = playbackProgress,
+                playbackPaused = playbackPaused,
                 viewModel = viewModel,
                 onBack = onBack,
                 onLove = { onLove(video) },
@@ -391,6 +404,8 @@ private fun ShortPageItem(
     isLoved: Boolean,
     isBlocked: Boolean,
     currentSpeed: Double,
+    playbackProgress: Float,
+    playbackPaused: Boolean,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
     onLove: () -> Unit,
@@ -418,15 +433,21 @@ private fun ShortPageItem(
         thumbnail = viewModel.getThumbnail(video)
     }
 
-    LaunchedEffect(isSettled, isPlaying, isSeeking) {
-        if (isSettled && isPlaying && !isSeeking) {
-            while (isActive) {
-                val pos = MPVLib.getPropertyInt("time-pos") ?: 0
-                val duration = MPVLib.getPropertyInt("duration") ?: 1
-                progress = if (duration > 0) pos.toFloat() / duration.toFloat() else 0f
-                isPaused = MPVLib.getPropertyBoolean("pause") ?: false
-                delay(500)
+    LaunchedEffect(playbackProgress, isPlaying, isSeeking) {
+        if (isPlaying) {
+            if (!isSeeking) {
+                progress = playbackProgress
             }
+        } else {
+            progress = 0f
+        }
+    }
+
+    LaunchedEffect(playbackPaused, isPlaying) {
+        if (isPlaying) {
+            isPaused = playbackPaused
+        } else {
+            isPaused = false
         }
     }
 

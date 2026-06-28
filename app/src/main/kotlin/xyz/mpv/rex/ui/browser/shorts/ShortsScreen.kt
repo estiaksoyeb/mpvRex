@@ -18,12 +18,18 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -39,6 +45,10 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.draw.scale
 import androidx.compose.material3.AlertDialog
@@ -85,6 +95,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -308,6 +319,26 @@ data class ShortsScreen(
                         onLove = { viewModel.toggleLove(it) },
                         onBlock = { viewModel.toggleBlock(it) }
                     )
+
+                    // System status & navigation bar protective overlays (drawn on top of sliding pages)
+                    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                    val navigationBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(statusBarHeight)
+                            .background(Color.Black)
+                            .align(Alignment.TopCenter)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(navigationBarHeight)
+                            .background(Color.Black)
+                            .align(Alignment.BottomCenter)
+                    )
                 }
             }
         }
@@ -440,6 +471,7 @@ private fun ShortPageItem(
     var thumbnail by remember { mutableStateOf<Bitmap?>(null) }
     var showInfo by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
+    var isFreeModeEnabled by remember { mutableStateOf(false) }
     
     // --- Visual Refinements ---
     var heartTapOffset by remember { mutableStateOf(Offset.Zero) }
@@ -450,6 +482,8 @@ private fun ShortPageItem(
     
     var isSeeking by remember { mutableStateOf(false) }
     var seekProgress by remember { mutableFloatStateOf(0f) }
+    
+    var playPauseTrigger by remember { mutableStateOf(0L) }
     
     LaunchedEffect(video.path) {
         thumbnail = viewModel.getThumbnail(video)
@@ -470,6 +504,12 @@ private fun ShortPageItem(
             isPaused = playbackPaused
         } else {
             isPaused = false
+        }
+    }
+    
+    LaunchedEffect(isPaused) {
+        if (isPlayerReady) {
+            playPauseTrigger = System.currentTimeMillis()
         }
     }
 
@@ -591,42 +631,98 @@ private fun ShortPageItem(
                     }
             )
         }
-
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 48.dp, start = 24.dp)
-        ) {
-            Box {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.Black,
-                    modifier = Modifier.size(28.dp).graphicsLayer { translationX = 2f; translationY = 2f }
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
+        
+        // Central Play/Pause Animation Overlay
+        if (playPauseTrigger > 0L) {
+            val scale = remember { Animatable(0.6f) }
+            val alpha = remember { Animatable(0f) }
+            LaunchedEffect(playPauseTrigger) {
+                alpha.snapTo(0f)
+                scale.snapTo(0.6f)
+                launch { scale.animateTo(1.2f, spring(dampingRatio = 0.5f)) }
+                launch { alpha.animateTo(0.8f, tween(150)) }
+                delay(300)
+                launch { scale.animateTo(1.5f, tween(300)) }
+                launch { alpha.animateTo(0f, tween(300)) }
+            }
+            if (alpha.value > 0f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .scale(scale.value)
+                        .alpha(alpha.value)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isPaused) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
             }
         }
 
-        ActionColumn(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 100.dp, end = 16.dp),
-            isLoved = isLoved,
-            isBlocked = isBlocked,
-            currentSpeed = currentSpeed,
-            onLove = onLove,
-            onBlock = onBlock,
-            onSpeedClick = { viewModel.cycleSpeed() },
-            onMore = { showMore = true },
-            onLoveButtonPositioned = { loveButtonCenter = it }
-        )
+        val isUiVisible = !isFreeModeEnabled || isPaused
+
+        if (isUiVisible) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                        )
+                    )
+                    .padding(start = 16.dp, end = 96.dp, bottom = 48.dp)
+            ) {
+                Text(
+                    text = video.displayName,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = textWithStroke
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val res = video.resolution
+                    if (res.isNotEmpty() && res != "0x0") {
+                        MetadataChip(text = res)
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    if (video.sizeFormatted.isNotEmpty()) {
+                        MetadataChip(text = video.sizeFormatted)
+                    }
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                LinearProgressIndicator(
+                    progress = { if (isSeeking) seekProgress else progress },
+                    modifier = Modifier.fillMaxWidth().height(progressBarHeight).clip(RoundedCornerShape(50)),
+                    color = if (isSeeking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    trackColor = Color.White.copy(alpha = 0.25f)
+                )
+            }
+
+            ActionColumn(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 48.dp, end = 16.dp),
+                isLoved = isLoved,
+                isBlocked = isBlocked,
+                isFreeModeEnabled = isFreeModeEnabled,
+                onLove = onLove,
+                onBlock = onBlock,
+                onFreeModeToggle = { isFreeModeEnabled = !isFreeModeEnabled },
+                onBack = onBack,
+                onMore = { showMore = true },
+                onLoveButtonPositioned = { loveButtonCenter = it }
+            )
+        }
 
         if (isSeeking) {
             Box(
@@ -644,25 +740,6 @@ private fun ShortPageItem(
                     style = textWithStroke
                 )
             }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
-                    )
-                )
-                .padding(start = 16.dp, end = 16.dp, bottom = 48.dp)
-        ) {
-            LinearProgressIndicator(
-                progress = { if (isSeeking) seekProgress else progress },
-                modifier = Modifier.fillMaxWidth().height(progressBarHeight),
-                color = if (isSeeking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                trackColor = Color.White.copy(alpha = 0.3f)
-            )
         }
 
         if (showInfo) {
@@ -824,10 +901,11 @@ private fun ActionColumn(
     modifier: Modifier = Modifier,
     isLoved: Boolean,
     isBlocked: Boolean,
-    currentSpeed: Double,
+    isFreeModeEnabled: Boolean,
     onLove: () -> Unit,
     onBlock: () -> Unit,
-    onSpeedClick: () -> Unit,
+    onFreeModeToggle: () -> Unit,
+    onBack: () -> Unit,
     onMore: () -> Unit,
     onLoveButtonPositioned: (Offset) -> Unit
 ) {
@@ -865,10 +943,21 @@ private fun ActionColumn(
         
         Spacer(modifier = Modifier.height(12.dp))
         
+        // Free button (Clean UI Toggle)
         ActionButton(
-            icon = Icons.Filled.Speed, 
-            label = "${currentSpeed}x", 
-            onClick = onSpeedClick
+            icon = if (isFreeModeEnabled) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, 
+            label = "Free", 
+            iconColor = if (isFreeModeEnabled) MaterialTheme.colorScheme.primary else Color.White,
+            onClick = onFreeModeToggle
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Back Button (replaces speed button)
+        ActionButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack, 
+            label = "Back", 
+            onClick = onBack
         )
         
         Spacer(modifier = Modifier.height(12.dp))
@@ -885,34 +974,66 @@ private fun ActionButton(
     iconColor: Color = Color.White,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.85f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.6f),
+        label = "scale"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
+        modifier = modifier.scale(scale)
     ) {
         IconButton(
             onClick = onClick,
-            modifier = Modifier.size(40.dp)
+            interactionSource = interactionSource,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color.White.copy(alpha = 0.15f))
+                .padding(4.dp)
         ) {
             Box {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = Color.Black,
-                    modifier = Modifier.size(26.dp).graphicsLayer { translationX = 1f; translationY = 1f }
+                    modifier = Modifier.size(24.dp).graphicsLayer { translationX = 1f; translationY = 1f }
                 )
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
                     tint = iconColor,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
-            color = Color.White,
+            color = Color.White.copy(alpha = 0.9f),
             fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
             style = textWithStroke
+        )
+    }
+}
+
+@Composable
+private fun MetadataChip(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(Color.White.copy(alpha = 0.15f))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White.copy(alpha = 0.9f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }

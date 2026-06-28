@@ -11,6 +11,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -110,11 +113,16 @@ import xyz.mpv.rex.ui.player.MPVView
 import xyz.mpv.rex.ui.preferences.BlockedShortsScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import `is`.xyz.mpv.MPVLib
+import org.koin.compose.koinInject
+import xyz.mpv.rex.preferences.PlayerPreferences
+import xyz.mpv.rex.ui.player.PlayerTutorialManager
+import xyz.mpv.rex.preferences.preference.collectAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import kotlin.math.abs
 
 @Serializable
 data class ShortsScreen(
@@ -187,6 +195,7 @@ data class ShortsScreen(
                 var currentPlaybackProgress by remember { mutableFloatStateOf(0f) }
                 var currentPlaybackPaused by remember { mutableStateOf(false) }
                 var isManuallyPaused by remember { mutableStateOf(false) }
+                var isFreeModeEnabled by remember { mutableStateOf(false) }
                 
                 val pagerState = rememberPagerState(pageCount = { 
                     if (isExhausted) shorts.size + 1 else shorts.size 
@@ -299,6 +308,8 @@ data class ShortsScreen(
                         playingPageIndex = playingPageIndex,
                         playbackProgress = currentPlaybackProgress,
                         playbackPaused = currentPlaybackPaused,
+                        isFreeModeEnabled = isFreeModeEnabled,
+                        onFreeModeToggle = { isFreeModeEnabled = !isFreeModeEnabled },
                         onTogglePause = {
                             val currentPause = MPVLib.getPropertyBoolean("pause") ?: false
                             val nextPause = !currentPause
@@ -410,6 +421,8 @@ private fun ShortsPager(
     playingPageIndex: Int,
     playbackProgress: Float,
     playbackPaused: Boolean,
+    isFreeModeEnabled: Boolean,
+    onFreeModeToggle: () -> Unit,
     onTogglePause: () -> Unit,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
@@ -434,6 +447,8 @@ private fun ShortsPager(
                 currentSpeed = currentSpeed,
                 playbackProgress = playbackProgress,
                 playbackPaused = playbackPaused,
+                isFreeModeEnabled = isFreeModeEnabled,
+                onFreeModeToggle = onFreeModeToggle,
                 onTogglePause = onTogglePause,
                 viewModel = viewModel,
                 onBack = onBack,
@@ -458,6 +473,8 @@ private fun ShortPageItem(
     currentSpeed: Double,
     playbackProgress: Float,
     playbackPaused: Boolean,
+    isFreeModeEnabled: Boolean,
+    onFreeModeToggle: () -> Unit,
     onTogglePause: () -> Unit,
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
@@ -471,7 +488,31 @@ private fun ShortPageItem(
     var thumbnail by remember { mutableStateOf<Bitmap?>(null) }
     var showInfo by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
-    var isFreeModeEnabled by remember { mutableStateOf(false) }
+
+    val playerPreferences = koinInject<PlayerPreferences>()
+    val playerTutorialManager = koinInject<PlayerTutorialManager>()
+    val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
+    
+    var isLongPressSpeedActive by remember { mutableStateOf(false) }
+    var isSpeedLockedState by remember { mutableStateOf(false) }
+    var showSpeedLockHint by remember { mutableStateOf(false) }
+    val view = LocalView.current
+    var lastTapTime by remember { mutableStateOf(0L) }
+    var lastTapPosition by remember { mutableStateOf(Offset.Zero) }
+
+    LaunchedEffect(video.path) {
+        isSpeedLockedState = false
+        isLongPressSpeedActive = false
+        MPVLib.setPropertyFloat("speed", 1.0f)
+    }
+
+    LaunchedEffect(isPaused) {
+        if (isPaused) {
+            isSpeedLockedState = false
+            isLongPressSpeedActive = false
+            MPVLib.setPropertyFloat("speed", 1.0f)
+        }
+    }
     
     // --- Visual Refinements ---
     var heartTapOffset by remember { mutableStateOf(Offset.Zero) }
@@ -521,13 +562,13 @@ private fun ShortPageItem(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
+            // 1. Taps (pause/resume) and Double Taps (like/confetti)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { offset ->
                         val screenHeight = size.height
                         val topThreshold = screenHeight * 0.1f
                         val bottomThreshold = screenHeight * 0.9f
-                        
                         if (offset.y in topThreshold..bottomThreshold) {
                             if (isSettled && isPlaying) {
                                 onTogglePause()
@@ -538,12 +579,9 @@ private fun ShortPageItem(
                         if (isSettled) {
                             heartTapOffset = offset
                             coroutineScope.launch {
-                                // Premium Animation
                                 heartAlpha.snapTo(1f)
                                 heartScale.snapTo(0.7f)
-                                // Confetti triggered here, but logic below anchors it to button center
                                 confettiTrigger.value = System.currentTimeMillis()
-                                
                                 heartScale.animateTo(1.5f, spring(dampingRatio = 0.5f))
                                 delay(300)
                                 launch { heartScale.animateTo(2f, tween(400)) }
@@ -555,10 +593,52 @@ private fun ShortPageItem(
                     }
                 )
             }
+            // 2. Left/Right long press speed-up (temporary while holding)
+            .pointerInput(holdForMultipleSpeed, isSpeedLockedState) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val startX = down.position.x
+                        val screenWidth = size.width.toFloat()
+                        val isLeftOrRight = startX < screenWidth * 0.35f || startX > screenWidth * 0.65f
+                        
+                        if (isLeftOrRight && isSettled && isPlaying && !isPaused) {
+                            var longPressTriggered = false
+                            val job = coroutineScope.launch {
+                                delay(400)
+                                longPressTriggered = true
+                                isLongPressSpeedActive = true
+                                MPVLib.setPropertyFloat("speed", holdForMultipleSpeed)
+                                view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                            }
+                            
+                            var pointerId = down.id
+                            do {
+                                val event = awaitPointerEvent()
+                                val pointer = event.changes.firstOrNull { it.id == pointerId }
+                                if (pointer != null) {
+                                    if (!pointer.pressed) {
+                                        job.cancel()
+                                        if (longPressTriggered) {
+                                            isLongPressSpeedActive = false
+                                            val targetSpeed = if (isSpeedLockedState) holdForMultipleSpeed else 1.0f
+                                            MPVLib.setPropertyFloat("speed", targetSpeed)
+                                        }
+                                    }
+                                }
+                            } while (event.changes.any { it.pressed })
+                            job.cancel()
+                        }
+                    }
+                }
+            }
+            // 3. Center drag seeking
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        if (isSettled && isPlaying) {
+                    onDragStart = { offset ->
+                        val screenWidth = size.width.toFloat()
+                        val isCenter = offset.x in (screenWidth * 0.35f)..(screenWidth * 0.65f)
+                        if (isSettled && isPlaying && isCenter) {
                             isSeeking = true
                             seekProgress = progress
                         }
@@ -717,7 +797,7 @@ private fun ShortPageItem(
                 isFreeModeEnabled = isFreeModeEnabled,
                 onLove = onLove,
                 onBlock = onBlock,
-                onFreeModeToggle = { isFreeModeEnabled = !isFreeModeEnabled },
+                onFreeModeToggle = onFreeModeToggle,
                 onBack = onBack,
                 onMore = { showMore = true },
                 onLoveButtonPositioned = { loveButtonCenter = it }
@@ -769,10 +849,21 @@ private fun ShortPageItem(
                 onDismiss = { showMore = false },
                 isAutoSwipeEnabled = isAutoSwipeEnabled,
                 onToggleAutoSwipe = { viewModel.toggleAutoSwipe() },
+                isSpeedLocked = isSpeedLockedState,
+                onToggleSpeedLock = { locked ->
+                    isSpeedLockedState = locked
+                    if (locked) {
+                        MPVLib.setPropertyFloat("speed", holdForMultipleSpeed)
+                    } else {
+                        MPVLib.setPropertyFloat("speed", 1.0f)
+                    }
+                },
                 onShowBlocked = {
+                    showMore = false
                     backstack.add(BlockedShortsScreen)
                 },
                 onShowInfo = {
+                    showMore = false
                     showInfo = true
                 }
             )
@@ -818,15 +909,21 @@ private fun ConfettiBurst(trigger: Long, center: Offset) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun MoreActionsSheet(
     onDismiss: () -> Unit,
     isAutoSwipeEnabled: Boolean,
     onToggleAutoSwipe: () -> Unit,
+    isSpeedLocked: Boolean,
+    onToggleSpeedLock: (Boolean) -> Unit,
     onShowBlocked: () -> Unit,
     onShowInfo: () -> Unit
 ) {
+    val playerPreferences = koinInject<PlayerPreferences>()
+    val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
+    val view = LocalView.current
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(),
@@ -880,6 +977,56 @@ private fun MoreActionsSheet(
                 modifier = Modifier.clickable { onToggleAutoSwipe() },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
+            
+            ListItem(
+                headlineContent = { Text("Long Press Speed") },
+                supportingContent = { 
+                    Text(
+                        text = "Long press to lock speed and normal press to change",
+                        color = if (isSpeedLocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                leadingContent = { Icon(Icons.Default.Speed, contentDescription = null) },
+                trailingContent = {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (isSpeedLocked) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (isSpeedLocked) "${holdForMultipleSpeed}x 🔒" else "${holdForMultipleSpeed}x",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                },
+                modifier = Modifier.combinedClickable(
+                    onClick = {
+                        val nextSpeed = when (holdForMultipleSpeed) {
+                            1.5f -> 2.0f
+                            2.0f -> 2.5f
+                            2.5f -> 3.0f
+                            3.0f -> 4.0f
+                            else -> 1.5f
+                        }
+                        playerPreferences.holdForMultipleSpeed.set(nextSpeed)
+                        if (isSpeedLocked) {
+                            MPVLib.setPropertyFloat("speed", nextSpeed)
+                        }
+                    },
+                    onLongClick = {
+                        onToggleSpeedLock(!isSpeedLocked)
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                    }
+                ),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            )
+
             ListItem(
                 headlineContent = { Text("Video Information") },
                 leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },

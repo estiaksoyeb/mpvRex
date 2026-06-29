@@ -69,8 +69,14 @@ class ShortsViewModel(
             
             val finalShorts = if (blockedOnly) {
                 val blockedInDb = shortsMediaDao.getAllShortsMedia().filter { it.isBlocked }
+                val configuredFoldersSet = browserPreferences.shortsSourceFolders.get()
                 val flatFolders = xyz.mpv.rex.utils.storage.CoreMediaScanner.getFlatMediaFolders(getApplication())
-                val allVideos = flatFolders.flatMap { folder ->
+                val filteredFolders = if (configuredFoldersSet.isNotEmpty()) {
+                    flatFolders.filter { it.path in configuredFoldersSet }
+                } else {
+                    flatFolders
+                }
+                val allVideos = filteredFolders.flatMap { folder ->
                     xyz.mpv.rex.utils.storage.VideoScanUtils.getVideosInFolder(getApplication(), folder.path)
                 }.filter { !it.isAudio }
                 

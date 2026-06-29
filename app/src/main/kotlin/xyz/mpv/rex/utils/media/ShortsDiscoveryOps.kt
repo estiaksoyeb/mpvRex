@@ -27,11 +27,17 @@ object ShortsDiscoveryOps {
         browserPreferences: BrowserPreferences
     ): List<Video> = withContext(Dispatchers.IO) {
         try {
-            // 1. Get all folders that contain media
+            // 1. Get all folders that contain media (filtered by configured source folders if any)
+            val configuredFoldersSet = browserPreferences.shortsSourceFolders.get()
             val flatFolders = CoreMediaScanner.getFlatMediaFolders(context)
+            val filteredFolders = if (configuredFoldersSet.isNotEmpty()) {
+                flatFolders.filter { it.path in configuredFoldersSet }
+            } else {
+                flatFolders
+            }
             
             // 2. Extract all videos from these folders
-            val allVideos = flatFolders.flatMap { folder ->
+            val allVideos = filteredFolders.flatMap { folder ->
                 VideoScanUtils.getVideosInFolder(context, folder.path)
             }.filter { !it.isAudio }
 

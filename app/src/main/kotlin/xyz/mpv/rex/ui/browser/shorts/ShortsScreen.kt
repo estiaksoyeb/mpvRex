@@ -49,8 +49,8 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.SwitchDefaults
@@ -1159,7 +1159,7 @@ private fun ActionColumn(
         
         // Free button (Clean UI Toggle)
         ActionButton(
-            icon = if (isFreeModeEnabled) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, 
+            icon = if (isFreeModeEnabled) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen, 
             label = "Free", 
             iconColor = if (isFreeModeEnabled) MaterialTheme.colorScheme.primary else Color.White,
             onClick = onFreeModeToggle

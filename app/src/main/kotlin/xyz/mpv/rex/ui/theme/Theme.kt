@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -121,7 +122,10 @@ val LocalThemeTransitionState = staticCompositionLocalOf<ThemeTransitionState?> 
 
 @Composable
 fun rememberThemeTransitionState(): ThemeTransitionState {
-    return remember { ThemeTransitionState() }
+    val view = LocalView.current
+    val state = remember { ThemeTransitionState() }
+    state.setView(view)
+    return state
 }
 
 /**
@@ -133,8 +137,51 @@ private fun ThemeTransitionOverlay(
     state: ThemeTransitionState,
     content: @Composable () -> Unit
 ) {
-    // Animation disabled - just render content immediately
-    content()
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 1. Render the new content at the base layer (underneath the overlay)
+        content()
+
+        // 2. Render the overlay of the old screen state on top if animating and we have a bitmap
+        val bitmap = state.screenshotBitmap
+        if (state.isAnimating && bitmap != null) {
+            val progress = state.animationProgress.value
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        // Use CircularRevealShape to clip the old screenshot.
+                        // The shape clips to the area OUTSIDE the circle, creating a expanding hole.
+                        clip = true
+                        shape = CircularRevealShape(
+                            progress = progress,
+                            center = state.clickPosition,
+                            containerSize = size
+                        )
+                    }
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(state.isAnimating) {
+        if (state.isAnimating) {
+            state.resetProgress()
+            state.animationProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 500,
+                    easing = FastOutSlowInEasing
+                )
+            )
+            state.finishTransition()
+        }
+    }
 }
 
 /**

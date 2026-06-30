@@ -293,7 +293,7 @@ data class ShortsScreen(
                                 // Phase B: Mark as seen in current session
                                 viewModel.markAsSeen(video)
                             } else {
-                                MPVLib.command("stop")
+                                MPVLib.setPropertyBoolean("pause", true)
                                 isPlayerReady = false
                             }
                         }

@@ -381,4 +381,17 @@ class MPVView(
       // Don't crash - just continue without shaders
     }
   }
+
+  fun initialize(configDir: String, cacheDir: String) {
+    val mpvInstance = `is`.xyz.mpv.MPV(context, configDir, cacheDir)
+    setMpv(mpvInstance)
+    `is`.xyz.mpv.MPVLib.activeMpv = mpvInstance
+  }
+
+  fun destroy() {
+    mpv.close()
+    if (`is`.xyz.mpv.MPVLib.activeMpv == mpv) {
+      `is`.xyz.mpv.MPVLib.activeMpv = null
+    }
+  }
 }

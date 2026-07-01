@@ -1,6 +1,10 @@
 package `is`.xyz.mpv
 
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+
+class PropertyFlow<T>(private val flowProvider: (String) -> StateFlow<T>) {
+    operator fun get(key: String): StateFlow<T> = flowProvider(key)
+}
 
 object MPVLib {
     var activeMpv: MPV? = null
@@ -58,6 +62,9 @@ object MPVLib {
     fun setPropertyLong(property: String, value: Long) = get().setPropertyLong(property, value)
 
     @JvmStatic
+    fun setOptionString(property: String, value: String): Int = get().setOptionString(property, value)
+
+    @JvmStatic
     fun observeProperty(property: String, format: Int) = get().observeProperty(property, format)
 
     @JvmStatic
@@ -78,34 +85,14 @@ object MPVLib {
         activeMpv = null
     }
 
-    // Property Flow Accessors matching old API syntax
-    val propBoolean = object {
-        operator fun get(key: String): Flow<Boolean> = get().propFlow.getBooleanFlow(key)
-    }
-
-    val propInt = object {
-        operator fun get(key: String): Flow<Int> = get().propFlow.getIntFlow(key)
-    }
-
-    val propString = object {
-        operator fun get(key: String): Flow<String> = get().propFlow.getStringFlow(key)
-    }
-
-    val propDouble = object {
-        operator fun get(key: String): Flow<Double> = get().propFlow.getDoubleFlow(key)
-    }
-
-    val propFloat = object {
-        operator fun get(key: String): Flow<Float> = get().propFlow.getFloatFlow(key)
-    }
-
-    val propLong = object {
-        operator fun get(key: String): Flow<Long> = get().propFlow.getLongFlow(key)
-    }
-
-    val propNode = object {
-        operator fun get(key: String): Flow<MPVNode> = get().propFlow.getNodeFlow(key)
-    }
+    // Property Flow Accessors matching old API syntax using a named public class returning StateFlow
+    val propBoolean = PropertyFlow { get().propFlow<Boolean>(it) }
+    val propInt = PropertyFlow { get().propFlow<Int>(it) }
+    val propString = PropertyFlow { get().propFlow<String>(it) }
+    val propDouble = PropertyFlow { get().propFlow<Double>(it) }
+    val propFloat = PropertyFlow { get().propFlow<Float>(it) }
+    val propLong = PropertyFlow { get().propFlow<Long>(it) }
+    val propNode = PropertyFlow { get().propFlow<MPVNode>(it) }
 
     typealias EventObserver = MPV.EventObserver
     typealias LogObserver = MPV.LogObserver

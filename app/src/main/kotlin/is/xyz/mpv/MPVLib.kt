@@ -1,5 +1,7 @@
 package `is`.xyz.mpv
 
+import kotlinx.coroutines.flow.Flow
+
 object MPVLib {
     var activeMpv: MPV? = null
 
@@ -74,6 +76,35 @@ object MPVLib {
     fun destroy() {
         activeMpv?.close()
         activeMpv = null
+    }
+
+    // Property Flow Accessors matching old API syntax
+    val propBoolean = object {
+        operator fun get(key: String): Flow<Boolean> = get().propFlow.getBooleanFlow(key)
+    }
+
+    val propInt = object {
+        operator fun get(key: String): Flow<Int> = get().propFlow.getIntFlow(key)
+    }
+
+    val propString = object {
+        operator fun get(key: String): Flow<String> = get().propFlow.getStringFlow(key)
+    }
+
+    val propDouble = object {
+        operator fun get(key: String): Flow<Double> = get().propFlow.getDoubleFlow(key)
+    }
+
+    val propFloat = object {
+        operator fun get(key: String): Flow<Float> = get().propFlow.getFloatFlow(key)
+    }
+
+    val propLong = object {
+        operator fun get(key: String): Flow<Long> = get().propFlow.getLongFlow(key)
+    }
+
+    val propNode = object {
+        operator fun get(key: String): Flow<MPVNode> = get().propFlow.getNodeFlow(key)
     }
 
     typealias EventObserver = MPV.EventObserver

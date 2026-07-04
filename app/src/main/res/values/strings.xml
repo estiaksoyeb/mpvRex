@@ -865,4 +865,48 @@
     <string name="media_count">Media (%1$d)</string>
     <string name="drag_to_reorder">Drag to reorder</string>
     <string name="community_links">Community Links</string>
+    <string name="community_hub">Community Hub</string>
+    <string name="connect_social_media">Connect with us on social media</string>
+
+    <!-- Sort Dialog Strings -->
+    <string name="sort_and_view_options">Sort &amp; View Options</string>
+    <string name="view_options">View Options</string>
+
+    <!-- Preference Category Strings -->
+    <string name="pref_category_ui_appearance">UI &amp; Appearance</string>
+    <string name="pref_category_playback_controls">Playback &amp; Controls</string>
+    <string name="pref_category_file_management">File Management</string>
+    <string name="pref_category_media_settings">Media Settings</string>
+    <string name="pref_category_rexshorts">RexShorts</string>
+    <string name="pref_category_rexshorts_settings">RexShorts Settings</string>
+    <string name="pref_category_rexshorts_settings_desc">Manage enable/disable, shuffle, and blocked content</string>
+    <string name="pref_category_advanced_about">Advanced &amp; About</string>
+
+    <!-- Shorts Preference Screen Strings -->
+    <string name="pref_enable_rexshorts">Enable RexShorts</string>
+    <string name="pref_enable_rexshorts_summary">Show the Shorts tab in the bottom navigation bar</string>
+    <string name="pref_auto_swipe_shorts">Auto Swipe to Next Short</string>
+    <string name="pref_auto_swipe_shorts_summary">Automatically swipe to the next short when current one ends</string>
+    <string name="pref_category_discovery">Discovery</string>
+    <string name="pref_include_short_horizontal_videos">Include Short Normal Videos</string>
+    <string name="pref_include_short_horizontal_videos_summary">Show horizontal videos in the feed if they are short</string>
+    <string name="pref_max_horizontal_video_duration">Max Horizontal Duration</string>
+    <string name="pref_max_horizontal_video_duration_desc">Limit horizontal videos to %1$d minute%2$s</string>
+    <string name="pref_sourced_folders">Sourced Folders</string>
+    <string name="pref_sourced_folders_all">Sourced from all scanned directories</string>
+    <string name="pref_sourced_folders_count">Sourced from %1$d folder(s)</string>
+    <string name="pref_sourced_folders_list">Sourced from: %1$s</string>
+    <string name="pref_category_content_management">Content Management</string>
+    <string name="pref_blocked_videos">Blocked Videos</string>
+    <string name="pref_blocked_videos_summary">View and manage blocked shorts</string>
+    <string name="pref_select_sourced_folders">Select Sourced Folders</string>
+    <string name="pref_select_sourced_folders_desc">Choose directories to source shorts from. If none are selected, shorts will be sourced from all folders.</string>
+
+    <!-- Updates Strings -->
+    <string name="pref_category_updates">Updates</string>
+    <string name="pref_about_auto_check_updates">Auto Check for Updates</string>
+    <string name="pref_about_auto_check_updates_summary">Check for new versions on startup</string>
+    <string name="pref_about_check_updates">Check for Updates</string>
+    <string name="pref_about_checking">Checking…</string>
+    <string name="pref_about_check_updates_summary">Manually check for new versions on GitHub</string>
 </resources>

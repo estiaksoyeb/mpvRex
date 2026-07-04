@@ -663,6 +663,7 @@
     <string name="choose_local_m3u_file">Choose local M3U file</string>
     <string name="add_from_url">Add from URL</string>
     <string name="home">Home</string>
+    <string name="shorts">Shorts</string>
     <string name="recents">Recents</string>
     <string name="playlists">Playlists</string>
     <string name="network">Network</string>
@@ -728,4 +729,140 @@
     <string name="network_connection_browse">Browse</string>
     <string name="network_connection_disconnect">Disconnect</string>
     <string name="network_connection_connect">Connect</string>
+
+    <!-- Playlist Screen Empty and Search States -->
+    <string name="no_playlists_found">No playlists found</string>
+    <string name="try_different_search_term">Try a different search term</string>
+    <string name="no_playlists_yet">No playlists yet</string>
+    <string name="no_playlists_yet_desc">Create a playlist or add one from an m3u URL</string>
+    <string name="empty_playlists_desc">Create a playlist to see it listed here</string>
+
+    <!-- Recently Played Screen Strings -->
+    <string name="recently_played_disabled_title">Recently Played is disabled</string>
+    <string name="recently_played_disabled_message">Enable it in Advanced Settings to track your playback history</string>
+    <string name="no_recently_played_videos">No recently played videos</string>
+    <string name="no_recently_played_videos_message">Videos you play will appear here</string>
+    <string name="no_recently_played_items">No recently played items</string>
+    <string name="no_recently_played_items_message">Your recently played videos and playlists will appear here</string>
+    <string name="remove_from_history_title">Remove %1$d %2$s from history?</string>
+    <string name="remove_from_history_msg">This will remove the selected %1$s from your recently played list. The original video files will not be deleted.</string>
+    <string name="delete_files_title">Delete %1$d %2$s?</string>
+    <string name="delete_files_msg">This will permanently delete the original video file(s) from your device storage.\n\nThis action cannot be undone.</string>
+    <string name="also_delete_files">Also delete original file(s)</string>
+
+    <!-- Folder List Screen Empty States -->
+    <string name="no_video_folders_found">No video folders found</string>
+    <string name="no_video_folders_found_desc">Add videos to your device to see folders here</string>
+
+    <!-- File System Browser Screen Strings -->
+    <string name="search_in_all_storage_volumes">Search in all storage volumes…</string>
+    <string name="search_in_folder_placeholder">Search in %1$s…</string>
+    <string name="search_default_folder_name">folder</string>
+    <string name="empty_folder_title">Empty folder</string>
+    <string name="empty_folder_message">This folder contains no videos or subfolders</string>
+
+    <!-- Media Library Content Screen Strings -->
+    <string name="search_all_videos">Search all videos…</string>
+
+    <!-- Network Streaming Screen Strings -->
+    <string name="stream_link">Stream Link</string>
+    <string name="video_url_placeholder">https://example.com/video.mp4</string>
+    <string name="paste">Paste</string>
+    <string name="play">Play</string>
+
+    <!-- Playlist Detail Screen Strings -->
+    <string name="no_videos_in_playlist">No videos in this playlist</string>
+    <string name="no_videos_in_playlist_desc">Add videos from the browser to build your playlist</string>
+    <string name="done_reordering">Done reordering</string>
+    <string name="reorder_playlist">Reorder playlist</string>
+    <string name="remove_from_playlist_confirm">The selected %1$s will be removed from this playlist. The original %2$s will not be deleted.</string>
+    <string name="remove_from_playlist_action">Remove from Playlist</string>
+
+    <!-- Shorts Screen Strings -->
+    <string name="go_back">Go Back</string>
+    <string name="auto_swipe_to_next_short">Auto Swipe to Next Short</string>
+    <string name="auto_swipe_to_next_short_desc">Swipe automatically when video ends</string>
+    <string name="long_press_speed">Long Press Speed</string>
+    <string name="video_information">Video Information</string>
+    <string name="blocked_videos_manager">Blocked Videos Manager</string>
+    <string name="delete_short">Delete Short</string>
+    <string name="delete_short_desc">Permanently delete this file from device</string>
+    <string name="long_press_speed_desc">Long press to lock speed and normal press to change</string>
+    <string name="delete_short_confirm_message">Are you sure you want to permanently delete this short video? This action cannot be undone.</string>
+
+    <!-- Private Space Strings -->
+    <string name="moving_to_private_space">Moving to private space…</string>
+    <string name="moved_to_private_space">Moved to Private Space</string>
+    <string name="moved_to_private_space_desc">Successfully moved %1$d video(s) to private space.\n\nTo access private space, long press on the app name at the top of the main screen.</string>
+    <string name="save">Save</string>
+    <string name="add_network_connection">Add Network Connection</string>
+    <string name="edit_network_connection">Edit Network Connection</string>
+
+    <!-- Add To Playlist Dialog Strings -->
+    <string name="add_to_playlist">Add to Playlist</string>
+    <string name="adding_one_video_to_playlist">Adding 1 video to playlist</string>
+    <string name="adding_n_videos_to_playlist">Adding %1$d videos to playlist</string>
+    <string name="create_new_playlist">Create New Playlist</string>
+    <string name="existing_playlists">Existing Playlists</string>
+    <string name="video_added_to">Video added to \"%1$s\"</string>
+    <string name="n_videos_added_to">%1$d videos added to \"%2$s\"</string>
+    <string name="playlist_videos_count">%1$d videos • %2$s</string>
+    <string name="create_first_playlist_above">Create your first playlist above</string>
+
+    <!-- Copy Paste Dialog Strings -->
+    <string name="copying_files">Copying files</string>
+    <string name="moving_files">Moving files</string>
+    <string name="operation_completed_successfully">Operation completed successfully!</string>
+    <string name="operation_cancelled">Operation cancelled</string>
+    <string name="file_index_of_total">File %1$d of %2$d</string>
+    <string name="current_file">Current file</string>
+    <string name="overall_progress">Overall progress</string>
+    <string name="file_bytes_progress">%1$s of %2$s</string>
+    <string name="files_processed">Files processed</string>
+    <string name="total_size">Total size</string>
+    <string name="delete_items_warning">This action cannot be undone. The selected item%1$s will be permanently deleted.</string>
+
+    <!-- File Picker Dialog Strings -->
+    <string name="select_storage_location">Select a storage location</string>
+
+    <!-- Folder Picker Dialog Strings -->
+    <string name="go_to_internal_storage">Go to internal storage</string>
+    <string name="create_folder">Create folder</string>
+    <string name="select_folder">Select Folder</string>
+    <string name="cannot_select_same_folder">Cannot select the same folder</string>
+    <string name="create_new_folder">Create New Folder</string>
+    <string name="folder_name_empty">Folder name cannot be empty</string>
+    <string name="folder_already_exists">Folder already exists</string>
+    <string name="failed_create_folder">Failed to create folder</string>
+
+    <!-- Rename Dialog Strings -->
+    <string name="rename_item">Rename %1$s</string>
+    <string name="name_cannot_be_empty">Name cannot be empty</string>
+    <string name="name_cannot_contain_invalid_chars">Name cannot contain / or \\</string>
+
+    <!-- Sheets Strings -->
+    <string name="play_link">Play Link</string>
+    <string name="invalid_url_protocol">Invalid URL protocol</string>
+    <string name="valid_url">Valid URL</string>
+    <string name="invalid_url">Invalid URL</string>
+    <string name="playlist_created_successfully">Playlist created successfully</string>
+    <string name="failed_create_playlist">Failed to create playlist</string>
+    <string name="m3u_playlist_added_successfully">M3U Playlist added successfully</string>
+    <string name="failed_add_m3u_playlist">Failed to add M3U playlist</string>
+    <string name="add_m3u_playlist">Add M3U Playlist</string>
+    <string name="or">OR</string>
+    <string name="playlist_options">Playlist Options</string>
+    <string name="create_empty_playlist">Create Empty Playlist</string>
+    <string name="create_blank_playlist_desc">Create a new blank playlist</string>
+    <string name="add_m3u_playlist_from_url">Add M3U Playlist from URL</string>
+    <string name="import_playlist_url_desc">Import a playlist from a web URL</string>
+
+    <!-- Component Strings -->
+    <string name="more_options">More options</string>
+    <string name="move">Move</string>
+    <string name="mark_as">Mark as</string>
+    <string name="folders_count">Folders (%1$d)</string>
+    <string name="media_count">Media (%1$d)</string>
+    <string name="drag_to_reorder">Drag to reorder</string>
+    <string name="community_links">Community Links</string>
 </resources>

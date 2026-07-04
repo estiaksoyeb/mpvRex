@@ -68,6 +68,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import xyz.mpv.rex.R
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -405,7 +407,7 @@ private fun FinishedPageItem(onBack: () -> Unit) {
                     .background(MaterialTheme.colorScheme.primary)
                     .padding(horizontal = 24.dp)
             ) {
-                Text("Go Back", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.go_back), color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -832,16 +834,16 @@ private fun ShortPageItem(
                 title = { Text(text = "Video Info") },
                 text = {
                     Column {
-                        Text(text = "Name: ${video.displayName}", fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(R.string.name) + ": ${video.displayName}", fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(text = "Resolution: ${video.width}x${video.height}")
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "Path: ${video.path}", fontSize = 12.sp)
+                        Text(text = stringResource(R.string.path) + ": ${video.path}", fontSize = 12.sp)
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { showInfo = false }) {
-                        Text("Close")
+                        Text(stringResource(R.string.close))
                     }
                 }
             )
@@ -880,11 +882,11 @@ private fun ShortPageItem(
         if (showDeleteConfirmation) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirmation = false },
-                title = { Text(text = "Delete Short") },
+                title = { Text(text = stringResource(R.string.delete_short)) },
                 text = {
                     Column {
-                        Text(text = "Are you sure you want to permanently delete this short video? This action cannot be undone.", modifier = Modifier.padding(bottom = 8.dp))
-                        Text(text = "File Path:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(text = stringResource(R.string.delete_short_confirm_message), modifier = Modifier.padding(bottom = 8.dp))
+                        Text(text = stringResource(R.string.path) + ":", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         Text(text = video.path, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
                     }
                 },
@@ -911,12 +913,12 @@ private fun ShortPageItem(
                             viewModel.deleteShort(video)
                         }
                     ) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteConfirmation = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.generic_cancel))
                     }
                 }
             )
@@ -995,8 +997,8 @@ private fun MoreActionsSheet(
     ) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
             ListItem(
-                headlineContent = { Text("Auto Swipe to Next Short") },
-                supportingContent = { Text("Swipe automatically when video ends") },
+                headlineContent = { Text(stringResource(R.string.auto_swipe_to_next_short)) },
+                supportingContent = { Text(stringResource(R.string.auto_swipe_to_next_short_desc)) },
                 leadingContent = { Icon(Icons.Default.Speed, contentDescription = null) },
                 trailingContent = {
                     Switch(
@@ -1033,10 +1035,10 @@ private fun MoreActionsSheet(
             )
             
             ListItem(
-                headlineContent = { Text("Long Press Speed") },
+                headlineContent = { Text(stringResource(R.string.long_press_speed)) },
                 supportingContent = { 
                     Text(
-                        text = "Long press to lock speed and normal press to change",
+                        text = stringResource(R.string.long_press_speed_desc),
                         color = if (isSpeedLocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
@@ -1082,20 +1084,20 @@ private fun MoreActionsSheet(
             )
 
             ListItem(
-                headlineContent = { Text("Video Information") },
+                headlineContent = { Text(stringResource(R.string.video_information)) },
                 leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
                 modifier = Modifier.clickable { onShowInfo() },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
             ListItem(
-                headlineContent = { Text("Blocked Videos Manager") },
+                headlineContent = { Text(stringResource(R.string.blocked_videos_manager)) },
                 leadingContent = { Icon(Icons.Default.Block, contentDescription = null) },
                 modifier = Modifier.clickable { onShowBlocked() },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
             ListItem(
-                headlineContent = { Text("Delete Short", color = MaterialTheme.colorScheme.error) },
-                supportingContent = { Text("Permanently delete this file from device", color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)) },
+                headlineContent = { Text(stringResource(R.string.delete_short), color = MaterialTheme.colorScheme.error) },
+                supportingContent = { Text(stringResource(R.string.delete_short_desc), color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)) },
                 leadingContent = { 
                     Icon(
                         Icons.Default.Delete, 

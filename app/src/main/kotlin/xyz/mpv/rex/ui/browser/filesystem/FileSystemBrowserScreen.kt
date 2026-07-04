@@ -550,12 +550,16 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 expanded = false,
                 onExpandedChange = { },
                 placeholder = {
+                  val placeholderText = if (isAtRoot) {
+                    stringResource(R.string.search_in_all_storage_volumes)
+                  } else {
+                    stringResource(
+                      R.string.search_in_folder_placeholder,
+                      breadcrumbs.lastOrNull()?.name ?: stringResource(R.string.search_default_folder_name)
+                    )
+                  }
                   Text(
-                    text = if (isAtRoot) {
-                      "Search in all storage volumes..."
-                    } else {
-                      "Search in ${breadcrumbs.lastOrNull()?.name ?: "folder"}..."
-                    },
+                    text = placeholderText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                   )
@@ -563,7 +567,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 leadingIcon = {
                   Icon(
                     imageVector = Icons.Filled.Search,
-                    contentDescription = "Search",
+                    contentDescription = stringResource(R.string.search_empty_title),
                   )
                 },
                 trailingIcon = {
@@ -575,7 +579,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   ) {
                     Icon(
                       imageVector = Icons.Filled.Close,
-                      contentDescription = "Cancel",
+                      contentDescription = stringResource(R.string.generic_cancel),
                     )
                   }
                 },
@@ -726,7 +730,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
             selectionOverflowActions = buildList {
               add(SelectionOverflowAction(
                 icon = Icons.Filled.Share,
-                label = "Share",
+                label = stringResource(R.string.generic_share),
                 onClick = {
                   when {
                     isMixedSelection -> {
@@ -758,7 +762,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
               if (folderSelectionManager.isInSelectionMode && !videoSelectionManager.isInSelectionMode) {
                 add(SelectionOverflowAction(
                   icon = Icons.Filled.Block,
-                  label = "Blacklist",
+                  label = stringResource(R.string.pref_folders_blacklist),
                   onClick = {
                     viewModel.blacklistFolders(folderSelectionManager.getSelectedItems())
                     folderSelectionManager.clear()
@@ -810,7 +814,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                     TooltipAnchorPosition.Above
                   }
                 ),
-                tooltip = { PlainTooltip { Text("Toggle menu") } },
+                tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
                 state = rememberTooltipState(),
               ) {
                 ToggleFloatingActionButton(
@@ -1438,8 +1442,8 @@ private fun FileSystemBrowserContent(
         }
       },
       modifier = Modifier.weight(1f),
-      emptyTitle = "Empty folder",
-      emptyMessage = "This folder contains no videos or subfolders",
+      emptyTitle = stringResource(R.string.empty_folder_title),
+      emptyMessage = stringResource(R.string.empty_folder_message),
       isRefreshing = isRefreshing,
       onRefresh = onRefresh,
       isInSelectionMode = isInSelectionMode,

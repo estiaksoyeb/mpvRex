@@ -36,6 +36,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import xyz.mpv.rex.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -117,7 +119,7 @@ object NetworkStreamingScreen : Screen {
     Scaffold(
         topBar = {
           BrowserTopBar(
-            title = "Network",
+            title = stringResource(R.string.network),
             isInSelectionMode = false,
             selectedCount = 0,
             totalCount = 0,
@@ -145,7 +147,7 @@ object NetworkStreamingScreen : Screen {
           ExtendedFloatingActionButton(
             onClick = { showAddSheet = true },
             icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-            text = { Text("Add Connection") },
+            text = { Text(stringResource(R.string.add_connection)) },
             modifier = Modifier.padding(bottom = navigationBarHeight)
           )
         }
@@ -294,7 +296,7 @@ private fun StreamLinkSection(
     modifier = Modifier.fillMaxWidth(),
   ) {
     Text(
-      text = "Stream Link",
+      text = stringResource(R.string.stream_link),
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.Bold,
       color = MaterialTheme.colorScheme.primary,
@@ -312,10 +314,10 @@ private fun StreamLinkSection(
         OutlinedTextField(
           value = linkUrl,
           onValueChange = { linkUrl = it },
-          label = { Text("Video URL") },
+          label = { Text(stringResource(R.string.video_url)) },
           placeholder = {
             Text(
-              text = "https://example.com/video.mp4",
+              text = stringResource(R.string.video_url_placeholder),
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           },
@@ -358,7 +360,7 @@ private fun StreamLinkSection(
               modifier = Modifier.padding(end = 8.dp),
             )
             Text(
-              text = "Paste",
+              text = stringResource(R.string.paste),
               fontWeight = FontWeight.Bold,
             )
           }
@@ -382,7 +384,7 @@ private fun StreamLinkSection(
               modifier = Modifier.padding(end = 8.dp),
             )
             Text(
-              text = "Play",
+              text = stringResource(R.string.play),
               fontWeight = FontWeight.Bold,
             )
           }

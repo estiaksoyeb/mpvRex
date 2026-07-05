@@ -20,8 +20,6 @@
     <string name="pref_appearance_amoled_mode_summary">ডার্ক থিমে সম্পূর্ণ কালো ব্যাকগ্রাউন্ড ব্যবহার করুন</string>
     <string name="pref_appearance_material_you_title">ম্যাটেরিয়াল ইউ</string>
     <string name="generic_reset">রিসেট করুন</string>
-    <string name="app_name" translatable="false">mpvRex</string>
-    <string name="author_name" translatable="false">Sakhawat</string>
     <string name="generic_unit_ms">ms</string>
     <string name="generic_disabled">অক্ষম</string>
     <string name="pref_preferences">পছন্দসমূহ</string>
@@ -68,7 +66,7 @@
     <string name="pref_appearance_auto_scroll_summary">ভিডিও তালিকা খোলার সময় স্বয়ংক্রিয়ভাবে সর্বশেষ প্লে করা ভিডিওতে স্ক্রোল করুন</string>
     <string name="pref_appearance_watched_threshold_title">দেখা থ্রেশহোল্ড</string>
     <string name="pref_appearance_watched_threshold_summary">প্লেব্যাক %d%% পৌঁছে গেলে ভিডিও হিসাবে দেখা হিসাবে চিহ্নিত করুন</string>
-    <string name="video_label_new">&lt;g id=\"1\"&gt;নতুন&lt;/g&gt;</string>
+    <string name="video_label_new">নতুন</string>
     <string name="theme_default">ডিফল্ট</string>
     <string name="theme_dynamic">ডাইনামিক</string>
     <string name="theme_cloudflare">ক্লাউডফ্লেয়ার</string>
@@ -183,7 +181,6 @@
     <string name="pref_player_display_show_status_bar">কনট্রোল সহ সিস্টেম স্ট্যাটাস বার দেখান</string>
     <string name="pref_player_display">ডিসপ্লে</string>
     <string name="pref_player_display_panel_opacity">প্যানেলের অস্বচ্ছতা</string>
-    <string name="pref_player_display_panel_transparency_summary" translatable="false">%d%%</string>
     <string name="pref_gesture">জেসচার</string>
     <string name="pref_gesture_summary">ডাবল ট্যাপ, মিডিয়া কন্ট্রোল</string>
     <string name="pref_gesture_double_tap_title">ডবল ট্যাপ</string>
@@ -322,12 +319,9 @@
     <string name="pref_about_donate_title">দান করুন</string>
     <string name="pref_about_donate_kofi">Ko-fi</string>
     <string name="pref_about_donate_kofi_summary">Ko-fi-এ ডেভেলপারকে সহায়তা করুন</string>
-    <string name="pref_about_donate_kofi_url" translatable="false">https://ko-fi.com/adityanarvekar</string>
     <string name="pref_about_donate_paypal">পেপ্যাল</string>
     <string name="pref_about_donate_paypal_summary">পেপ্যালে ডেভেলপারকে সমর্থন করুন</string>
-    <string name="pref_about_donate_paypal_url" translatable="false">https://paypal.me/aadinarvekar</string>
     <string name="pref_about_donate_upi">UPI</string>
-    <string name="pref_about_donate_upi_id" translatable="false">aadiinarvekar@upi</string>
     <string name="pref_about_telegram_title">টেলিগ্রাম</string>
     <string name="pref_about_telegram_channel">টেলিগ্রাম চ্যানেল</string>
     <string name="pref_about_telegram_channel_summary">আপডেট এবং খবরের জন্য আমাদের চ্যানেলে যোগ দিন</string>
@@ -335,16 +329,9 @@
     <string name="pref_about_telegram_group_summary">কমিউনিটির সাথে আলোচনা করুন এবং চ্যাট করুন</string>
     <string name="pref_about_show_community_icon_title">কমিউনিটি শর্টকাট</string>
     <string name="pref_about_show_community_icon_summary">হোম হেডারে কমিউনিটি লিঙ্ক শর্টকাট দেখান</string>
-    <string name="pref_about_telegram_url" translatable="false">https://t.me/mpvRex</string>
-    <string name="pref_about_telegram_chat_url" translatable="false">https://t.me/mpvRex_chat</string>
     <string name="player_sheets_add_ext_sub">বাহ্যিক সাবটাইটেল যোগ করুন</string>
     <string name="player_sheets_add_ext_audio">বাহ্যিক অডিও ট্র্যাক যোগ করুন</string>
     <string name="player_sheets_tracks_off">বন্ধ</string>
-    <string name="player_sheets_track_title_w_lang" translatable="false">#%d: %s (%s)</string>
-    <string name="player_sheets_track_title_wo_lang" translatable="false">#%d: %s</string>
-    <string name="player_sheets_track_lang_wo_title" translatable="false">#%d: %s</string>
-    <string name="player_sheets_chapter_title_substitute_subtitle" translatable="false">সাবটাইটেল #%d</string>
-    <string name="player_sheets_chapter_title_substitute_audio" translatable="false">অডিও #%d</string>
     <string name="player_sheets_subtitles_settings_title">সাবটাইটেল সেটিংস</string>
     <string name="player_sheets_subtitles_color_text">টেক্সট</string>
     <string name="player_sheets_subtitles_color_border">বর্ডার</string>
@@ -413,7 +400,6 @@
     <string name="hello_world">হ্যালো বিশ্ব</string>
     <string name="player_sheets_stats_page_4_desc">বর্তমান কী-বাইন্ডিং । ম্যাপ করা কীবোর্ড শর্টকাটের তালিকা ।</string>
     <string name="player_sheets_stats_page_5_desc">ট্র্যাক তালিকা. ভিডিও, অডিও এবং সাবটাইটেল ট্র্যাকের বিশদ বিবরণ।</string>
-    <string name="player_speed" translatable="false">%.2fx</string>
     <string name="player_aspect_fit">ফিট স্ক্রিন</string>
     <string name="player_aspect_crop">ক্রপ</string>
     <string name="player_aspect_stretch">প্রসারিত</string>
@@ -430,22 +416,17 @@
     <string name="timer_title">ঘুমের টাইমার</string>
     <string name="timer_remaining">%s বাকি আছে</string>
     <string name="toast_sleep_timer_ended">স্লিপ টাইমার শেষ হয়েছে</string>
-    <string name="volume_slider_absolute_value" translatable="false">%d</string>
-    <string name="value_percentage_int" translatable="false">%d%%</string>
-    <string name="github_repo_url" translatable="false">https://github.com/sfsakhawat999/mpvRex</string>
     <string name="swap_the_volume_and_brightness_slider">ভলিউম এবং উজ্জ্বলতা স্লাইডার অদলবদল করুন</string>
     <string name="pref_player_display_reduce_player_animation">প্লেয়ার অ্যানিমেশন হ্রাস করুন</string>
     <string name="pref_player_display_hide_player_control_time">প্লেয়ার কন্ট্রোলের সময় লুকান</string>
     <string name="show_splash_ovals_on_double_tap_to_seek">ডবল ট্যাপ সীক করার সময় লহর দেখান</string>
     <string name="show_time_on_double_tap_to_seek">সীক টাইম দেখান</string>
-    <string name="player_gesture_seek_indicator" translatable="false">[%1$s%2$s] (%3$s)</string>
     <string name="pref_audio_channels_auto_safe_desc">ডিফল্ট, নিরাপদ স্বয়ংক্রিয় নির্বাচন</string>
     <string name="pref_audio_channels_auto_desc">স্বয়ংক্রিয় নির্বাচন</string>
     <string name="pref_audio_channels_mono_desc">মনো থেকে ডাউনমিক্স</string>
     <string name="pref_audio_channels_stereo_desc">ডাউনমিক্স থেকে স্টেরিও</string>
     <string name="pref_audio_channels_reverse_stereo_desc">বাম এবং ডান চ্যানেলগুলি অদলবদল করুন</string>
     <string name="player_sheets_frame_navigation_title">ফ্রেম নেভিগেশন</string>
-    <string name="player_sheets_frame_navigation_snapshot_saved" translatable="false">Pictures/mpvSnaps-এ সেভ করা হয়েছে</string>
     <string name="player_sheets_frame_navigation_include_subtitles">স্ন্যাপশটে সাবটাইটেল অন্তর্ভুক্ত করুন</string>
     <string name="player_sheets_zoom_slider_label">ভিডিও জুম</string>
     <string name="background_playback_title">ব্যাকগ্রাউন্ড প্লেব্যাক</string>

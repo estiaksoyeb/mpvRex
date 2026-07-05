@@ -1,6 +1,4 @@
 <resources>
-    <string name="app_name" translatable="false">mpvRex</string>
-    <string name="author_name" translatable="false">Sakhawat</string>
 
     <string name="generic_reset">إعادة الضبط</string>
     <string name="generic_share">مشاركة</string>
@@ -201,7 +199,6 @@
 
     <string name="pref_player_display">الشاشة</string>
     <string name="pref_player_display_panel_opacity">شفافية اللوح</string>
-    <string name="pref_player_display_panel_transparency_summary" translatable="false">%d%%</string>
 
     <string name="pref_gesture">الإيماءات</string>
     <string name="pref_gesture_summary">النقر المزدوج، عناصر التحكم في الوسائط</string>
@@ -354,12 +351,9 @@
     <string name="pref_about_donate_title">تبرع</string>
     <string name="pref_about_donate_kofi">Ko-fi</string>
     <string name="pref_about_donate_kofi_summary">ادعم المطوِّر على Ko-fi</string>
-    <string name="pref_about_donate_kofi_url" translatable="false">https://ko-fi.com/adityanarvekar</string>
     <string name="pref_about_donate_paypal">PayPal</string>
     <string name="pref_about_donate_paypal_summary">ادعم المطوِّر على PayPal</string>
-    <string name="pref_about_donate_paypal_url" translatable="false">https://paypal.me/aadinarvekar</string>
     <string name="pref_about_donate_upi">UPI</string>
-    <string name="pref_about_donate_upi_id" translatable="false">aadiinarvekar@upi</string>
 
     <string name="pref_about_telegram_title">تيليغرام</string>
     <string name="pref_about_telegram_channel">قناة تيليغرام</string>
@@ -368,17 +362,10 @@
     <string name="pref_about_telegram_group_summary">ناقش وتحدث مع المجتمع</string>
     <string name="pref_about_show_community_icon_title">اختصار المجتمع</string>
     <string name="pref_about_show_community_icon_summary">إظهار اختصار روابط المجتمع في رأس الصفحة الرئيسية</string>
-    <string name="pref_about_telegram_url" translatable="false">https://t.me/mpvRex</string>
-    <string name="pref_about_telegram_chat_url" translatable="false">https://t.me/mpvRex_chat</string>
 
     <string name="player_sheets_add_ext_sub">إضافة ترجمات خارجية</string>
     <string name="player_sheets_add_ext_audio">إضافة مسارات صوتية خارجية</string>
     <string name="player_sheets_tracks_off">إيقاف</string>
-    <string name="player_sheets_track_title_w_lang" translatable="false">#%d: %s (%s)</string>
-    <string name="player_sheets_track_title_wo_lang" translatable="false">#%d: %s</string>
-    <string name="player_sheets_track_lang_wo_title" translatable="false">#%d: %s</string>
-    <string name="player_sheets_chapter_title_substitute_subtitle" translatable="false">Subtitle #%d</string>
-    <string name="player_sheets_chapter_title_substitute_audio" translatable="false">Audio #%d</string>
     <string name="player_sheets_subtitles_settings_title">إعدادات الترجمات</string>
     <string name="player_sheets_subtitles_color_text">نص</string>
     <string name="player_sheets_subtitles_color_border">حدود</string>
@@ -451,7 +438,6 @@
     <string name="player_sheets_stats_page_3_desc">حالة التخزين المؤقت. صحة المخزن المؤقت، ذاكرة مُفرِّق المسارات، النطاقات القابلة للتقديم.</string>
     <string name="player_sheets_stats_page_4_desc">اختصارات لوحة المفاتيح الحالية. قائمة الاختصارات المعيَّنة.</string>
     <string name="player_sheets_stats_page_5_desc">قائمة المسارات. تفاصيل مسارات الفيديو والصوت والترجمة.</string>
-    <string name="player_speed" translatable="false">%.2fx</string>
 
     <string name="player_aspect_fit">ملاءمة الشاشة</string>
     <string name="player_aspect_crop">اقتصاص</string>
@@ -473,17 +459,13 @@
 
     <string name="toast_sleep_timer_ended">انتهى مؤقت النوم</string>
 
-    <string name="volume_slider_absolute_value" translatable="false">%d</string>
 
-    <string name="value_percentage_int" translatable="false">%d%%</string>
 
-    <string name="github_repo_url" translatable="false">https://github.com/sfsakhawat999/mpvRex</string>
     <string name="swap_the_volume_and_brightness_slider">تبديل منزلق الصوت والسطوع</string>
     <string name="pref_player_display_reduce_player_animation">تقليل حركات المشغِّل</string>
     <string name="pref_player_display_hide_player_control_time">إخفاء وقت التحكم في المشغِّل</string>
     <string name="show_splash_ovals_on_double_tap_to_seek">إظهار موجة عند التقديم بالنقر المزدوج</string>
     <string name="show_time_on_double_tap_to_seek">إظهار وقت التقديم</string>
-    <string name="player_gesture_seek_indicator" translatable="false">[%1$s%2$s] (%3$s)</string>
 
     <string name="pref_audio_channels_auto_safe_desc">تحديد تلقائي آمن (افتراضي)</string>
     <string name="pref_audio_channels_auto_desc">تحديد تلقائي</string>
@@ -492,7 +474,6 @@
     <string name="pref_audio_channels_reverse_stereo_desc">تبديل القناة اليسرى واليمنى</string>
 
     <string name="player_sheets_frame_navigation_title">التنقل بين الإطارات</string>
-    <string name="player_sheets_frame_navigation_snapshot_saved" translatable="false">Saved to Pictures/mpvSnaps</string>
     <string name="player_sheets_frame_navigation_include_subtitles">تضمين الترجمات في لقطة الشاشة</string>
 
     <string name="player_sheets_zoom_slider_label">تكبير الفيديو</string>
@@ -665,13 +646,6 @@
     <string name="player_sheets_aspect_ratio_title">نسبة العرض إلى الارتفاع</string>
     <string name="player_sheets_aspect_ratio_presets">إعدادات مسبقة</string>
     <string name="player_sheets_aspect_ratio_preset_default">افتراضي</string>
-    <string name="player_sheets_aspect_ratio_preset_4_3" translatable="false">4:3</string>
-    <string name="player_sheets_aspect_ratio_preset_16_9" translatable="false">16:9</string>
-    <string name="player_sheets_aspect_ratio_preset_16_10" translatable="false">16:10</string>
-    <string name="player_sheets_aspect_ratio_preset_21_9" translatable="false">21:9</string>
-    <string name="player_sheets_aspect_ratio_preset_32_9" translatable="false">32:9</string>
-    <string name="player_sheets_aspect_ratio_preset_2_35_1" translatable="false">2.35:1</string>
-    <string name="player_sheets_aspect_ratio_preset_2_39_1" translatable="false">2.39:1</string>
     <string name="player_sheets_aspect_ratio_custom_toggle">مخصص...</string>
     <string name="player_sheets_aspect_ratio_custom_section">مخصص</string>
     <string name="player_sheets_aspect_ratio_manual_zoom_pan_title">تكبير وتحريك يدوي (إزاحة الكاميرا)</string>
@@ -681,15 +655,10 @@
     <string name="player_sheets_aspect_ratio_reset_pan">إعادة ضبط التحريك</string>
     <string name="player_sheets_aspect_ratio_add_custom_title">إضافة نسبة مخصصة (مثال: 16:9)</string>
     <string name="player_sheets_aspect_ratio_width">العرض</string>
-    <string name="player_sheets_aspect_ratio_separator" translatable="false">:</string>
     <string name="player_sheets_aspect_ratio_height">الارتفاع</string>
-    <string name="player_sheets_aspect_ratio_custom_ratio_label" translatable="false">%1$s:%2$s</string>
     <string name="player_sheets_aspect_ratio_invalid">غير صالح</string>
     <string name="player_sheets_aspect_ratio_add">إضافة</string>
-    <string name="player_sheets_frame_navigation_timestamp_value" formatted="false" translatable="false">%1$02d:%2$02d:%3$02d</string>
     <string name="player_sheets_frame_navigation_frame_label">الإطار:\\u0020</string>
-    <string name="player_sheets_frame_navigation_frame_count" translatable="false">%1$d / %2$d</string>
-    <string name="player_sheets_frame_navigation_current_frame" translatable="false">%1$d</string>
     <string name="player_sheets_frame_navigation_timestamp_label">الطابع الزمني:\\u0020</string>
     <string name="player_sheets_frame_navigation_screenshot_create_failed">فشل إنشاء لقطة الشاشة</string>
     <string name="player_sheets_frame_navigation_mediastore_entry_failed">فشل إنشاء إدخال MediaStore</string>

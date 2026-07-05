@@ -1,12 +1,4 @@
 {
-  "app_name": {
-    "source_hash": "bee2c0b1ba6c1b9e567e37012ea643828f1bb22ca4140d66c4808c8753667519",
-    "translated_value": "mpvRex"
-  },
-  "author_name": {
-    "source_hash": "b73f7b1da4bad259de21767947548fcc23991b725fe1727ceb584e4489be7da7",
-    "translated_value": "Sakhawat"
-  },
   "generic_reset": {
     "source_hash": "daee7606b339f3c339076fe2c9f372a3ff40c8ee896005d829c7481b64ca5303",
     "translated_value": "إعادة الضبط"
@@ -731,10 +723,6 @@
     "source_hash": "6d8e2f52b8c911428cda5964e6d924552ecbb90a7a1ab141fb29d79b579022cc",
     "translated_value": "شفافية اللوح"
   },
-  "pref_player_display_panel_transparency_summary": {
-    "source_hash": "71fafb7498ddf411a51b6833a023fe26774c0f72b473c428588c8be8cbc9de11",
-    "translated_value": "%d%%"
-  },
   "pref_gesture": {
     "source_hash": "19f425135f78d2b1d6874131c4f7e2a73fd064057c651e08d388449ebf18c606",
     "translated_value": "الإيماءات"
@@ -1287,10 +1275,6 @@
     "source_hash": "d145ad590142724e5a04aaba0b07d2fcdc0126cda28f835ee049909e7ac27430",
     "translated_value": "ادعم المطوِّر على Ko-fi"
   },
-  "pref_about_donate_kofi_url": {
-    "source_hash": "2c59ab8df30aeea0b78987f1e78fce8958c37071a56f97cc34995cb9fa6d37fa",
-    "translated_value": "https://ko-fi.com/adityanarvekar"
-  },
   "pref_about_donate_paypal": {
     "source_hash": "ab8a4f6bb84d161b3622afe130be97ddfa367e1b8707e49e5437a0b87ba1ae55",
     "translated_value": "PayPal"
@@ -1299,17 +1283,9 @@
     "source_hash": "018b795d0b4ec22f535c9d6433e355f9e168e57be0822c3b188399ffc5deaac8",
     "translated_value": "ادعم المطوِّر على PayPal"
   },
-  "pref_about_donate_paypal_url": {
-    "source_hash": "2a81c5bb0023834bbffeaac2b44865a85faf9ee3c1770bc53243f137d58bb944",
-    "translated_value": "https://paypal.me/aadinarvekar"
-  },
   "pref_about_donate_upi": {
     "source_hash": "7b06e0160857f939dc67543aa6b732b08a7df5426d18a5bda423c10c17d91258",
     "translated_value": "UPI"
-  },
-  "pref_about_donate_upi_id": {
-    "source_hash": "f9ba706fad8088584a3be5ee2553ad808b83cef588ec508b8939c5f1450270bc",
-    "translated_value": "aadiinarvekar@upi"
   },
   "pref_about_telegram_title": {
     "source_hash": "acdd1e734125f341604c0efbabdcc4c4b0597e8f6235d66c2445edd1812838c1",
@@ -1339,14 +1315,6 @@
     "source_hash": "2551d19a23759c9ed381c149bbc87030e70f00ac65819fadb5ba9d3e3247cde7",
     "translated_value": "إظهار اختصار روابط المجتمع في رأس الصفحة الرئيسية"
   },
-  "pref_about_telegram_url": {
-    "source_hash": "589f0cdbbfb69264e0f9b6a4e090cfea61f3620c23bc62bb7c4a9b3d3641407e",
-    "translated_value": "https://t.me/mpvRex"
-  },
-  "pref_about_telegram_chat_url": {
-    "source_hash": "44bcf03ac92a6b5aff71bdb52a2649126ff55f4fcd39ec5d4a375bb10c521fee",
-    "translated_value": "https://t.me/mpvRex_chat"
-  },
   "player_sheets_add_ext_sub": {
     "source_hash": "ce4c8004fdd4008a9c8e0639558134195b40fee1f7a91d8d9330b500be4e42d0",
     "translated_value": "إضافة ترجمات خارجية"
@@ -1358,26 +1326,6 @@
   "player_sheets_tracks_off": {
     "source_hash": "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1",
     "translated_value": "إيقاف"
-  },
-  "player_sheets_track_title_w_lang": {
-    "source_hash": "74957b156016b86ad45d7468ad57293bdd98831a67f6c8ca63a9a576835e1f5f",
-    "translated_value": "#%d: %s (%s)"
-  },
-  "player_sheets_track_title_wo_lang": {
-    "source_hash": "64479a2700fa46cd1993f205c36a835ca43c9bb84d2765b6cfb8e4a3e1fb90d5",
-    "translated_value": "#%d: %s"
-  },
-  "player_sheets_track_lang_wo_title": {
-    "source_hash": "64479a2700fa46cd1993f205c36a835ca43c9bb84d2765b6cfb8e4a3e1fb90d5",
-    "translated_value": "#%d: %s"
-  },
-  "player_sheets_chapter_title_substitute_subtitle": {
-    "source_hash": "41ff8419e633ab759b86c55d275f0306e59a9c243a9d65603122f118acdc2612",
-    "translated_value": "Subtitle #%d"
-  },
-  "player_sheets_chapter_title_substitute_audio": {
-    "source_hash": "c6031a3dc89d2eb5ae9b13a0d886cd804aad34985c1c9155fccae8111867cb72",
-    "translated_value": "Audio #%d"
   },
   "player_sheets_subtitles_settings_title": {
     "source_hash": "ce9bce69c756f5196c7eec35fe6004a5c5bbc69f55d300c4a1886e321fdb7a5f",
@@ -1647,10 +1595,6 @@
     "source_hash": "b0ea76464ec94073009aa3fb9ae0409c09478a0be37f9a8db971fd652070efe4",
     "translated_value": "قائمة المسارات. تفاصيل مسارات الفيديو والصوت والترجمة."
   },
-  "player_speed": {
-    "source_hash": "9d1b8bfd41b3c69881ea1bb25ae331f44e2944eb20bef070215c51e29ead32c8",
-    "translated_value": "%.2fx"
-  },
   "player_aspect_fit": {
     "source_hash": "a5af24161bdead870534b558a9db820721b83daa35c5125f8bccde44204c34aa",
     "translated_value": "ملاءمة الشاشة"
@@ -1715,18 +1659,6 @@
     "source_hash": "55aeb399a1e9c36b5648868dc71d0ceaca9814cd51f740996df71647b38729c6",
     "translated_value": "انتهى مؤقت النوم"
   },
-  "volume_slider_absolute_value": {
-    "source_hash": "25222ca8affacc375eda65ddd8760a24afa0941a1ddd53b8ad1acfbbc6f24a4c",
-    "translated_value": "%d"
-  },
-  "value_percentage_int": {
-    "source_hash": "71fafb7498ddf411a51b6833a023fe26774c0f72b473c428588c8be8cbc9de11",
-    "translated_value": "%d%%"
-  },
-  "github_repo_url": {
-    "source_hash": "9ebdb0c450bf3b22bddab8e7f6d870213ed118fe8e708f86d45eea40e895c77a",
-    "translated_value": "https://github.com/sfsakhawat999/mpvRex"
-  },
   "swap_the_volume_and_brightness_slider": {
     "source_hash": "d2335c80ff3b4481ed1eae2aaac7e0ace608f7e0115a56950ce075fe7e85c30d",
     "translated_value": "تبديل منزلق الصوت والسطوع"
@@ -1746,10 +1678,6 @@
   "show_time_on_double_tap_to_seek": {
     "source_hash": "af8ec2b700fb93467b8e1e7ce0b54ee86be35c9d101c7124373531d444cfc978",
     "translated_value": "إظهار وقت التقديم"
-  },
-  "player_gesture_seek_indicator": {
-    "source_hash": "d179a358fb0db8354b23a579becf6e2ce36fe3dc7462b7f9b9fc3b6aadcd1b74",
-    "translated_value": "[%1$s%2$s] (%3$s)"
   },
   "pref_audio_channels_auto_safe_desc": {
     "source_hash": "f364d7494d863c56a8bf939108fde0942f888b66024d4d285c59f72139ec7ce4",
@@ -1774,10 +1702,6 @@
   "player_sheets_frame_navigation_title": {
     "source_hash": "0fad97682debe3fbc2f442280ba1a6c030a8286d92582f59d59d4c80e026c606",
     "translated_value": "التنقل بين الإطارات"
-  },
-  "player_sheets_frame_navigation_snapshot_saved": {
-    "source_hash": "d2882552995cc29ff7068a247643d04d35b99c3b88d198e73e5814f87f888ce0",
-    "translated_value": "Saved to Pictures/mpvSnaps"
   },
   "player_sheets_frame_navigation_include_subtitles": {
     "source_hash": "f23cc8efd5aa02c465d9d8646389bc4441d0a0375e20dc25e59a26b91e49553c",
@@ -2383,34 +2307,6 @@
     "source_hash": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d",
     "translated_value": "افتراضي"
   },
-  "player_sheets_aspect_ratio_preset_4_3": {
-    "source_hash": "3be52504bc3601514c8eb1a050a3ccdba6326a46d4f1c7d3c051e64c4c750b1f",
-    "translated_value": "4:3"
-  },
-  "player_sheets_aspect_ratio_preset_16_9": {
-    "source_hash": "cb140f95f8a88c27fc464e08c2e4627de234c89cfbec1feb903e8733ff04f073",
-    "translated_value": "16:9"
-  },
-  "player_sheets_aspect_ratio_preset_16_10": {
-    "source_hash": "006c189dae5b80765e906bc16adce5b347d6e46b57850cb5fc72591440e409f3",
-    "translated_value": "16:10"
-  },
-  "player_sheets_aspect_ratio_preset_21_9": {
-    "source_hash": "7a5af662ae76d508689737c511e9ede859717a0bd42ea6dd5cb1cf21e7fedbcc",
-    "translated_value": "21:9"
-  },
-  "player_sheets_aspect_ratio_preset_32_9": {
-    "source_hash": "e39cd34bc29bba2c7678cd4a341fc794e15afbaf3c894287d8a848e3f6077319",
-    "translated_value": "32:9"
-  },
-  "player_sheets_aspect_ratio_preset_2_35_1": {
-    "source_hash": "3d4f3f5e4dcd9d11a19f5b4a49e9c9222ee9ce78d6f8c929dd1c492d0da50f21",
-    "translated_value": "2.35:1"
-  },
-  "player_sheets_aspect_ratio_preset_2_39_1": {
-    "source_hash": "e38b3e135abae4616e15bd072307fddd2b74e1974182f8b5fc8b434400de3a95",
-    "translated_value": "2.39:1"
-  },
   "player_sheets_aspect_ratio_custom_toggle": {
     "source_hash": "b497c0b77dade0a66cfcd9137b98b57db2bdcf27bf5c83a88b548ce53f579fa2",
     "translated_value": "مخصص..."
@@ -2447,17 +2343,9 @@
     "source_hash": "3019947b6daf18b0534a15d8c7ac30ab587e36cc93fb45a6e7b750348006d620",
     "translated_value": "العرض"
   },
-  "player_sheets_aspect_ratio_separator": {
-    "source_hash": "e7ac0786668e0ff0f02b62bd04f45ff636fd82db63b1104601c975dc005f3a67",
-    "translated_value": ":"
-  },
   "player_sheets_aspect_ratio_height": {
     "source_hash": "bfe2eca401797325bc268f93c7397554551de4274d5d73ed421ee36fe9cd3ae0",
     "translated_value": "الارتفاع"
-  },
-  "player_sheets_aspect_ratio_custom_ratio_label": {
-    "source_hash": "069c89df364d8327d5da89f13c37e43743834195458f6e5011bfcf346c85147e",
-    "translated_value": "%1$s:%2$s"
   },
   "player_sheets_aspect_ratio_invalid": {
     "source_hash": "96c34a0719eb565c268a1626c44313a20de4f83927890933bd9b480849adb76c",
@@ -2467,21 +2355,9 @@
     "source_hash": "9fd728c66c9a256b121472dabf32a34317aed01d8427d70ec830289cf23a7cc8",
     "translated_value": "إضافة"
   },
-  "player_sheets_frame_navigation_timestamp_value": {
-    "source_hash": "ee785cc6b5cc334f9b86f7d3dbb940721f3cfde78c2673b75f3428e96a795105",
-    "translated_value": "%1$02d:%2$02d:%3$02d"
-  },
   "player_sheets_frame_navigation_frame_label": {
     "source_hash": "44adebbcb41d143d83792618b953b4b70baf530776ab60475eb8738035029e8c",
     "translated_value": "الإطار:\\u0020"
-  },
-  "player_sheets_frame_navigation_frame_count": {
-    "source_hash": "a9f73dcc653e780fd15921d3dc7a31ee046f98b73533f4e277f3de8f4e6ac7b4",
-    "translated_value": "%1$d / %2$d"
-  },
-  "player_sheets_frame_navigation_current_frame": {
-    "source_hash": "ea1d648bc9001a9e8c309c470a71379d0124321d8ce522994667ca7f8b20977f",
-    "translated_value": "%1$d"
   },
   "player_sheets_frame_navigation_timestamp_label": {
     "source_hash": "1f67d401b479a69c3bd565f50777fd6a97ae067050010e50d2e3abe2738d54c8",
@@ -3178,5 +3054,13 @@
   "pref_about_check_updates_summary": {
     "source_hash": "58357306b95b34ef7a3918e70c4e3a8baac0948dc7c100c3dc102e3e1e7e7fc8",
     "translated_value": "التحقق يدويًا من وجود إصدارات جديدة على GitHub"
+  },
+  "seconds#plural#one": {
+    "source_hash": "e8ecb822f4c1238383c94dcc79930f9f3fb91567993d9f8c9dd678a3607b4668",
+    "translated_value": "%1$d ثانية"
+  },
+  "seconds#plural#other": {
+    "source_hash": "543f1028b64338f26ab6cbbf97cd1a377616c1e860a5c1f5948608bca90a9282",
+    "translated_value": "%1$d ثانية"
   }
 }

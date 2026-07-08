@@ -316,7 +316,6 @@ fun PlaylistSheet(
   PlayerSheet(
     onDismissRequest = onDismissRequest,
     modifier = Modifier.fillMaxSize(),
-    customMaxWidth = screenWidth,
     customMaxHeight = screenHeight,
   ) {
     Surface(

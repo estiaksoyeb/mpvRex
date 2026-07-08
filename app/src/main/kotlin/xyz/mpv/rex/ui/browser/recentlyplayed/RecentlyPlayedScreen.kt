@@ -28,15 +28,12 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButtonMenu
-import androidx.compose.material3.FloatingActionButtonMenuItem
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleFloatingActionButton
-import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -80,7 +77,6 @@ import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.playlist.PlaylistDetailScreen
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
-import xyz.mpv.rex.ui.browser.sheets.PlayLinkSheet
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.media.MediaUtils
@@ -114,8 +110,6 @@ object RecentlyPlayedScreen : Screen {
     val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
 
     val isFabVisible = remember { mutableStateOf(true) }
-    val isFabExpanded = remember { mutableStateOf(false) }
-    val showLinkDialog = remember { mutableStateOf(false) }
     val isRefreshing = remember { mutableStateOf(false) }
     
     val coroutineScope = rememberCoroutineScope()
@@ -137,26 +131,10 @@ object RecentlyPlayedScreen : Screen {
         onOperationComplete = { },
       )
 
-    // Handle back button during selection mode or FAB menu expanded
-    BackHandler(enabled = selectionManager.isInSelectionMode || isFabExpanded.value) {
-      when {
-        isFabExpanded.value -> isFabExpanded.value = false
-        selectionManager.isInSelectionMode -> selectionManager.clear()
-      }
-    }
-    
-    // File picker for opening external files
-    val filePicker = rememberLauncherForActivityResult(
-      contract = ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-      uri?.let {
-        runCatching {
-          context.contentResolver.takePersistableUriPermission(
-            it,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION,
-          )
-        }
-        MediaUtils.playFile(it.toString(), context, "open_file")
+    // Handle back button during selection mode
+    BackHandler(enabled = selectionManager.isInSelectionMode) {
+      if (selectionManager.isInSelectionMode) {
+        selectionManager.clear()
       }
     }
 
@@ -169,8 +147,8 @@ object RecentlyPlayedScreen : Screen {
       listState = listState,
       gridState = if (mediaLayoutMode == MediaLayoutMode.GRID) gridState else null,
       isFabVisible = isFabVisible,
-      expanded = isFabExpanded.value,
-      onExpandedChange = { isFabExpanded.value = it },
+      expanded = false,
+      onExpandedChange = { },
     )
 
     LaunchedEffect(Unit) {
@@ -210,77 +188,34 @@ object RecentlyPlayedScreen : Screen {
           )
         },
       floatingActionButton = {
-        FloatingActionButtonMenu(
-          modifier = Modifier
-            .padding(bottom = navigationBarHeight + 8.dp),
-          expanded = isFabExpanded.value,
-          button = {
-            TooltipBox(
-              positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                if (isFabExpanded.value) {
-                  TooltipAnchorPosition.Start
-                } else {
-                  TooltipAnchorPosition.Above
-                }
-              ),
-              tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
-              state = rememberTooltipState(),
-            ) {
-              ToggleFloatingActionButton(
-                modifier = Modifier
-                  .animateFloatingActionButton(
-                    visible = !selectionManager.isInSelectionMode && isFabVisible.value,
-                    alignment = Alignment.BottomEnd,
-                  ),
-                checked = isFabExpanded.value,
-                onCheckedChange = { isFabExpanded.value = !isFabExpanded.value },
-              ) {
-                val imageVector by remember {
-                  derivedStateOf {
-                    if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
+        if (!selectionManager.isInSelectionMode && isFabVisible.value && recentItems.isNotEmpty()) {
+          TooltipBox(
+            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+            tooltip = { PlainTooltip { Text(stringResource(R.string.play_recently_played_or_first)) } },
+            state = rememberTooltipState(),
+          ) {
+            FloatingActionButton(
+              modifier = Modifier
+                .padding(bottom = navigationBarHeight + 8.dp)
+                .animateFloatingActionButton(
+                  visible = true,
+                  alignment = Alignment.BottomEnd,
+                ),
+              onClick = {
+                coroutineScope.launch {
+                  val recentlyPlayedVideos = xyz.mpv.rex.utils.history.RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
+                  val lastPlayed = recentlyPlayedVideos.firstOrNull()
+                  if (lastPlayed != null) {
+                    MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
+                  } else {
+                    android.widget.Toast.makeText(context, context.getString(R.string.no_recently_played_videos), android.widget.Toast.LENGTH_SHORT).show()
                   }
                 }
-                Icon(
-                  painter = rememberVectorPainter(imageVector),
-                  contentDescription = null,
-                  modifier = Modifier.animateIcon({ checkedProgress }),
-                )
-              }
+              },
+            ) {
+              Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.play_recently_played_or_first))
             }
-          },
-        ) {
-          FloatingActionButtonMenuItem(
-            onClick = {
-              isFabExpanded.value = false
-              filePicker.launch(arrayOf("video/*"))
-            },
-            icon = { Icon(Icons.Filled.FileOpen, contentDescription = null) },
-            text = { Text(text = stringResource(R.string.open_file)) },
-          )
-
-          FloatingActionButtonMenuItem(
-            onClick = {
-              isFabExpanded.value = false
-              coroutineScope.launch {
-                val recentlyPlayedVideos = xyz.mpv.rex.utils.history.RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
-                val lastPlayed = recentlyPlayedVideos.firstOrNull()
-                if (lastPlayed != null) {
-                  MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
-                }
-              }
-            },
-            icon = { Icon(Icons.Filled.History, contentDescription = null) },
-            text = { Text(text = stringResource(R.string.recently_played)) },
-          )
-
-          FloatingActionButtonMenuItem(
-            onClick = {
-              isFabExpanded.value = false
-              showLinkDialog.value = true
-            },
-            icon = { Icon(Icons.Filled.Link, contentDescription = null) },
-            text = { Text(text = stringResource(R.string.open_link)) },
-          )
+          }
         }
       },
     ) { padding ->
@@ -407,12 +342,6 @@ object RecentlyPlayedScreen : Screen {
         )
       }
       
-      // Link dialog
-      PlayLinkSheet(
-        isOpen = showLinkDialog.value,
-        onDismiss = { showLinkDialog.value = false },
-        onPlayLink = { url -> MediaUtils.playFile(url, context, "play_link") },
-      )
     }
   }
 }

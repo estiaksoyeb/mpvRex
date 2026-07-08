@@ -184,6 +184,74 @@ class PlaylistManager {
         }
     }
 
+    fun reorder(fromIndex: Int, toIndex: Int) {
+        val list = _playlist.value.toMutableList()
+        val titles = _playlistTitles.value.toMutableList()
+
+        if (fromIndex in list.indices && toIndex in list.indices) {
+            val currentUri = getCurrentUri()
+            
+            val item = list.removeAt(fromIndex)
+            list.add(toIndex, item)
+
+            if (fromIndex in titles.indices && toIndex in titles.indices) {
+                val title = titles.removeAt(fromIndex)
+                titles.add(toIndex, title)
+            }
+
+            _playlist.value = list
+            _playlistTitles.value = titles
+
+            if (currentUri != null) {
+                val newIndex = list.indexOf(currentUri)
+                if (newIndex != -1) {
+                    _currentIndex.value = newIndex
+                }
+            }
+
+            if (_shuffleEnabled.value) {
+                generateShuffledIndices()
+            }
+        }
+    }
+
+    fun removeAt(index: Int) {
+        val list = _playlist.value.toMutableList()
+        val titles = _playlistTitles.value.toMutableList()
+
+        if (index in list.indices) {
+            val currentUri = getCurrentUri()
+            val wasPlaying = index == _currentIndex.value
+
+            list.removeAt(index)
+            if (index in titles.indices) {
+                titles.removeAt(index)
+            }
+
+            _playlist.value = list
+            _playlistTitles.value = titles
+
+            if (list.isEmpty()) {
+                _currentIndex.value = 0
+            } else if (wasPlaying) {
+                // Point to next index (or clamp if we removed last item)
+                val nextIndex = if (index >= list.size) list.size - 1 else index
+                _currentIndex.value = nextIndex
+            } else {
+                if (currentUri != null) {
+                    val newIndex = list.indexOf(currentUri)
+                    if (newIndex != -1) {
+                        _currentIndex.value = newIndex
+                    }
+                }
+            }
+
+            if (_shuffleEnabled.value) {
+                generateShuffledIndices()
+            }
+        }
+    }
+
     fun moveNext() {
         val next = getNextIndex(true) // We handle repeatAll logic at caller usually or use moveNext with flag
         // This is a bit simplified, actual movement usually involves loading the item

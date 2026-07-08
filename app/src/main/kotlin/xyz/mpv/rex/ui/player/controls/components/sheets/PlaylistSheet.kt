@@ -9,6 +9,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +34,10 @@ import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,11 +46,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -237,6 +249,8 @@ fun PlaylistSheet(
   playlist: ImmutableList<PlaylistItem>,
   onDismissRequest: () -> Unit,
   onItemClick: (PlaylistItem) -> Unit,
+  onReorderItem: (Int, Int) -> Unit = { _, _ -> },
+  onRemoveItems: (List<Int>) -> Unit = {},
   totalCount: Int = playlist.size,
   isM3UPlaylist: Boolean = false,
   playerPreferences: xyz.mpv.rex.preferences.PlayerPreferences,
@@ -250,6 +264,13 @@ fun PlaylistSheet(
   // Search state
   var isSearching by remember { mutableStateOf(false) }
   var searchQuery by rememberSaveable { mutableStateOf("") }
+
+  // Reorder mode state
+  var isReorderMode by remember { mutableStateOf(false) }
+
+  // Selection mode state
+  var isInSelectionMode by remember { mutableStateOf(false) }
+  val selectedIndexes = remember { mutableStateListOf<Int>() }
 
   // Filtered playlist based on search query
   val filteredPlaylist by remember(playlist, searchQuery) {
@@ -284,6 +305,11 @@ fun PlaylistSheet(
     }
   }
 
+  // Setup reorderable state
+  val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
+    onReorderItem(from.index, to.index)
+  }
+
   val screenWidth = LocalConfiguration.current.screenWidthDp.dp
   val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -314,7 +340,7 @@ fun PlaylistSheet(
             end = 0.dp
           )
       ) {
-        // Header showing current playlist info with search option
+        // Header showing current playlist info with search and reorder options
         val currentItem = playlist.find { it.isPlaying }
         Row(
           modifier = Modifier
@@ -326,7 +352,74 @@ fun PlaylistSheet(
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-          if (isSearching) {
+          if (isInSelectionMode) {
+            // Selection Mode Header
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+              modifier = Modifier.weight(1f)
+            ) {
+              IconButton(
+                onClick = {
+                  isInSelectionMode = false
+                  selectedIndexes.clear()
+                }
+              ) {
+                Icon(
+                  imageVector = Icons.Default.Close,
+                  contentDescription = "Cancel Selection",
+                  tint = MaterialTheme.colorScheme.onSurface
+                )
+              }
+              Text(
+                text = "${selectedIndexes.size} selected",
+                style = MaterialTheme.typography.titleMedium.copy(
+                  fontWeight = FontWeight.Bold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+              )
+            }
+
+            IconButton(
+              onClick = {
+                onRemoveItems(selectedIndexes.toList())
+                isInSelectionMode = false
+                selectedIndexes.clear()
+              },
+              enabled = selectedIndexes.isNotEmpty()
+            ) {
+              Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete Selected",
+                tint = if (selectedIndexes.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+              )
+            }
+          } else if (isReorderMode) {
+            // Reorder Mode Header
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+              modifier = Modifier.weight(1f)
+            ) {
+              Text(
+                text = "Reorder Playlist",
+                style = MaterialTheme.typography.titleMedium.copy(
+                  fontWeight = FontWeight.Bold,
+                  color = accentColor,
+                ),
+              )
+            }
+
+            IconButton(
+              onClick = { isReorderMode = false }
+            ) {
+              Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Done",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+              )
+            }
+          } else if (isSearching) {
             // Search Input taking place of Now Playing division
             BasicTextField(
               value = searchQuery,
@@ -376,9 +469,11 @@ fun PlaylistSheet(
               modifier = Modifier.weight(1f)
             ) {
               if (currentItem != null) {
+                val playingIndex = playlist.indexOfFirst { it.isPlaying }
+                val playingNumber = if (playingIndex != -1) playingIndex + 1 else 1
                 Text(
                   text = "Now Playing",
-                  style = MaterialTheme.typography.titleSmall.copy(
+                  style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = accentColor,
                   ),
@@ -388,22 +483,43 @@ fun PlaylistSheet(
                   style = MaterialTheme.typography.bodyMedium,
                   color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Text(
+                  text = "$playingNumber of $totalCount items",
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+              } else {
+                Text(
+                  text = "${filteredPlaylist.size} of $totalCount items",
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
               }
-              Text(
-                text = "${filteredPlaylist.size} of $totalCount items",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
             }
 
-            IconButton(
-              onClick = { isSearching = true }
+            Row(
+              horizontalArrangement = Arrangement.spacedBy(4.dp),
+              verticalAlignment = Alignment.CenterVertically
             ) {
-              Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-              )
+              IconButton(
+                onClick = { isSearching = true }
+              ) {
+                Icon(
+                  imageVector = Icons.Default.Search,
+                  contentDescription = "Search",
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+              }
+
+              IconButton(
+                onClick = { isReorderMode = true }
+              ) {
+                Icon(
+                  imageVector = Icons.Outlined.SwapVert,
+                  contentDescription = "Reorder",
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+              }
             }
           }
         }
@@ -429,15 +545,61 @@ fun PlaylistSheet(
               .weight(1f)
               .fillMaxWidth()
           ) {
-            items(filteredPlaylist) { item ->
-              PlaylistTrackListItem(
-                item = item,
-                context = context,
-                thumbnailCache = thumbnailCache,
-                onClick = { onItemClick(item) },
-                skipThumbnail = isM3UPlaylist,
-                accentColor = accentColor
-              )
+            items(filteredPlaylist, key = { it.uri.toString() }) { item ->
+              if (isReorderMode) {
+                ReorderableItem(reorderState, key = item.uri.toString()) {
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                      PlaylistTrackListItem(
+                        item = item,
+                        context = context,
+                        thumbnailCache = thumbnailCache,
+                        onClick = { onItemClick(item) },
+                        skipThumbnail = isM3UPlaylist,
+                        accentColor = accentColor
+                      )
+                    }
+                    IconButton(
+                      onClick = { },
+                      modifier = Modifier
+                        .size(48.dp)
+                        .draggableHandle(),
+                    ) {
+                      Icon(
+                        imageVector = Icons.Default.DragHandle,
+                        contentDescription = "Drag to reorder",
+                        tint = accentColor,
+                      )
+                    }
+                  }
+                }
+              } else {
+                val isSelected = selectedIndexes.contains(item.index)
+                PlaylistTrackListItem(
+                  item = item,
+                  context = context,
+                  thumbnailCache = thumbnailCache,
+                  onClick = { onItemClick(item) },
+                  isInSelectionMode = isInSelectionMode,
+                  isSelected = isSelected,
+                  onToggleSelection = {
+                    if (selectedIndexes.contains(item.index)) {
+                      selectedIndexes.remove(item.index)
+                      if (selectedIndexes.isEmpty()) {
+                        isInSelectionMode = false
+                      }
+                    } else {
+                      selectedIndexes.add(item.index)
+                      isInSelectionMode = true
+                    }
+                  },
+                  skipThumbnail = isM3UPlaylist,
+                  accentColor = accentColor
+                )
+              }
             }
           }
         }
@@ -446,12 +608,16 @@ fun PlaylistSheet(
   }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlaylistTrackListItem(
   item: PlaylistItem,
   context: Context,
   thumbnailCache: LRUBitmapCache,
   onClick: () -> Unit,
+  isInSelectionMode: Boolean = false,
+  isSelected: Boolean = false,
+  onToggleSelection: () -> Unit = {},
   skipThumbnail: Boolean = false,
   accentColor: Color,
   modifier: Modifier = Modifier,
@@ -475,7 +641,13 @@ fun PlaylistTrackListItem(
     }
   }
 
-  val borderModifier = if (item.isPlaying) {
+  val borderModifier = if (isSelected) {
+    Modifier.border(
+      width = 2.dp,
+      color = Color.Red,
+      shape = RoundedCornerShape(12.dp),
+    )
+  } else if (item.isPlaying) {
     Modifier.border(
       width = 2.dp,
       brush = Brush.linearGradient(listOf(accentColor, accentSecondary)),
@@ -483,6 +655,15 @@ fun PlaylistTrackListItem(
     )
   } else {
     Modifier
+  }
+
+  val clickModifier = if (isInSelectionMode) {
+    Modifier.clickable(onClick = onToggleSelection)
+  } else {
+    Modifier.combinedClickable(
+      onClick = onClick,
+      onLongClick = onToggleSelection
+    )
   }
 
   Surface(
@@ -494,8 +675,10 @@ fun PlaylistTrackListItem(
       )
       .clip(RoundedCornerShape(12.dp))
       .then(borderModifier)
-      .clickable(onClick = onClick),
-    color = if (item.isPlaying) {
+      .then(clickModifier),
+    color = if (isSelected) {
+      Color.Red.copy(alpha = 0.2f)
+    } else if (item.isPlaying) {
       MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
     } else {
       Color.Transparent

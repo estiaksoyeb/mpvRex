@@ -1701,6 +1701,46 @@ class PlayerViewModel(
     activity.playPlaylistItem(index)
   }
 
+  fun reorderPlaylistItem(fromIndex: Int, toIndex: Int) {
+    _playlistManager.reorder(fromIndex, toIndex)
+    refreshPlaylistItems()
+  }
+
+  fun removePlaylistItem(index: Int) {
+    val wasPlaying = index == _playlistManager.currentIndex.value
+    _playlistManager.removeAt(index)
+    refreshPlaylistItems()
+    
+    if (wasPlaying) {
+      if (_playlistManager.playlist.value.isNotEmpty()) {
+        val nextIndex = _playlistManager.currentIndex.value
+        playPlaylistItem(nextIndex)
+      } else {
+        (host as? PlayerActivity)?.finish()
+      }
+    }
+  }
+
+  fun removePlaylistItems(indexes: List<Int>) {
+    val currentIdx = _playlistManager.currentIndex.value
+    val wasPlayingRemoved = indexes.contains(currentIdx)
+    
+    val sortedIndexes = indexes.sortedDescending()
+    sortedIndexes.forEach { index ->
+      _playlistManager.removeAt(index)
+    }
+    refreshPlaylistItems()
+    
+    if (wasPlayingRemoved) {
+      if (_playlistManager.playlist.value.isNotEmpty()) {
+        val nextIndex = _playlistManager.currentIndex.value.coerceIn(0, _playlistManager.playlist.value.size - 1)
+        playPlaylistItem(nextIndex)
+      } else {
+        (host as? PlayerActivity)?.finish()
+      }
+    }
+  }
+
   /**
    * Refreshes the playlist items to update the currently playing indicator.
    * Called when a new video starts playing to update the playlist UI.

@@ -308,8 +308,10 @@ fun PlaylistSheet(
         modifier = modifier
           .fillMaxSize()
           .padding(
-            vertical = MaterialTheme.spacing.smaller,
-            horizontal = 0.dp
+            top = 0.dp,
+            bottom = MaterialTheme.spacing.smaller,
+            start = 0.dp,
+            end = 0.dp
           )
       ) {
         // Header showing current playlist info with search option
@@ -319,7 +321,7 @@ fun PlaylistSheet(
             .fillMaxWidth()
             .padding(
               horizontal = MaterialTheme.spacing.medium,
-              vertical = MaterialTheme.spacing.small,
+              vertical = 0.dp,
             ),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.SpaceBetween,
@@ -338,15 +340,15 @@ fun PlaylistSheet(
                 Box(
                   modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                   contentAlignment = Alignment.CenterStart
                 ) {
                   if (searchQuery.isEmpty()) {
                     Text(
                       text = "Search...",
                       style = MaterialTheme.typography.bodyMedium,
-                      color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                      color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
                   }
                   innerTextField()

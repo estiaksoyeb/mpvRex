@@ -55,6 +55,8 @@ import xyz.mpv.rex.ui.theme.MpvexPlayerTheme
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.HttpUtils
 import xyz.mpv.rex.utils.media.SubtitleOps
+import xyz.mpv.rex.utils.media.M3UParser
+import xyz.mpv.rex.utils.media.M3UParseResult
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.ui.player.SingleActionGesture
@@ -352,10 +354,12 @@ class PlayerActivity :
     }
 
     if (playlistFromIntent.isNotEmpty() || playlistId != null) {
+      val titlesFromIntent = intent.getStringArrayListExtra("playlist_titles") ?: emptyList()
       viewModel.playlistManager.setPlaylist(
         items = playlistFromIntent,
         index = playlistIndex,
-        id = playlistId
+        id = playlistId,
+        titles = titlesFromIntent
       )
     }
 
@@ -370,7 +374,16 @@ class PlayerActivity :
           val isM3u = playlistEntity?.isM3uPlaylist ?: false
 
           // Load all items - LazyColumn will handle virtualization/pagination efficiently
-          val items = playlistRepository.getPlaylistItemsAsUris(pid)
+          val playlistItems = playlistRepository.getPlaylistItems(pid)
+          val items = playlistItems.map { item ->
+            if (item.filePath.startsWith("/") || item.filePath.startsWith("file://")) {
+              val path = if (item.filePath.startsWith("file://")) item.filePath.removePrefix("file://") else item.filePath
+              Uri.fromFile(File(path))
+            } else {
+              Uri.parse(item.filePath)
+            }
+          }
+          val titles = playlistItems.map { it.fileName }
           val totalCount = items.size
 
           withContext(Dispatchers.Main) {
@@ -379,7 +392,8 @@ class PlayerActivity :
               index = playlistIndex,
               id = pid,
               totalCount = totalCount,
-              isM3u = isM3u
+              isM3u = isM3u,
+              titles = titles
             )
             Log.d(TAG, "Loaded all $totalCount items from playlist $pid (isM3U: $isM3u)")
           }
@@ -412,7 +426,14 @@ class PlayerActivity :
     // Set HTTP headers (including referer) BEFORE playing the file
     setHttpHeadersFromExtras(intent.extras)
 
-    getPlayableUri(intent)?.let(player::playFile)
+    val playableUri = getPlayableUri(intent)
+    if (playableUri != null) {
+      if (isUriM3U(playableUri)) {
+        loadM3uPlaylistOrPlayDirectly(playableUri)
+      } else {
+        player.playFile(playableUri)
+      }
+    }
 
     // Set orientation early if we have metadata in intent or cache (avoids jumpy transition for Video/Smart modes)
     val orient = playerPreferences.orientation.get()
@@ -2592,11 +2613,13 @@ class PlayerActivity :
     if (hasPlaylistExtras || playlistFromIntent.isNotEmpty()) {
       val newPlaylistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
       val newPlaylistIndex = intent.getIntExtra("playlist_index", 0)
+      val titlesFromIntent = intent.getStringArrayListExtra("playlist_titles") ?: emptyList()
       
       viewModel.playlistManager.setPlaylist(
         items = playlistFromIntent,
         index = newPlaylistIndex,
-        id = newPlaylistId
+        id = newPlaylistId,
+        titles = titlesFromIntent
       )
     }
 
@@ -2605,14 +2628,24 @@ class PlayerActivity :
       lifecycleScope.launch(Dispatchers.IO) {
         val pid = viewModel.playlistManager.playlistId ?: return@launch
         try {
-          val totalCount = playlistRepository.getPlaylistItemCount(pid)
-          val items = playlistRepository.getPlaylistItemsAsUris(pid)
+          val playlistItems = playlistRepository.getPlaylistItems(pid)
+          val items = playlistItems.map { item ->
+            if (item.filePath.startsWith("/") || item.filePath.startsWith("file://")) {
+              val path = if (item.filePath.startsWith("file://")) item.filePath.removePrefix("file://") else item.filePath
+              Uri.fromFile(File(path))
+            } else {
+              Uri.parse(item.filePath)
+            }
+          }
+          val titles = playlistItems.map { it.fileName }
+          val totalCount = items.size
           withContext(Dispatchers.Main) {
             viewModel.playlistManager.setPlaylist(
               items = items,
               index = viewModel.playlistManager.currentIndex.value,
               id = pid,
-              totalCount = totalCount
+              totalCount = totalCount,
+              titles = titles
             )
             Log.d(TAG, "onNewIntent: Loaded ${items.size} items from playlist $pid")
           }
@@ -2647,9 +2680,13 @@ class PlayerActivity :
 
     // Load the new file
     getPlayableUri(intent)?.let { uri ->
-      // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
-      lifecycleScope.launch(Dispatchers.Default) {
-        MPVLib.command("loadfile", uri)
+      if (isUriM3U(uri)) {
+        loadM3uPlaylistOrPlayDirectly(uri)
+      } else {
+        // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
+        lifecycleScope.launch(Dispatchers.Default) {
+          MPVLib.command("loadfile", uri)
+        }
       }
     }
   }
@@ -3307,7 +3344,8 @@ class PlayerActivity :
     viewModel.playlistManager.updateIndex(index)
 
     // Extract and set the new file name
-    fileName = getFileNameFromUri(uri)
+    val customTitle = viewModel.playlistManager.getTitleAt(index)
+    fileName = if (!customTitle.isNullOrBlank()) customTitle else getFileNameFromUri(uri)
     // Generate new media identifier for playback state
     mediaIdentifier = getMediaIdentifierFromUri(uri, fileName)
 
@@ -3387,6 +3425,15 @@ class PlayerActivity :
    * For m3u/m3u8 streams, returns the raw media-title from MPV instead of parsing.
    */
   fun getTitleForControls(): String {
+    // 1. Check if we have a custom playlist title
+    val index = viewModel.playlistManager.currentIndex.value
+    if (viewModel.playlistManager.playlist.value.isNotEmpty() && index >= 0 && index < viewModel.playlistManager.playlist.value.size) {
+      val customTitle = viewModel.playlistManager.getTitleAt(index)
+      if (!customTitle.isNullOrBlank()) {
+        return customTitle
+      }
+    }
+
     // For m3u/m3u8 streams, use MPV's raw media-title directly
     if (isCurrentStreamM3U()) {
       val rawTitle = MPVLib.getPropertyString("media-title")
@@ -3419,12 +3466,69 @@ class PlayerActivity :
   }
 
   /**
+   * Check if a specific URI string is an m3u or m3u8 file/stream.
+   */
+  private fun isUriM3U(uriStr: String): Boolean {
+    val lowerUrl = uriStr.lowercase()
+    return lowerUrl.contains(".m3u8") || lowerUrl.contains(".m3u") ||
+      lowerUrl.endsWith(".m3u8") || lowerUrl.endsWith(".m3u")
+  }
+
+  /**
    * Check if a specific URI is an m3u or m3u8 file/stream.
    */
   private fun isUriM3U(uri: Uri): Boolean {
-    val lowerUrl = uri.toString().lowercase()
-    return lowerUrl.contains(".m3u8") || lowerUrl.contains(".m3u") ||
-      lowerUrl.endsWith(".m3u8") || lowerUrl.endsWith(".m3u")
+    return isUriM3U(uri.toString())
+  }
+
+  /**
+   * Intercepts an M3U/M3U8 file or stream, parses its channels/items,
+   * populates the playlist, and triggers playback of the first item.
+   * Falls back to direct playback if the parse fails (e.g. HLS streams).
+   */
+  private fun loadM3uPlaylistOrPlayDirectly(uriStr: String) {
+    val uri = Uri.parse(uriStr)
+    lifecycleScope.launch(Dispatchers.IO) {
+      val result = if (uri.scheme == "http" || uri.scheme == "https") {
+        M3UParser.parseFromUrl(uriStr)
+      } else {
+        M3UParser.parseFromUri(this@PlayerActivity, uri)
+      }
+
+      withContext(Dispatchers.Main) {
+        if (result is M3UParseResult.Success && result.items.isNotEmpty()) {
+          val items = result.items
+          val playlistUris = items.map { Uri.parse(it.url) }
+          val playlistTitles = items.map { it.title ?: it.url }
+
+          viewModel.playlistManager.setPlaylist(
+            items = playlistUris,
+            index = 0,
+            id = null,
+            isM3u = true,
+            titles = playlistTitles
+          )
+
+          // Play the first item
+          loadPlaylistItemInternal(0)
+
+          // Set media title in UI
+          val playlistName = result.playlistName
+          viewModel.setMediaTitle(playlistName)
+          Log.d(TAG, "Loaded M3U playlist '${playlistName}' with ${items.size} items")
+        } else {
+          // If parsing failed or HLS, play the URI directly in MPV
+          Log.d(TAG, "M3U parsing failed or HLS stream. Playing directly: $uriStr")
+          if (mpvInitialized) {
+            lifecycleScope.launch(Dispatchers.Default) {
+              MPVLib.command("loadfile", uriStr)
+            }
+          } else {
+            player.playFile(uriStr)
+          }
+        }
+      }
+    }
   }
 
   /**

@@ -1475,7 +1475,7 @@ class PlayerViewModel(
     } else 0f
 
     return _playlistManager.playlist.value.mapIndexed { index, uri ->
-      val title = activity.getPlaylistItemTitle(uri)
+      val title = _playlistManager.getTitleAt(index) ?: activity.getPlaylistItemTitle(uri)
       // Path is not used for thumbnail loading - thumbnails are loaded directly from URI
       // Keep it for cache key compatibility
       val path = uri.toString()

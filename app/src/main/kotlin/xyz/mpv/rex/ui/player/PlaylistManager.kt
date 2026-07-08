@@ -21,6 +21,9 @@ class PlaylistManager {
     private val _playlist = MutableStateFlow<List<Uri>>(emptyList())
     val playlist: StateFlow<List<Uri>> = _playlist.asStateFlow()
 
+    private val _playlistTitles = MutableStateFlow<List<String>>(emptyList())
+    val playlistTitles: StateFlow<List<String>> = _playlistTitles.asStateFlow()
+
     private val _currentIndex = MutableStateFlow(0)
     val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
 
@@ -53,9 +56,11 @@ class PlaylistManager {
         id: Int? = null,
         totalCount: Int = -1,
         windowOffset: Int = 0,
-        isM3u: Boolean = false
+        isM3u: Boolean = false,
+        titles: List<String> = emptyList()
     ) {
         _playlist.value = items
+        _playlistTitles.value = titles
         _currentIndex.value = index
         _playlistId = id
         _playlistTotalCount = totalCount
@@ -65,6 +70,11 @@ class PlaylistManager {
         if (_shuffleEnabled.value) {
             generateShuffledIndices()
         }
+    }
+
+    fun getTitleAt(index: Int): String? {
+        val list = _playlistTitles.value
+        return if (index >= 0 && index < list.size) list[index] else null
     }
 
     fun updateIndex(index: Int) {

@@ -5,6 +5,8 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -623,13 +625,15 @@ object FolderListScreen : Screen {
               tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
               state = rememberTooltipState(),
             ) {
+            Box(
+              modifier = Modifier.animateFloatingActionButton(
+                visible = !selectionManager.isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
+                alignment = Alignment.BottomEnd,
+              )
+            ) {
               ToggleFloatingActionButton(
-                modifier = Modifier.animateFloatingActionButton(
-                  visible = !selectionManager.isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
-                  alignment = Alignment.BottomEnd,
-                ),
                 checked = isFabExpanded.value,
-                onCheckedChange = { isFabExpanded.value = !isFabExpanded.value },
+                onCheckedChange = { /* handled by overlay */ },
               ) {
                 val imageVector by remember {
                   derivedStateOf {
@@ -642,6 +646,37 @@ object FolderListScreen : Screen {
                   modifier = Modifier.animateIcon({ checkedProgress }),
                 )
               }
+
+              // Overlay to capture clicks and long-presses without internal interference
+              Box(
+                modifier = Modifier
+                  .matchParentSize()
+                  .pointerInput(Unit) {
+                    detectTapGestures(
+                      onTap = {
+                        if (isFabExpanded.value) {
+                          isFabExpanded.value = false
+                        } else {
+                          coroutineScope.launch {
+                            val recentlyPlayedVideos = RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
+                            val lastPlayed = recentlyPlayedVideos.firstOrNull()
+                            if (lastPlayed != null) {
+                              MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
+                            } else {
+                              Toast.makeText(context, context.getString(R.string.no_recently_played_videos), Toast.LENGTH_SHORT).show()
+                            }
+                          }
+                        }
+                      },
+                      onLongPress = {
+                        if (!isFabExpanded.value) {
+                          isFabExpanded.value = true
+                        }
+                      }
+                    )
+                  }
+              )
+            }
             }
           },
         ) {

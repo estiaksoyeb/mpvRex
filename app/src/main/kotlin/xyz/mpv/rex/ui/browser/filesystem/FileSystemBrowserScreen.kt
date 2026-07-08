@@ -6,6 +6,8 @@ import android.net.Uri
 import android.util.Log
 import java.io.File
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -817,26 +819,58 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
                 state = rememberTooltipState(),
               ) {
-                ToggleFloatingActionButton(
-                  modifier = Modifier
-                    .animateFloatingActionButton(
-                      visible = !isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
-                      alignment = Alignment.BottomEnd,
-                    ),
-                  checked = isFabExpanded.value,
-                  onCheckedChange = { isFabExpanded.value = !isFabExpanded.value },
-                ) {
-                  val imageVector by remember {
-                    derivedStateOf {
-                      if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
-                    }
+            Box(
+              modifier = Modifier.animateFloatingActionButton(
+                visible = !isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
+                alignment = Alignment.BottomEnd,
+              )
+            ) {
+              ToggleFloatingActionButton(
+                checked = isFabExpanded.value,
+                onCheckedChange = { /* handled by overlay */ },
+              ) {
+                val imageVector by remember {
+                  derivedStateOf {
+                    if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
                   }
-                  Icon(
-                    painter = rememberVectorPainter(imageVector),
-                    contentDescription = null,
-                    modifier = Modifier.animateIcon({ checkedProgress }),
-                  )
                 }
+                Icon(
+                  painter = rememberVectorPainter(imageVector),
+                  contentDescription = null,
+                  modifier = Modifier.animateIcon({ checkedProgress }),
+                )
+              }
+
+              // Overlay to capture clicks and long-presses without internal interference
+              Box(
+                modifier = Modifier
+                  .matchParentSize()
+                  .pointerInput(Unit) {
+                    detectTapGestures(
+                      onTap = {
+                        if (isFabExpanded.value) {
+                          isFabExpanded.value = false
+                        } else {
+                          coroutineScope.launch {
+                            val recentlyPlayedVideos = xyz.mpv.rex.utils.history.RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
+                            val lastPlayed = recentlyPlayedVideos.firstOrNull()
+                            if (lastPlayed != null) {
+                              MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
+                            } else {
+                              Toast.makeText(context, context.getString(R.string.no_recently_played_videos), Toast.LENGTH_SHORT).show()
+                            }
+                          }
+                        }
+                      },
+                      onLongPress = {
+                        if (!isFabExpanded.value) {
+                          isFabExpanded.value = true
+                        }
+                      }
+                    )
+                  }
+              )
+            }
               }
             },
           ) {

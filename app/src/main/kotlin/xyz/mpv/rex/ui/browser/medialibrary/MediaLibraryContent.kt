@@ -3,7 +3,11 @@ package xyz.mpv.rex.ui.browser.medialibrary
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -17,12 +21,19 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
+import androidx.compose.material3.ToggleFloatingActionButton
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.PlainTooltip
@@ -37,6 +48,9 @@ import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import xyz.mpv.rex.ui.browser.sheets.PlayLinkSheet
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -159,6 +173,22 @@ fun MediaLibraryContent() {
 
   // FAB visibility state
   val isFabVisible = remember { mutableStateOf(true) }
+  val isFabExpanded = remember { mutableStateOf(false) }
+  val showLinkDialog = remember { mutableStateOf(false) }
+
+  val filePicker = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.OpenDocument(),
+  ) { uri ->
+    uri?.let {
+      runCatching {
+        context.contentResolver.takePersistableUriPermission(
+          it,
+          Intent.FLAG_GRANT_READ_URI_PERMISSION,
+        )
+      }
+      MediaUtils.playFile(it.toString(), context, "open_file")
+    }
+  }
 
   // Bottom bar animation state
   var showFloatingBottomBar by remember { mutableStateOf(false) }
@@ -278,34 +308,111 @@ fun MediaLibraryContent() {
     },
     floatingActionButton = {
       if (!selectionManager.isInSelectionMode && isFabVisible.value && sortedVideosWithInfo.isNotEmpty()) {
-        TooltipBox(
-          positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-          tooltip = { PlainTooltip { Text(stringResource(R.string.play_recently_played_or_first)) } },
-          state = rememberTooltipState(),
-        ) {
-          FloatingActionButton(
-            modifier = Modifier
-              .windowInsetsPadding(WindowInsets.systemBars)
-              .padding(bottom = navigationBarHeight)
-              .animateFloatingActionButton(
+        FloatingActionButtonMenu(
+          modifier = Modifier.padding(bottom = navigationBarHeight + 8.dp),
+          expanded = isFabExpanded.value,
+          button = {
+            TooltipBox(
+              positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                if (isFabExpanded.value) {
+                  TooltipAnchorPosition.Start
+                } else {
+                  TooltipAnchorPosition.Above
+                }
+              ),
+              tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
+              state = rememberTooltipState(),
+            ) {
+            Box(
+              modifier = Modifier.animateFloatingActionButton(
                 visible = true,
                 alignment = Alignment.BottomEnd,
-              ),
+              )
+            ) {
+              ToggleFloatingActionButton(
+                checked = isFabExpanded.value,
+                onCheckedChange = { /* handled by overlay */ },
+              ) {
+                val imageVector by remember {
+                  derivedStateOf {
+                    if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
+                  }
+                }
+                Icon(
+                  painter = rememberVectorPainter(imageVector),
+                  contentDescription = null,
+                  modifier = Modifier.animateIcon({ checkedProgress }),
+                )
+              }
+
+              // Overlay to capture clicks and long-presses without internal interference
+              Box(
+                modifier = Modifier
+                  .matchParentSize()
+                  .pointerInput(Unit) {
+                    detectTapGestures(
+                      onTap = {
+                        if (isFabExpanded.value) {
+                          isFabExpanded.value = false
+                        } else {
+                          coroutineScope.launch {
+                            val recentlyPlayedVideos = RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
+                            val lastPlayed = recentlyPlayedVideos.firstOrNull()
+
+                            if (lastPlayed != null && sortedVideosWithInfo.any { it.video.path == lastPlayed.filePath }) {
+                              MediaUtils.playFile(lastPlayed.filePath, context, "media_library_list")
+                            } else {
+                              MediaUtils.playFile(sortedVideosWithInfo.first().video, context, "media_library_list")
+                            }
+                          }
+                        }
+                      },
+                      onLongPress = {
+                        if (!isFabExpanded.value) {
+                          isFabExpanded.value = true
+                        }
+                      }
+                    )
+                  }
+              )
+            }
+            }
+          },
+        ) {
+          FloatingActionButtonMenuItem(
             onClick = {
+              isFabExpanded.value = false
+              filePicker.launch(arrayOf("video/*"))
+            },
+            icon = { Icon(Icons.Filled.FileOpen, contentDescription = null) },
+            text = { Text(text = "Open File") },
+          )
+
+          FloatingActionButtonMenuItem(
+            onClick = {
+              isFabExpanded.value = false
               coroutineScope.launch {
                 val recentlyPlayedVideos = RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
                 val lastPlayed = recentlyPlayedVideos.firstOrNull()
-
-                if (lastPlayed != null && sortedVideosWithInfo.any { it.video.path == lastPlayed.filePath }) {
-                  MediaUtils.playFile(lastPlayed.filePath, context, "media_library_list")
+                if (lastPlayed != null) {
+                  MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
                 } else {
-                  MediaUtils.playFile(sortedVideosWithInfo.first().video, context, "media_library_list")
+                  Toast.makeText(context, context.getString(R.string.no_recently_played_videos), Toast.LENGTH_SHORT).show()
                 }
               }
             },
-          ) {
-            Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.play_recently_played_or_first))
-          }
+            icon = { Icon(Icons.Filled.History, contentDescription = null) },
+            text = { Text(text = "Recently Played") },
+          )
+
+          FloatingActionButtonMenuItem(
+            onClick = {
+              isFabExpanded.value = false
+              showLinkDialog.value = true
+            },
+            icon = { Icon(Icons.Filled.Link, contentDescription = null) },
+            text = { Text(text = "Open Link") },
+          )
         }
       }
     }
@@ -440,6 +547,12 @@ fun MediaLibraryContent() {
         },
       )
     }
+
+    PlayLinkSheet(
+      isOpen = showLinkDialog.value,
+      onDismiss = { showLinkDialog.value = false },
+      onPlayLink = { url -> MediaUtils.playFile(url, context, "play_link") },
+    )
 
     mediaInfoUri?.let { uri ->
       xyz.mpv.rex.ui.browser.sheets.MediaInfoSheet(uri = uri, onDismiss = { mediaInfoUri = null })

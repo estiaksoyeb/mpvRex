@@ -91,7 +91,7 @@ fun BaseMediaCard(
                         if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f) 
                         else Color.Transparent
                     )
-                    .then(if (gridColumns == 1) Modifier.padding(horizontal = 12.dp, vertical = 5.dp) else Modifier.padding(12.dp)),
+                    .then(if (gridColumns == 1) Modifier.padding(horizontal = 12.dp, vertical = 4.dp) else Modifier.padding(4.dp)),
                 horizontalAlignment = if (gridColumns == 1) Alignment.Start else Alignment.CenterHorizontally,
             ) {
                 // Thumbnail Box

@@ -244,7 +244,7 @@ fun <T> UnifiedExplorerContent(
             top = 8.dp,
             bottom = navigationBarHeight + 8.dp
           ),
-          verticalArrangement = Arrangement.spacedBy(8.dp)
+          verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
           // --- FOLDERS SECTION ---
           if (folderItems.isNotEmpty()) {
@@ -260,7 +260,7 @@ fun <T> UnifiedExplorerContent(
               ) { rowItems ->
                 Row(
                   modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                  horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                   for (item in rowItems) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -349,7 +349,7 @@ fun <T> UnifiedExplorerContent(
           // Section Spacer
           if (folderItems.isNotEmpty() && videoItems.isNotEmpty()) {
             item(key = "section_divider") {
-              Spacer(modifier = Modifier.height(8.dp))
+              Spacer(modifier = Modifier.height(4.dp))
             }
           }
 
@@ -367,7 +367,7 @@ fun <T> UnifiedExplorerContent(
               ) { rowItems ->
                 Row(
                   modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                  horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                   for (item in rowItems) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -464,8 +464,8 @@ fun <T> UnifiedExplorerContent(
             top = 8.dp,
             bottom = navigationBarHeight + 8.dp
           ),
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          verticalArrangement = Arrangement.spacedBy(8.dp)
+          horizontalArrangement = Arrangement.spacedBy(4.dp),
+          verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
           items(
             items = items,
@@ -521,7 +521,7 @@ fun <T> UnifiedExplorerContent(
             top = 8.dp,
             bottom = navigationBarHeight + 8.dp
           ),
-          verticalArrangement = Arrangement.spacedBy(8.dp)
+          verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
           items(
             items = items,

@@ -1444,7 +1444,8 @@ class PlayerViewModel(
 
   fun hasPlaylistSupport(): Boolean {
     val playlistModeEnabled = playerPreferences.playlistMode.get()
-    return playlistModeEnabled && _playlistManager.playlist.value.isNotEmpty()
+    val isM3u = _playlistManager.isM3uPlaylist
+    return (playlistModeEnabled || isM3u) && _playlistManager.playlist.value.isNotEmpty()
   }
 
   fun getPlaylistInfo(): String? {
@@ -1475,7 +1476,7 @@ class PlayerViewModel(
     } else 0f
 
     return _playlistManager.playlist.value.mapIndexed { index, uri ->
-      val title = activity.getPlaylistItemTitle(uri)
+      val title = _playlistManager.getTitleAt(index) ?: activity.getPlaylistItemTitle(uri)
       // Path is not used for thumbnail loading - thumbnails are loaded directly from URI
       // Keep it for cache key compatibility
       val path = uri.toString()
@@ -1698,6 +1699,46 @@ class PlayerViewModel(
   fun playPlaylistItem(index: Int) {
     val activity = host as? PlayerActivity ?: return
     activity.playPlaylistItem(index)
+  }
+
+  fun reorderPlaylistItem(fromIndex: Int, toIndex: Int) {
+    _playlistManager.reorder(fromIndex, toIndex)
+    refreshPlaylistItems()
+  }
+
+  fun removePlaylistItem(index: Int) {
+    val wasPlaying = index == _playlistManager.currentIndex.value
+    _playlistManager.removeAt(index)
+    refreshPlaylistItems()
+    
+    if (wasPlaying) {
+      if (_playlistManager.playlist.value.isNotEmpty()) {
+        val nextIndex = _playlistManager.currentIndex.value
+        playPlaylistItem(nextIndex)
+      } else {
+        (host as? PlayerActivity)?.finish()
+      }
+    }
+  }
+
+  fun removePlaylistItems(indexes: List<Int>) {
+    val currentIdx = _playlistManager.currentIndex.value
+    val wasPlayingRemoved = indexes.contains(currentIdx)
+    
+    val sortedIndexes = indexes.sortedDescending()
+    sortedIndexes.forEach { index ->
+      _playlistManager.removeAt(index)
+    }
+    refreshPlaylistItems()
+    
+    if (wasPlayingRemoved) {
+      if (_playlistManager.playlist.value.isNotEmpty()) {
+        val nextIndex = _playlistManager.currentIndex.value.coerceIn(0, _playlistManager.playlist.value.size - 1)
+        playPlaylistItem(nextIndex)
+      } else {
+        (host as? PlayerActivity)?.finish()
+      }
+    }
   }
 
   /**

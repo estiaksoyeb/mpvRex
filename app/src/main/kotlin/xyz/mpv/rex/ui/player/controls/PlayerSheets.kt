@@ -422,6 +422,12 @@ fun PlayerSheets(
           onItemClick = { item ->
             viewModel.playPlaylistItem(item.index)
           },
+          onReorderItem = { from, to ->
+            viewModel.reorderPlaylistItem(from, to)
+          },
+          onRemoveItems = { indexes ->
+            viewModel.removePlaylistItems(indexes)
+          },
           totalCount = totalCount,
           isM3UPlaylist = isM3U,
           playerPreferences = playerPreferences,

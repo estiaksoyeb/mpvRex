@@ -18,6 +18,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import xyz.mpv.rex.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,7 +42,7 @@ fun DeleteConfirmationDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(
-        text = "Delete $itemCount $itemText?",
+        text = stringResource(R.string.delete_files_title, itemCount, itemText),
         style = MaterialTheme.typography.headlineMedium,
         fontWeight = FontWeight.Bold,
       )
@@ -58,7 +60,7 @@ fun DeleteConfirmationDialog(
           modifier = Modifier.fillMaxWidth(),
         ) {
           Text(
-            text = "This action cannot be undone. The selected item${if (itemCount == 1) "" else "s"} will be permanently deleted.",
+            text = stringResource(R.string.delete_items_warning, if (itemCount == 1) "" else "s"),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onErrorContainer,
@@ -125,7 +127,7 @@ fun DeleteConfirmationDialog(
         shape = MaterialTheme.shapes.extraLarge,
       ) {
         Text(
-          text = "Delete",
+          text = stringResource(R.string.delete),
           fontWeight = FontWeight.Bold,
         )
       }
@@ -135,7 +137,7 @@ fun DeleteConfirmationDialog(
         onClick = onDismiss,
         shape = MaterialTheme.shapes.extraLarge,
       ) {
-        Text("Cancel", fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.generic_cancel), fontWeight = FontWeight.Medium)
       }
     },
     containerColor = MaterialTheme.colorScheme.surface,

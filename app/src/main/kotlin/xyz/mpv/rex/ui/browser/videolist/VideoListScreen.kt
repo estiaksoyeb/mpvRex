@@ -397,7 +397,7 @@ data class VideoListScreen(
             add(
               SelectionOverflowAction(
                 icon = Icons.Filled.Share,
-                label = "Share",
+                label = stringResource(R.string.generic_share),
                 onClick = { selectionManager.shareSelected() },
               )
             )
@@ -427,7 +427,7 @@ data class VideoListScreen(
         if (sortedVideosWithInfo.isNotEmpty()) {
           TooltipBox(
             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-            tooltip = { PlainTooltip { Text("Play recently played or first video") } },
+            tooltip = { PlainTooltip { Text(stringResource(R.string.play_recently_played_or_first)) } },
             state = rememberTooltipState(),
           ) {
             FloatingActionButton(
@@ -454,7 +454,7 @@ data class VideoListScreen(
                 }
               },
             ) {
-              Icon(Icons.Filled.PlayArrow, contentDescription = "Play recently played or first video")
+              Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.play_recently_played_or_first))
             }
           }
         }
@@ -650,7 +650,7 @@ data class VideoListScreen(
       // Private Space Loading Dialog
       LoadingDialog(
         isOpen = movingToPrivateSpace.value,
-        message = "Moving to private space...",
+        message = stringResource(R.string.moving_to_private_space),
       )
 
       // Private Space Completion Dialog
@@ -659,15 +659,13 @@ data class VideoListScreen(
           onDismissRequest = { showPrivateSpaceCompletionDialog.value = false },
           title = {
             Text(
-              text = "Moved to Private Space",
+              text = stringResource(R.string.moved_to_private_space),
               style = MaterialTheme.typography.headlineSmall,
             )
           },
           text = {
             Text(
-              text =
-                "Successfully moved ${privateSpaceMovedCount.intValue} video(s) to private space.\n\n" +
-                  "To access private space, long press on the app name at the top of the main screen.",
+              text = stringResource(R.string.moved_to_private_space_desc, privateSpaceMovedCount.intValue),
               style = MaterialTheme.typography.bodyMedium,
             )
           },
@@ -675,7 +673,7 @@ data class VideoListScreen(
             androidx.compose.material3.Button(
               onClick = { showPrivateSpaceCompletionDialog.value = false },
             ) {
-              Text("Close")
+              Text(stringResource(R.string.close))
             }
           },
         )

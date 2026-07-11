@@ -6,6 +6,8 @@ import android.net.Uri
 import android.util.Log
 import java.io.File
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -550,12 +552,16 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 expanded = false,
                 onExpandedChange = { },
                 placeholder = {
+                  val placeholderText = if (isAtRoot) {
+                    stringResource(R.string.search_in_all_storage_volumes)
+                  } else {
+                    stringResource(
+                      R.string.search_in_folder_placeholder,
+                      breadcrumbs.lastOrNull()?.name ?: stringResource(R.string.search_default_folder_name)
+                    )
+                  }
                   Text(
-                    text = if (isAtRoot) {
-                      "Search in all storage volumes..."
-                    } else {
-                      "Search in ${breadcrumbs.lastOrNull()?.name ?: "folder"}..."
-                    },
+                    text = placeholderText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                   )
@@ -563,7 +569,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 leadingIcon = {
                   Icon(
                     imageVector = Icons.Filled.Search,
-                    contentDescription = "Search",
+                    contentDescription = stringResource(R.string.search_empty_title),
                   )
                 },
                 trailingIcon = {
@@ -575,7 +581,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   ) {
                     Icon(
                       imageVector = Icons.Filled.Close,
-                      contentDescription = "Cancel",
+                      contentDescription = stringResource(R.string.generic_cancel),
                     )
                   }
                 },
@@ -726,7 +732,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
             selectionOverflowActions = buildList {
               add(SelectionOverflowAction(
                 icon = Icons.Filled.Share,
-                label = "Share",
+                label = stringResource(R.string.generic_share),
                 onClick = {
                   when {
                     isMixedSelection -> {
@@ -758,7 +764,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
               if (folderSelectionManager.isInSelectionMode && !videoSelectionManager.isInSelectionMode) {
                 add(SelectionOverflowAction(
                   icon = Icons.Filled.Block,
-                  label = "Blacklist",
+                  label = stringResource(R.string.pref_folders_blacklist),
                   onClick = {
                     viewModel.blacklistFolders(folderSelectionManager.getSelectedItems())
                     folderSelectionManager.clear()
@@ -810,29 +816,61 @@ fun FileSystemBrowserScreen(path: String? = null) {
                     TooltipAnchorPosition.Above
                   }
                 ),
-                tooltip = { PlainTooltip { Text("Toggle menu") } },
+                tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
                 state = rememberTooltipState(),
               ) {
-                ToggleFloatingActionButton(
-                  modifier = Modifier
-                    .animateFloatingActionButton(
-                      visible = !isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
-                      alignment = Alignment.BottomEnd,
-                    ),
-                  checked = isFabExpanded.value,
-                  onCheckedChange = { isFabExpanded.value = !isFabExpanded.value },
-                ) {
-                  val imageVector by remember {
-                    derivedStateOf {
-                      if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
-                    }
+            Box(
+              modifier = Modifier.animateFloatingActionButton(
+                visible = !isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
+                alignment = Alignment.BottomEnd,
+              )
+            ) {
+              ToggleFloatingActionButton(
+                checked = isFabExpanded.value,
+                onCheckedChange = { /* handled by overlay */ },
+              ) {
+                val imageVector by remember {
+                  derivedStateOf {
+                    if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
                   }
-                  Icon(
-                    painter = rememberVectorPainter(imageVector),
-                    contentDescription = null,
-                    modifier = Modifier.animateIcon({ checkedProgress }),
-                  )
                 }
+                Icon(
+                  painter = rememberVectorPainter(imageVector),
+                  contentDescription = null,
+                  modifier = Modifier.animateIcon({ checkedProgress }),
+                )
+              }
+
+              // Overlay to capture clicks and long-presses without internal interference
+              Box(
+                modifier = Modifier
+                  .matchParentSize()
+                  .pointerInput(Unit) {
+                    detectTapGestures(
+                      onTap = {
+                        if (isFabExpanded.value) {
+                          isFabExpanded.value = false
+                        } else {
+                          coroutineScope.launch {
+                            val recentlyPlayedVideos = xyz.mpv.rex.utils.history.RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
+                            val lastPlayed = recentlyPlayedVideos.firstOrNull()
+                            if (lastPlayed != null) {
+                              MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
+                            } else {
+                              Toast.makeText(context, context.getString(R.string.no_recently_played_videos), Toast.LENGTH_SHORT).show()
+                            }
+                          }
+                        }
+                      },
+                      onLongPress = {
+                        if (!isFabExpanded.value) {
+                          isFabExpanded.value = true
+                        }
+                      }
+                    )
+                  }
+              )
+            }
               }
             },
           ) {
@@ -1438,8 +1476,8 @@ private fun FileSystemBrowserContent(
         }
       },
       modifier = Modifier.weight(1f),
-      emptyTitle = "Empty folder",
-      emptyMessage = "This folder contains no videos or subfolders",
+      emptyTitle = stringResource(R.string.empty_folder_title),
+      emptyMessage = stringResource(R.string.empty_folder_message),
       isRefreshing = isRefreshing,
       onRefresh = onRefresh,
       isInSelectionMode = isInSelectionMode,
@@ -1448,6 +1486,7 @@ private fun FileSystemBrowserContent(
       listState = listState,
       newVideoIds = newVideoIds,
       watchedVideoIds = watchedVideoIds,
+      videoPlaybackProgress = videoFilesWithPlayback,
       scrollTriggerKey = scrollTriggerKey,
       showSections = true,
     )

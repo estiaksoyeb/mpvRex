@@ -5,6 +5,8 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -482,11 +484,11 @@ object FolderListScreen : Screen {
                 onSearch = { },
                 expanded = false,
                 onExpandedChange = { },
-                placeholder = { Text("Search folders and videos...", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text(stringResource(R.string.search_folders_and_videos), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 leadingIcon = {
                   Icon(
                     imageVector = Icons.Filled.Search,
-                    contentDescription = "Search",
+                    contentDescription = stringResource(R.string.search_empty_title),
                   )
                 },
                 trailingIcon = {
@@ -498,7 +500,7 @@ object FolderListScreen : Screen {
                   ) {
                     Icon(
                       imageVector = Icons.Filled.Close,
-                      contentDescription = "Cancel",
+                      contentDescription = stringResource(R.string.generic_cancel),
                     )
                   }
                 },
@@ -560,7 +562,7 @@ object FolderListScreen : Screen {
             selectionOverflowActions = listOf(
               SelectionOverflowAction(
                 icon = Icons.Filled.Share,
-                label = "Share",
+                label = stringResource(R.string.generic_share),
                 onClick = {
                   coroutineScope.launch {
                     val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()
@@ -574,7 +576,7 @@ object FolderListScreen : Screen {
               ),
               SelectionOverflowAction(
                 icon = Icons.Filled.Block,
-                label = "Blacklist",
+                label = stringResource(R.string.pref_folders_blacklist),
                 onClick = {
                   coroutineScope.launch {
                     val selectedFolders = selectionManager.getSelectedItems()
@@ -620,16 +622,18 @@ object FolderListScreen : Screen {
                   TooltipAnchorPosition.Above
                 }
               ),
-              tooltip = { PlainTooltip { Text("Toggle menu") } },
+              tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
               state = rememberTooltipState(),
             ) {
+            Box(
+              modifier = Modifier.animateFloatingActionButton(
+                visible = !selectionManager.isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
+                alignment = Alignment.BottomEnd,
+              )
+            ) {
               ToggleFloatingActionButton(
-                modifier = Modifier.animateFloatingActionButton(
-                  visible = !selectionManager.isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
-                  alignment = Alignment.BottomEnd,
-                ),
                 checked = isFabExpanded.value,
-                onCheckedChange = { isFabExpanded.value = !isFabExpanded.value },
+                onCheckedChange = { /* handled by overlay */ },
               ) {
                 val imageVector by remember {
                   derivedStateOf {
@@ -642,6 +646,37 @@ object FolderListScreen : Screen {
                   modifier = Modifier.animateIcon({ checkedProgress }),
                 )
               }
+
+              // Overlay to capture clicks and long-presses without internal interference
+              Box(
+                modifier = Modifier
+                  .matchParentSize()
+                  .pointerInput(Unit) {
+                    detectTapGestures(
+                      onTap = {
+                        if (isFabExpanded.value) {
+                          isFabExpanded.value = false
+                        } else {
+                          coroutineScope.launch {
+                            val recentlyPlayedVideos = RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
+                            val lastPlayed = recentlyPlayedVideos.firstOrNull()
+                            if (lastPlayed != null) {
+                              MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
+                            } else {
+                              Toast.makeText(context, context.getString(R.string.no_recently_played_videos), Toast.LENGTH_SHORT).show()
+                            }
+                          }
+                        }
+                      },
+                      onLongPress = {
+                        if (!isFabExpanded.value) {
+                          isFabExpanded.value = true
+                        }
+                      }
+                    )
+                  }
+              )
+            }
             }
           },
         ) {
@@ -980,8 +1015,8 @@ private fun FolderListContent(
     onClick = { onFolderClick(it) },
     onLongClick = { onFolderLongClick(it) },
     onToggleSelection = { selectionManager.toggle(it) },
-    emptyTitle = "No video folders found",
-    emptyMessage = "Add videos to your device to see folders here",
+    emptyTitle = stringResource(R.string.no_video_folders_found),
+    emptyMessage = stringResource(R.string.no_video_folders_found_desc),
     isRefreshing = isRefreshing,
     onRefresh = onRefresh,
     isInSelectionMode = selectionManager.isInSelectionMode,

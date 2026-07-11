@@ -42,6 +42,8 @@ import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.ui.res.stringResource
+import xyz.mpv.rex.R
 
 @Composable
 fun <T> UnifiedExplorerContent(
@@ -64,6 +66,7 @@ fun <T> UnifiedExplorerContent(
   playedFolderPaths: Set<String> = emptySet(),
   newVideoIds: Set<Long> = emptySet(),
   watchedVideoIds: Set<Long> = emptySet(),
+  videoPlaybackProgress: Map<Long, Float> = emptyMap(),
   autoScrollToLastPlayed: Boolean = false,
   scrollTriggerKey: Any? = null,
   gridColumns: Int? = null,
@@ -241,12 +244,12 @@ fun <T> UnifiedExplorerContent(
             top = 8.dp,
             bottom = navigationBarHeight + 8.dp
           ),
-          verticalArrangement = Arrangement.spacedBy(8.dp)
+          verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
           // --- FOLDERS SECTION ---
           if (folderItems.isNotEmpty()) {
             item(key = "folders_header") {
-              SectionHeader(title = "Folders (${folderItems.size})")
+              SectionHeader(title = stringResource(R.string.folders_count, folderItems.size))
             }
 
             if (mediaLayoutMode == MediaLayoutMode.GRID) {
@@ -257,7 +260,7 @@ fun <T> UnifiedExplorerContent(
               ) { rowItems ->
                 Row(
                   modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                  horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                   for (item in rowItems) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -290,6 +293,7 @@ fun <T> UnifiedExplorerContent(
                         playedFolderPaths = playedFolderPaths,
                         newVideoIds = newVideoIds,
                         watchedVideoIds = watchedVideoIds,
+                        videoPlaybackProgress = videoPlaybackProgress,
                         showSections = showSections
                       )
                     }
@@ -335,6 +339,7 @@ fun <T> UnifiedExplorerContent(
                   playedFolderPaths = playedFolderPaths,
                   newVideoIds = newVideoIds,
                   watchedVideoIds = watchedVideoIds,
+                  videoPlaybackProgress = videoPlaybackProgress,
                   showSections = showSections
                 )
               }
@@ -344,14 +349,14 @@ fun <T> UnifiedExplorerContent(
           // Section Spacer
           if (folderItems.isNotEmpty() && videoItems.isNotEmpty()) {
             item(key = "section_divider") {
-              Spacer(modifier = Modifier.height(8.dp))
+              Spacer(modifier = Modifier.height(4.dp))
             }
           }
 
           // --- MEDIA SECTION ---
           if (videoItems.isNotEmpty()) {
             item(key = "media_header") {
-              SectionHeader(title = "Media (${videoItems.size})")
+              SectionHeader(title = stringResource(R.string.media_count, videoItems.size))
             }
 
             if (mediaLayoutMode == MediaLayoutMode.GRID) {
@@ -362,7 +367,7 @@ fun <T> UnifiedExplorerContent(
               ) { rowItems ->
                 Row(
                   modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                  horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                   for (item in rowItems) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -395,6 +400,7 @@ fun <T> UnifiedExplorerContent(
                         playedFolderPaths = playedFolderPaths,
                         newVideoIds = newVideoIds,
                         watchedVideoIds = watchedVideoIds,
+                        videoPlaybackProgress = videoPlaybackProgress,
                         showSections = showSections
                       )
                     }
@@ -440,6 +446,7 @@ fun <T> UnifiedExplorerContent(
                   playedFolderPaths = playedFolderPaths,
                   newVideoIds = newVideoIds,
                   watchedVideoIds = watchedVideoIds,
+                  videoPlaybackProgress = videoPlaybackProgress,
                   showSections = showSections
                 )
               }
@@ -457,8 +464,8 @@ fun <T> UnifiedExplorerContent(
             top = 8.dp,
             bottom = navigationBarHeight + 8.dp
           ),
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          verticalArrangement = Arrangement.spacedBy(8.dp)
+          horizontalArrangement = Arrangement.spacedBy(4.dp),
+          verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
           items(
             items = items,
@@ -493,6 +500,7 @@ fun <T> UnifiedExplorerContent(
               playedFolderPaths = playedFolderPaths,
               newVideoIds = newVideoIds,
               watchedVideoIds = watchedVideoIds,
+              videoPlaybackProgress = videoPlaybackProgress,
               showSections = showSections
             )
           }
@@ -513,7 +521,7 @@ fun <T> UnifiedExplorerContent(
             top = 8.dp,
             bottom = navigationBarHeight + 8.dp
           ),
-          verticalArrangement = Arrangement.spacedBy(8.dp)
+          verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
           items(
             items = items,
@@ -555,6 +563,7 @@ fun <T> UnifiedExplorerContent(
                       playedFolderPaths = playedFolderPaths,
                       newVideoIds = newVideoIds,
                       watchedVideoIds = watchedVideoIds,
+                      videoPlaybackProgress = videoPlaybackProgress,
                       showSections = showSections
                     )
                   }
@@ -566,7 +575,7 @@ fun <T> UnifiedExplorerContent(
                   ) {
                     Icon(
                       imageVector = Icons.Filled.DragHandle,
-                      contentDescription = "Drag to reorder",
+                      contentDescription = stringResource(R.string.drag_to_reorder),
                       tint = MaterialTheme.colorScheme.primary,
                     )
                   }
@@ -587,6 +596,7 @@ fun <T> UnifiedExplorerContent(
                 playedFolderPaths = playedFolderPaths,
                 newVideoIds = newVideoIds,
                 watchedVideoIds = watchedVideoIds,
+                videoPlaybackProgress = videoPlaybackProgress,
                 showSections = showSections
               )
             }
@@ -641,6 +651,7 @@ private fun <T> ExplorerItemCard(
   playedFolderPaths: Set<String> = emptySet(),
   newVideoIds: Set<Long> = emptySet(),
   watchedVideoIds: Set<Long> = emptySet(),
+  videoPlaybackProgress: Map<Long, Float> = emptyMap(),
   showSections: Boolean = false,
 ) {
   when (item) {
@@ -807,8 +818,10 @@ private fun <T> ExplorerItemCard(
         isGridMode = isGridMode,
         gridColumns = columns,
         showSubtitleIndicator = showSubtitleIndicator,
+        progressPercentage = videoPlaybackProgress[item.video.id],
         isOldAndUnplayed = isOldAndUnplayed,
         isWatched = isWatched,
+        isNeverPlayed = videoPlaybackProgress[item.video.id] == null,
         isRecentlyPlayed = isRecentlyPlayed
       )
     }

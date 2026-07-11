@@ -31,6 +31,18 @@ dependencyResolutionManagement {
         includeGroup("com.github.jeziellago")
       }
     }
+    ivy {
+      url = uri("https://github.com/estiaksoyeb/mpv-android/releases/download/")
+      patternLayout {
+        artifact("[revision]/[artifact]-[revision].[ext]")
+      }
+      metadataSources {
+        artifact()
+      }
+      content {
+        includeGroup("xyz.mpv.rex.libs")
+      }
+    }
   }
 }
 

@@ -1162,13 +1162,16 @@ fun DoubleTapToSeekOvals(
   // Track the last direction/amount so we know where to slide/hide and show correct text even when amount becomes 0
   var lastIsRight by remember { mutableStateOf(true) }
   var lastNonNullAmount by remember { mutableStateOf(10) }
+  var animationTrigger by remember { mutableStateOf(0) }
   LaunchedEffect(amount) {
     if (amount > 0) {
       lastIsRight = true
       lastNonNullAmount = abs(amount)
+      animationTrigger = amount
     } else if (amount < 0) {
       lastIsRight = false
       lastNonNullAmount = abs(amount)
+      animationTrigger = amount
     }
   }
 
@@ -1250,7 +1253,7 @@ fun DoubleTapToSeekOvals(
             ) {
               CombiningChevronsAnimation(
                 isRight = isRight,
-                trigger = amount
+                trigger = animationTrigger
               )
             }
 

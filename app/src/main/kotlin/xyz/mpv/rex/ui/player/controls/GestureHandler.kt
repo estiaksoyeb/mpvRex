@@ -1,5 +1,10 @@
 package xyz.mpv.rex.ui.player.controls
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -11,14 +16,18 @@ import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -53,11 +62,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `is`.xyz.mpv.MPVLib
+import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.AudioPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.SubtitlesPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
+import xyz.mpv.rex.ui.player.controls.components.glassSurface
 import xyz.mpv.rex.presentation.components.LeftSideOvalShape
 import xyz.mpv.rex.presentation.components.RightSideOvalShape
 import xyz.mpv.rex.ui.player.Panels
@@ -1139,80 +1150,199 @@ fun DoubleTapToSeekOvals(
   modifier: Modifier = Modifier,
 ) {
   val gesturePreferences = koinInject<GesturePreferences>()
+  val playerPreferences = koinInject<PlayerPreferences>()
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  
   val doubleTapSeekAreaWidth by gesturePreferences.doubleTapSeekAreaWidth.collectAsState()
   val seekAreaFraction = doubleTapSeekAreaWidth / 100f
   
-  val alpha by animateFloatAsState(if (amount == 0) 0f else 0.2f, label = "double_tap_animation_alpha")
+  val showCircularDoubleTapSeek by playerPreferences.showCircularDoubleTapSeek.collectAsState()
+  val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
 
-  // Scale animation for text
-  var scaleTarget by remember { mutableStateOf(1f) }
-  val scale by animateFloatAsState(
+  // Track the last direction/amount so we know where to slide/hide and show correct text even when amount becomes 0
+  var lastIsRight by remember { mutableStateOf(true) }
+  var lastNonNullAmount by remember { mutableStateOf(10) }
+  LaunchedEffect(amount) {
+    if (amount > 0) {
+      lastIsRight = true
+      lastNonNullAmount = abs(amount)
+    } else if (amount < 0) {
+      lastIsRight = false
+      lastNonNullAmount = abs(amount)
+    }
+  }
+
+  val isRight = if (amount != 0) amount > 0 else lastIsRight
+  val seekDisplayAmount = if (amount != 0) abs(amount) else lastNonNullAmount
+  val isVisible = amount != 0
+
+  if (showCircularDoubleTapSeek) {
+    // ----------------------------------------------------
+    // New optional circular double tap seek overlay
+    // ----------------------------------------------------
+    // Scale animation for bounce effect on each double tap
+    var scaleTarget by remember { mutableStateOf(1f) }
+    val scale by animateFloatAsState(
       targetValue = scaleTarget,
       animationSpec = tween(durationMillis = 150),
-      label = "text_scale"
-  )
-  
-  LaunchedEffect(amount) {
+      label = "circular_double_tap_scale"
+    )
+
+    LaunchedEffect(amount) {
       if (amount != 0) {
-          scaleTarget = 1.2f
-          delay(100)
-          scaleTarget = 1f
+        scaleTarget = 1.15f
+        delay(100)
+        scaleTarget = 1f
       } else {
         scaleTarget = 1f
       }
-  }
+    }
 
-  Box(
-    modifier = modifier.fillMaxSize(),
-    contentAlignment = if (amount > 0) Alignment.CenterEnd else Alignment.CenterStart,
-  ) {
-    CompositionLocalProvider(
-      LocalRippleConfiguration provides playerRippleConfiguration,
+    val glassModifier = if (enableGlass) {
+      Modifier.glassSurface(
+        shape = CircleShape,
+        backgroundColor = Color.White.copy(alpha = 0.05f),
+        borderColor = Color.White.copy(alpha = 0.15f),
+        borderWidth = 1.dp,
+        outerShadowColor = Color.Black.copy(alpha = 0.00f),
+        outerShadowBlur = 0.dp,
+        outerShadowOffsetX = 0.dp,
+        outerShadowOffsetY = 0.dp,
+        innerHighlightColor = Color.White.copy(alpha = 0.35f),
+        innerHighlightBlur = 5.dp,
+        innerHighlightOffsetX = (-2).dp,
+        innerHighlightOffsetY = (-2).dp,
+        innerShadowColor = Color.Black.copy(alpha = 0.35f),
+        innerShadowBlur = 5.dp,
+        innerShadowOffsetX = 2.dp,
+        innerShadowOffsetY = 2.dp
+      )
+    } else {
+      Modifier.background(Color.Black.copy(alpha = 0.55f), shape = CircleShape)
+    }
+
+    Box(
+      modifier = modifier.fillMaxSize(),
+      contentAlignment = if (isRight) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
-      if (amount != 0) {
-        Box(
-          modifier = Modifier
-            .fillMaxHeight()
-            .fillMaxWidth(seekAreaFraction),
-          contentAlignment = Alignment.Center,
+      Box(
+        modifier = Modifier
+          .fillMaxHeight()
+          .fillMaxWidth(seekAreaFraction),
+        contentAlignment = Alignment.Center,
+      ) {
+        AnimatedVisibility(
+          visible = isVisible,
+          enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f, animationSpec = tween(150)),
+          exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f, animationSpec = tween(150))
         ) {
-          if (showOvals) {
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.scale(scale)
+          ) {
+            // Rounded circle around the chevrons
             Box(
               modifier = Modifier
-                .fillMaxSize()
-                .clip(if (amount > 0) RightSideOvalShape else LeftSideOvalShape)
-                .background(Color.White.copy(alpha))
-                .indication(interactionSource, ripple()),
+                .size(72.dp)
+                .then(glassModifier),
+              contentAlignment = Alignment.Center
+            ) {
+              CombiningChevronsAnimation(
+                isRight = isRight,
+                trigger = amount
+              )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Seek time display right below the circle
+            Text(
+              text = if (isRight) "+${seekDisplayAmount}s" else "-${seekDisplayAmount}s",
+              fontSize = 18.sp,
+              fontWeight = FontWeight.ExtraBold,
+              color = Color.White
             )
           }
-          if (showSeekIcon || showSeekTime) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                if (amount < 0) {
-                    CombiningChevronsAnimation(isRight = false, trigger = amount)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "- ${abs(amount)}",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = Color.White,
-                        modifier = Modifier.scale(scale)
-                    )
-                } else {
-                    Text(
-                        text = "+ ${abs(amount)}",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = Color.White,
-                        modifier = Modifier.scale(scale)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    CombiningChevronsAnimation(isRight = true, trigger = amount)
-                }
+        }
+      }
+    }
+  } else {
+    // ----------------------------------------------------
+    // Original oval/ripple-based double tap seek overlay
+    // ----------------------------------------------------
+    val alpha by animateFloatAsState(if (amount == 0) 0f else 0.2f, label = "double_tap_animation_alpha")
+
+    // Scale animation for text
+    var scaleTarget by remember { mutableStateOf(1f) }
+    val scale by animateFloatAsState(
+        targetValue = scaleTarget,
+        animationSpec = tween(durationMillis = 150),
+        label = "text_scale"
+    )
+    
+    LaunchedEffect(amount) {
+        if (amount != 0) {
+            scaleTarget = 1.2f
+            delay(100)
+            scaleTarget = 1f
+        } else {
+          scaleTarget = 1f
+        }
+    }
+
+    Box(
+      modifier = modifier.fillMaxSize(),
+      contentAlignment = if (amount > 0) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+      CompositionLocalProvider(
+        LocalRippleConfiguration provides playerRippleConfiguration,
+      ) {
+        if (amount != 0) {
+          Box(
+            modifier = Modifier
+              .fillMaxHeight()
+              .fillMaxWidth(seekAreaFraction),
+            contentAlignment = Alignment.Center,
+          ) {
+            if (showOvals) {
+              Box(
+                modifier = Modifier
+                  .fillMaxSize()
+                  .clip(if (amount > 0) RightSideOvalShape else LeftSideOvalShape)
+                  .background(Color.White.copy(alpha))
+                  .indication(interactionSource, ripple()),
+              )
+            }
+            if (showSeekIcon || showSeekTime) {
+              Row(
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.Center
+              ) {
+                  if (amount < 0) {
+                      CombiningChevronsAnimation(isRight = false, trigger = amount)
+                      Spacer(modifier = Modifier.width(8.dp))
+                      Text(
+                          text = "- ${abs(amount)}",
+                          fontSize = 22.sp,
+                          fontWeight = FontWeight.Bold,
+                          textAlign = TextAlign.Center,
+                          color = Color.White,
+                          modifier = Modifier.scale(scale)
+                      )
+                  } else {
+                      Text(
+                          text = "+ ${abs(amount)}",
+                          fontSize = 22.sp,
+                          fontWeight = FontWeight.Bold,
+                          textAlign = TextAlign.Center,
+                          color = Color.White,
+                          modifier = Modifier.scale(scale)
+                      )
+                      Spacer(modifier = Modifier.width(8.dp))
+                      CombiningChevronsAnimation(isRight = true, trigger = amount)
+                  }
+              }
             }
           }
         }

@@ -117,7 +117,7 @@ fun CompactSpeedIndicator(
         imageVector = Icons.Default.FastForward,
         contentDescription = null,
         modifier = Modifier.size(16.dp),
-        tint = MaterialTheme.colorScheme.primary
+        tint = MaterialTheme.colorScheme.onSurface
       )
       
       Row(

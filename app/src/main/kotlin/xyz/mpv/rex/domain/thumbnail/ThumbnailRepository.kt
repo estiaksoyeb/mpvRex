@@ -154,11 +154,13 @@ class ThumbnailRepository(
             } else {
 
               // ---- Local-file path ---------------------------------------------
-              // Priority 0: embedded/attached picture (cover art). Catches MP4 covr,
+              // Priority 0: sibling image (cover art next to video file).
+              // Priority 1: embedded/attached picture (cover art). Catches MP4 covr,
               // MP3 APIC, and Matroska attachments — most notably files produced by
               // `yt-dlp --embed-thumbnail --merge-output-format mkv`. Skip frame-seeking
               // entirely when the container already carries a thumbnail.
-              val embedded = generateFromEmbeddedPicture(video, diskCacheDimension)
+              val sibling = loadFromSiblingImage(video, diskCacheDimension)
+              val embedded = sibling ?: generateFromEmbeddedPicture(video, diskCacheDimension)
               if (embedded != null) {
                 embedded
               } else {
@@ -507,6 +509,38 @@ class ThumbnailRepository(
     } catch (e: Throwable) {
       return null
     }
+  }
+
+  /**
+   * Checks for a sibling image file in the same directory with the same base name.
+   * Typically produced by downloaders like yt-dlp that save separate cover images.
+   */
+  private suspend fun loadFromSiblingImage(
+    video: Video,
+    dimension: Int,
+  ): Bitmap? = withContext(Dispatchers.IO) {
+    if (isNetworkUrl(video.path)) return@withContext null
+
+    val videoFile = File(video.path)
+    val parentDir = videoFile.parentFile ?: return@withContext null
+    if (!parentDir.exists() || !parentDir.isDirectory) return@withContext null
+
+    val baseName = videoFile.nameWithoutExtension
+    if (baseName.isBlank()) return@withContext null
+
+    // Supported extensions in order of preference
+    val extensions = listOf("jpg", "jpeg", "png", "webp")
+    for (ext in extensions) {
+      val siblingFile = File(parentDir, "$baseName.$ext")
+      if (siblingFile.exists() && siblingFile.isFile) {
+        android.util.Log.d("ThumbnailRepository", "Found sibling thumbnail: ${siblingFile.absolutePath} for ${video.displayName}")
+        val bmp = decodeFileSafely(siblingFile.absolutePath, dimension)
+        if (bmp != null) {
+          return@withContext rotateIfNeeded(video, bmp)
+        }
+      }
+    }
+    null
   }
 
   /**

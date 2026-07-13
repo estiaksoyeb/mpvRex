@@ -976,4 +976,65 @@
     <string name="permission_explanation_tiramisu_plus">On Android 13 and above, this permission allows the app to read video files from your device\'s storage, including Downloads, Movies, and DCIM folders.</string>
     <string name="permission_explanation_pre_tiramisu">This permission allows the app to read media files from your device\'s storage to play videos and audio.</string>
 
+        <!-- PlayerControlsShared -->
+    <string name="playlist_separator">• %1$s</string>
+    <string name="chapters">Chapters</string>
+    <string name="skip_seconds">Skip %1$ds</string>
+    <string name="playback_speed">Playback Speed</string>
+    <string name="screen_rotation">Rotation</string>
+    <string name="frame_nav">Frame Nav</string>
+    <string name="frame_navigation">Frame Navigation</string>
+    <string name="pip">PiP</string>
+    <string name="video_zoom">Video Zoom</string>
+    <string name="lock">Lock</string>
+    <string name="audio">Audio</string>
+    <string name="subtitles">Subtitles</string>
+    <string name="repeat_off">Repeat Off</string>
+    <string name="repeat_one">Repeat One</string>
+    <string name="repeat_all">Repeat All</string>
+    <string name="shuffle_on">Shuffle On</string>
+    <string name="shuffle_off">Shuffle Off</string>
+    <string name="mirrored">Mirrored</string>
+    <string name="mirror">Mirror</string>
+    <string name="flipped">Flipped</string>
+    <string name="flip_vertical">Flip Vert</string>
+    <string name="flip_vertical_desc">Vertical Flip</string>
+    <string name="ab_loop_short">AB</string>
+    <string name="loop">Loop</string>
+    <string name="background_playback">Background</string>
+    <string name="ambient">Ambient</string>
+    <string name="ambience_mode">Ambience Mode</string>
+    <string name="sleep_timer">Sleep Timer</string>
+
+        <!-- Preference section headers -->
+    <string name="pref_layout_landscape_controls_header">Landscape Controls</string>
+    <string name="pref_layout_portrait_controls_header">Portrait Controls</string>
+    <string name="pref_layout_more_sheet_controls_header">More Sheet Controls</string>
+    <string name="pref_layout_more_sheet_controls_title">Buttons in Controls Tab</string>
+    <string name="pref_seekbar_style_header">Seekbar Style</string>
+    <string name="pref_controls_layout_header">Controls Layout</string>
+    <string name="pref_player_appearance_header">Appearance</string>
+
+        <!-- Controls Layout: below/above seekbar -->
+    <string name="pref_controls_layout_below_seekbar_title">Bottom controls below seekbar</string>
+    <string name="pref_controls_layout_below_seekbar_summary_true">Control buttons appear below the seekbar</string>
+    <string name="pref_controls_layout_below_seekbar_summary_false">Control buttons appear above the seekbar</string>
+
+        <!-- Appearance section -->
+    <string name="pref_appearance_show_controls_on_play_title">Show controls on play start</string>
+    <string name="pref_appearance_show_controls_on_play_summary">Show player controls overlay when a video starts playing</string>
+    <string name="pref_appearance_player_gradient_opacity_title">Player gradient opacity</string>
+    <string name="pref_appearance_player_gradient_opacity_current">Current: %1$d%%</string>
+
+        <!-- Custom hide-time dialog -->
+    <string name="pref_player_display_custom_hide_time_dialog_message">Enter custom hide time in milliseconds</string>
+    <string name="pref_player_display_time_ms_format">%1$d ms</string>
+    <string name="pref_player_display_custom_time_summary">Custom (%1$d ms)</string>
+
+        <!-- Generic reusable strings -->
+    <string name="generic_none">None</string>
+    <string name="generic_custom">Custom</string>
+    <string name="generic_edit_content_description">Edit %1$s</string>
+
+
 </resources>

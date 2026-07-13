@@ -152,10 +152,18 @@ class ThumbnailRepository(
                 }
               }
             } else {
-              
+
               // ---- Local-file path ---------------------------------------------
+              // Priority 0: embedded/attached picture (cover art). Catches MP4 covr,
+              // MP3 APIC, and Matroska attachments — most notably files produced by
+              // `yt-dlp --embed-thumbnail --merge-output-format mkv`. Skip frame-seeking
+              // entirely when the container already carries a thumbnail.
+              val embedded = generateFromEmbeddedPicture(video, diskCacheDimension)
+              if (embedded != null) {
+                embedded
+              } else {
               // For local videos, we can be more aggressive about trying to find a good thumbnail:
-              // Short videos: (<2 min) get priority for MediaStore 
+              // Short videos: (<2 min) get priority for MediaStore
               // Longer videos: FastThumbnails -> MediaMetadataRetriever -> MediaStore
               val isShortVideo = video.duration in 1L..120_000L
 
@@ -195,6 +203,7 @@ class ThumbnailRepository(
                     generateWithMediaStore(video, diskCacheDimension)
                   }
                 }
+              }
               }
             }
 
@@ -498,6 +507,66 @@ class ThumbnailRepository(
     } catch (e: Throwable) {
       return null
     }
+  }
+
+  /**
+   * Two-pass embedded-picture extractor for local video files.
+   *
+   *   1. `MediaMetadataRetriever.getEmbeddedPicture()` — fast, handles MP4 `covr`
+   *      atoms and MP3 ID3 APIC frames reliably.
+   *   2. `FastThumbnails.getEmbeddedPicture()` (libmpv/FFmpeg) — fallback that
+   *      catches Matroska attachments (yt-dlp's `--embed-thumbnail` MKVs) which
+   *      Android's stock retriever frequently misses.
+   *
+   * Returns null when neither surface finds a picture; the caller then falls
+   * through to the standard frame-seeking chain.
+   */
+  private suspend fun generateFromEmbeddedPicture(
+    video: Video,
+    dimension: Int,
+  ): Bitmap? = withContext(Dispatchers.IO) {
+    if (isNetworkUrl(video.path)) return@withContext null
+    android.util.Log.d("ThumbnailRepository", "generateFromEmbeddedPicture: started for path=${video.path}")
+
+    val mmrBitmap = runCatching {
+      val retriever = android.media.MediaMetadataRetriever()
+      try {
+        retriever.setDataSource(video.path)
+        val bytes = retriever.embeddedPicture ?: return@runCatching null
+        val options = BitmapFactory.Options().apply {
+          inJustDecodeBounds = true
+          BitmapFactory.decodeByteArray(bytes, 0, bytes.size, this)
+          inSampleSize = calculateThumbnailSampleSize(outWidth, outHeight, dimension)
+          inJustDecodeBounds = false
+          inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+      } finally {
+        runCatching { retriever.release() }
+      }
+    }.onFailure {
+      android.util.Log.d("ThumbnailRepository", "MediaMetadataRetriever failed for ${video.displayName}: ${it.message}")
+    }.getOrNull()
+    
+    if (mmrBitmap != null) {
+      android.util.Log.d("ThumbnailRepository", "Embedded picture via MediaMetadataRetriever for ${video.displayName}")
+      return@withContext mmrBitmap
+    }
+
+    android.util.Log.d("ThumbnailRepository", "Calling FastThumbnails.getEmbeddedPictureAsync for ${video.displayName}")
+    val ffmpegBitmap = runCatching {
+      FastThumbnails.getEmbeddedPictureAsync(video.path, dimension)
+    }.onFailure {
+      android.util.Log.e("ThumbnailRepository", "FFmpeg attachment extraction failed for ${video.displayName}", it)
+    }.getOrNull()
+    
+    if (ffmpegBitmap != null) {
+      android.util.Log.d("ThumbnailRepository", "Embedded picture via FFmpeg attachment for ${video.displayName}")
+      return@withContext ffmpegBitmap
+    }
+
+    android.util.Log.d("ThumbnailRepository", "No embedded/attached picture found for ${video.displayName}")
+    null
   }
 
   private suspend fun generateAudioThumbnail(

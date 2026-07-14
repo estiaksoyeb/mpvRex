@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -108,6 +109,9 @@ fun SeekbarWithTimers(
   // Read Toggle for Bounce Animation from Preferences
   val appearancePrefs = koinInject<AppearancePreferences>()
   val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
+  val enableGlassPlayerControls by appearancePrefs.enableGlassPlayerControls.collectAsState()
+  val enableGlassSeekbar by appearancePrefs.enableGlassSeekbarBackground.collectAsState()
+  val isGlassActive = enableGlassPlayerControls && enableGlassSeekbar
 
   // Determine if the seekbar should be actively squeezed
   val shouldSqueeze = isUserInteracting || isGestureSeeking
@@ -166,8 +170,34 @@ fun SeekbarWithTimers(
     }
   }
 
+  val rowModifier = if (isGlassActive) {
+    modifier
+      .height(54.dp)
+      .glassSurface(
+        shape = RoundedCornerShape(27.dp),
+        backgroundColor = Color.White.copy(alpha = 0.05f),
+        borderColor = Color.White.copy(alpha = 0.15f),
+        borderWidth = 1.dp,
+        outerShadowColor = Color.Black.copy(alpha = 0.00f),
+        outerShadowBlur = 0.dp,
+        outerShadowOffsetX = 0.dp,
+        outerShadowOffsetY = 0.dp,
+        innerHighlightColor = Color.White.copy(alpha = 0.35f),
+        innerHighlightBlur = 5.dp,
+        innerHighlightOffsetX = (-2).dp,
+        innerHighlightOffsetY = (-2).dp,
+        innerShadowColor = Color.Black.copy(alpha = 0.35f),
+        innerShadowBlur = 5.dp,
+        innerShadowOffsetX = 2.dp,
+        innerShadowOffsetY = 2.dp
+      )
+      .padding(horizontal = 14.dp)
+  } else {
+    modifier.height(48.dp)
+  }
+
   Row(
-    modifier = modifier.height(48.dp),
+    modifier = rowModifier,
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
   ) {
@@ -863,24 +893,7 @@ fun StandardSeekbar(
             val outerRadiusDp = trackHeightDp / 2
 
             val trackModifier = if (isGlassActive) {
-                Modifier.glassSurface(
-                    shape = RoundedCornerShape(outerRadiusDp),
-                    backgroundColor = Color.White.copy(alpha = 0.05f),
-                    borderColor = Color.White.copy(alpha = 0.15f),
-                    borderWidth = 1.dp,
-                    outerShadowColor = Color.Black.copy(alpha = 0.00f),
-                    outerShadowBlur = 0.dp,
-                    outerShadowOffsetX = 0.dp,
-                    outerShadowOffsetY = 0.dp,
-                    innerHighlightColor = Color.White.copy(alpha = 0.35f),
-                    innerHighlightBlur = 5.dp,
-                    innerHighlightOffsetX = (-2).dp,
-                    innerHighlightOffsetY = (-2).dp,
-                    innerShadowColor = Color.Black.copy(alpha = 0.35f),
-                    innerShadowBlur = 5.dp,
-                    innerShadowOffsetX = 2.dp,
-                    innerShadowOffsetY = 2.dp
-                )
+                Modifier.background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(outerRadiusDp))
             } else {
                 Modifier
             }

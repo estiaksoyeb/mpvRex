@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -173,6 +174,7 @@ fun SeekbarWithTimers(
   val rowModifier = if (isGlassActive) {
     modifier
       .height(54.dp)
+      .padding(horizontal = 16.dp)
       .glassSurface(
         shape = RoundedCornerShape(27.dp),
         backgroundColor = Color.White.copy(alpha = 0.05f),
@@ -208,7 +210,7 @@ fun SeekbarWithTimers(
         clickEvent()
         positionTimerOnClick()
       },
-      modifier = Modifier.width(92.dp),
+      modifier = if (isGlassActive) Modifier.wrapContentWidth() else Modifier.width(92.dp),
     )
 
     // Seekbar
@@ -349,7 +351,7 @@ fun SeekbarWithTimers(
         clickEvent()
         durationTimerOnCLick()
       },
-      modifier = Modifier.width(92.dp),
+      modifier = if (isGlassActive) Modifier.wrapContentWidth() else Modifier.width(92.dp),
     )
   }
 }

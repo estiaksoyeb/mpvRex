@@ -1182,7 +1182,7 @@ fun PlayerControls(
                     val bottomMargin = 45.dp + spacing.medium + spacing.small
                     bottom.linkTo(parent.bottom, bottomMargin)
                   } else {
-                    bottom.linkTo(parent.bottom, spacing.extraSmall)
+                    bottom.linkTo(parent.bottom, spacing.medium)
                   }
                 }
                 start.linkTo(parent.start, spacing.large)
@@ -1468,7 +1468,9 @@ fun PlayerControls(
               onOpenPanel = onOpenPanel,
               viewModel = viewModel,
               activity = activity,
-            )          } else {
+              bottomPadding = if (bottomControlsBelowSeekbar) spacing.medium else 0.dp,
+            )
+          } else {
             BottomRightPlayerControlsLandscape(
               buttons = bottomRightButtons,
               chapters = chapters,

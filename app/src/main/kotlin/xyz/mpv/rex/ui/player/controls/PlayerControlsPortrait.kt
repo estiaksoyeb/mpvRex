@@ -168,6 +168,7 @@ fun BottomPlayerControlsPortrait(
   onOpenPanel: (Panels) -> Unit,
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
+  bottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
   val scrollState = rememberScrollState()
   val clickEvent = LocalPlayerButtonsClickEvent.current
@@ -185,7 +186,7 @@ fun BottomPlayerControlsPortrait(
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .padding(bottom = spacing.medium)
+      .padding(bottom = bottomPadding)
       .height(48.dp)
       .horizontalScroll(scrollState),
     horizontalArrangement = Arrangement.Start,

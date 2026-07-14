@@ -163,7 +163,7 @@ fun BaseMediaCard(
                 // Title
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = when {
                         isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                         isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -172,7 +172,7 @@ fun BaseMediaCard(
                     maxLines = maxTitleLines,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = if (gridColumns == 1) TextAlign.Start else TextAlign.Center,
-                    fontWeight = if (isRecentlyPlayed) FontWeight.Black else FontWeight.Medium,
+                    fontWeight = if (isRecentlyPlayed) FontWeight.Black else FontWeight.Normal,
                     modifier = Modifier.fillMaxWidth()
                 )
                 

@@ -121,6 +121,13 @@ object SearchablePreferences {
                 screen = PlayerControlsPreferencesScreen,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_appearance_enable_glass_seekbar_title,
+                summaryRes = R.string.pref_appearance_enable_glass_seekbar_summary,
+                keywords = listOf("glass", "glassmorphism", "seekbar", "progress", "slider", "player", "appearance"),
+                category = "Appearance",
+                screen = PlayerControlsPreferencesScreen,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_player_display_hide_player_control_time,
                 keywords = listOf("time", "hide", "controls", "disappear", "timeout", "ms"),
                 category = "Appearance",

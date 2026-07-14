@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -855,163 +856,199 @@ fun StandardSeekbar(
             val disabledAlpha = 0.3f
             val bufferAlpha = 0.5f
 
-            Canvas(
+            val appearancePreferences = koinInject<AppearancePreferences>()
+            val enableGlassPlayerControls by appearancePreferences.enableGlassPlayerControls.collectAsState()
+            val enableGlassSeekbar by appearancePreferences.enableGlassSeekbarBackground.collectAsState()
+            val isGlassActive = enableGlassPlayerControls && enableGlassSeekbar
+            val outerRadiusDp = trackHeightDp / 2
+
+            val trackModifier = if (isGlassActive) {
+                Modifier.glassSurface(
+                    shape = RoundedCornerShape(outerRadiusDp),
+                    backgroundColor = Color.White.copy(alpha = 0.05f),
+                    borderColor = Color.White.copy(alpha = 0.15f),
+                    borderWidth = 1.dp,
+                    outerShadowColor = Color.Black.copy(alpha = 0.00f),
+                    outerShadowBlur = 0.dp,
+                    outerShadowOffsetX = 0.dp,
+                    outerShadowOffsetY = 0.dp,
+                    innerHighlightColor = Color.White.copy(alpha = 0.35f),
+                    innerHighlightBlur = 5.dp,
+                    innerHighlightOffsetX = (-2).dp,
+                    innerHighlightOffsetY = (-2).dp,
+                    innerShadowColor = Color.Black.copy(alpha = 0.35f),
+                    innerShadowBlur = 5.dp,
+                    innerShadowOffsetX = 2.dp,
+                    innerShadowOffsetY = 2.dp
+                )
+            } else {
+                Modifier
+            }
+
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(trackHeightDp),
+                    .height(trackHeightDp)
+                    .then(trackModifier)
             ) {
-                val min = sliderState.valueRange.start
-                val max = sliderState.valueRange.endInclusive
-                val range = (max - min).takeIf { it > 0f } ?: 1f
+                Canvas(
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    val min = sliderState.valueRange.start
+                    val max = sliderState.valueRange.endInclusive
+                    val range = (max - min).takeIf { it > 0f } ?: 1f
 
-                val trackValue = if (isDragging) dragStartValue else sliderState.value
-                val playedFraction = ((trackValue - min) / range).coerceIn(0f, 1f)
-                val readAheadFraction = ((readAheadValue() - min) / range).coerceIn(0f, 1f)
+                    val trackValue = if (isDragging) dragStartValue else sliderState.value
+                    val playedFraction = ((trackValue - min) / range).coerceIn(0f, 1f)
+                    val readAheadFraction = ((readAheadValue() - min) / range).coerceIn(0f, 1f)
 
-                val playedPx = size.width * playedFraction
-                val readAheadPx = size.width * readAheadFraction
-                val trackHeight = size.height
-                
-                // Radius for the outer ends of the seekbar
-                val outerRadius = trackHeight / 2f
-                
-                // MODIFIED: For Thick style, inner corners now match the outer rounding
-                val innerRadius = if (isThick) outerRadius else 2.dp.toPx()
-                
-                val thumbTrackGapSize = 14.dp.toPx()
-                val gapHalf = thumbTrackGapSize / 2f
-                val chapterGapHalf = 1.dp.toPx()
-                
-                val thumbFraction = ((sliderState.value - min) / range).coerceIn(0f, 1f)
-                val thumbPx = size.width * thumbFraction
-                val thumbGapStart = (thumbPx - gapHalf).coerceIn(0f, size.width)
-                val thumbGapEnd = (thumbPx + gapHalf).coerceIn(0f, size.width)
-                
-                val chapterGaps = chapters
-                    .map { (it.start / duration).coerceIn(0f, 1f) * size.width }
-                    .filter { it > 0f && it < size.width }
-                    .map { x -> (x - chapterGapHalf) to (x + chapterGapHalf) }
-
-                val allGaps = (chapterGaps + (thumbGapStart to thumbGapEnd))
-                    .filter { it.first < it.second }
-                
-                fun drawSegment(startX: Float, endX: Float, color: Color) {
-                    if (endX - startX < 0.5f) return
+                    val playedPx = size.width * playedFraction
+                    val readAheadPx = size.width * readAheadFraction
+                    val trackHeight = size.height
                     
-                    val path = Path()
-                    val isOuterLeft = startX <= 0.5f
-                    val isInnerLeft = kotlin.math.abs(startX - thumbGapEnd) < 0.5f
+                    // Radius for the outer ends of the seekbar
+                    val outerRadius = trackHeight / 2f
                     
-                    val cornerRadiusLeft = when {
-                        isOuterLeft -> androidx.compose.ui.geometry.CornerRadius(outerRadius)
-                        isInnerLeft -> androidx.compose.ui.geometry.CornerRadius(innerRadius)
-                        else -> androidx.compose.ui.geometry.CornerRadius.Zero
-                    }
-
-                    val isOuterRight = endX >= size.width - 0.5f
-                    val isInnerRight = kotlin.math.abs(endX - thumbGapStart) < 0.5f
-                    val isBufferRight = kotlin.math.abs(endX - readAheadPx) < 0.5f && readAheadPx > playedPx
-
-                    val cornerRadiusRight = when {
-                        isOuterRight || isBufferRight -> androidx.compose.ui.geometry.CornerRadius(outerRadius)
-                        isInnerRight -> androidx.compose.ui.geometry.CornerRadius(innerRadius)
-                        else -> androidx.compose.ui.geometry.CornerRadius.Zero
-                    }
+                    // MODIFIED: For Thick style, inner corners now match the outer rounding
+                    val innerRadius = if (isThick) outerRadius else 2.dp.toPx()
                     
-                    path.addRoundRect(
-                        androidx.compose.ui.geometry.RoundRect(
-                            left = startX,
-                            top = 0f,
-                            right = endX,
-                            bottom = trackHeight,
-                            topLeftCornerRadius = cornerRadiusLeft,
-                            bottomLeftCornerRadius = cornerRadiusLeft,
-                            topRightCornerRadius = cornerRadiusRight,
-                            bottomRightCornerRadius = cornerRadiusRight
-                        )
-                     )
-                     drawPath(path, color)
-                 }
-                 
-                 fun drawRangeWithGaps(
-                     rangeStart: Float, 
-                     rangeEnd: Float, 
-                     gaps: List<Pair<Float, Float>>, 
-                     color: Color
-                 ) {
-                     if (rangeEnd <= rangeStart) return
-                     val relevantGaps = gaps
-                         .filter { (gStart, gEnd) -> gEnd > rangeStart && gStart < rangeEnd }
-                         .sortedBy { it.first }
-                     
-                     var currentPos = rangeStart
-                     for ((gStart, gEnd) in relevantGaps) {
-                         val segmentEnd = gStart.coerceAtMost(rangeEnd)
-                         if (segmentEnd > currentPos) {
-                             drawSegment(currentPos, segmentEnd, color)
-                         }
-                         currentPos = gEnd.coerceAtLeast(currentPos)
-                     }
-                     if (currentPos < rangeEnd) {
-                         drawSegment(currentPos, rangeEnd, color)
-                     }
-                 }
-                 
-                 // 1. Unplayed Background
-                 drawRangeWithGaps(playedPx, size.width, allGaps, primaryColor.copy(alpha = disabledAlpha))
-                 
-                 // 2. Buffer
-                 if (readAheadPx > playedPx) {
-                     drawRangeWithGaps(playedPx, readAheadPx, allGaps, primaryColor.copy(alpha = bufferAlpha))
-                 }
-                 
-                 // 3. Played
-                 if (playedPx > 0f) {
-                     drawRangeWithGaps(0f, playedPx, allGaps, primaryColor)
-                 }
-
-                // 3. A-B Loop Indicators
-                if (loopStart != null || loopEnd != null) {
-                    val loopColor = Color(0xFFFFB300) // Amber/Gold color for loop
-                    val markerWidth = 2.dp.toPx()
+                    val thumbTrackGapSize = 14.dp.toPx()
+                    val gapHalf = thumbTrackGapSize / 2f
+                    val chapterGapHalf = 1.dp.toPx()
                     
-                    // Draw loop start marker
-                    if (loopStart != null) {
-                        val startPx = (loopStart / duration).coerceIn(0f, 1f) * size.width
-                        drawLine(
-                            color = loopColor,
-                            start = Offset(startPx, 0f),
-                            end = Offset(startPx, size.height),
-                            strokeWidth = markerWidth
-                        )
-                    }
+                    val thumbFraction = ((sliderState.value - min) / range).coerceIn(0f, 1f)
+                    val thumbPx = size.width * thumbFraction
+                    val thumbGapStart = (thumbPx - gapHalf).coerceIn(0f, size.width)
+                    val thumbGapEnd = (thumbPx + gapHalf).coerceIn(0f, size.width)
+                    
+                    val chapterGaps = chapters
+                        .map { (it.start / duration).coerceIn(0f, 1f) * size.width }
+                        .filter { it > 0f && it < size.width }
+                        .map { x -> (x - chapterGapHalf) to (x + chapterGapHalf) }
 
-                    // Draw loop end marker
-                    if (loopEnd != null) {
-                        val endPx = (loopEnd / duration).coerceIn(0f, 1f) * size.width
-                        drawLine(
-                            color = loopColor,
-                            start = Offset(endPx, 0f),
-                            end = Offset(endPx, size.height),
-                            strokeWidth = markerWidth
-                        )
-                    }
-
-                    // Draw connected segment if both are set
-                    if (loopStart != null && loopEnd != null) {
-                        val minPx = (minOf(loopStart, loopEnd) / duration).coerceIn(0f, 1f) * size.width
-                        val maxPx = (maxOf(loopStart, loopEnd) / duration).coerceIn(0f, 1f) * size.width
+                    val allGaps = (chapterGaps + (thumbGapStart to thumbGapEnd))
+                        .filter { it.first < it.second }
+                    
+                    fun drawSegment(startX: Float, endX: Float, color: Color) {
+                        if (endX - startX < 0.5f) return
                         
-                        // Draw a semi-transparent overlay between A and B
-                        drawRect(
-                            color = loopColor.copy(alpha = 0.3f),
-                            topLeft = Offset(minPx, 0f),
-                            size = Size(maxPx - minPx, size.height)
-                        )
-                    }
-                }
-            }
-        },
+                        val path = Path()
+                        val isOuterLeft = startX <= 0.5f
+                        val isInnerLeft = kotlin.math.abs(startX - thumbGapEnd) < 0.5f
+                        
+                        val cornerRadiusLeft = when {
+                            isOuterLeft -> androidx.compose.ui.geometry.CornerRadius(outerRadius)
+                            isInnerLeft -> androidx.compose.ui.geometry.CornerRadius(innerRadius)
+                            else -> androidx.compose.ui.geometry.CornerRadius.Zero
+                        }
+
+                        val isOuterRight = endX >= size.width - 0.5f
+                        val isInnerRight = kotlin.math.abs(endX - thumbGapStart) < 0.5f
+                        val isBufferRight = kotlin.math.abs(endX - readAheadPx) < 0.5f && readAheadPx > playedPx
+
+                        val cornerRadiusRight = when {
+                            isOuterRight || isBufferRight -> androidx.compose.ui.geometry.CornerRadius(outerRadius)
+                            isInnerRight -> androidx.compose.ui.geometry.CornerRadius(innerRadius)
+                            else -> androidx.compose.ui.geometry.CornerRadius.Zero
+                        }
+                        
+                        path.addRoundRect(
+                            androidx.compose.ui.geometry.RoundRect(
+                                left = startX,
+                                top = 0f,
+                                right = endX,
+                                bottom = trackHeight,
+                                topLeftCornerRadius = cornerRadiusLeft,
+                                bottomLeftCornerRadius = cornerRadiusLeft,
+                                topRightCornerRadius = cornerRadiusRight,
+                                bottomRightCornerRadius = cornerRadiusRight
+                            )
+                         )
+                         drawPath(path, color)
+                     }
+                     
+                     fun drawRangeWithGaps(
+                         rangeStart: Float, 
+                         rangeEnd: Float, 
+                         gaps: List<Pair<Float, Float>>, 
+                         color: Color
+                     ) {
+                         if (rangeEnd <= rangeStart) return
+                         val relevantGaps = gaps
+                             .filter { (gStart, gEnd) -> gEnd > rangeStart && gStart < rangeEnd }
+                             .sortedBy { it.first }
+                         
+                         var currentPos = rangeStart
+                         for ((gStart, gEnd) in relevantGaps) {
+                             val segmentEnd = gStart.coerceAtMost(rangeEnd)
+                             if (segmentEnd > currentPos) {
+                                 drawSegment(currentPos, segmentEnd, color)
+                             }
+                             currentPos = gEnd.coerceAtLeast(currentPos)
+                         }
+                         if (currentPos < rangeEnd) {
+                             drawSegment(currentPos, rangeEnd, color)
+                         }
+                     }
+                     
+                     // 1. Unplayed Background
+                     if (!isGlassActive) {
+                         drawRangeWithGaps(playedPx, size.width, allGaps, primaryColor.copy(alpha = disabledAlpha))
+                     }
+                     
+                     // 2. Buffer
+                     if (readAheadPx > playedPx) {
+                         drawRangeWithGaps(playedPx, readAheadPx, allGaps, primaryColor.copy(alpha = bufferAlpha))
+                     }
+                     
+                     // 3. Played
+                     if (playedPx > 0f) {
+                         drawRangeWithGaps(0f, playedPx, allGaps, primaryColor)
+                     }
+ 
+                     // 3. A-B Loop Indicators
+                     if (loopStart != null || loopEnd != null) {
+                         val loopColor = Color(0xFFFFB300) // Amber/Gold color for loop
+                         val markerWidth = 2.dp.toPx()
+                         
+                         // Draw loop start marker
+                         if (loopStart != null) {
+                             val startPx = (loopStart / duration).coerceIn(0f, 1f) * size.width
+                             drawLine(
+                                 color = loopColor,
+                                 start = Offset(startPx, 0f),
+                                 end = Offset(startPx, size.height),
+                                 strokeWidth = markerWidth
+                             )
+                         }
+ 
+                         // Draw loop end marker
+                         if (loopEnd != null) {
+                             val endPx = (loopEnd / duration).coerceIn(0f, 1f) * size.width
+                             drawLine(
+                                 color = loopColor,
+                                 start = Offset(endPx, 0f),
+                                 end = Offset(endPx, size.height),
+                                 strokeWidth = markerWidth
+                             )
+                         }
+ 
+                         // Draw connected segment if both are set
+                         if (loopStart != null && loopEnd != null) {
+                             val minPx = (minOf(loopStart, loopEnd) / duration).coerceIn(0f, 1f) * size.width
+                             val maxPx = (maxOf(loopStart, loopEnd) / duration).coerceIn(0f, 1f) * size.width
+                             
+                             // Draw a semi-transparent overlay between A and B
+                             drawRect(
+                                 color = loopColor.copy(alpha = 0.3f),
+                                 topLeft = Offset(minPx, 0f),
+                                 size = Size(maxPx - minPx, size.height)
+                             )
+                         }
+                     }
+                 }
+             }
+         },
         thumb = {
             Box(
                 modifier = Modifier

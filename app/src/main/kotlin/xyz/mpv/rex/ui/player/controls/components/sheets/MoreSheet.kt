@@ -49,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.draw.alpha
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -585,6 +586,7 @@ fun InteractionTab() {
 
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
   val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
+  val enableGlassSeekbar by appearancePreferences.enableGlassSeekbarBackground.collectAsState()
   val enableBounceAnimation by appearancePreferences.enableBounceAnimation.collectAsState()
   val preventSeekbarTap by gesturePreferences.preventSeekbarTap.collectAsState()
   val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
@@ -659,6 +661,14 @@ fun InteractionTab() {
     )
 
     InteractionSwitch(
+      label = stringResource(R.string.pref_appearance_enable_glass_seekbar_title),
+      description = stringResource(R.string.pref_appearance_enable_glass_seekbar_summary),
+      checked = enableGlassSeekbar,
+      onCheckedChange = { appearancePreferences.enableGlassSeekbarBackground.set(it) },
+      enabled = enableGlass
+    )
+
+    InteractionSwitch(
       label = stringResource(R.string.pref_gesture_prevent_seekbar_tap_title),
       description = stringResource(R.string.pref_gesture_prevent_seekbar_tap_summary),
       checked = preventSeekbarTap,
@@ -701,15 +711,18 @@ private fun InteractionSwitch(
   description: String,
   checked: Boolean,
   onCheckedChange: (Boolean) -> Unit,
+  enabled: Boolean = true,
 ) {
+  val alpha = if (enabled) 1.0f else 0.5f
   Surface(
     shape = MaterialTheme.shapes.medium,
     color = MaterialTheme.colorScheme.surfaceContainerLow,
-    modifier = Modifier.fillMaxWidth()
+    modifier = Modifier.fillMaxWidth().alpha(alpha)
   ) {
     SwitchPreference(
       value = checked,
       onValueChange = onCheckedChange,
+      enabled = enabled,
       title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
       summary = { 
         Text(

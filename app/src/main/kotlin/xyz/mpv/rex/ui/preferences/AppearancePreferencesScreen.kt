@@ -258,6 +258,25 @@ object AppearancePreferencesScreen : Screen {
 
                             PreferenceDivider()
 
+                            val enableGlassSeekbarBackground by preferences.enableGlassSeekbarBackground.collectAsState()
+                            SwitchPreference(
+                                value = enableGlassSeekbarBackground,
+                                onValueChange = { preferences.enableGlassSeekbarBackground.set(it) },
+                                enabled = enableGlassPlayerControls,
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_summary),
+                                    )
+                                },
+                            )
+
+                            PreferenceDivider()
+
                             val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
                             SwitchPreference(
                                 value = playerAlwaysDarkMode,

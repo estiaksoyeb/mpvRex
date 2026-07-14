@@ -44,6 +44,9 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.ui.res.stringResource
 import xyz.mpv.rex.R
+import my.nanihadesuka.compose.LazyColumnScrollbar
+import my.nanihadesuka.compose.LazyVerticalGridScrollbar
+import my.nanihadesuka.compose.ScrollbarSettings
 
 @Composable
 fun <T> UnifiedExplorerContent(
@@ -599,6 +602,41 @@ fun <T> UnifiedExplorerContent(
                 videoPlaybackProgress = videoPlaybackProgress,
                 showSections = showSections
               )
+            }
+          }
+        }
+      }
+
+      // Scrollbar overlay with bottom padding to avoid overlap with navigation
+      if (items.size > 20) {
+        Box(
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = navigationBarHeight)
+        ) {
+          if (mediaLayoutMode == MediaLayoutMode.GRID && !showSections) {
+            LazyVerticalGridScrollbar(
+              state = gridState,
+              settings = ScrollbarSettings(
+                thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                thumbSelectedColor = MaterialTheme.colorScheme.primary,
+                thumbMinLength = 0.08f,
+                thumbMaxLength = 0.08f,
+              ),
+            ) {
+              // Empty content - scrollbar only
+            }
+          } else {
+            LazyColumnScrollbar(
+              state = listState,
+              settings = ScrollbarSettings(
+                thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                thumbSelectedColor = MaterialTheme.colorScheme.primary,
+                thumbMinLength = 0.08f,
+                thumbMaxLength = 0.08f,
+              ),
+            ) {
+              // Empty content - scrollbar only
             }
           }
         }

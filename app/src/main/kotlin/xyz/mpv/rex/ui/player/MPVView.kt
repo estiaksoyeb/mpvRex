@@ -202,6 +202,11 @@ class MPVView(
     return true
   }
 
+  // Any property consumed via `MPVLib.propX["..."]` must also be listed here.
+  // `MPVLib.Property.map` is a process-scoped cache and skips `observeProperty`
+  // on hits — so without an entry here the property is never re-registered on
+  // fresh native handles created after the previous one was destroyed while the
+  // JVM stayed alive (e.g. via MediaPlaybackService).
   private val observedProps =
     mapOf(
       "pause" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
@@ -210,6 +215,11 @@ class MPVView(
       "video-params/w" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "video-params/h" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "eof-reached" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
+      "time-pos" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+      "duration" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+      "volume-max" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+      "track-list" to MPVLib.MpvFormat.MPV_FORMAT_NODE,
+      "chapter-list" to MPVLib.MpvFormat.MPV_FORMAT_NODE,
       "user-data/mpvex/show_text" to MPVLib.MpvFormat.MPV_FORMAT_STRING,
       "user-data/mpvex/toggle_ui" to MPVLib.MpvFormat.MPV_FORMAT_STRING,
       "user-data/mpvex/show_panel" to MPVLib.MpvFormat.MPV_FORMAT_STRING,

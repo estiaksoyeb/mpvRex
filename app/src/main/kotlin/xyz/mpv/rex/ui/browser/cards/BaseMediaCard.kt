@@ -65,6 +65,7 @@ fun BaseMediaCard(
     gridColumns: Int = 1,
     progressPercentage: Float? = null,
     maxTitleLines: Int = 2,
+    titleTextAlign: TextAlign = TextAlign.Start,
     thumbnailSize: Dp = 64.dp,
     thumbnailAspectRatio: Float = 16f / 9f,
     listTitleStyle: TextStyle? = null,
@@ -171,7 +172,7 @@ fun BaseMediaCard(
                     },
                     maxLines = maxTitleLines,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Start,
+                    textAlign = titleTextAlign,
                     fontWeight = if (isRecentlyPlayed && !isWatched) FontWeight.Black else FontWeight.Normal,
                     modifier = Modifier.fillMaxWidth()
                 )

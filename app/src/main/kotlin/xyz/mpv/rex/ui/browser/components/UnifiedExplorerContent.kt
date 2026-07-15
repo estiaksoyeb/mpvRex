@@ -96,7 +96,9 @@ fun <T> UnifiedExplorerContent(
     val isFolder = remember(items) {
       items.firstOrNull()?.let {
         it is VideoFolder || 
-        it is FileSystemItem.Folder
+        it is FileSystemItem.Folder ||
+        it is PlaylistWithCount ||
+        it is RecentlyPlayedItem.PlaylistItem
       } ?: false
     }
     if (isFolder) {

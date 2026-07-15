@@ -120,6 +120,8 @@ import org.koin.compose.koinInject
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.ui.player.PlayerTutorialManager
 import xyz.mpv.rex.preferences.preference.collectAsState
+import xyz.mpv.rex.preferences.BrowserPreferences
+import xyz.mpv.rex.ui.player.controls.components.glassSurface
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -1125,6 +1127,9 @@ private fun ActionColumn(
     onMore: () -> Unit,
     onLoveButtonPositioned: (Offset) -> Unit
 ) {
+    val browserPreferences = koinInject<BrowserPreferences>()
+    val showBackButton by browserPreferences.showShortsBackButton.collectAsState()
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -1167,14 +1172,16 @@ private fun ActionColumn(
             onClick = onFreeModeToggle
         )
         
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        // Back Button (replaces speed button)
-        ActionButton(
-            icon = Icons.AutoMirrored.Filled.ArrowBack, 
-            label = "Back", 
-            onClick = onBack
-        )
+        if (showBackButton) {
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Back Button (replaces speed button)
+            ActionButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack, 
+                label = "Back", 
+                onClick = onBack
+            )
+        }
         
         Spacer(modifier = Modifier.height(12.dp))
         
@@ -1190,6 +1197,9 @@ private fun ActionButton(
     iconColor: Color = Color.White,
     onClick: () -> Unit
 ) {
+    val browserPreferences = koinInject<BrowserPreferences>()
+    val enableGlass by browserPreferences.enableGlassShortsControls.collectAsState()
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -1197,6 +1207,29 @@ private fun ActionButton(
         animationSpec = spring(dampingRatio = 0.6f),
         label = "scale"
     )
+
+    val buttonModifier = if (enableGlass) {
+        Modifier.glassSurface(
+            shape = RoundedCornerShape(50),
+            backgroundColor = Color.White.copy(alpha = 0.05f),
+            borderColor = Color.White.copy(alpha = 0.15f),
+            borderWidth = 1.dp,
+            outerShadowColor = Color.Black.copy(alpha = 0.00f),
+            outerShadowBlur = 0.dp,
+            outerShadowOffsetX = 0.dp,
+            outerShadowOffsetY = 0.dp,
+            innerHighlightColor = Color.White.copy(alpha = 0.35f),
+            innerHighlightBlur = 5.dp,
+            innerHighlightOffsetX = (-2).dp,
+            innerHighlightOffsetY = (-2).dp,
+            innerShadowColor = Color.Black.copy(alpha = 0.35f),
+            innerShadowBlur = 5.dp,
+            innerShadowOffsetX = 2.dp,
+            innerShadowOffsetY = 2.dp
+        )
+    } else {
+        Modifier.background(Color.White.copy(alpha = 0.15f), shape = RoundedCornerShape(50))
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1207,8 +1240,8 @@ private fun ActionButton(
             interactionSource = interactionSource,
             modifier = Modifier
                 .size(48.dp)
+                .then(buttonModifier)
                 .clip(RoundedCornerShape(50))
-                .background(Color.White.copy(alpha = 0.15f))
                 .padding(4.dp)
         ) {
             Box {
@@ -1239,10 +1272,36 @@ private fun ActionButton(
 
 @Composable
 private fun MetadataChip(text: String) {
+    val browserPreferences = koinInject<BrowserPreferences>()
+    val enableGlass by browserPreferences.enableGlassShortsControls.collectAsState()
+
+    val chipModifier = if (enableGlass) {
+        Modifier.glassSurface(
+            shape = RoundedCornerShape(6.dp),
+            backgroundColor = Color.White.copy(alpha = 0.05f),
+            borderColor = Color.White.copy(alpha = 0.15f),
+            borderWidth = 1.dp,
+            outerShadowColor = Color.Black.copy(alpha = 0.00f),
+            outerShadowBlur = 0.dp,
+            outerShadowOffsetX = 0.dp,
+            outerShadowOffsetY = 0.dp,
+            innerHighlightColor = Color.White.copy(alpha = 0.35f),
+            innerHighlightBlur = 5.dp,
+            innerHighlightOffsetX = (-2).dp,
+            innerHighlightOffsetY = (-2).dp,
+            innerShadowColor = Color.Black.copy(alpha = 0.35f),
+            innerShadowBlur = 5.dp,
+            innerShadowOffsetX = 2.dp,
+            innerShadowOffsetY = 2.dp
+        )
+    } else {
+        Modifier.background(Color.White.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp))
+    }
+
     Box(
         modifier = Modifier
+            .then(chipModifier)
             .clip(RoundedCornerShape(6.dp))
-            .background(Color.White.copy(alpha = 0.15f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(

@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
-import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
@@ -177,7 +177,7 @@ object MainScreen : Screen {
         )
         if (isShortsEnabled) {
           add(
-            VisibleTab("shorts", shortsLabel, Icons.Filled.VideoLibrary) {
+            VisibleTab("shorts", shortsLabel, Icons.Outlined.VideoLibrary) {
               ShortsScreen().Content()
             }
           )

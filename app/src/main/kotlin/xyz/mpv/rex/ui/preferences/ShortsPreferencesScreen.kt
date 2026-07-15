@@ -11,6 +11,7 @@ import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material.icons.outlined.Opacity
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +65,8 @@ object ShortsPreferencesScreen : Screen {
         val browserPreferences = koinInject<BrowserPreferences>()
         val enableShorts by browserPreferences.enableShorts.collectAsState()
         val autoSwipeShorts by browserPreferences.autoSwipeShorts.collectAsState()
+        val enableGlassShortsControls by browserPreferences.enableGlassShortsControls.collectAsState()
+        val showShortsBackButton by browserPreferences.showShortsBackButton.collectAsState()
         val includeHorizontal by browserPreferences.includeShortHorizontalVideos.collectAsState()
         val maxDuration by browserPreferences.maxHorizontalVideoDurationMinutes.collectAsState()
         val context = LocalContext.current
@@ -135,6 +138,38 @@ object ShortsPreferencesScreen : Screen {
                                 icon = {
                                     Icon(
                                         Icons.Outlined.Repeat,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            )
+
+                            PreferenceDivider()
+
+                            SwitchPreference(
+                                value = enableGlassShortsControls,
+                                onValueChange = { browserPreferences.enableGlassShortsControls.set(it) },
+                                title = { Text(stringResource(R.string.pref_enable_glass_shorts_controls)) },
+                                summary = { Text(stringResource(R.string.pref_enable_glass_shorts_controls_summary)) },
+                                icon = {
+                                    Icon(
+                                        Icons.Outlined.Opacity,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            )
+
+                            PreferenceDivider()
+
+                            SwitchPreference(
+                                value = showShortsBackButton,
+                                onValueChange = { browserPreferences.showShortsBackButton.set(it) },
+                                title = { Text(stringResource(R.string.pref_show_shorts_back_button)) },
+                                summary = { Text(stringResource(R.string.pref_show_shorts_back_button_summary)) },
+                                icon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Outlined.ArrowBack,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )

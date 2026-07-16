@@ -334,6 +334,10 @@ fun PlayerSheets(
       val currentRatio by viewModel.currentAspectRatio.composeCollectAsState()
       val videoZoom by viewModel.videoZoom.composeCollectAsState()
       val videoPanX by viewModel.videoPanX.composeCollectAsState()
+      val videoPanY by viewModel.videoPanY.composeCollectAsState()
+      val advancedZoomEnabled by viewModel.advancedZoomEnabled.composeCollectAsState()
+      val videoScaleX by viewModel.videoScaleX.composeCollectAsState()
+      val videoScaleY by viewModel.videoScaleY.composeCollectAsState()
       val customRatios =
         customRatiosSet.mapNotNull { str ->
           val parts = str.split("|")
@@ -353,6 +357,7 @@ fun PlayerSheets(
         customRatios = customRatios,
         videoZoom = videoZoom,
         videoPanX = videoPanX,
+        videoPanY = videoPanY,
         onZoomChange = { zoom ->
           viewModel.setVideoZoom(zoom)
           playerPreferences.defaultVideoZoom.set(zoom)
@@ -360,6 +365,34 @@ fun PlayerSheets(
         onPanXChange = { panX ->
           viewModel.setVideoPan(panX, viewModel.videoPanY.value)
           playerPreferences.defaultVideoPanX.set(panX)
+        },
+        onPanYChange = { panY ->
+          viewModel.setVideoPan(viewModel.videoPanX.value, panY)
+          playerPreferences.defaultVideoPanY.set(panY)
+        },
+        advancedZoomEnabled = advancedZoomEnabled,
+        videoScaleX = videoScaleX,
+        videoScaleY = videoScaleY,
+        onAdvancedZoomToggle = { enabled ->
+          viewModel.setAdvancedZoomEnabled(enabled)
+          playerPreferences.advancedZoomEnabled.set(enabled)
+          if (!enabled) {
+            playerPreferences.defaultVideoScaleX.set(1f)
+            playerPreferences.defaultVideoScaleY.set(1f)
+          }
+        },
+        onScaleXChange = { scale ->
+          viewModel.setVideoScaleX(scale)
+          playerPreferences.defaultVideoScaleX.set(scale)
+        },
+        onScaleYChange = { scale ->
+          viewModel.setVideoScaleY(scale)
+          playerPreferences.defaultVideoScaleY.set(scale)
+        },
+        onResetAdvancedZoom = {
+          viewModel.resetAdvancedZoom()
+          playerPreferences.defaultVideoScaleX.set(1f)
+          playerPreferences.defaultVideoScaleY.set(1f)
         },
         onSelectRatio = { ratio ->
           if (ratio < 0) {

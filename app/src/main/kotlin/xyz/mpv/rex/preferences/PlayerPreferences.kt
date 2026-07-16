@@ -57,6 +57,10 @@ class PlayerPreferences(
   val defaultVideoPanY = preferenceStore.getFloat("default_video_pan_y", 0f)
   val panAndZoomEnabled = preferenceStore.getBoolean("pan_and_zoom_enabled", false)
 
+  val advancedZoomEnabled = preferenceStore.getBoolean("advanced_zoom_enabled", false)
+  val defaultVideoScaleX = preferenceStore.getFloat("default_video_scale_x", 1f)
+  val defaultVideoScaleY = preferenceStore.getFloat("default_video_scale_y", 1f)
+
   val includeSubtitlesInSnapshot = preferenceStore.getBoolean("include_subtitles_in_snapshot", false)
 
   val playlistMode = preferenceStore.getBoolean("playlist_mode", true)

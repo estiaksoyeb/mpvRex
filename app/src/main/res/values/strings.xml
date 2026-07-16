@@ -513,6 +513,7 @@
     <string name="player_sheets_aspect_ratio_zoom_value">Zoom: %1$.2fx</string>
     <string name="player_sheets_aspect_ratio_reset_zoom">Reset Zoom</string>
     <string name="player_sheets_aspect_ratio_horizontal_offset_value">Horizontal Offset: %1$.3f</string>
+    <string name="player_sheets_aspect_ratio_vertical_offset_value">Vertical Offset: %1$.3f</string>
     <string name="player_sheets_aspect_ratio_reset_pan">Reset Pan</string>
     <string name="player_sheets_aspect_ratio_add_custom_title">Add Custom Ratio (e.g. 16:9)</string>
     <string name="player_sheets_aspect_ratio_width">Width</string>
@@ -521,6 +522,17 @@
     <string name="player_sheets_aspect_ratio_custom_ratio_label" translatable="false">%1$s:%2$s</string>
     <string name="player_sheets_aspect_ratio_invalid">Invalid</string>
     <string name="player_sheets_aspect_ratio_add">Add</string>
+    <string name="player_sheets_aspect_ratio_advanced_zoom_toggle">Advanced Zoom</string>
+    <string name="player_sheets_aspect_ratio_advanced_zoom_description">Independently stretch or crop the horizontal and vertical axes, useful for removing black bars</string>
+    <string name="player_sheets_aspect_ratio_horizontal_zoom_value">Horizontal Zoom: %1$.2fx</string>
+    <string name="player_sheets_aspect_ratio_vertical_zoom_value">Vertical Zoom: %1$.2fx</string>
+    <string name="player_sheets_aspect_ratio_reset_horizontal_zoom">Reset horizontal zoom</string>
+    <string name="player_sheets_aspect_ratio_reset_vertical_zoom">Reset vertical zoom</string>
+    <string name="player_sheets_aspect_ratio_decrease_horizontal_zoom">Decrease horizontal zoom</string>
+    <string name="player_sheets_aspect_ratio_increase_horizontal_zoom">Increase horizontal zoom</string>
+    <string name="player_sheets_aspect_ratio_decrease_vertical_zoom">Decrease vertical zoom</string>
+    <string name="player_sheets_aspect_ratio_increase_vertical_zoom">Increase vertical zoom</string>
+    <string name="player_sheets_aspect_ratio_reset_advanced_zoom">Reset Advanced Zoom</string>
 
     <string name="player_sheets_frame_navigation_title">Frame Navigation</string>
     <string name="player_sheets_frame_navigation_timestamp_value" formatted="false" translatable="false">%1$02d:%2$02d:%3$02d</string>

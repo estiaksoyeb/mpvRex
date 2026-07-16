@@ -975,6 +975,22 @@ class PlayerViewModel(
       _videoPanX.value = mpvPanX
       _videoPanY.value = mpvPanY
     }
+
+    val prefAdvancedZoomEnabled = playerPreferences.advancedZoomEnabled.get()
+    _advancedZoomEnabled.value = prefAdvancedZoomEnabled
+    if (prefAdvancedZoomEnabled) {
+      val prefScaleX = playerPreferences.defaultVideoScaleX.get()
+      val prefScaleY = playerPreferences.defaultVideoScaleY.get()
+      MPVLib.setPropertyDouble("video-scale-x", prefScaleX.toDouble())
+      MPVLib.setPropertyDouble("video-scale-y", prefScaleY.toDouble())
+      _videoScaleX.value = prefScaleX
+      _videoScaleY.value = prefScaleY
+    } else {
+      MPVLib.setPropertyDouble("video-scale-x", 1.0)
+      MPVLib.setPropertyDouble("video-scale-y", 1.0)
+      _videoScaleX.value = 1f
+      _videoScaleY.value = 1f
+    }
   }
 
   fun changeVideoAspect(
@@ -1243,6 +1259,40 @@ class PlayerViewModel(
 
   fun resetVideoZoom() {
     setVideoZoom(0f)
+  }
+
+  private val _advancedZoomEnabled = MutableStateFlow(false)
+  val advancedZoomEnabled: StateFlow<Boolean> = _advancedZoomEnabled.asStateFlow()
+
+  private val _videoScaleX = MutableStateFlow(1f)
+  val videoScaleX: StateFlow<Float> = _videoScaleX.asStateFlow()
+
+  private val _videoScaleY = MutableStateFlow(1f)
+  val videoScaleY: StateFlow<Float> = _videoScaleY.asStateFlow()
+
+  fun setAdvancedZoomEnabled(enabled: Boolean) {
+    _advancedZoomEnabled.value = enabled
+    if (enabled) {
+      setVideoZoom(0f)
+    } else {
+      setVideoScaleX(1f)
+      setVideoScaleY(1f)
+    }
+  }
+
+  fun setVideoScaleX(scale: Float) {
+    _videoScaleX.value = scale
+    MPVLib.setPropertyDouble("video-scale-x", scale.toDouble())
+  }
+
+  fun setVideoScaleY(scale: Float) {
+    _videoScaleY.value = scale
+    MPVLib.setPropertyDouble("video-scale-y", scale.toDouble())
+  }
+
+  fun resetAdvancedZoom() {
+    setVideoScaleX(1f)
+    setVideoScaleY(1f)
   }
 
   // ==================== Frame Navigation ====================

@@ -15,10 +15,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,7 +32,11 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,8 +67,17 @@ fun AspectRatioSheet(
   customRatios: List<AspectRatio>,
   videoZoom: Float,
   videoPanX: Float,
+  videoPanY: Float,
   onZoomChange: (Float) -> Unit,
   onPanXChange: (Float) -> Unit,
+  onPanYChange: (Float) -> Unit,
+  advancedZoomEnabled: Boolean,
+  videoScaleX: Float,
+  videoScaleY: Float,
+  onAdvancedZoomToggle: (Boolean) -> Unit,
+  onScaleXChange: (Float) -> Unit,
+  onScaleYChange: (Float) -> Unit,
+  onResetAdvancedZoom: () -> Unit,
   onSelectRatio: (Double) -> Unit,
   onAddCustomRatio: (String, Double) -> Unit,
   onDeleteCustomRatio: (AspectRatio) -> Unit,
@@ -191,8 +209,94 @@ fun AspectRatioSheet(
           .padding(bottom = MaterialTheme.spacing.small),
       )
 
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = MaterialTheme.spacing.medium)
+          .padding(bottom = MaterialTheme.spacing.small),
+      ) {
+        Switch(
+          checked = advancedZoomEnabled,
+          onCheckedChange = onAdvancedZoomToggle,
+          modifier = Modifier.scale(0.8f),
+          thumbContent = {
+            Crossfade(
+              targetState = advancedZoomEnabled,
+              animationSpec = tween(durationMillis = 200),
+              label = "AdvancedZoomSwitchIconAnimation",
+            ) { isChecked ->
+              if (isChecked) {
+                Icon(
+                  imageVector = Icons.Default.Check,
+                  contentDescription = null,
+                  modifier = Modifier.size(SwitchDefaults.IconSize),
+                  tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+              } else {
+                Icon(
+                  imageVector = Icons.Default.Close,
+                  contentDescription = null,
+                  modifier = Modifier.size(SwitchDefaults.IconSize),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+              }
+            }
+          },
+        )
+        Spacer(modifier = Modifier.width(MaterialTheme.spacing.small))
+        Column {
+          Text(
+            text = stringResource(R.string.player_sheets_aspect_ratio_advanced_zoom_toggle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (advancedZoomEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          Text(
+            text = stringResource(R.string.player_sheets_aspect_ratio_advanced_zoom_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+      }
+
+      if (advancedZoomEnabled) {
+        AdvancedZoomAxisControl(
+          label = stringResource(R.string.player_sheets_aspect_ratio_horizontal_zoom_value, videoScaleX),
+          value = videoScaleX,
+          onValueChange = onScaleXChange,
+          decreaseDescription = stringResource(R.string.player_sheets_aspect_ratio_decrease_horizontal_zoom),
+          increaseDescription = stringResource(R.string.player_sheets_aspect_ratio_increase_horizontal_zoom),
+          resetDescription = stringResource(R.string.player_sheets_aspect_ratio_reset_horizontal_zoom),
+        )
+
+        Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+
+        AdvancedZoomAxisControl(
+          label = stringResource(R.string.player_sheets_aspect_ratio_vertical_zoom_value, videoScaleY),
+          value = videoScaleY,
+          onValueChange = onScaleYChange,
+          decreaseDescription = stringResource(R.string.player_sheets_aspect_ratio_decrease_vertical_zoom),
+          increaseDescription = stringResource(R.string.player_sheets_aspect_ratio_increase_vertical_zoom),
+          resetDescription = stringResource(R.string.player_sheets_aspect_ratio_reset_vertical_zoom),
+        )
+
+        if (videoScaleX != 1f || videoScaleY != 1f) {
+          Button(
+            onClick = onResetAdvancedZoom,
+            modifier = Modifier
+              .padding(horizontal = MaterialTheme.spacing.medium)
+              .padding(top = MaterialTheme.spacing.small),
+          ) {
+            Text(
+              text = stringResource(R.string.player_sheets_aspect_ratio_reset_advanced_zoom),
+              style = MaterialTheme.typography.labelMedium,
+            )
+          }
+        }
+      }
+
       // Zoom Slider
-      Column(
+      if (!advancedZoomEnabled) Column(
         modifier = Modifier
           .fillMaxWidth()
           .padding(horizontal = MaterialTheme.spacing.medium)
@@ -269,6 +373,49 @@ fun AspectRatioSheet(
         Slider(
           value = videoPanX,
           onValueChange = onPanXChange,
+          valueRange = -1f..1f,
+          modifier = Modifier.fillMaxWidth()
+        )
+      }
+
+      Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = MaterialTheme.spacing.medium)
+      ) {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Text(
+            text =
+              stringResource(
+                R.string.player_sheets_aspect_ratio_vertical_offset_value,
+                videoPanY,
+              ),
+            style = MaterialTheme.typography.bodyMedium
+          )
+
+          if (videoPanY != 0f) {
+            IconButton(
+              onClick = { onPanYChange(0f) },
+              modifier = Modifier.size(24.dp)
+            ) {
+              Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = stringResource(R.string.player_sheets_aspect_ratio_reset_pan),
+                modifier = Modifier.size(16.dp)
+              )
+            }
+          }
+        }
+
+        Slider(
+          value = videoPanY,
+          onValueChange = onPanYChange,
           valueRange = -1f..1f,
           modifier = Modifier.fillMaxWidth()
         )
@@ -425,3 +572,72 @@ private fun calculateRatio(
 }
 
 private fun abs(value: Double): Double = if (value < 0) -value else value
+
+private const val ADVANCED_ZOOM_MIN = 0.5f
+private const val ADVANCED_ZOOM_MAX = 2.0f
+private const val ADVANCED_ZOOM_STEP = 0.05f
+
+@Composable
+private fun AdvancedZoomAxisControl(
+  label: String,
+  value: Float,
+  onValueChange: (Float) -> Unit,
+  decreaseDescription: String,
+  increaseDescription: String,
+  resetDescription: String,
+  modifier: Modifier = Modifier,
+) {
+  Column(
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = MaterialTheme.spacing.medium)
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.SpaceBetween,
+      modifier = Modifier.fillMaxWidth()
+    ) {
+      Text(text = label, style = MaterialTheme.typography.bodyMedium)
+
+      if (value != 1f) {
+        IconButton(
+          onClick = { onValueChange(1f) },
+          modifier = Modifier.size(24.dp)
+        ) {
+          Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = resetDescription,
+            modifier = Modifier.size(16.dp)
+          )
+        }
+      }
+    }
+
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
+      modifier = Modifier.fillMaxWidth(),
+    ) {
+      FilledTonalIconButton(
+        onClick = { onValueChange((value - ADVANCED_ZOOM_STEP).coerceAtLeast(ADVANCED_ZOOM_MIN)) },
+        modifier = Modifier.size(36.dp),
+      ) {
+        Icon(Icons.Default.Remove, contentDescription = decreaseDescription, modifier = Modifier.size(18.dp))
+      }
+
+      Slider(
+        value = value,
+        onValueChange = onValueChange,
+        valueRange = ADVANCED_ZOOM_MIN..ADVANCED_ZOOM_MAX,
+        modifier = Modifier.weight(1f)
+      )
+
+      FilledTonalIconButton(
+        onClick = { onValueChange((value + ADVANCED_ZOOM_STEP).coerceAtMost(ADVANCED_ZOOM_MAX)) },
+        modifier = Modifier.size(36.dp),
+      ) {
+        Icon(Icons.Default.Add, contentDescription = increaseDescription, modifier = Modifier.size(18.dp))
+      }
+    }
+  }
+}

@@ -1589,6 +1589,12 @@ private fun FileSystemSearchContent(
       }
 
       else -> {
+        val lastPlayedVideoPathInFolder = remember(searchResults, recentlyPlayedPaths, recentlyPlayedFilePath) {
+          val pathsInSearch = searchResults.filterIsInstance<FileSystemItem.VideoFile>().map { it.video.path }.toSet()
+          val overallLastPlayed = recentlyPlayedFilePath?.takeIf { it in pathsInSearch }
+          overallLastPlayed ?: recentlyPlayedPaths.firstOrNull { it in pathsInSearch }
+        }
+
         Box(
           modifier = Modifier.fillMaxSize()
         ) {
@@ -1629,19 +1635,13 @@ private fun FileSystemSearchContent(
                 folder = folderModel,
                 uiSettings = uiSettings,
                 isSelected = false,
-                isRecentlyPlayed = if (recentlyPlayedPaths.isNotEmpty()) {
-                  recentlyPlayedPaths.any { path ->
-                    try {
-                      java.io.File(path).parent == folder.path
-                    } catch (_: Exception) {
-                      false
-                    }
-                  }
-                } else {
-                  recentlyPlayedFilePath?.let {
+                isRecentlyPlayed = recentlyPlayedFilePath?.let {
+                  try {
                     java.io.File(it).parent == folder.path
-                  } ?: false
-                },
+                  } catch (_: Exception) {
+                    false
+                  }
+                } ?: false,
                 isWatched = (folder.videoCount > 0 || folder.audioCount > 0) && folder.unwatchedVideoCount == 0,
                 newVideoCount = folder.newCount,
                 onClick = { onFolderClick(folder) },
@@ -1662,11 +1662,7 @@ private fun FileSystemSearchContent(
                 progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                 isOldAndUnplayed = newVideoIds.contains(videoFile.video.id),
                 isWatched = watchedVideoIds.contains(videoFile.video.id),
-                isRecentlyPlayed = if (recentlyPlayedPaths.isNotEmpty()) {
-                  recentlyPlayedPaths.contains(videoFile.video.path)
-                } else {
-                  recentlyPlayedFilePath == videoFile.video.path
-                },
+                isRecentlyPlayed = videoFile.video.path == lastPlayedVideoPathInFolder,
                 isSelected = false,
                 isNeverPlayed = videoFilesWithPlayback[videoFile.video.id] == null,
                 onClick = { onVideoClick(videoFile.video) },

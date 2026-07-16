@@ -166,14 +166,14 @@ fun BaseMediaCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = when {
-                        isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                        isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         else -> MaterialTheme.colorScheme.onSurface
                     },
                     maxLines = maxTitleLines,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = titleTextAlign,
-                    fontWeight = if (isRecentlyPlayed && !isWatched) FontWeight.Black else FontWeight.Normal,
+                    fontWeight = if (isRecentlyPlayed) FontWeight.Black else FontWeight.Normal,
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -284,13 +284,13 @@ fun BaseMediaCard(
                         text = title,
                         style = listTitleStyle ?: MaterialTheme.typography.titleMedium,
                         color = when {
-                            isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             isRecentlyPlayed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             else -> MaterialTheme.colorScheme.onSurface
                         },
                         maxLines = maxTitleLines,
                         overflow = TextOverflow.Ellipsis,
-                        fontWeight = if (isRecentlyPlayed && !isWatched) FontWeight.Black else FontWeight.Normal,
+                        fontWeight = if (isRecentlyPlayed) FontWeight.Black else FontWeight.Normal,
                     )
 
                     if (infoContent != null) {

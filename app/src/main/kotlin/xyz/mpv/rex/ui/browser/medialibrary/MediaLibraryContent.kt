@@ -83,6 +83,7 @@ import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.ui.browser.components.BrowserBottomBar
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.components.SelectionOverflowAction
+import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
 import xyz.mpv.rex.ui.browser.dialogs.DeleteConfirmationDialog
 import xyz.mpv.rex.ui.browser.dialogs.RenameDialog
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
@@ -152,6 +153,7 @@ fun MediaLibraryContent() {
   val sortDialogOpen = rememberSaveable { mutableStateOf(false) }
   val deleteDialogOpen = rememberSaveable { mutableStateOf(false) }
   val renameDialogOpen = rememberSaveable { mutableStateOf(false) }
+  val addToPlaylistDialogOpen = rememberSaveable { mutableStateOf(false) }
 
   var mediaInfoUri by remember { mutableStateOf<Uri?>(null) }
   var multiSelectionInfo by remember { mutableStateOf<Triple<Int, Long, Long>?>(null) }
@@ -480,11 +482,11 @@ fun MediaLibraryContent() {
           onMoveClick = { /* N/A */ },
           onRenameClick = { renameDialogOpen.value = true },
           onDeleteClick = { deleteDialogOpen.value = true },
-          onAddToPlaylistClick = { /* N/A */ },
+          onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
           onMarkAsClick = { showMarkAsSheet = true },
           showCopy = false,
           showMove = false,
-          showAddToPlaylist = false,
+          showAddToPlaylist = true,
           modifier = Modifier.padding(bottom = navigationBarHeight + 16.dp)
         )
       }
@@ -554,6 +556,16 @@ fun MediaLibraryContent() {
       isOpen = showLinkDialog.value,
       onDismiss = { showLinkDialog.value = false },
       onPlayLink = { url -> MediaUtils.playFile(url, context, "play_link") },
+    )
+
+    AddToPlaylistDialog(
+      isOpen = addToPlaylistDialogOpen.value,
+      videos = selectionManager.getSelectedItems(),
+      onDismiss = { addToPlaylistDialogOpen.value = false },
+      onSuccess = {
+        selectionManager.clear()
+        viewModel.refresh()
+      },
     )
 
     mediaInfoUri?.let { uri ->

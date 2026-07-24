@@ -825,7 +825,14 @@
     <string name="pref_include_short_horizontal_videos">تضمين الفيديوهات القصيرة العادية</string>
     <string name="pref_include_short_horizontal_videos_summary">إظهار الفيديوهات الأفقية في التغذية إذا كانت قصيرة</string>
     <string name="pref_max_horizontal_video_duration">الحد الأقصى لمدة الفيديوهات الأفقية</string>
-    <string name="pref_max_horizontal_video_duration_desc">تقييد الفيديوهات الأفقية إلى%1$d دقيقة%2$s</string>
+    <plurals name="pref_max_horizontal_video_duration_desc">
+        <item quantity="zero">تقييد الفيديوهات الأفقية إلى %d دقيقة</item>
+        <item quantity="one">تقييد الفيديوهات الأفقية إلى دقيقة واحدة</item>
+        <item quantity="two">تقييد الفيديوهات الأفقية إلى دقيقتين</item>
+        <item quantity="few">تقييد الفيديوهات الأفقية إلى %d دقائق</item>
+        <item quantity="many">تقييد الفيديوهات الأفقية إلى %d دقيقة</item>
+        <item quantity="other">تقييد الفيديوهات الأفقية إلى %d دقيقة</item>
+    </plurals>
     <string name="pref_sourced_folders">المجلدات المصدرية</string>
     <string name="pref_sourced_folders_all">مصدرها جميع المجلدات المفحوصة</string>
     <string name="pref_sourced_folders_count">مصدرها %1$d مجلد(مجلدات)</string>

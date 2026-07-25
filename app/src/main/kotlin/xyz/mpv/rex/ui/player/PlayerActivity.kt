@@ -431,6 +431,9 @@ class PlayerActivity :
       if (isUriM3U(playableUri)) {
         loadM3uPlaylistOrPlayDirectly(playableUri)
       } else {
+        if (playerPreferences.savePositionOnQuit.get()) {
+          runCatching { MPVLib.setPropertyBoolean("pause", true) }
+        }
         player.playFile(playableUri)
       }
     }
@@ -2056,6 +2059,11 @@ class PlayerActivity :
       // Load playback state (will skip track restoration if preferred language configured)
       val hasState = loadVideoPlaybackState(fileName)
 
+      // Unpause playback after position and state restoration complete
+      runCatching {
+        MPVLib.setPropertyBoolean("pause", false)
+      }
+
       // Apply track selection logic (defaults only apply when no saved state)
       trackSelector.onFileLoaded(hasState)
 
@@ -2555,7 +2563,7 @@ class PlayerActivity :
     MPVLib.setPropertyDouble("video-zoom", state.videoZoom.toDouble())
     viewModel.setVideoZoom(state.videoZoom)
 
-    if (playerPreferences.savePositionOnQuit.get()) {
+    if (playerPreferences.savePositionOnQuit.get() && state != null && state.lastPosition > 3) {
       MPVLib.setPropertyInt("time-pos", state.lastPosition)
     } else {
       MPVLib.setPropertyInt("time-pos", 0)
@@ -2698,6 +2706,9 @@ class PlayerActivity :
       if (isUriM3U(uri)) {
         loadM3uPlaylistOrPlayDirectly(uri)
       } else {
+        if (playerPreferences.savePositionOnQuit.get()) {
+          runCatching { MPVLib.setPropertyBoolean("pause", true) }
+        }
         // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
         lifecycleScope.launch(Dispatchers.Default) {
           MPVLib.command("loadfile", uri)
@@ -3399,6 +3410,9 @@ class PlayerActivity :
       }
     }
 
+    if (playerPreferences.savePositionOnQuit.get()) {
+      runCatching { MPVLib.setPropertyBoolean("pause", true) }
+    }
     // Load the new video
     // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
     lifecycleScope.launch(Dispatchers.Default) {
@@ -3539,6 +3553,9 @@ class PlayerActivity :
         } else {
           // If parsing failed or HLS, play the URI directly in MPV
           Log.d(TAG, "M3U parsing failed or HLS stream. Playing directly: $uriStr")
+          if (playerPreferences.savePositionOnQuit.get()) {
+            runCatching { MPVLib.setPropertyBoolean("pause", true) }
+          }
           if (mpvInitialized) {
             lifecycleScope.launch(Dispatchers.Default) {
               MPVLib.command("loadfile", uriStr)

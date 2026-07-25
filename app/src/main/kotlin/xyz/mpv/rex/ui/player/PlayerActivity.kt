@@ -716,29 +716,29 @@ class PlayerActivity :
     // Don't cleanup MPV if we're doing manual background playback
     if (!isFinishing || isManualBackgroundPlayback) return
 
-    runCatching {
-      MPVLib.removeObserver(playerObserver)
+    MPVLifecycleLock.onTeardownStart()
+    try {
+      runCatching {
+        MPVLib.removeObserver(playerObserver)
 
-      if (isReady) {
-        // Pause playback first to reduce thread activity
-        MPVLib.setPropertyBoolean("pause", true)
+        if (isReady) {
+          MPVLib.setPropertyBoolean("pause", true)
+          MPVLib.command("quit")
+        }
 
-        // Send quit command to gracefully shut down MPV
-        MPVLib.command("quit")
+        // Explicitly detach Surface and set VO to null so Android RenderThread drops ANativeWindow mutexes
+        runCatching {
+          MPVLib.setPropertyString("vo", "null")
+          MPVLib.detachSurface()
+        }
 
-        // Wait briefly for MPV to process quit and clean up internal threads
-        // This prevents race conditions where hardware UI threads try to access
-        // mutexes/queues that are destroyed by MPVLib.destroy()
-        // We use a short blocking wait here as onDestroy is already on the main thread
-        // and this ensures proper cleanup before activity destruction
-        Thread.sleep(100)
+        MPVLib.destroy()
+        mpvInitialized = false
+      }.onFailure { e ->
+        Log.e(TAG, "Error cleaning up MPV", e)
       }
-
-      // Now safe to destroy MPV as internal threads have had time to shut down
-      MPVLib.destroy()
-      mpvInitialized = false
-    }.onFailure { e ->
-      Log.e(TAG, "Error cleaning up MPV", e)
+    } finally {
+      MPVLifecycleLock.onTeardownComplete()
     }
   }
 
@@ -987,6 +987,12 @@ class PlayerActivity :
    * CRITICAL: Must copy config and scripts BEFORE initializing MPV, as MPV loads scripts during init.
    */
   private fun setupMPV() {
+    if (MPVLifecycleLock.isTearingDown.value) {
+      kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+        MPVLifecycleLock.awaitTeardown()
+      }
+    }
+
     // Copy essential files FIRST, before MPV initialization
     // MPV will load scripts during initialize(), so they must exist beforehand
     runCatching {

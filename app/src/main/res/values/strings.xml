@@ -924,7 +924,10 @@
     <string name="pref_include_short_horizontal_videos">Include Short Normal Videos</string>
     <string name="pref_include_short_horizontal_videos_summary">Show horizontal videos in the feed if they are short</string>
     <string name="pref_max_horizontal_video_duration">Max Horizontal Duration</string>
-    <string name="pref_max_horizontal_video_duration_desc">Limit horizontal videos to %1$d minute%2$s</string>
+    <plurals name="pref_max_horizontal_video_duration_desc">
+        <item quantity="one">Limit horizontal videos to %d minute</item>
+        <item quantity="other">Limit horizontal videos to %d minutes</item>
+    </plurals>
     <string name="pref_sourced_folders">Sourced Folders</string>
     <string name="pref_sourced_folders_all">Sourced from all scanned directories</string>
     <string name="pref_sourced_folders_count">Sourced from %1$d folder(s)</string>

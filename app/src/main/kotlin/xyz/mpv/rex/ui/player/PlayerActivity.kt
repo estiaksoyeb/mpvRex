@@ -2059,6 +2059,14 @@ class PlayerActivity :
       // Load playback state (will skip track restoration if preferred language configured)
       val hasState = loadVideoPlaybackState(fileName)
 
+      // Re-enable video track if it was disabled during media transition
+      runCatching {
+        val currentVid = MPVLib.getPropertyString("vid")
+        if (currentVid == "no") {
+          safeSetPropertyString("vid", "auto")
+        }
+      }
+
       // Unpause playback after position and state restoration complete
       runCatching {
         MPVLib.setPropertyBoolean("pause", false)
@@ -2706,7 +2714,10 @@ class PlayerActivity :
       if (isUriM3U(uri)) {
         loadM3uPlaylistOrPlayDirectly(uri)
       } else {
-        if (playerPreferences.savePositionOnQuit.get()) {
+        if (mpvInitialized) {
+          safeSetPropertyString("vid", "no")
+          runCatching { MPVLib.setPropertyBoolean("pause", true) }
+        } else if (playerPreferences.savePositionOnQuit.get()) {
           runCatching { MPVLib.setPropertyBoolean("pause", true) }
         }
         // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
@@ -3410,7 +3421,10 @@ class PlayerActivity :
       }
     }
 
-    if (playerPreferences.savePositionOnQuit.get()) {
+    if (mpvInitialized) {
+      safeSetPropertyString("vid", "no")
+      runCatching { MPVLib.setPropertyBoolean("pause", true) }
+    } else if (playerPreferences.savePositionOnQuit.get()) {
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
     }
     // Load the new video
@@ -3553,7 +3567,10 @@ class PlayerActivity :
         } else {
           // If parsing failed or HLS, play the URI directly in MPV
           Log.d(TAG, "M3U parsing failed or HLS stream. Playing directly: $uriStr")
-          if (playerPreferences.savePositionOnQuit.get()) {
+          if (mpvInitialized) {
+            safeSetPropertyString("vid", "no")
+            runCatching { MPVLib.setPropertyBoolean("pause", true) }
+          } else if (playerPreferences.savePositionOnQuit.get()) {
             runCatching { MPVLib.setPropertyBoolean("pause", true) }
           }
           if (mpvInitialized) {

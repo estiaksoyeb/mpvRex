@@ -78,6 +78,19 @@ fun BaseMediaCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (isGridMode && gridColumns > 1) Modifier else Modifier.padding(horizontal = 6.dp, vertical = 0.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                else Color.Transparent
+            )
+            .then(
+                if (isSelected) Modifier.border(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(12.dp)
+                ) else Modifier
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
@@ -89,19 +102,6 @@ fun BaseMediaCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .then(if (gridColumns == 1) Modifier.padding(horizontal = 8.dp, vertical = 2.dp) else Modifier)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                        else Color.Transparent
-                    )
-                    .then(
-                        if (isSelected) Modifier.border(
-                            width = 2.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
-                        ) else Modifier
-                    )
                     .then(if (gridColumns == 1) Modifier.padding(horizontal = 8.dp, vertical = 6.dp) else Modifier.padding(4.dp)),
                 horizontalAlignment = Alignment.Start,
             ) {
@@ -217,19 +217,6 @@ fun BaseMediaCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                        else Color.Transparent
-                    )
-                    .then(
-                        if (isSelected) Modifier.border(
-                            width = 2.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
-                        ) else Modifier
-                    )
                     .padding(vertical = 6.dp, horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -2,6 +2,7 @@ package xyz.mpv.rex.ui.browser.cards
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -88,11 +89,20 @@ fun BaseMediaCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .then(if (gridColumns == 1) Modifier.padding(horizontal = 8.dp, vertical = 2.dp) else Modifier)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
-                        if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f) 
+                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
                         else Color.Transparent
                     )
-                    .then(if (gridColumns == 1) Modifier.padding(horizontal = 12.dp, vertical = 4.dp) else Modifier.padding(4.dp)),
+                    .then(
+                        if (isSelected) Modifier.border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
+                        ) else Modifier
+                    )
+                    .then(if (gridColumns == 1) Modifier.padding(horizontal = 8.dp, vertical = 6.dp) else Modifier.padding(4.dp)),
                 horizontalAlignment = Alignment.Start,
             ) {
                 // Thumbnail Box
@@ -207,11 +217,20 @@ fun BaseMediaCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
-                        if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
+                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
                         else Color.Transparent
                     )
-                    .padding(vertical = 4.dp, horizontal = 16.dp),
+                    .then(
+                        if (isSelected) Modifier.border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
+                        ) else Modifier
+                    )
+                    .padding(vertical = 6.dp, horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
         // Thumbnail Box

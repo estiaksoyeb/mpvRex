@@ -1,6 +1,7 @@
 package xyz.mpv.rex.ui.browser.cards
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -59,10 +60,19 @@ fun NetworkFolderCard(
       modifier =
         Modifier
           .fillMaxWidth()
+          .padding(horizontal = 8.dp, vertical = 2.dp)
+          .clip(RoundedCornerShape(12.dp))
           .background(
-            if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f) else Color.Transparent,
+            if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
           )
-          .padding(vertical = 4.dp, horizontal = 16.dp),
+          .then(
+            if (isSelected) Modifier.border(
+              width = 2.dp,
+              color = MaterialTheme.colorScheme.primary,
+              shape = RoundedCornerShape(12.dp)
+            ) else Modifier
+          )
+          .padding(vertical = 6.dp, horizontal = 8.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
       Icon(

@@ -994,6 +994,8 @@
     <string name="slide_to_unlock">Slide to Unlock</string>
 
     <string name="player_sheets_tab_controls">Controls</string>
+    <string name="player_sheets_tab_aesthetics">Aesthetics</string>
+    <string name="player_sheets_tab_gestures">Gestures</string>
     <string name="player_sheets_tab_settings">Settings</string>
     <string name="player_sheets_tab_interaction">Interaction</string>
     <string name="anime4k_not_available_high_res">Not available for 4K/8K video</string>

@@ -451,11 +451,16 @@ fun ControlsTab(
   onShowSheet: (Sheets) -> Unit,
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
+  val playerPreferences = koinInject<PlayerPreferences>()
+
   val topRightControlsPref by appearancePreferences.topRightControls.collectAsState()
   val bottomRightControlsPref by appearancePreferences.bottomRightControls.collectAsState()
   val bottomLeftControlsPref by appearancePreferences.bottomLeftControls.collectAsState()
   val portraitBottomControlsPref by appearancePreferences.portraitBottomControls.collectAsState()
   val moreSheetControlsPref by appearancePreferences.moreSheetControls.collectAsState()
+
+  val bottomControlsBelowSeekbar by playerPreferences.bottomControlsBelowSeekbar.collectAsState()
+  val showControlsOnPlay by playerPreferences.showControlsOnPlay.collectAsState()
 
   val configuration = LocalConfiguration.current
   val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
@@ -599,6 +604,24 @@ fun ControlsTab(
               )
           }
       }
+
+      Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+
+      InteractionSwitch(
+        label = stringResource(R.string.pref_controls_layout_below_seekbar_title),
+        description = stringResource(if (bottomControlsBelowSeekbar) R.string.pref_controls_layout_below_seekbar_summary_true else R.string.pref_controls_layout_below_seekbar_summary_false),
+        checked = bottomControlsBelowSeekbar,
+        onCheckedChange = { playerPreferences.bottomControlsBelowSeekbar.set(it) }
+      )
+
+      Spacer(modifier = Modifier.height(MaterialTheme.spacing.smaller))
+
+      InteractionSwitch(
+        label = stringResource(R.string.pref_appearance_show_controls_on_play_title),
+        description = stringResource(R.string.pref_appearance_show_controls_on_play_summary),
+        checked = showControlsOnPlay,
+        onCheckedChange = { playerPreferences.showControlsOnPlay.set(it) }
+      )
   }
 }
 

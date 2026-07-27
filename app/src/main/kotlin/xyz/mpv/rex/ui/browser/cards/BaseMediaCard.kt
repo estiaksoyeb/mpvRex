@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import xyz.mpv.rex.ui.theme.LocalUiStyle
+import xyz.mpv.rex.ui.theme.UiStyle
 
 /**
  * Common Metadata Chip for media cards
@@ -75,11 +77,14 @@ fun BaseMediaCard(
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
 ) {
+    val isMiuix = LocalUiStyle.current == UiStyle.Miuix
+    val cardRadius = if (isMiuix) 18.dp else 12.dp
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .then(if (isGridMode && gridColumns > 1) Modifier else Modifier.padding(horizontal = 6.dp, vertical = 0.dp))
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(cardRadius))
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primaryContainer
                 else Color.Transparent
@@ -88,7 +93,7 @@ fun BaseMediaCard(
                 if (isSelected) Modifier.border(
                     width = 2.dp,
                     color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(cardRadius)
                 ) else Modifier
             )
             .combinedClickable(

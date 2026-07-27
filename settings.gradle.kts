@@ -21,6 +21,16 @@ dependencyResolutionManagement {
     mavenLocal()
     mavenCentral()
     maven(url = "https://sfsakhawat999.github.io/mpvRex-libmpv")
+    val gprUser = providers.gradleProperty("gpr.user").orElse(providers.environmentVariable("GITHUB_ACTOR"))
+    val gprKey = providers.gradleProperty("gpr.key").orElse(providers.environmentVariable("GITHUB_TOKEN"))
+    maven(url = "https://maven.pkg.github.com/compose-miuix-ui/miuix") {
+      if (gprUser.isPresent && gprKey.isPresent) {
+        credentials {
+          username = gprUser.get()
+          password = gprKey.get()
+        }
+      }
+    }
     maven(url = "https://www.jitpack.io") {
       content {
         // Only use JitPack for specific dependencies to avoid unnecessary checks
@@ -32,6 +42,7 @@ dependencyResolutionManagement {
         includeGroup("com.github.thegrizzlylabs")
         includeGroup("com.github.nanihadesuka")
         includeGroup("com.github.jeziellago")
+        includeGroup("top.yukonga.miuix.kmp")
       }
     }
   }

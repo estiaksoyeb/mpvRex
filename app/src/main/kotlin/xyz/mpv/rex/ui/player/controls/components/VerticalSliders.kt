@@ -45,6 +45,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
+import xyz.mpv.rex.ui.theme.LocalUiStyle
+import xyz.mpv.rex.ui.theme.UiStyle
 import xyz.mpv.rex.ui.theme.spacing
 import kotlin.math.roundToInt
 
@@ -74,17 +76,22 @@ fun VerticalSlider(
   val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
   val enableGlass by appearancePrefs.enableGlassPlayerControls.collectAsState()
 
-  val trackWidthAnim = remember { Animatable(22f) }
+  val isMiuix = LocalUiStyle.current == UiStyle.Miuix
+  val baseWidth = if (isMiuix) 28f else 22f
+  val expandedWidth = if (isMiuix) 36f else 32f
+  val trackCornerRadius = if (isMiuix) 20.dp else 16.dp
+
+  val trackWidthAnim = remember { Animatable(baseWidth) }
 
   // Listen for changes to the interaction state (touching vs. released)
-  LaunchedEffect(isActive, enableBounceAnimation) {
+  LaunchedEffect(isActive, enableBounceAnimation, baseWidth, expandedWidth) {
     if (!enableBounceAnimation) {
-      trackWidthAnim.snapTo(22f)
+      trackWidthAnim.snapTo(baseWidth)
       return@LaunchedEffect
     }
     if (isActive) {
       trackWidthAnim.animateTo(
-        targetValue = 32f,
+        targetValue = expandedWidth,
         animationSpec = spring(
           dampingRatio = Spring.DampingRatioNoBouncy,
           stiffness = Spring.StiffnessMedium
@@ -93,7 +100,7 @@ fun VerticalSlider(
     } else {
       kotlinx.coroutines.delay(150)
       trackWidthAnim.animateTo(
-        targetValue = 22f,
+        targetValue = baseWidth,
         animationSpec = spring(
           dampingRatio = 0.4f,
           stiffness = Spring.StiffnessLow
@@ -106,7 +113,7 @@ fun VerticalSlider(
 
   val trackModifier = if (enableGlass) {
     Modifier.glassSurface(
-      shape = RoundedCornerShape(16.dp),
+      shape = RoundedCornerShape(trackCornerRadius),
       backgroundColor = Color.White.copy(alpha = 0.05f),
       borderColor = Color.White.copy(alpha = 0.15f),
       borderWidth = 1.dp,
@@ -129,7 +136,7 @@ fun VerticalSlider(
       .border(
         width = 1.dp,
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(trackCornerRadius),
       )
   }
 
@@ -138,7 +145,7 @@ fun VerticalSlider(
     modifier =
       modifier
       .height(120.dp)
-      .width(32.dp),
+      .width(expandedWidth.dp),
     contentAlignment = Alignment.BottomCenter
   ) {
     // Inner track that actually animates
@@ -146,7 +153,7 @@ fun VerticalSlider(
       modifier = Modifier
         .fillMaxHeight()
         .width(trackWidth)
-        .clip(RoundedCornerShape(16.dp))
+        .clip(RoundedCornerShape(trackCornerRadius))
         .then(trackModifier),
       contentAlignment = Alignment.BottomCenter,
     ) {

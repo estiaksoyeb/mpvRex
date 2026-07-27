@@ -44,6 +44,9 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 
+import xyz.mpv.rex.ui.components.AppCard
+import xyz.mpv.rex.ui.components.AppTopBar
+
 @Serializable
 object PreferencesScreen : Screen {
   @OptIn(ExperimentalMaterial3Api::class)
@@ -52,15 +55,8 @@ object PreferencesScreen : Screen {
     val backstack = LocalBackStack.current
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = { 
-            Text(
-              text = stringResource(R.string.pref_preferences),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
+        AppTopBar(
+          title = stringResource(R.string.pref_preferences),
           navigationIcon = {
             IconButton(onClick = backstack::removeLastOrNull) {
               Icon(
@@ -82,14 +78,11 @@ object PreferencesScreen : Screen {
         ) {
           // Search bar - full width, prominent placement
           item {
-            Surface(
+            AppCard(
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
                 .clickable { backstack.add(SettingsSearchScreen) },
-              shape = RoundedCornerShape(28.dp),
-              color = MaterialTheme.colorScheme.surfaceContainerHigh,
-              tonalElevation = 2.dp,
             ) {
               Row(
                 modifier = Modifier

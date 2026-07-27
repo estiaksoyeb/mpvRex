@@ -16,13 +16,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import xyz.mpv.rex.ui.components.AppSwitch
 
 @Composable
 fun SwitchPreference(
@@ -68,7 +68,7 @@ fun SwitchPreference(
             }
         }
 
-        Switch(
+        AppSwitch(
             checked = value,
             onCheckedChange = onValueChange,
             enabled = enabled,

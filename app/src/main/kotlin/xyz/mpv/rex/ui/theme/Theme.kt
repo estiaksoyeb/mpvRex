@@ -23,6 +23,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -384,6 +387,7 @@ internal var darkColorScheme = darkColorScheme()
 fun MpvexTheme(content: @Composable () -> Unit) {
   val preferences = koinInject<AppearancePreferences>()
   val darkMode by preferences.darkMode.collectAsState()
+  val uiStyle by preferences.uiStyle.collectAsState()
   val amoledMode by preferences.amoledMode.collectAsState()
   val appTheme by preferences.appTheme.collectAsState()
   val useSystemFont by preferences.useSystemFont.collectAsState()
@@ -421,18 +425,37 @@ fun MpvexTheme(content: @Composable () -> Unit) {
         else -> appTheme.getLightColorScheme()
     }
 
+    val miuixController = remember(useDarkTheme) {
+        ThemeController(
+            colorSchemeMode = if (useDarkTheme) ColorSchemeMode.Dark else ColorSchemeMode.Light,
+            isDark = useDarkTheme
+        )
+    }
+
     // Provide theme transition state first, OUTSIDE MaterialTheme
     CompositionLocalProvider(
         LocalSpacing provides Spacing(),
+        LocalUiStyle provides uiStyle,
         LocalThemeTransitionState provides rememberThemeTransitionState(),
     ) {
         ThemeTransitionContent {
-            MaterialTheme(
-                colorScheme = colorScheme,
-                typography = getTypography(useSystemFont),
-                content = content,
-                motionScheme = MotionScheme.expressive(),
-            )
+            if (uiStyle == UiStyle.Miuix) {
+                MiuixTheme(controller = miuixController) {
+                    MaterialTheme(
+                        colorScheme = colorScheme,
+                        typography = getTypography(useSystemFont),
+                        content = content,
+                        motionScheme = MotionScheme.expressive(),
+                    )
+                }
+            } else {
+                MaterialTheme(
+                    colorScheme = colorScheme,
+                    typography = getTypography(useSystemFont),
+                    content = content,
+                    motionScheme = MotionScheme.expressive(),
+                )
+            }
         }
     }
 }

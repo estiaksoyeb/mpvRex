@@ -41,6 +41,7 @@ import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.theme.DarkMode
+import xyz.mpv.rex.ui.theme.UiStyle
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -60,6 +61,7 @@ import kotlinx.coroutines.withContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
+import xyz.mpv.rex.ui.components.AppTopBar
 
 @Serializable
 object AppearancePreferencesScreen : Screen {
@@ -112,15 +114,8 @@ object AppearancePreferencesScreen : Screen {
 
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(R.string.pref_appearance_title),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
+                AppTopBar(
+                    title = stringResource(R.string.pref_appearance_title),
                     navigationIcon = {
                         IconButton(onClick = backstack::removeLastOrNull) {
                             Icon(
@@ -147,6 +142,16 @@ object AppearancePreferencesScreen : Screen {
                     item {
                         PreferenceCard {
                             Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                // UI Style selector (Material 3 vs MIUIX / HyperOS)
+                                val uiStyle by preferences.uiStyle.collectAsState()
+                                MultiChoiceSegmentedButton(
+                                    choices = persistentListOf("Material 3", "MIUIX / HyperOS"),
+                                    selectedIndices = persistentListOf(UiStyle.entries.indexOf(uiStyle)),
+                                    onClick = { preferences.uiStyle.set(UiStyle.entries[it]) },
+                                )
+
+                                PreferenceDivider()
+
                                 // Dark mode selector
                                 MultiChoiceSegmentedButton(
                                     choices = DarkMode.entries.map { stringResource(it.titleRes) }.toImmutableList(),

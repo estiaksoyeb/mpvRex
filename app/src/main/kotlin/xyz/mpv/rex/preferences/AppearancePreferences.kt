@@ -14,6 +14,7 @@ import xyz.mpv.rex.preferences.preference.PreferenceStore
 import xyz.mpv.rex.preferences.preference.getEnum
 import xyz.mpv.rex.ui.theme.AppTheme
 import xyz.mpv.rex.ui.theme.DarkMode
+import xyz.mpv.rex.ui.theme.UiStyle
 import xyz.mpv.rex.ui.theme.spacing
 import kotlinx.collections.immutable.ImmutableList
 
@@ -21,6 +22,7 @@ class AppearancePreferences(
   preferenceStore: PreferenceStore,
 ) {
   val darkMode = preferenceStore.getEnum("dark_mode", DarkMode.System)
+  val uiStyle = preferenceStore.getEnum("ui_style", UiStyle.Material)
   val appTheme = preferenceStore.getEnum("app_theme", AppTheme.Default)
   val materialYou = preferenceStore.getBoolean("material_you", true)
   val amoledMode = preferenceStore.getBoolean("amoled_mode", false)

@@ -11,7 +11,7 @@ plugins {
 
 android {
   namespace = "xyz.mpv.rex"
-  compileSdk = 36
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "xyz.mpv.rex"
@@ -185,6 +185,10 @@ dependencies {
 
   implementation(libs.seeker)
   implementation(libs.compose.prefs)
+
+  implementation(libs.miuix.core)
+  implementation(libs.miuix.ui)
+  implementation(libs.miuix.blur)
 
   implementation(libs.accompanist.permissions)
 

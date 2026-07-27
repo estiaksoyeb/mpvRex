@@ -1,5 +1,7 @@
 package xyz.mpv.rex.ui.browser.playlist
 
+import xyz.mpv.rex.ui.components.AppAlertDialog
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -347,7 +349,7 @@ object PlaylistScreen : Screen {
         val selectedPlaylist = selectionManager.getSelectedItems().firstOrNull()
         if (selectedPlaylist != null) {
           var playlistName by remember { mutableStateOf(selectedPlaylist.playlist.name) }
-          androidx.compose.material3.AlertDialog(
+          AppAlertDialog(
             onDismissRequest = { showRenameDialog = false },
             title = { Text(stringResource(R.string.rename_playlist)) },
             text = {

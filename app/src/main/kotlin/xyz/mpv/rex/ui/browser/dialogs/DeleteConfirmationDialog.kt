@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import xyz.mpv.rex.ui.components.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,7 +39,7 @@ fun DeleteConfirmationDialog(
 
   val itemText = pluralStringResource(itemTypePluralRes, itemCount)
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

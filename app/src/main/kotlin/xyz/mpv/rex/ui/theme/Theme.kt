@@ -441,8 +441,56 @@ fun MpvexTheme(content: @Composable () -> Unit) {
         ThemeTransitionContent {
             if (uiStyle == UiStyle.Miuix) {
                 MiuixTheme(controller = miuixController) {
+                    val miuixColors = MiuixTheme.colorScheme
+                    val miuixMaterialColorScheme = remember(miuixColors, useDarkTheme) {
+                        if (useDarkTheme) {
+                            darkColorScheme(
+                                primary = miuixColors.primary,
+                                onPrimary = miuixColors.onPrimary,
+                                primaryContainer = miuixColors.primaryContainer,
+                                onPrimaryContainer = miuixColors.onPrimaryContainer,
+                                secondary = miuixColors.secondary,
+                                onSecondary = miuixColors.onSecondary,
+                                secondaryContainer = miuixColors.secondaryContainer,
+                                onSecondaryContainer = miuixColors.onSecondaryContainer,
+                                background = miuixColors.background,
+                                onBackground = miuixColors.onBackground,
+                                surface = miuixColors.surface,
+                                onSurface = miuixColors.onSurface,
+                                surfaceVariant = miuixColors.surfaceContainer,
+                                onSurfaceVariant = miuixColors.onSurfaceSecondary,
+                                surfaceContainer = miuixColors.surface,
+                                surfaceContainerHigh = miuixColors.surfaceContainerHigh,
+                                surfaceContainerHighest = miuixColors.surfaceContainerHighest,
+                                outline = miuixColors.outline,
+                                outlineVariant = miuixColors.dividerLine,
+                            )
+                        } else {
+                            lightColorScheme(
+                                primary = miuixColors.primary,
+                                onPrimary = miuixColors.onPrimary,
+                                primaryContainer = miuixColors.primaryContainer,
+                                onPrimaryContainer = miuixColors.onPrimaryContainer,
+                                secondary = miuixColors.secondary,
+                                onSecondary = miuixColors.onSecondary,
+                                secondaryContainer = miuixColors.secondaryContainer,
+                                onSecondaryContainer = miuixColors.onSecondaryContainer,
+                                background = miuixColors.background,
+                                onBackground = miuixColors.onBackground,
+                                surface = miuixColors.surface,
+                                onSurface = miuixColors.onSurface,
+                                surfaceVariant = miuixColors.surfaceContainer,
+                                onSurfaceVariant = miuixColors.onSurfaceSecondary,
+                                surfaceContainer = miuixColors.surface,
+                                surfaceContainerHigh = miuixColors.surfaceContainerHigh,
+                                surfaceContainerHighest = miuixColors.surfaceContainerHighest,
+                                outline = miuixColors.outline,
+                                outlineVariant = miuixColors.dividerLine,
+                            )
+                        }
+                    }
                     MaterialTheme(
-                        colorScheme = colorScheme,
+                        colorScheme = miuixMaterialColorScheme,
                         typography = getTypography(useSystemFont),
                         content = content,
                         motionScheme = MotionScheme.expressive(),

@@ -30,7 +30,7 @@ fun PreferenceCard(
   val cardShape = if (isMiuix) RoundedCornerShape(18.dp) else RoundedCornerShape(28.dp)
   val cardColors = if (isMiuix) {
     CardDefaults.cardColors(
-      containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+      containerColor = MaterialTheme.colorScheme.surface,
       contentColor = MaterialTheme.colorScheme.onSurface,
     )
   } else {
@@ -39,7 +39,7 @@ fun PreferenceCard(
     )
   }
   val cardBorder = if (isMiuix) {
-    BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
   } else null
 
   AppCard(

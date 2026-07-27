@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
@@ -22,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import xyz.mpv.rex.ui.components.AppAlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import xyz.mpv.rex.R
@@ -81,7 +81,7 @@ fun EditConnectionSheet(
     onSave(updatedConnection)
   }
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = handleDismiss,
     modifier = Modifier.widthIn(min = 400.dp, max = 600.dp),
     title = {

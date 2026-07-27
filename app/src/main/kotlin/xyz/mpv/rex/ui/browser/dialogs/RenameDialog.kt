@@ -26,6 +26,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import xyz.mpv.rex.ui.components.AppAlertDialog
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -71,7 +72,7 @@ fun RenameDialog(
     }
   }
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

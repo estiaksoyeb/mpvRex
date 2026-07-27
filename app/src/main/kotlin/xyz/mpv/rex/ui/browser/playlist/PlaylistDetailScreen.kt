@@ -1,5 +1,7 @@
 package xyz.mpv.rex.ui.browser.playlist
 
+import xyz.mpv.rex.ui.components.AppAlertDialog
+
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -589,7 +591,7 @@ private fun StreamUrlDialog(
   onDismiss: () -> Unit,
   onCopy: () -> Unit,
 ) {
-  androidx.compose.material3.AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.stream_url)) },
     text = {
@@ -633,7 +635,7 @@ private fun RemoveFromPlaylistDialog(
 
   val itemText = if (itemCount == 1) "video" else "videos"
 
-  androidx.compose.material3.AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

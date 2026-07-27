@@ -57,7 +57,7 @@ fun BrowserBottomBar(
     enter = fadeIn(),
     exit = fadeOut(),
   ) {
-    Surface(
+    xyz.mpv.rex.ui.components.AppSurface(
       modifier = Modifier
         .windowInsetsPadding(WindowInsets.systemBars)
         .padding(horizontal = 20.dp, vertical = 8.dp),

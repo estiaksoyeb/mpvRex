@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.domain.network.NetworkProtocol
 
+import xyz.mpv.rex.ui.components.AppAlertDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddConnectionSheet(
@@ -80,7 +82,7 @@ fun AddConnectionSheet(
     onSave(connection)
   }
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = handleDismiss,
     modifier = Modifier.widthIn(min = 400.dp, max = 600.dp),
     title = {

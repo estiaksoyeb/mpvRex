@@ -20,6 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 
+import top.yukonga.miuix.kmp.window.WindowDialog
+import xyz.mpv.rex.ui.components.AppTextButton
+import xyz.mpv.rex.ui.theme.LocalUiStyle
+import xyz.mpv.rex.ui.theme.UiStyle
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ConfirmDialog(
@@ -30,31 +35,17 @@ fun ConfirmDialog(
   modifier: Modifier = Modifier,
   customContent: (@Composable () -> Unit)? = null,
 ) {
-  BasicAlertDialog(
-    onCancel,
-    modifier = modifier,
-  ) {
-    Surface(
-      shape = MaterialTheme.shapes.extraLarge,
-      color = AlertDialogDefaults.containerColor,
-      tonalElevation = AlertDialogDefaults.TonalElevation,
+  if (LocalUiStyle.current == UiStyle.Miuix) {
+    WindowDialog(
+      show = true,
+      onDismissRequest = onCancel,
+      title = title,
+      summary = subtitle,
+      modifier = modifier,
     ) {
       Column(
-        modifier = Modifier.padding(28.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
       ) {
-        Text(
-          title,
-          style = MaterialTheme.typography.headlineMedium,
-          fontWeight = FontWeight.Bold,
-          color = AlertDialogDefaults.titleContentColor,
-        )
-        Text(
-          subtitle,
-          style = MaterialTheme.typography.bodyLarge,
-          fontWeight = FontWeight.Medium,
-          color = AlertDialogDefaults.textContentColor,
-        )
         if (customContent != null) {
           customContent()
         }
@@ -62,23 +53,68 @@ fun ConfirmDialog(
           Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.End,
         ) {
-          TextButton(
-            onCancel,
-            shape = MaterialTheme.shapes.extraLarge,
-          ) {
-            Text(
-              stringResource(R.string.generic_cancel),
-              fontWeight = FontWeight.Medium,
-            )
+          AppTextButton(
+            text = stringResource(R.string.generic_cancel),
+            onClick = onCancel,
+          )
+          AppTextButton(
+            text = stringResource(R.string.generic_confirm),
+            onClick = onConfirm,
+          )
+        }
+      }
+    }
+  } else {
+    BasicAlertDialog(
+      onCancel,
+      modifier = modifier,
+    ) {
+      Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = AlertDialogDefaults.containerColor,
+        tonalElevation = AlertDialogDefaults.TonalElevation,
+      ) {
+        Column(
+          modifier = Modifier.padding(28.dp),
+          verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+          Text(
+            title,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = AlertDialogDefaults.titleContentColor,
+          )
+          Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = AlertDialogDefaults.textContentColor,
+          )
+          if (customContent != null) {
+            customContent()
           }
-          TextButton(
-            onConfirm,
-            shape = MaterialTheme.shapes.extraLarge,
+          Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
           ) {
-            Text(
-              stringResource(R.string.generic_confirm),
-              fontWeight = FontWeight.Bold,
-            )
+            TextButton(
+              onCancel,
+              shape = MaterialTheme.shapes.extraLarge,
+            ) {
+              Text(
+                stringResource(R.string.generic_cancel),
+                fontWeight = FontWeight.Medium,
+              )
+            }
+            TextButton(
+              onConfirm,
+              shape = MaterialTheme.shapes.extraLarge,
+            ) {
+              Text(
+                stringResource(R.string.generic_confirm),
+                fontWeight = FontWeight.Bold,
+              )
+            }
           }
         }
       }

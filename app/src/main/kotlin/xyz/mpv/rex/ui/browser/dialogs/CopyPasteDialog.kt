@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material3.AlertDialog
+import xyz.mpv.rex.ui.components.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -44,7 +44,7 @@ fun FileOperationProgressDialog(
 
   val isOperationComplete = progress.isComplete || progress.isCancelled || progress.error != null
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = {
       if (isOperationComplete) {
         onDismiss()
@@ -199,7 +199,7 @@ fun LoadingDialog(
 ) {
   if (!isOpen) return
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismissRequest,
     title = null,
     text = {

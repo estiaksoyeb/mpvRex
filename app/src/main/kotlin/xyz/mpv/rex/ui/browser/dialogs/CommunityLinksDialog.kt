@@ -65,7 +65,7 @@ fun CommunityLinksDialog(
         onDismissRequest = onDismissRequest,
         modifier = modifier
     ) {
-        Surface(
+        xyz.mpv.rex.ui.components.AppSurface(
             shape = RoundedCornerShape(28.dp),
             tonalElevation = 6.dp,
             color = MaterialTheme.colorScheme.surface,

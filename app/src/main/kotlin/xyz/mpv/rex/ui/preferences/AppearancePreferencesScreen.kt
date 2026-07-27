@@ -160,36 +160,39 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            PreferenceDivider()
+                            // Theme picker & AMOLED mode - Material 3 only
+                            val uiStyle by preferences.uiStyle.collectAsState()
+                            if (uiStyle == UiStyle.Material) {
+                                PreferenceDivider()
 
-                            // AMOLED mode state - need it before theme picker
-                            val amoledMode by preferences.amoledMode.collectAsState()
+                                val amoledMode by preferences.amoledMode.collectAsState()
 
-                            // Theme picker - Aniyomi style
-                            ThemePicker(
-                                currentTheme = appTheme,
-                                isDarkMode = isDarkMode,
-                                onThemeSelected = { preferences.appTheme.set(it) },
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
+                                // Theme picker - Aniyomi style
+                                ThemePicker(
+                                    currentTheme = appTheme,
+                                    isDarkMode = isDarkMode,
+                                    onThemeSelected = { preferences.appTheme.set(it) },
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                )
 
-                            PreferenceDivider()
+                                PreferenceDivider()
 
-                            // AMOLED mode toggle
-                            SwitchPreference(
-                                value = amoledMode,
-                                onValueChange = { newValue ->
-                                    preferences.amoledMode.set(newValue)
-                                },
-                                title = { Text(text = stringResource(id = R.string.pref_appearance_amoled_mode_title)) },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_amoled_mode_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
-                                enabled = darkMode != DarkMode.Light
-                            )
+                                // AMOLED mode toggle
+                                SwitchPreference(
+                                    value = amoledMode,
+                                    onValueChange = { newValue ->
+                                        preferences.amoledMode.set(newValue)
+                                    },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_amoled_mode_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_amoled_mode_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    enabled = darkMode != DarkMode.Light
+                                )
+                            }
 
                             PreferenceDivider()
 

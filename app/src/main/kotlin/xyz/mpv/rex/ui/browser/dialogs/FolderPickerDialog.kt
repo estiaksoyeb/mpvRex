@@ -19,7 +19,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.Usb
-import androidx.compose.material3.AlertDialog
+import xyz.mpv.rex.ui.components.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -115,7 +115,7 @@ fun FolderPickerDialog(
     return
   }
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -393,7 +393,7 @@ private fun CreateFolderDialog(
   var folderName by remember { mutableStateOf("") }
   var error by remember { mutableStateOf<String?>(null) }
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

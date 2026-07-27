@@ -76,6 +76,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import xyz.mpv.rex.ui.components.AppAlertDialog
 
 @Composable
 fun SortDialog(
@@ -104,7 +105,7 @@ fun SortDialog(
 
   val (ascLabel, descLabel) = getLabelForType(sortType, sortOrderAsc)
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

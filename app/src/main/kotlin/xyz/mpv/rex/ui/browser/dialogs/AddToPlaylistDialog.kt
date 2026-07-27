@@ -19,7 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
+import xyz.mpv.rex.ui.components.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -98,7 +98,7 @@ fun AddToPlaylistDialog(
     return
   }
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(
@@ -306,7 +306,7 @@ private fun CreatePlaylistDialog(
 ) {
   var playlistName by remember { mutableStateOf("") }
 
-  AlertDialog(
+  AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

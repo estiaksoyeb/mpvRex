@@ -21,7 +21,10 @@ fun AppTopBar(
   navigationIcon: @Composable () -> Unit = {},
   actions: @Composable RowScope.() -> Unit = {},
   scrollBehavior: TopAppBarScrollBehavior? = null,
-  colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+  colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
+    containerColor = androidx.compose.material3.MaterialTheme.colorScheme.background,
+    scrolledContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.background,
+  ),
 ) {
   if (LocalUiStyle.current == UiStyle.Miuix) {
     MiuixTopAppBar(
@@ -29,6 +32,7 @@ fun AppTopBar(
       modifier = modifier,
       navigationIcon = navigationIcon,
       actions = actions,
+      color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.background,
     )
   } else {
     TopAppBar(
@@ -50,7 +54,10 @@ fun AppTopBar(
   navigationIcon: @Composable () -> Unit = {},
   actions: @Composable RowScope.() -> Unit = {},
   scrollBehavior: TopAppBarScrollBehavior? = null,
-  colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+  colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
+    containerColor = androidx.compose.material3.MaterialTheme.colorScheme.background,
+    scrolledContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.background,
+  ),
 ) {
   if (LocalUiStyle.current == UiStyle.Miuix) {
     MiuixTopAppBar(

@@ -44,15 +44,8 @@ object PlayerPreferencesScreen : Screen {
     val preferences = koinInject<PlayerPreferences>()
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = { 
-            Text(
-              text = stringResource(id = R.string.pref_player),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            ) 
-          },
+        xyz.mpv.rex.ui.components.AppTopBar(
+          title = stringResource(id = R.string.pref_player),
           navigationIcon = {
             IconButton(onClick = backstack::removeLastOrNull) {
               Icon(

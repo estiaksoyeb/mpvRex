@@ -63,15 +63,8 @@ object GesturePreferencesScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = { 
-            Text(
-              text = stringResource(R.string.pref_gesture),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            ) 
-          },
+        xyz.mpv.rex.ui.components.AppTopBar(
+          title = stringResource(R.string.pref_gesture),
           navigationIcon = {
             IconButton(onClick = backstack::removeLastOrNull) {
               Icon(

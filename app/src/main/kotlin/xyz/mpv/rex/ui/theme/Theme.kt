@@ -443,6 +443,9 @@ fun MpvexTheme(content: @Composable () -> Unit) {
                 MiuixTheme(controller = miuixController) {
                     val miuixColors = MiuixTheme.colorScheme
                     val miuixMaterialColorScheme = remember(miuixColors, useDarkTheme) {
+                        val cardColor = miuixColors.surface
+                        val bgColor = miuixColors.background
+
                         if (useDarkTheme) {
                             darkColorScheme(
                                 primary = miuixColors.primary,
@@ -453,15 +456,17 @@ fun MpvexTheme(content: @Composable () -> Unit) {
                                 onSecondary = miuixColors.onSecondary,
                                 secondaryContainer = miuixColors.secondaryContainer,
                                 onSecondaryContainer = miuixColors.onSecondaryContainer,
-                                background = miuixColors.background,
+                                background = bgColor,
                                 onBackground = miuixColors.onBackground,
-                                surface = miuixColors.surface,
+                                surface = cardColor,
                                 onSurface = miuixColors.onSurface,
-                                surfaceVariant = miuixColors.surfaceContainer,
+                                surfaceVariant = cardColor,
                                 onSurfaceVariant = miuixColors.onSurfaceSecondary,
-                                surfaceContainer = miuixColors.surface,
-                                surfaceContainerHigh = miuixColors.surfaceContainerHigh,
-                                surfaceContainerHighest = miuixColors.surfaceContainerHighest,
+                                surfaceContainer = bgColor,
+                                surfaceContainerLow = bgColor,
+                                surfaceContainerLowest = bgColor,
+                                surfaceContainerHigh = cardColor,
+                                surfaceContainerHighest = cardColor,
                                 outline = miuixColors.outline,
                                 outlineVariant = miuixColors.dividerLine,
                             )
@@ -475,15 +480,17 @@ fun MpvexTheme(content: @Composable () -> Unit) {
                                 onSecondary = miuixColors.onSecondary,
                                 secondaryContainer = miuixColors.secondaryContainer,
                                 onSecondaryContainer = miuixColors.onSecondaryContainer,
-                                background = miuixColors.background,
+                                background = bgColor,
                                 onBackground = miuixColors.onBackground,
-                                surface = miuixColors.surface,
+                                surface = cardColor,
                                 onSurface = miuixColors.onSurface,
-                                surfaceVariant = miuixColors.surfaceContainer,
+                                surfaceVariant = cardColor,
                                 onSurfaceVariant = miuixColors.onSurfaceSecondary,
-                                surfaceContainer = miuixColors.surface,
-                                surfaceContainerHigh = miuixColors.surfaceContainerHigh,
-                                surfaceContainerHighest = miuixColors.surfaceContainerHighest,
+                                surfaceContainer = bgColor,
+                                surfaceContainerLow = bgColor,
+                                surfaceContainerLowest = bgColor,
+                                surfaceContainerHigh = cardColor,
+                                surfaceContainerHighest = cardColor,
                                 outline = miuixColors.outline,
                                 outlineVariant = miuixColors.dividerLine,
                             )

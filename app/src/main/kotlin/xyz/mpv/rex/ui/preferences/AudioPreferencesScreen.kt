@@ -47,15 +47,8 @@ object AudioPreferencesScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = { 
-            Text(
-              text = stringResource(R.string.pref_audio),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
+        xyz.mpv.rex.ui.components.AppTopBar(
+          title = stringResource(R.string.pref_audio),
           navigationIcon = {
             IconButton(onClick = backstack::removeLastOrNull) {
               Icon(

@@ -27,6 +27,9 @@ fun AppCard(
   if (LocalUiStyle.current == UiStyle.Miuix) {
     MiuixCard(
       modifier = modifier,
+      colors = top.yukonga.miuix.kmp.basic.CardDefaults.defaultColors(
+        color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.surface
+      ),
       content = content,
     )
   } else {

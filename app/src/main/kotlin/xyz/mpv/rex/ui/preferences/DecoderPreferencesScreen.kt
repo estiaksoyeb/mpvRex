@@ -63,15 +63,8 @@ object DecoderPreferencesScreen : Screen {
     var showGpuNextWarning by remember { mutableStateOf(false) }
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_decoder),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
+        xyz.mpv.rex.ui.components.AppTopBar(
+          title = stringResource(R.string.pref_decoder),
           navigationIcon = {
             IconButton(onClick = backstack::removeLastOrNull) {
               Icon(

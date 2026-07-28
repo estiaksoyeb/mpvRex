@@ -27,6 +27,7 @@ import `is`.xyz.mpv.MPVNode
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.ui.player.SingleActionGesture
+import xyz.mpv.rex.ui.player.engine.PlayerEngineManager
 import kotlinx.coroutines.cancel
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -72,6 +73,7 @@ class MediaPlaybackService :
   private val playerPreferences: PlayerPreferences by inject()
   private val gesturePreferences: GesturePreferences by inject()
   private val playbackManager: PlaybackManager by inject()
+  private val playerEngineManager: PlayerEngineManager by inject()
 
   private val serviceScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
 
@@ -214,26 +216,44 @@ class MediaPlaybackService :
             override fun onPlay() {
               if (!canHandle()) return
               Log.d(TAG, "onPlay called")
-              MPVLib.setPropertyBoolean("pause", false)
+              if (playerPreferences.useSsotEngineManager.get()) {
+                playerEngineManager.withEngineLock { MPVLib.setPropertyBoolean("pause", false) }
+              } else {
+                MPVLib.setPropertyBoolean("pause", false)
+              }
             }
 
             override fun onPause() {
               if (!canHandle()) return
               Log.d(TAG, "onPause called")
-              MPVLib.setPropertyBoolean("pause", true)
+              if (playerPreferences.useSsotEngineManager.get()) {
+                playerEngineManager.withEngineLock { MPVLib.setPropertyBoolean("pause", true) }
+              } else {
+                MPVLib.setPropertyBoolean("pause", true)
+              }
             }
 
             override fun onStop() {
               if (!canHandle()) return
               Log.d(TAG, "onStop called")
-              stopSelf()
+              if (playerPreferences.useSsotEngineManager.get()) {
+                playerEngineManager.destroyEngineAsync(reason = "media_session_stop") {
+                  stopSelf()
+                }
+              } else {
+                stopSelf()
+              }
             }
 
             override fun onSkipToNext() {
               if (!canHandle()) return
               Log.d(TAG, "onSkipToNext called")
               listener?.onNextRequested() ?: run {
-                MPVLib.command("playlist-next")
+                if (playerPreferences.useSsotEngineManager.get()) {
+                  playerEngineManager.withEngineLock { MPVLib.command("playlist-next") }
+                } else {
+                  MPVLib.command("playlist-next")
+                }
               }
             }
 
@@ -241,14 +261,22 @@ class MediaPlaybackService :
               if (!canHandle()) return
               Log.d(TAG, "onSkipToPrevious called")
               listener?.onPreviousRequested() ?: run {
-                MPVLib.command("playlist-prev")
+                if (playerPreferences.useSsotEngineManager.get()) {
+                  playerEngineManager.withEngineLock { MPVLib.command("playlist-prev") }
+                } else {
+                  MPVLib.command("playlist-prev")
+                }
               }
             }
 
             override fun onSeekTo(pos: Long) {
               if (!canHandle()) return
               Log.d(TAG, "onSeekTo called: $pos")
-              MPVLib.setPropertyDouble("time-pos", pos / 1000.0)
+              if (playerPreferences.useSsotEngineManager.get()) {
+                playerEngineManager.withEngineLock { MPVLib.setPropertyDouble("time-pos", pos / 1000.0) }
+              } else {
+                MPVLib.setPropertyDouble("time-pos", pos / 1000.0)
+              }
             }
           },
         )
@@ -512,6 +540,25 @@ class MediaPlaybackService :
 
   override fun onTaskRemoved(rootIntent: Intent?) {
     Log.d(TAG, "Task removed - killing playback and cleaning up service")
+    super.onTaskRemoved(rootIntent)
+    if (playerPreferences.useSsotEngineManager.get()) {
+      kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+        playerEngineManager.destroyEngineSyncInternal(reason = "task_removed")
+      }
+      try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+          stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+          @Suppress("DEPRECATION")
+          stopForeground(true)
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Error stopping foreground in onTaskRemoved", e)
+      }
+      thumbnail = null
+      stopSelf()
+      return
+    }
     try {
       // Kill MPV playback immediately when task is removed
       try {

@@ -357,6 +357,7 @@ class MediaPlaybackService :
   private fun buildNotification(): Notification {
     val openAppIntent =
       Intent(this, PlayerActivity::class.java).apply {
+        action = xyz.mpv.rex.ui.player.engine.ACTION_REATTACH_SESSION
         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
       }
     val pendingIntent =

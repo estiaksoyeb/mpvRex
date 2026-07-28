@@ -342,6 +342,7 @@ class PlayerActivity :
     pendingIntentExtras = true
     setupMPV()
     if (playerPreferences.useSsotEngineManager.get()) {
+      playerEngineManager.handleIntent(intent)
       binding.player.holder.addCallback(object : SurfaceHolder.Callback {
         override fun surfaceCreated(holder: SurfaceHolder) {
           playerEngineManager.attachSurface(holder)
@@ -2670,6 +2671,10 @@ class PlayerActivity :
    */
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
+
+    if (playerPreferences.useSsotEngineManager.get()) {
+      playerEngineManager.handleIntent(intent)
+    }
 
     pendingIntentExtras = true
     // Update the intent first so getFileName uses the new intent data

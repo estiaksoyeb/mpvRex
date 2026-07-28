@@ -17,6 +17,11 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
+import android.content.Intent
+
+const val ACTION_REATTACH_SESSION = "xyz.mpv.rex.action.REATTACH_SESSION"
+const val ACTION_PLAY_NEW_FILE = "xyz.mpv.rex.action.PLAY_NEW_FILE"
+
 /**
  * State of the SSOT MPV Player Engine.
  */
@@ -41,6 +46,28 @@ class PlayerEngineManager(
     companion object {
         private const val TAG = "PlayerEngineManager"
         private const val LOCK_TIMEOUT_MS = 500L
+    }
+
+    /**
+     * Handles incoming intent contracts.
+     */
+    fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        when (intent.action) {
+            ACTION_REATTACH_SESSION -> {
+                Log.d(TAG, "Handling ACTION_REATTACH_SESSION")
+                if (_engineState.value == EngineState.BACKGROUND_PLAYING || _engineState.value == EngineState.IDLE) {
+                    _engineState.value = EngineState.FOREGROUND_PLAYING
+                }
+            }
+            ACTION_PLAY_NEW_FILE, Intent.ACTION_VIEW -> {
+                Log.d(TAG, "Handling ACTION_PLAY_NEW_FILE / ACTION_VIEW")
+                intent.data?.let { uri ->
+                    _currentMediaUri.value = uri
+                }
+                _engineState.value = EngineState.FOREGROUND_PLAYING
+            }
+        }
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)

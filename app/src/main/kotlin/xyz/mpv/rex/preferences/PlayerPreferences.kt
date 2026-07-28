@@ -103,4 +103,7 @@ class PlayerPreferences(
 
   // External media controls
   val disableMediaButtons = preferenceStore.getBoolean("disable_media_buttons", false)
+
+  // Single Source of Truth (SSOT) Player Engine Manager
+  val useSsotEngineManager = preferenceStore.getBoolean("use_ssot_engine_manager", true)
 }

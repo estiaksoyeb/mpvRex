@@ -17,7 +17,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
+import android.content.BroadcastReceiver
 import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
 
 const val ACTION_REATTACH_SESSION = "xyz.mpv.rex.action.REATTACH_SESSION"
 const val ACTION_PLAY_NEW_FILE = "xyz.mpv.rex.action.PLAY_NEW_FILE"
@@ -46,6 +49,65 @@ class PlayerEngineManager(
     companion object {
         private const val TAG = "PlayerEngineManager"
         private const val LOCK_TIMEOUT_MS = 500L
+    }
+
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    private var isNoisyReceiverRegistered = false
+
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                Log.d(TAG, "Audio becoming noisy - pausing MPV playback")
+                withEngineLock {
+                    MPVLib.setPropertyBoolean("pause", true)
+                }
+            }
+        }
+    }
+
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                Log.d(TAG, "Audio focus lost - pausing playback")
+                withEngineLock {
+                    MPVLib.setPropertyBoolean("pause", true)
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                Log.d(TAG, "Audio focus transient loss ducking - lowering volume")
+                withEngineLock {
+                    MPVLib.command("multiply", "volume", "0.5")
+                }
+            }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                Log.d(TAG, "Audio focus gained")
+                withEngineLock {
+                    MPVLib.command("multiply", "volume", "2.0")
+                }
+            }
+        }
+    }
+
+    fun registerSystemAudioListeners() {
+        if (!isNoisyReceiverRegistered) {
+            runCatching {
+                val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+                context.registerReceiver(noisyReceiver, filter)
+                isNoisyReceiverRegistered = true
+                Log.d(TAG, "Audio becoming noisy receiver registered")
+            }
+        }
+    }
+
+    fun unregisterSystemAudioListeners() {
+        if (isNoisyReceiverRegistered) {
+            runCatching {
+                context.unregisterReceiver(noisyReceiver)
+                isNoisyReceiverRegistered = false
+                Log.d(TAG, "Audio becoming noisy receiver unregistered")
+            }
+        }
     }
 
     /**
@@ -125,6 +187,7 @@ class PlayerEngineManager(
             Log.d(TAG, "Initializing MPV engine")
             isEngineDestroyed = false
             isEngineInitialized = true
+            registerSystemAudioListeners()
             _engineState.value = EngineState.IDLE
         }
     }
@@ -222,6 +285,7 @@ class PlayerEngineManager(
             if (isEngineDestroyed) return
             Log.i(TAG, "Destroying MPV Engine synchronously. Reason: $reason")
             _engineState.value = EngineState.TEARDOWN
+            unregisterSystemAudioListeners()
             runCatching {
                 MPVLib.setPropertyString("vo", "null")
                 MPVLib.detachSurface()

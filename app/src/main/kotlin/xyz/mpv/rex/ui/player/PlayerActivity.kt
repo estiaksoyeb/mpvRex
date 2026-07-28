@@ -1625,9 +1625,9 @@ class PlayerActivity :
    */
   private fun parsePathFromIntent(intent: Intent): String? =
     when (intent.action) {
-      Intent.ACTION_VIEW -> intent.data?.resolveUri(this)
+      Intent.ACTION_VIEW, xyz.mpv.rex.ui.player.engine.ACTION_PLAY_NEW_FILE -> intent.data?.resolveUri(this)
       Intent.ACTION_SEND -> parsePathFromSendIntent(intent)
-      else -> intent.getStringExtra("uri")
+      else -> intent.getStringExtra("uri") ?: intent.data?.resolveUri(this)
     }
 
   /**

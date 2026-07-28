@@ -21,8 +21,11 @@ import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Log
 import android.view.KeyEvent
+import android.view.SurfaceHolder
 import android.view.View
 import android.view.WindowManager
+import xyz.mpv.rex.ui.player.engine.EngineState
+import xyz.mpv.rex.ui.player.engine.PlayerEngineManager
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -128,6 +131,11 @@ class PlayerActivity :
    * Preferences for player settings.
    */
   private val playerPreferences: PlayerPreferences by inject()
+
+  /**
+   * Single Source of Truth Player Engine Manager.
+   */
+  private val playerEngineManager: PlayerEngineManager by inject()
 
   /**
    * Preferences for gesture settings.
@@ -333,6 +341,19 @@ class PlayerActivity :
 
     pendingIntentExtras = true
     setupMPV()
+    if (playerPreferences.useSsotEngineManager.get()) {
+      binding.player.holder.addCallback(object : SurfaceHolder.Callback {
+        override fun surfaceCreated(holder: SurfaceHolder) {
+          playerEngineManager.attachSurface(holder)
+        }
+
+        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+
+        override fun surfaceDestroyed(holder: SurfaceHolder) {
+          playerEngineManager.detachSurfaceSyncSafe()
+        }
+      })
+    }
     viewModel.onMpvCoreInitialized()
     MediaPlaybackService.createNotificationChannel(this)
     setupAudio()
@@ -707,6 +728,20 @@ class PlayerActivity :
   }
 
   private fun cleanupMPV() {
+    if (playerPreferences.useSsotEngineManager.get()) {
+      if (!mpvInitialized) return
+      player.isExiting = true
+      endBackgroundPlayback()
+      playerEngineManager.detachSurfaceSyncSafe()
+      if (isFinishing && !isManualBackgroundPlayback) {
+        runCatching { MPVLib.removeObserver(playerObserver) }
+        playerEngineManager.destroyEngineAsync(reason = "activity_finish") {
+          mpvInitialized = false
+        }
+      }
+      return
+    }
+
     if (!mpvInitialized) return
 
     player.isExiting = true
@@ -1018,6 +1053,9 @@ class PlayerActivity :
     // NOW initialize MPV - it will find and load the scripts we just copied
     player.initialize(filesDir.path, cacheDir.path)
     mpvInitialized = true
+    if (playerPreferences.useSsotEngineManager.get()) {
+      playerEngineManager.initializeEngineIfNeeded()
+    }
     Log.d(TAG, "MPV initialized")
 
     // Configure initial OSD level based on preference
@@ -1769,6 +1807,9 @@ class PlayerActivity :
    */
   override fun onConfigurationChanged(newConfig: Configuration) {
     super.onConfigurationChanged(newConfig)
+    if (playerPreferences.useSsotEngineManager.get()) {
+      playerEngineManager.updateState(EngineState.CONFIG_CHANGING)
+    }
     val isPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT
     viewModel.onOrientationChanged(isPortrait)
     if (isReady) {

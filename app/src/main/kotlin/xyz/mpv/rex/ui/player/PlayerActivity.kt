@@ -1024,7 +1024,9 @@ class PlayerActivity :
    * CRITICAL: Must copy config and scripts BEFORE initializing MPV, as MPV loads scripts during init.
    */
   private fun setupMPV() {
-    if (MPVLifecycleLock.isTearingDown.value) {
+    if (playerPreferences.useSsotEngineManager.get()) {
+      playerEngineManager.awaitTeardownSync()
+    } else if (MPVLifecycleLock.isTearingDown.value) {
       kotlinx.coroutines.runBlocking(Dispatchers.IO) {
         MPVLifecycleLock.awaitTeardown()
       }

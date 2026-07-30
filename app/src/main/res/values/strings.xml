@@ -1201,4 +1201,23 @@
     <string name="media_info_selected_label">Selected</string>
     <string name="media_info_total_length">Total length</string>
 
+        <!-- Shorts Player Action Buttons -->
+    <string name="shorts_action_love">Love</string>
+    <string name="shorts_action_loved">Loved</string>
+    <string name="shorts_action_block">Block</string>
+    <string name="shorts_action_blocked">Blocked</string>
+    <string name="shorts_action_free">Free</string>
+    <string name="shorts_action_back">Back</string>
+    <string name="shorts_action_more">More</string>
+
+        <!-- Shorts Empty / Exhausted States -->
+    <string name="shorts_no_blocked_videos_found">No blocked videos found</string>
+    <string name="shorts_no_vertical_videos_found">No vertical videos found</string>
+    <string name="shorts_all_finished_title">All videos finished</string>
+    <string name="shorts_all_finished_message">You\'ve seen all vertical videos for now.</string>
+
+        <!-- Shorts Video Info Dialog -->
+    <string name="shorts_video_info_title">Video Info</string>
+    <string name="shorts_video_info_resolution">Resolution: %1$dx%2$d</string>
+
 </resources>

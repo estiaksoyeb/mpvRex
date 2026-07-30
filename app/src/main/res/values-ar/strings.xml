@@ -1191,5 +1191,8 @@
         <!-- Shorts Video Info Dialog -->
     <string name="shorts_video_info_title">معلومات الفيديو</string>
     <string name="shorts_video_info_resolution">الدقة: %1$dx%2$d</string>
+
+    <string name="player_sheets_zoom_decrease">تقليل التكبير</string>
+    <string name="player_sheets_zoom_increase">زيادة التكبير</string>
     
 </resources>

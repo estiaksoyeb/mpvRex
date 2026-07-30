@@ -1048,6 +1048,8 @@
     <string name="background_playback">Background</string>
     <string name="ambient">Ambient</string>
     <string name="ambience_mode">Ambience Mode</string>
+    <string name="ambient_mode_on">Ambience Mode: ON</string>
+    <string name="ambient_mode_off">Ambience Mode: OFF</string>
     <string name="sleep_timer">Sleep Timer</string>
 
     <!-- Preference section headers -->

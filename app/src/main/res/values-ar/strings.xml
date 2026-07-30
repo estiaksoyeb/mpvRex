@@ -1170,4 +1170,24 @@
     <string name="pref_player_white_seekbar_summary">عرض شريط تقدم الفيديو باللون الأبيض في شاشة المشغل</string>
     <string name="player_sheets_tab_aesthetics">الجماليات</string>
     <string name="player_sheets_tab_gestures">الإيماءات</string>
+
+        <!-- Shorts Player Action Buttons -->
+    <string name="shorts_action_love">إعجاب</string>
+    <string name="shorts_action_loved">أعجبني</string>
+    <string name="shorts_action_block">حظر</string>
+    <string name="shorts_action_blocked">محظور</string>
+    <string name="shorts_action_free">حـر</string>
+    <string name="shorts_action_back">رجوع</string>
+    <string name="shorts_action_more">المزيد</string>
+
+        <!-- Shorts Empty / Exhausted States -->
+    <string name="shorts_no_blocked_videos_found">لم يُعثر على فيديوهات محظورة</string>
+    <string name="shorts_no_vertical_videos_found">لم يُعثر على فيديوهات قصيرة</string>
+    <string name="shorts_all_finished_title">انتهت جميع الفيديوهات</string>
+    <string name="shorts_all_finished_message">شاهدت جميع الفيديوهات القصيرة المتاحة حالياً.</string>
+
+        <!-- Shorts Video Info Dialog -->
+    <string name="shorts_video_info_title">معلومات الفيديو</string>
+    <string name="shorts_video_info_resolution">الدقة: %1$dx%2$d</string>
+    
 </resources>

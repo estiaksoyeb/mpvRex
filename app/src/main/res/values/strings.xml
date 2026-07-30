@@ -1222,4 +1222,7 @@
     <string name="shorts_video_info_title">Video Info</string>
     <string name="shorts_video_info_resolution">Resolution: %1$dx%2$d</string>
 
+    <string name="player_sheets_zoom_decrease">Decrease zoom</string>
+    <string name="player_sheets_zoom_increase">Increase zoom</string>
+
 </resources>

@@ -17,8 +17,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-import xyz.mpv.rex.ui.player.MPVLifecycleLock
-import kotlinx.coroutines.Job
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
@@ -160,99 +158,45 @@ class PlayerEngineManager(
     private val _durationMs = MutableStateFlow(0L)
     val durationMs: StateFlow<Long> = _durationMs.asStateFlow()
 
-    @Volatile private var destroyJob: Job? = null
-
     /**
-     * Awaits any active native engine teardown synchronously (safe for main thread during activity setup).
+     * Executes a native command guarded by [nativeEngineLock].
      */
-    fun awaitTeardownSync() {
-        if (!MPVLifecycleLock.isTearingDown.value && destroyJob?.isActive != true) return
-        Log.d(TAG, "Awaiting in-flight MPV engine teardown completion...")
-        runCatching {
-            kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-                destroyJob?.join()
-                MPVLifecycleLock.awaitTeardown()
+    fun <T> withEngineLock(block: () -> T): T? {
+        return nativeEngineLock.withLock {
+            try {
+                if (isEngineDestroyed) return@withLock null
+                block()
+            } finally {
+                val pendingGen = pendingDetachGeneration
+                if (pendingGen != null && pendingGen == currentSurfaceGeneration && !isEngineDestroyed) {
+                    pendingDetachGeneration = null
+                    Log.i(TAG, "Deferred surface detachment executed for generation $pendingGen")
+                    MPVLib.setPropertyString("vo", "null")
+                    MPVLib.detachSurface()
+                }
             }
         }
-        Log.d(TAG, "MPV engine teardown wait finished")
     }
 
     /**
-     * Non-blockingly suspends until any active native engine teardown completes.
+     * Initializes the MPV library if not already initialized.
      */
-    suspend fun awaitTeardown() {
-        if (!MPVLifecycleLock.isTearingDown.value && destroyJob?.isActive != true) return
-        Log.d(TAG, "Awaiting in-flight MPV engine teardown completion (suspend)...")
-        destroyJob?.join()
-        MPVLifecycleLock.awaitTeardown()
-        Log.d(TAG, "MPV engine teardown wait finished")
-    }
-
-    /**
-     * Executes a native command guarded by [nativeEngineLock] with timeout to prevent main thread ANRs.
-     */
-    fun <T> withEngineLock(timeoutMs: Long = LOCK_TIMEOUT_MS, block: () -> T): T? {
-        val acquired = runCatching {
-            nativeEngineLock.tryLock(timeoutMs, TimeUnit.MILLISECONDS)
-        }.getOrDefault(false)
-        if (!acquired) {
-            Log.e(TAG, "withEngineLock timed out waiting for nativeEngineLock (${timeoutMs}ms)")
-            return null
-        }
-        try {
-            if (isEngineDestroyed) return null
-            val result = block()
-            val pendingGen = pendingDetachGeneration
-            if (pendingGen != null && pendingGen == currentSurfaceGeneration && !isEngineDestroyed) {
-                pendingDetachGeneration = null
-                Log.i(TAG, "Deferred surface detachment executed for generation $pendingGen")
-                MPVLib.setPropertyString("vo", "null")
-                MPVLib.detachSurface()
-            }
-            return result
-        } finally {
-            nativeEngineLock.unlock()
-        }
-    }
-
-    /**
-     * Initializes the MPV library if not already initialized, waiting for any teardown first.
-     */
-    fun initializeEngineIfNeeded(timeoutMs: Long = LOCK_TIMEOUT_MS): Boolean {
-        awaitTeardownSync()
-        val acquired = runCatching {
-            nativeEngineLock.tryLock(timeoutMs, TimeUnit.MILLISECONDS)
-        }.getOrDefault(false)
-        if (!acquired) {
-            Log.e(TAG, "initializeEngineIfNeeded timed out waiting for nativeEngineLock (${timeoutMs}ms)")
-            return false
-        }
-        try {
-            if (isEngineInitialized && !isEngineDestroyed) return true
+    fun initializeEngineIfNeeded() {
+        nativeEngineLock.withLock {
+            if (isEngineInitialized && !isEngineDestroyed) return
             Log.d(TAG, "Initializing MPV engine")
             isEngineDestroyed = false
             isEngineInitialized = true
             registerSystemAudioListeners()
             _engineState.value = EngineState.IDLE
-            return true
-        } finally {
-            nativeEngineLock.unlock()
         }
     }
 
     /**
-     * Attaches a SurfaceHolder surface safely with generation versioning and timeout lock.
+     * Attaches a SurfaceHolder surface safely with generation versioning.
      */
-    fun attachSurface(holder: SurfaceHolder, timeoutMs: Long = LOCK_TIMEOUT_MS): Boolean {
-        awaitTeardownSync()
-        val acquired = runCatching {
-            nativeEngineLock.tryLock(timeoutMs, TimeUnit.MILLISECONDS)
-        }.getOrDefault(false)
-        if (!acquired) {
-            Log.e(TAG, "attachSurface timed out waiting for nativeEngineLock (${timeoutMs}ms)")
-            return false
-        }
-        try {
+    fun attachSurface(holder: SurfaceHolder) {
+        nativeEngineLock.withLock {
             currentSurfaceGeneration++
             pendingDetachGeneration = null // Clear stale pending detachment
             Log.d(TAG, "Attaching surface for generation $currentSurfaceGeneration")
@@ -263,9 +207,6 @@ class PlayerEngineManager(
                     _engineState.value = EngineState.FOREGROUND_PLAYING
                 }
             }
-            return true
-        } finally {
-            nativeEngineLock.unlock()
         }
     }
 
@@ -329,46 +270,35 @@ class PlayerEngineManager(
     /**
      * Asynchronously tears down the native engine off the main thread.
      */
-    fun destroyEngineAsync(reason: String = "user_action", onComplete: (() -> Unit)? = null): Job {
-        MPVLifecycleLock.onTeardownStart()
-        val job = scope.launch(Dispatchers.IO) {
-            try {
-                destroyEngineSyncInternal(reason)
-            } finally {
-                onComplete?.invoke()
-            }
+    fun destroyEngineAsync(reason: String = "user_action", onComplete: (() -> Unit)? = null) {
+        scope.launch(Dispatchers.IO) {
+            destroyEngineSyncInternal(reason)
+            onComplete?.invoke()
         }
-        destroyJob = job
-        return job
     }
 
     /**
      * Synchronously destroys native MPV engine resources (safe for IO dispatcher or onTaskRemoved).
      */
     fun destroyEngineSyncInternal(reason: String = "user_action") {
-        MPVLifecycleLock.onTeardownStart()
-        try {
-            nativeEngineLock.withLock {
-                if (isEngineDestroyed) return
-                Log.i(TAG, "Destroying MPV Engine synchronously. Reason: $reason")
-                _engineState.value = EngineState.TEARDOWN
-                unregisterSystemAudioListeners()
-                runCatching {
-                    MPVLib.setPropertyString("vo", "null")
-                    MPVLib.detachSurface()
-                    MPVLib.destroy()
-                }.onFailure { e ->
-                    Log.e(TAG, "Error during MPVLib native destroy", e)
-                }
-                isEngineInitialized = false
-                isEngineDestroyed = true
-                _currentMediaUri.value = null
-                _positionMs.value = 0L
-                _durationMs.value = 0L
-                _engineState.value = EngineState.IDLE
+        nativeEngineLock.withLock {
+            if (isEngineDestroyed) return
+            Log.i(TAG, "Destroying MPV Engine synchronously. Reason: $reason")
+            _engineState.value = EngineState.TEARDOWN
+            unregisterSystemAudioListeners()
+            runCatching {
+                MPVLib.setPropertyString("vo", "null")
+                MPVLib.detachSurface()
+                MPVLib.destroy()
+            }.onFailure { e ->
+                Log.e(TAG, "Error during MPVLib native destroy", e)
             }
-        } finally {
-            MPVLifecycleLock.onTeardownComplete()
+            isEngineInitialized = false
+            isEngineDestroyed = true
+            _currentMediaUri.value = null
+            _positionMs.value = 0L
+            _durationMs.value = 0L
+            _engineState.value = EngineState.IDLE
         }
     }
 }

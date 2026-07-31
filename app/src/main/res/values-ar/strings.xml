@@ -710,8 +710,8 @@
     <string name="remove_from_history_title">إزالة %1$d %2$s من السجل ؟</string>
     <string name="remove_from_history_msg">سيؤدي هذا إلى إزالة %1$s المحدد من قائمة المُشغَّل مؤخراً. لن يتم حذف ملفات الفيديو الأصلية.</string>
     <string name="delete_files_title">حذف %1$d %2$s ؟</string>
-    <string name="delete_files_msg">سيؤدي هذا إلى حذف ملف(ملفات) الفيديو الأصلية نهائياً من تخزين جهازك.\n\nلا يمكن التراجع عن هذا الإجراء.</string>
-    <string name="also_delete_files">حذف الملف(الملفات) الأصلية أيضاً</string>
+    <string name="delete_files_msg">سيؤدي هذا إلى الحذف نهائيا من جهازك.\n\nلا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="also_delete_files">حذف الملف الأصلي أيضا</string>
     <string name="no_video_folders_found">لم يتم العثور على أي مجلد فيديو</string>
     <string name="no_video_folders_found_desc">أضف فيديوهات إلى جهازك لتظهر المجلدات هنا</string>
     <string name="search_in_all_storage_volumes">البحث في جميع وحدات التخزين...</string>
@@ -931,8 +931,10 @@
     <string name="ab_loop_short">AB</string>
     <string name="loop">تكرار</string>
     <string name="background_playback">التشغيل في الخلفية</string>
-    <string name="ambient">الوضع المحيطي</string>
-    <string name="ambience_mode">وضع الإضاءة المحيطية</string>
+    <string name="ambient">الوضع السينيمـائي</string>
+    <string name="ambience_mode">الوضع السـينيمائي</string>
+    <string name="ambient_mode_on">الوضع السينيمائي: مفعّل</string>
+    <string name="ambient_mode_off">الوضع السينيمائي: معطّل</string>
     <string name="sleep_timer">مؤقت النوم</string>
 
     
@@ -1189,5 +1191,8 @@
         <!-- Shorts Video Info Dialog -->
     <string name="shorts_video_info_title">معلومات الفيديو</string>
     <string name="shorts_video_info_resolution">الدقة: %1$dx%2$d</string>
+
+    <string name="player_sheets_zoom_decrease">تقليل التكبير</string>
+    <string name="player_sheets_zoom_increase">زيادة التكبير</string>
     
 </resources>

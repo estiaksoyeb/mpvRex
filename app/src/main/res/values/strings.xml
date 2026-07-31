@@ -1048,6 +1048,8 @@
     <string name="background_playback">Background</string>
     <string name="ambient">Ambient</string>
     <string name="ambience_mode">Ambience Mode</string>
+    <string name="ambient_mode_on">Ambience Mode: ON</string>
+    <string name="ambient_mode_off">Ambience Mode: OFF</string>
     <string name="sleep_timer">Sleep Timer</string>
 
     <!-- Preference section headers -->
@@ -1219,5 +1221,8 @@
         <!-- Shorts Video Info Dialog -->
     <string name="shorts_video_info_title">Video Info</string>
     <string name="shorts_video_info_resolution">Resolution: %1$dx%2$d</string>
+
+    <string name="player_sheets_zoom_decrease">Decrease zoom</string>
+    <string name="player_sheets_zoom_increase">Increase zoom</string>
 
 </resources>

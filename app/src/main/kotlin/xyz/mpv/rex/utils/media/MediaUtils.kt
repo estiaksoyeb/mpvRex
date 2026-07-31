@@ -130,7 +130,6 @@ object MediaUtils : KoinComponent {
     }
 
     intent.setClass(context, PlayerActivity::class.java)
-    intent.action = xyz.mpv.rex.ui.player.engine.ACTION_PLAY_NEW_FILE
     intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     intent.putExtra("internal_launch", true) // Enables subtitle autoload
@@ -179,7 +178,6 @@ object MediaUtils : KoinComponent {
 
     val intent = Intent(Intent.ACTION_VIEW, videoUri)
     intent.setClass(context, PlayerActivity::class.java)
-    intent.action = xyz.mpv.rex.ui.player.engine.ACTION_PLAY_NEW_FILE
     intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     intent.putExtra("internal_launch", true)

@@ -1225,4 +1225,37 @@
     <string name="player_sheets_zoom_decrease">Decrease zoom</string>
     <string name="player_sheets_zoom_increase">Increase zoom</string>
 
+    <string name="custom_buttons_title">Custom Buttons</string>
+    <string name="custom_buttons_subtitle">Drag to reorder • Tap any slot to expand &amp; edit</string>
+    <string name="custom_buttons_export_success">Buttons exported successfully</string>
+    <string name="custom_buttons_import_export_title">Import / Export</string>
+    <string name="custom_buttons_import_export_desc">Backup or share all your custom buttons with their Lua code as an XML file</string>
+    <string name="generic_import">Import</string>
+    <string name="generic_export">Export</string>
+    <string name="custom_button_empty_slot">Empty slot</string>
+    <string name="custom_button_drag_disabled">Drag disabled</string>
+    <string name="custom_button_field_label">Button</string>
+    <string name="custom_button_lua_scripts_label">Lua scripts</string>
+    <string name="custom_button_title_field">Button title *</string>
+    <string name="custom_button_tap_action">Tap action</string>
+    <string name="custom_button_tap_action_required">Tap action *</string>
+    <string name="custom_button_long_press_action">Long press action</string>
+    <string name="custom_button_on_startup">On startup</string>
+    <string name="custom_button_settings_label">Settings</string>
+    <string name="custom_button_enabled_label">Button enabled</string>
+    <string name="custom_button_enabled_desc">Button is active in the player</string>
+    <string name="custom_button_disabled_desc">Button is saved but hidden</string>
+    <string name="custom_button_add">Add button</string>
+    <string name="custom_button_lua_editor_hint">Tap to write Lua code…</string>
+    <string name="custom_button_select_import_title">Select Buttons to Import</string>
+    <string name="custom_button_select_import_subtitle">Choose which buttons to import</string>
+    <string name="custom_button_will_overwrite">Will overwrite existing button</string>
+    <string name="custom_button_read_failed">Failed to read file: %1$s</string>
+    <string name="custom_button_field_label_with_slot">%1$s  ·  %2$s</string>
+
+    <plurals name="custom_buttons_imported_count">
+        <item quantity="one">Imported %1$d button</item>
+        <item quantity="other">Imported %1$d buttons</item>
+    </plurals>
+
 </resources>

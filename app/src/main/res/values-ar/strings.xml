@@ -1194,5 +1194,42 @@
 
     <string name="player_sheets_zoom_decrease">تقليل التكبير</string>
     <string name="player_sheets_zoom_increase">زيادة التكبير</string>
+
+    <string name="custom_buttons_title">الأزرار المخصصة</string>
+    <string name="custom_buttons_subtitle">اسحب لإعادة الترتيب • اضغط على أي مكان للتوسيع والتعديل</string>
+    <string name="custom_buttons_export_success">تم تصدير الأزرار بنجاح</string>
+    <string name="custom_buttons_import_export_title">استيراد / تصدير</string>
+    <string name="custom_buttons_import_export_desc">احفظ نسخة احتياطية أو شارك جميع أزرارك المخصصة مع أكواد Lua كملف XML</string>
+    <string name="generic_import">استيراد</string>
+    <string name="generic_export">تصدير</string>
+    <string name="custom_button_empty_slot">مكان فارغ</string>
+    <string name="custom_button_drag_disabled">السحب معطل</string>
+    <string name="custom_button_field_label">الزر</string>
+    <string name="custom_button_lua_scripts_label">أكواد Lua</string>
+    <string name="custom_button_title_field">اسم الزر *</string>
+    <string name="custom_button_tap_action">إجراء الضغط</string>
+    <string name="custom_button_tap_action_required">إجراء الضغط *</string>
+    <string name="custom_button_long_press_action">إجراء الضغط المطول</string>
+    <string name="custom_button_on_startup">عند بدء التشغيل</string>
+    <string name="custom_button_settings_label">الإعدادات</string>
+    <string name="custom_button_enabled_label">تفعيل الزر</string>
+    <string name="custom_button_enabled_desc">الزر مفعّل في المشغل</string>
+    <string name="custom_button_disabled_desc">الزر محفوظ لكنه مخفي</string>
+    <string name="custom_button_add">إضافة زر</string>
+    <string name="custom_button_lua_editor_hint">اضغط لكتابة كود Lua…</string>
+    <string name="custom_button_select_import_title">اختر الأزرار للاستيراد</string>
+    <string name="custom_button_select_import_subtitle">اختر الأزرار التي تريد استيرادها</string>
+    <string name="custom_button_will_overwrite">سيتم استبدال الزر الموجود</string>
+    <string name="custom_button_read_failed">فشل في قراءة الملف: %1$s</string>
+    <string name="custom_button_field_label_with_slot">%1$s  ·  %2$s</string>
+
+    <plurals name="custom_buttons_imported_count">
+        <item quantity="zero">لم يتم استيراد أي زر</item>
+        <item quantity="one">تم استيراد زر واحد</item>
+        <item quantity="two">تم استيراد زرين</item>
+        <item quantity="few">تم استيراد %1$d أزرار</item>
+        <item quantity="many">تم استيراد %1$d زرًا</item>
+        <item quantity="other">تم استيراد %1$d زر</item>
+    </plurals>
     
 </resources>

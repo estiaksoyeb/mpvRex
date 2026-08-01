@@ -23,8 +23,8 @@ mpvRex is an advanced, customizable video player for Android. It combines the ve
 ## Showcase
 
 <div class="image-row" align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/player.png" width="92%">
-  <p><i>Player UI — Material You adaptive controls, seek capsule OSD, and gesture zones</i></p>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/glassplayer.png" width="92%">
+  <p><i>Player UI — Glassmorphism controls</i></p>
 </div>
 
 <div class="image-row" align="center">
@@ -46,35 +46,36 @@ mpvRex is an advanced, customizable video player for Android. It combines the ve
 
 ### 🎬 Playback & Gestures
 
+- **Circular Double-Tap Seek** — fully customizable circular seek overlay with smooth transition animations
 - **Seek Cancellation** — cancel a seek mid-gesture by dragging backwards, with interactive pointer-scaling feedback animations
 - **Subtitle Drag-to-Reposition** — tap and drag subtitles vertically to position them anywhere on screen
 - **Subtitle Swipe Seeking** — swipe horizontally to jump precisely between subtitle lines
 - **Top Seek Capsule OSD** — pill-shaped overlay showing double-tap seek feedback without blocking the video
 - **Dynamic A-B Loop & Frame Navigation** — set loop points with adjustable vertical bias; fine-tune with a floating, non-colliding frame-by-frame panel
-- **Persistent Video Pan & Zoom** — zoom and position settings saved per video, with quick sliders in the Aspect Ratio menu
-- **Keyboard-Free Sleep Timer** — touch-friendly bottom sheet to schedule sleep times without opening a keyboard
-- **Onboarding Tutorials** — step-by-step in-player guides for speed lock and subtitle gestures
+- **Advanced Zoom & Pan** — independent video scaling, black bar removal, and interactive zoom/pan sliders in the Aspect Ratio sheet; settings saved per video
 - **Refined Tap & Lock Logic** — custom exclusion zones, optional seekbar tap prevention, and one-tap control lock
 
 ### 🎨 UI & Aesthetics
 
+- **Glass Theme Player UI** — sleek glassmorphism design across controls, seekbar, title bar, speed indicator, and Shorts player
 - **Dynamic Tab Manager** — hide, show, and reorder dashboard tabs to fully customize your bottom navigation
 - **Material You** — player controls dynamically match your Android system accent or app theme
-- **Animated Splash Screen** — custom vector-art launch animation with light/dark mode support
-- **Clean Preferences** — organized Jetpack Compose preference screens with fully localized strings
+- **Theme Transition Animation** — premium circular reveal animation when toggling between light and dark themes
+- **Embedded Cover Art Thumbnails** — automatic extraction of embedded cover art and sibling artwork as local video thumbnails
 
 ### 🗂️ File Explorer & Media Library
 
 - **Unified Explorer Engine** — ensures every browsing mode (local storage, network shares, and playlists) looks, feels, and behaves identically
+- **M3U Playlist Support** — load M3U playlists with custom stream titles and drag-and-drop reordering
 - **Multi-Select Range** — select a range of items easily by long-pressing the first file and tapping the last
 - **Sectioned Grid/List Layouts** — independently customizable inside tree subdirectories
 - **Folder Metadata** — recursive file counts, watched/unplayed dimming, and reactive "NEW" badges
 - **Breadcrumb Navigation** — toggleable path breadcrumbs in the tree view
 - **Advanced Sorting** — by Name, Date, Size, and Duration
 - **Network Streaming Proxy** — high-performance proxy for WebDAV, SMB, and FTP streams with image preview caching
-- **Mark As System** — mark videos as watched, skipped, or flagged; filter your library accordingly
+- **Mark As System** — mark videos as watched, skipped, new, or flagged; filter your library accordingly
 - **Media Library View** — browse your full video collection outside the file tree
-- **Shorts Mode** — vertical video playback with auto-swipe for Reels-style content
+- **Shorts Mode** — overhauled vertical video player with directory source filters, session Free Mode, Clean UI Mode, and reactive MPV observers
 
 ### ⚙️ Engine & Customization
 
@@ -85,9 +86,9 @@ mpvRex is an advanced, customizable video player for Android. It combines the ve
 ### ⚡ Performance
 
 - **Battery-Optimized Playback** — optimized playback engine designed to maximize battery life during long viewing sessions
-- **Async UI Animations** — seekbar animations run in coroutine contexts, off the UI thread
+- **Reactive StateFlow Observers** — per-instance MPV property observers that survive background resume and eliminate frozen UI
+- **Gesture JNI Elimination** — removed per-event JNI reads during pan and zoom gestures for smoother interaction
 - **Smart Background Service** — background playback service starts only when actually backgrounded
-- **Compose Recomposition Tuning** — minimized unnecessary recompositions across all player controls
 
 ---
 

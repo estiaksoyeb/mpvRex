@@ -128,6 +128,20 @@ object SearchablePreferences {
                 screen = PlayerControlsPreferencesScreen,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_player_show_seekbar_chapters_title,
+                summaryRes = R.string.pref_player_show_seekbar_chapters_summary,
+                keywords = listOf("chapters", "seekbar", "markers", "gaps", "progress", "player"),
+                category = "Appearance",
+                screen = PlayerControlsPreferencesScreen,
+            ))
+            add(SearchablePreference(
+                titleRes = R.string.pref_player_show_seekbar_read_ahead_title,
+                summaryRes = R.string.pref_player_show_seekbar_read_ahead_summary,
+                keywords = listOf("buffer", "buffered", "cache", "read ahead", "visual hint", "seekbar", "progress", "player"),
+                category = "Appearance",
+                screen = PlayerControlsPreferencesScreen,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_player_display_hide_player_control_time,
                 keywords = listOf("time", "hide", "controls", "disappear", "timeout", "ms"),
                 category = "Appearance",

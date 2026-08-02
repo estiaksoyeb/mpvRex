@@ -223,6 +223,8 @@ object PlayerControlsPreferencesScreen : Screen {
                     item {
                         val currentSeekbarStyle by appearancePrefs.seekbarStyle.collectAsState()
                         val whiteSeekBar by playerPrefs.whiteSeekBar.collectAsState()
+                        val showSeekbarChapters by playerPrefs.showSeekbarChapters.collectAsState()
+                        val showSeekbarReadAhead by playerPrefs.showSeekbarReadAhead.collectAsState()
                         PreferenceCard {
                             SeekbarStyle.entries.forEachIndexed { index, style ->
                                 ListItem(
@@ -256,6 +258,32 @@ object PlayerControlsPreferencesScreen : Screen {
                                 },
                                 summary = {
                                     Text(text = stringResource(R.string.pref_player_white_seekbar_summary))
+                                },
+                            )
+
+                            PreferenceDivider()
+
+                            SwitchPreference(
+                                value = showSeekbarChapters,
+                                onValueChange = { playerPrefs.showSeekbarChapters.set(it) },
+                                title = {
+                                    Text(text = stringResource(R.string.pref_player_show_seekbar_chapters_title))
+                                },
+                                summary = {
+                                    Text(text = stringResource(R.string.pref_player_show_seekbar_chapters_summary))
+                                },
+                            )
+
+                            PreferenceDivider()
+
+                            SwitchPreference(
+                                value = showSeekbarReadAhead,
+                                onValueChange = { playerPrefs.showSeekbarReadAhead.set(it) },
+                                title = {
+                                    Text(text = stringResource(R.string.pref_player_show_seekbar_read_ahead_title))
+                                },
+                                summary = {
+                                    Text(text = stringResource(R.string.pref_player_show_seekbar_read_ahead_summary))
                                 },
                             )
                         }

@@ -70,6 +70,8 @@ class PlayerPreferences(
   val bottomControlsBelowSeekbar = preferenceStore.getBoolean("bottom_controls_below_seekbar", false)
   val showSeekBarWhenSeeking = preferenceStore.getBoolean("show_seekbar_when_seeking", false)
   val whiteSeekBar = preferenceStore.getBoolean("white_seekbar", false)
+  val showSeekbarChapters = preferenceStore.getBoolean("show_seekbar_chapters", true)
+  val showSeekbarReadAhead = preferenceStore.getBoolean("show_seekbar_read_ahead", true)
   val hideOsdText = preferenceStore.getBoolean("hide_osd_text_v2", false)
 
   val customSkipDuration = preferenceStore.getInt("custom_skip_duration", 90)

@@ -595,6 +595,10 @@
     <string name="pref_player_show_seekbar_when_seeking_summary">Display the video progress bar during gesture seeking</string>
     <string name="pref_player_white_seekbar_title">White video progress bar</string>
     <string name="pref_player_white_seekbar_summary">Make the video progress bar white in player screen</string>
+    <string name="pref_player_show_seekbar_chapters_title">Show chapters</string>
+    <string name="pref_player_show_seekbar_chapters_summary">Display chapter markers on the seekbar</string>
+    <string name="pref_player_show_seekbar_read_ahead_title">Show buffered content</string>
+    <string name="pref_player_show_seekbar_read_ahead_summary">Display visual hint of buffered content on the seekbar</string>
     <string name="pref_player_hide_osd_text_title">Hide player OSD text</string>
     <string name="pref_player_hide_osd_text_summary">Hide the default mpv OSD text during seeking or subtitle seeking</string>
     <string name="pref_player_keep_screen_on_when_paused_title">Keep screen on when paused</string>

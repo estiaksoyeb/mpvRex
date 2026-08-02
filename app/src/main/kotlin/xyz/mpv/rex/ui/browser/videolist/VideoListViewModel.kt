@@ -115,36 +115,57 @@ class VideoListViewModel(
           if (!browserPreferences.showAudioFiles.get()) {
             retryVideoList = retryVideoList.filterNot { it.isAudio }
           }
-          _videos.value = retryVideoList
-          loadPlaybackInfo(retryVideoList)
-          _isLoading.value = false
-
-          // Enrich with metadata in the background only if chips are enabled
           if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && retryVideoList.isNotEmpty()) {
-            val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
-              context = getApplication(),
+            retryVideoList = MetadataRetrieval.applyCachedMetadata(
               videos = retryVideoList,
               browserPreferences = browserPreferences,
               metadataCache = metadataCache
             )
-            _videos.value = enrichedList
-            loadPlaybackInfo(enrichedList)
           }
-        } else {
-          _videos.value = videoList
-          loadPlaybackInfo(videoList)
+          _videos.value = retryVideoList
+          loadPlaybackInfo(retryVideoList)
           _isLoading.value = false
 
-          // Enrich with metadata in the background only if chips are enabled
+          // Extract metadata in background for any uncached videos
+          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && retryVideoList.isNotEmpty()) {
+            val uncachedCount = retryVideoList.count { it.fps == 0f || it.subtitleCodec.isEmpty() }
+            if (uncachedCount > 0) {
+              val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
+                context = getApplication(),
+                videos = retryVideoList,
+                browserPreferences = browserPreferences,
+                metadataCache = metadataCache
+              )
+              _videos.value = enrichedList
+              loadPlaybackInfo(enrichedList)
+            }
+          }
+        } else {
+          // Pre-apply DB cached metadata before initial emission to prevent chip flickering
           if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
-            val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
-              context = getApplication(),
+            videoList = MetadataRetrieval.applyCachedMetadata(
               videos = videoList,
               browserPreferences = browserPreferences,
               metadataCache = metadataCache
             )
-            _videos.value = enrichedList
-            loadPlaybackInfo(enrichedList)
+          }
+          _videos.value = videoList
+          loadPlaybackInfo(videoList)
+          _isLoading.value = false
+
+          // Extract metadata in background for any uncached videos
+          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+            val uncachedCount = videoList.count { it.fps == 0f || it.subtitleCodec.isEmpty() }
+            if (uncachedCount > 0) {
+              val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
+                context = getApplication(),
+                videos = videoList,
+                browserPreferences = browserPreferences,
+                metadataCache = metadataCache
+              )
+              _videos.value = enrichedList
+              loadPlaybackInfo(enrichedList)
+            }
           }
         }
       } catch (e: Exception) {

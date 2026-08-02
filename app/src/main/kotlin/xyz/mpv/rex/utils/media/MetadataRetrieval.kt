@@ -104,6 +104,48 @@ object MetadataRetrieval {
     }
 
     /**
+     * Pre-enriches videos with metadata ALREADY stored in DB cache
+     * Enables instant rendering of cached metadata (FPS, subtitles) on the first frame
+     */
+    suspend fun applyCachedMetadata(
+        videos: List<Video>,
+        browserPreferences: BrowserPreferences,
+        metadataCache: VideoMetadataCacheRepository
+    ): List<Video> = withContext(Dispatchers.IO) {
+        if (!isVideoMetadataNeeded(browserPreferences) || videos.isEmpty()) {
+            return@withContext videos
+        }
+
+        val paths = videos.map { it.path }
+        val cachedMap = metadataCache.getCachedMetadataBatch(paths)
+        if (cachedMap.isEmpty()) {
+            return@withContext videos
+        }
+
+        videos.map { video ->
+            val cached = cachedMap[video.path]
+            if (cached != null) {
+                video.copy(
+                    duration = if (cached.durationMs > 0) cached.durationMs else video.duration,
+                    durationFormatted = if (cached.durationMs > 0) MediaFormatter.formatDuration(cached.durationMs) else video.durationFormatted,
+                    width = if (cached.width > 0) cached.width else video.width,
+                    height = if (cached.height > 0) cached.height else video.height,
+                    fps = cached.fps,
+                    resolution = MediaFormatter.formatResolutionWithFps(
+                        if (cached.width > 0) cached.width else video.width,
+                        if (cached.height > 0) cached.height else video.height,
+                        cached.fps
+                    ),
+                    hasEmbeddedSubtitles = cached.hasEmbeddedSubtitles,
+                    subtitleCodec = cached.subtitleCodec
+                )
+            } else {
+                video
+            }
+        }
+    }
+
+    /**
      * Enriches a list of videos with metadata only if needed
      * Processes in batches for better performance
      */

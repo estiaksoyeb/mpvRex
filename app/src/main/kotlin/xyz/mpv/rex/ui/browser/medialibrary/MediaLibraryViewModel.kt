@@ -56,20 +56,31 @@ class MediaLibraryViewModel(
           videoList = videoList.filterNot { it.isAudio }
         }
 
-        _videos.value = videoList
-        loadPlaybackInfo(videoList)
-        _isLoading.value = false
-
-        // Enrich with metadata in the background only if chips are enabled
         if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && videoList.isNotEmpty()) {
-          val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
-            context = getApplication(),
+          videoList = MetadataRetrieval.applyCachedMetadata(
             videos = videoList,
             browserPreferences = browserPreferences,
             metadataCache = metadataCache
           )
-          _videos.value = enrichedList
-          loadPlaybackInfo(enrichedList)
+        }
+
+        _videos.value = videoList
+        loadPlaybackInfo(videoList)
+        _isLoading.value = false
+
+        // Extract metadata in the background only for uncached videos
+        if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && videoList.isNotEmpty()) {
+          val uncachedCount = videoList.count { it.fps == 0f || it.subtitleCodec.isEmpty() }
+          if (uncachedCount > 0) {
+            val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
+              context = getApplication(),
+              videos = videoList,
+              browserPreferences = browserPreferences,
+              metadataCache = metadataCache
+            )
+            _videos.value = enrichedList
+            loadPlaybackInfo(enrichedList)
+          }
         }
       } catch (e: Exception) {
         Log.e(tag, "Error loading media library videos", e)

@@ -426,16 +426,14 @@ class PlayerViewModel(
 
     _customButtonManager.setup()
 
-    // Poll precise position only when playing and controls or seekbar is visible
+    // Poll precise position when controls, seekbar, or gesture seek is visible (whether playing or paused)
     viewModelScope.launch {
       combine(
-        MPVLib.propBoolean["pause"],
         controlsShown,
-        seekBarShown
-      ) { isPaused, controlsVisible, seekbarVisible ->
-        val pausedState = isPaused ?: true
-        val uiVisible = controlsVisible || seekbarVisible
-        !pausedState && uiVisible
+        seekBarShown,
+        isGestureSeeking
+      ) { controlsVisible, seekbarVisible, gestureSeeking ->
+        controlsVisible || seekbarVisible || gestureSeeking
       }.collectLatest { shouldPoll ->
         if (shouldPoll) {
           while (isActive) {
@@ -445,6 +443,16 @@ class PlayerViewModel(
             }
             delay(16) // ~60fps updates
           }
+        }
+      }
+    }
+
+    // Update precise position whenever integer time-pos changes in MPV (e.g. seeking while paused or controls hidden)
+    viewModelScope.launch {
+      MPVLib.propInt["time-pos"].collect { _ ->
+        val time = MPVLib.getPropertyDouble("time-pos")
+        if (time != null) {
+          _precisePosition.value = time.toFloat()
         }
       }
     }

@@ -715,6 +715,7 @@ fun GesturesTab() {
   val preventSeekbarTap by gesturePreferences.preventSeekbarTap.collectAsState()
   val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
   val useSingleTapForLeftRight by gesturePreferences.useSingleTapForLeftRight.collectAsState()
+  val reverseDoubleTap by gesturePreferences.reverseDoubleTap.collectAsState()
   val swipeToSubtitleSeek by playerPreferences.swipeToSubtitleSeek.collectAsState()
   val moveSubtitleByDragging by playerPreferences.moveSubtitleByDragging.collectAsState()
   val panAndZoomEnabled by playerPreferences.panAndZoomEnabled.collectAsState()
@@ -761,6 +762,13 @@ fun GesturesTab() {
       description = stringResource(R.string.pref_player_gestures_horizontal_swipe_to_seek),
       checked = horizontalSwipeToSeek,
       onCheckedChange = { playerPreferences.horizontalSwipeToSeek.set(it) }
+    )
+
+    InteractionSwitch(
+      label = stringResource(R.string.pref_gesture_reverse_double_tap_title),
+      description = stringResource(R.string.pref_gesture_reverse_double_tap_summary),
+      checked = reverseDoubleTap,
+      onCheckedChange = { gesturePreferences.reverseDoubleTap.set(it) }
     )
 
     InteractionSwitch(

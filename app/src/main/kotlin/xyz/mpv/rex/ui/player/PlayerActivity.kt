@@ -513,6 +513,13 @@ class PlayerActivity :
       }
     }
 
+    // Observe external audio EOF event
+    lifecycleScope.launch {
+      viewModel.externalAudioEofEvent.collect {
+        handleEndOfFile(true)
+      }
+    }
+
     window.attributes.layoutInDisplayCutoutMode =
       WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
   }
@@ -2051,6 +2058,9 @@ class PlayerActivity :
     // Reset AB loop values when video changes
     viewModel.clearABLoop()
 
+    // Reset external audio tracks when a new video starts
+    viewModel.resetExternalAudioTracks()
+
     // Reset ambient mode to OFF when a new video starts
     viewModel.resetAmbientMode()
 
@@ -2428,6 +2438,7 @@ class PlayerActivity :
     val currentSubSpeed = MPVLib.getPropertyDouble("sub-speed") ?: DEFAULT_SUB_SPEED
     val currentOrientation = requestedOrientation
     val currentExternalSubs = viewModel.externalSubtitles.toList()
+    val currentExternalAudio = viewModel.externalAudioTracks.toList()
 
     // Cancel any previous pending save operation
     savePlaybackStateJob?.cancel()
@@ -2476,6 +2487,7 @@ class PlayerActivity :
             timeRemaining = timeRemaining,
             savedOrientation = currentOrientation,
             externalSubtitles = currentExternalSubs.joinToString("|"),
+            externalAudioTracks = currentExternalAudio.joinToString("|"),
             hasBeenWatched = run {
               // Check if we are at the end (effectively watched)
               val isFinished = (currentDuration > 0) && (currentPos >= currentDuration - 1)
@@ -2540,6 +2552,17 @@ class PlayerActivity :
       val lastUri = externalSubUris.last()
       for (subUri in externalSubUris) {
         viewModel.addSubtitle(Uri.parse(subUri), select = subUri == lastUri, silent = true)
+      }
+    }
+
+    // Restore external audio tracks
+    if (state.externalAudioTracks.isNotBlank()) {
+      val externalAudioUris = state.externalAudioTracks.split("|").filter { it.isNotBlank() }
+      Log.d(TAG, "Restoring ${externalAudioUris.size} external audio track(s)")
+
+      val lastUri = externalAudioUris.last()
+      for (audioUri in externalAudioUris) {
+        viewModel.addAudio(Uri.parse(audioUri), select = audioUri == lastUri, silent = true)
       }
     }
 

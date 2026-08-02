@@ -28,7 +28,7 @@ import xyz.mpv.rex.domain.network.NetworkConnection
     PlaylistItemEntity::class,
     ShortsMediaEntity::class,
   ],
-  version = 13,
+  version = 14,
   exportSchema = true,
 )
 @TypeConverters(NetworkProtocolConverter::class)

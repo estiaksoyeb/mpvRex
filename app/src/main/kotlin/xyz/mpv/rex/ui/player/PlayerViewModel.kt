@@ -33,9 +33,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -175,7 +177,24 @@ class PlayerViewModel(
   // MPV properties with efficient collection
   val paused by MPVLib.propBoolean["pause"].collectAsState(viewModelScope)
   val pos by MPVLib.propInt["time-pos"].collectAsState(viewModelScope)
-  val duration by MPVLib.propInt["duration"].collectAsState(viewModelScope)
+  private val _mpvDuration by MPVLib.propInt["duration"].collectAsState(viewModelScope)
+  val duration: Int?
+    get() = if (_externalAudioTracks.isNotEmpty() && (_primaryVideoDuration.value ?: 0.0) > 0.0) {
+      _primaryVideoDuration.value?.toInt()
+    } else {
+      _mpvDuration
+    }
+
+  // External audio state and duration tracking
+  private val _externalAudioTracks = mutableListOf<String>()
+  val externalAudioTracks: List<String>
+    get() = synchronized(_externalAudioTracks) { _externalAudioTracks.toList() }
+
+  private val _primaryVideoDuration = MutableStateFlow<Double?>(null)
+  val primaryVideoDuration: StateFlow<Double?> = _primaryVideoDuration.asStateFlow()
+
+  private val _externalAudioEofEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+  val externalAudioEofEvent = _externalAudioEofEvent.asSharedFlow()
 
   // High-precision position and duration for smooth seekbar
   private val _precisePosition = MutableStateFlow(0f)
@@ -439,6 +458,15 @@ class PlayerViewModel(
           while (isActive) {
             val time = MPVLib.getPropertyDouble("time-pos")
             if (time != null) {
+              val primaryDur = _primaryVideoDuration.value
+              if (_externalAudioTracks.isNotEmpty() && primaryDur != null && primaryDur > 0) {
+                if (time >= primaryDur - 0.25) {
+                  _precisePosition.value = primaryDur.toFloat()
+                  _externalAudioEofEvent.tryEmit(Unit)
+                  delay(16)
+                  continue
+                }
+              }
               _precisePosition.value = time.toFloat()
             }
             delay(16) // ~60fps updates
@@ -452,6 +480,14 @@ class PlayerViewModel(
       MPVLib.propInt["time-pos"].collect { _ ->
         val time = MPVLib.getPropertyDouble("time-pos")
         if (time != null) {
+          val primaryDur = _primaryVideoDuration.value
+          if (_externalAudioTracks.isNotEmpty() && primaryDur != null && primaryDur > 0) {
+            if (time >= primaryDur - 0.25) {
+              _precisePosition.value = primaryDur.toFloat()
+              _externalAudioEofEvent.tryEmit(Unit)
+              return@collect
+            }
+          }
           _precisePosition.value = time.toFloat()
         }
       }
@@ -462,7 +498,15 @@ class PlayerViewModel(
       MPVLib.propInt["duration"].collect { _ ->
         val dur = MPVLib.getPropertyDouble("duration")
         if (dur != null && dur > 0) {
-          _preciseDuration.value = dur.toFloat()
+          if (_primaryVideoDuration.value == null && _externalAudioTracks.isEmpty()) {
+            _primaryVideoDuration.value = dur
+          }
+          val effectiveDur = if (_externalAudioTracks.isNotEmpty() && (_primaryVideoDuration.value ?: 0.0) > 0.0) {
+            _primaryVideoDuration.value!!
+          } else {
+            dur
+          }
+          _preciseDuration.value = effectiveDur.toFloat()
 
           // --- AMBIENT FIX: Adapt shader to new file dimensions ---
           ambientModeManager.resetAmbientMode()
@@ -540,26 +584,60 @@ class PlayerViewModel(
 
   // ==================== Audio/Subtitle Management ====================
 
-  fun addAudio(uri: Uri) {
+  fun addAudio(uri: Uri, select: Boolean = true, silent: Boolean = false) {
     viewModelScope.launch(Dispatchers.IO) {
       runCatching {
+        // Save primary video duration before adding external audio if not saved yet
+        if (_primaryVideoDuration.value == null || (_primaryVideoDuration.value ?: 0.0) <= 0.0) {
+          val currentDur = MPVLib.getPropertyDouble("duration")
+          if (currentDur != null && currentDur > 0) {
+            _primaryVideoDuration.value = currentDur
+          }
+        }
+
         val path =
           uri.resolveUri(host.context)
             ?: return@launch withContext(Dispatchers.Main) {
-              showToast("Failed to load audio file: Invalid URI")
+              if (!silent) showToast("Failed to load audio file: Invalid URI")
             }
 
-        MPVLib.command("audio-add", path, "cached")
-        withContext(Dispatchers.Main) {
-          showToast("Audio track added")
+        synchronized(_externalAudioTracks) {
+          val uriStr = uri.toString()
+          if (!_externalAudioTracks.contains(uriStr)) {
+            _externalAudioTracks.add(uriStr)
+          }
+        }
+
+        val flag = if (select) "select" else "cached"
+        MPVLib.command("audio-add", path, flag)
+
+        _primaryVideoDuration.value?.let { primDur ->
+          if (primDur > 0) {
+            _preciseDuration.value = primDur.toFloat()
+          }
+        }
+
+        if (!silent) {
+          withContext(Dispatchers.Main) {
+            showToast("Audio track added")
+          }
         }
       }.onFailure { e ->
-        withContext(Dispatchers.Main) {
-          showToast("Failed to load audio: ${e.message}")
+        if (!silent) {
+          withContext(Dispatchers.Main) {
+            showToast("Failed to load audio: ${e.message}")
+          }
         }
         android.util.Log.e("PlayerViewModel", "Error adding audio", e)
       }
     }
+  }
+
+  fun resetExternalAudioTracks() {
+    synchronized(_externalAudioTracks) {
+      _externalAudioTracks.clear()
+    }
+    _primaryVideoDuration.value = null
   }
 
   fun addSubtitle(uri: Uri, select: Boolean = true, silent: Boolean = false) = _subtitleManager.addSubtitle(uri, select, silent)

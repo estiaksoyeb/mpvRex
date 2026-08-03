@@ -120,7 +120,26 @@ object MediaUtils : KoinComponent {
       }
 
       is Uri -> {
-        Intent(Intent.ACTION_VIEW, source)
+        val it = Intent(Intent.ACTION_VIEW, source)
+        if (source.scheme == "file") {
+          val file = File(source.path ?: "")
+          if (file.exists() && !xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(file)) {
+            val fileName = file.name
+            kotlinx.coroutines.runBlocking {
+              val state = playbackStateRepository.getVideoDataByTitle(fileName)
+              if (state?.savedOrientation != null) {
+                it.putExtra("saved_orientation", state.savedOrientation)
+              }
+              val metadata = metadataCache.getOrExtractMetadata(file, source, fileName)
+              if (metadata != null) {
+                it.putExtra("width", metadata.width)
+                it.putExtra("height", metadata.height)
+                it.putExtra("rotation", metadata.rotation)
+              }
+            }
+          }
+        }
+        it
       }
 
       else -> {
@@ -130,7 +149,7 @@ object MediaUtils : KoinComponent {
     }
 
     intent.setClass(context, PlayerActivity::class.java)
-    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     intent.putExtra("internal_launch", true) // Enables subtitle autoload
     launchSource?.let { intent.putExtra("launch_source", it) }
@@ -178,7 +197,7 @@ object MediaUtils : KoinComponent {
 
     val intent = Intent(Intent.ACTION_VIEW, videoUri)
     intent.setClass(context, PlayerActivity::class.java)
-    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     intent.putExtra("internal_launch", true)
     

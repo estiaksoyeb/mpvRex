@@ -35,9 +35,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
+import xyz.mpv.rex.MainActivity
+import xyz.mpv.rex.R
 import xyz.mpv.rex.database.entities.PlaybackStateEntity
 import xyz.mpv.rex.databinding.PlayerLayoutBinding
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.DecoderPreferences
 import xyz.mpv.rex.domain.hdr.HdrToysManager
@@ -178,6 +181,7 @@ class PlayerActivity :
    * Manager for hdr-toys shaders.
    */
   private val hdrToysManager: HdrToysManager by inject()
+  private val miniPlayerStateManager: MiniPlayerStateManager by inject()
 
   /**
    * Track selector for automatic audio/subtitle selection
@@ -326,7 +330,8 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
-    // Smooth fade-in transition when opening the player
+    // Smooth fade-in transition when opening the player from list
+    @Suppress("DEPRECATION")
     overridePendingTransition(android.R.anim.fade_in, 0)
     super.onCreate(savedInstanceState)
     setContentView(binding.root)
@@ -341,6 +346,16 @@ class PlayerActivity :
     setupPipHelper()
     setupMediaSession()
     viewModel.setupScreenStateReceiver()
+
+    lifecycleScope.launch {
+      miniPlayerStateManager.state.collect { miniState ->
+        if (!miniState.isPlaybackActive && isManualBackgroundPlayback) {
+          Log.d(TAG, "Playback stopped via MiniPlayer - finishing background PlayerActivity")
+          isManualBackgroundPlayback = false
+          finish()
+        }
+      }
+    }
 
     val playlistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
     val playlistIndex = intent.getIntExtra("playlist_index", 0)
@@ -419,15 +434,19 @@ class PlayerActivity :
     // Extract fileName early so it's available when video loads
     fileName = getFileName(intent)
     if (fileName.isBlank()) {
-      fileName = intent.data?.lastPathSegment ?: "Unknown Video"
+      val mpvTitle = runCatching { MPVLib.getPropertyString("media-title") }.getOrNull()
+      fileName = if (!mpvTitle.isNullOrBlank()) mpvTitle else (intent.data?.lastPathSegment ?: "Unknown Video")
     }
     mediaIdentifier = getMediaIdentifier(intent, fileName)
 
     // Set HTTP headers (including referer) BEFORE playing the file
     setHttpHeadersFromExtras(intent.extras)
 
+    val currentMpvPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
+    val isAlreadyPlayingCurrent = !currentMpvPath.isNullOrBlank() && currentMpvPath != "null"
+
     val playableUri = getPlayableUri(intent)
-    if (playableUri != null) {
+    if (playableUri != null && !isAlreadyPlayingCurrent) {
       if (isUriM3U(playableUri)) {
         loadM3uPlaylistOrPlayDirectly(playableUri)
       } else {
@@ -436,54 +455,14 @@ class PlayerActivity :
         }
         player.playFile(playableUri)
       }
+    } else if (isAlreadyPlayingCurrent) {
+      Log.d(TAG, "MPV is already playing media: $currentMpvPath. Re-attaching to active session.")
+      isReady = true
+      enableVideoAfterBackground()
     }
 
     // Set orientation early if we have metadata in intent or cache (avoids jumpy transition for Video/Smart modes)
-    val orient = playerPreferences.orientation.get()
-    if (orient != PlayerOrientation.Video && orient != PlayerOrientation.Smart) {
-      setOrientation()
-    } else {
-      // 1. Try to get saved orientation from intent extras first (priority for Smart mode)
-      val intentSavedOrientation = intent.getIntExtra("saved_orientation", ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
-      if (orient == PlayerOrientation.Smart && intentSavedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-        requestedOrientation = intentSavedOrientation
-        isOrientationRestored = true
-        Log.d(TAG, "onCreate - Smart mode: using restored orientation $requestedOrientation from intent")
-      } else {
-        // 2. Try to get dimensions from intent extras (for Video mode or if no saved orientation)
-        val intentWidth = intent.getIntExtra("width", -1)
-        val intentHeight = intent.getIntExtra("height", -1)
-        val intentRotation = intent.getIntExtra("rotation", 0)
-        if (intentWidth > 0 && intentHeight > 0) {
-          setOrientation(intentWidth, intentHeight, intentRotation)
-        } else {
-          // 3. Fallback: try to get saved orientation from DB or dimensions from cache
-          lifecycleScope.launch {
-            // Check for saved orientation in DB (as fallback for intent)
-            if (orient == PlayerOrientation.Smart) {
-              val state = playbackStateRepository.getVideoDataByTitle(fileName)
-              if (state?.savedOrientation != null && state.savedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-                requestedOrientation = state.savedOrientation!!
-                isOrientationRestored = true
-                Log.d(TAG, "onCreate - Smart mode: using restored orientation $requestedOrientation from DB")
-                return@launch
-              }
-            }
-
-            val path = parsePathFromIntent(intent)
-            if (path != null) {
-              val file = File(path)
-              if (file.exists()) {
-                val metadata = metadataCache.getOrExtractMetadata(file, intent.data ?: "".toUri(), fileName)
-                if (metadata != null) {
-                  setOrientation(metadata.width, metadata.height, metadata.rotation)
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    applyInitialOrientationFromIntent(intent)
 
     // Apply persisted shuffle state after playlist is loaded
     viewModel.applyPersistedShuffleState()
@@ -578,6 +557,21 @@ class PlayerActivity :
       return
     }
 
+    // Transition to background mode and MiniPlayer when going back to file browser only if video is actively playing
+    val isPaused = viewModel.paused ?: (runCatching { MPVLib.getPropertyBoolean("pause") }.getOrNull() == true)
+    if (isReady && fileName.isNotBlank() && !isPaused && audioPreferences.automaticBackgroundPlayback.get()) {
+      isManualBackgroundPlayback = true
+      startBackgroundPlayback()
+      disableVideoForBackground()
+      restoreSystemUI()
+      val mainIntent = Intent(this, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+      }
+      startActivity(mainIntent)
+
+      return
+    }
+
     isUserFinishing = true
     finish()
   }
@@ -589,8 +583,7 @@ class PlayerActivity :
         PlayerControls(
           viewModel = viewModel,
           onBackPress = {
-            isUserFinishing = true
-            finish()
+            handleBackPress()
           },
           modifier = Modifier,
         )
@@ -716,13 +709,13 @@ class PlayerActivity :
   private fun cleanupMPV() {
     if (!mpvInitialized) return
 
+    // Don't cleanup MPV if we're doing background playback
+    if (!isFinishing || isManualBackgroundPlayback) return
+
     player.isExiting = true
 
     // Stop media notification service when activity is destroyed
     endBackgroundPlayback()
-
-    // Don't cleanup MPV if we're doing manual background playback
-    if (!isFinishing || isManualBackgroundPlayback) return
 
     MPVLifecycleLock.onTeardownStart()
     try {
@@ -803,22 +796,22 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun finish() {
     runCatching {
-      isReady = false
+      if (!isManualBackgroundPlayback) {
+        isReady = false
+      }
 
       // Restore UI immediately for responsive exit
       if (!isInPictureInPictureMode) {
         restoreSystemUI()
       }
       
-      // Clean up service when finishing
-      if (serviceBound || mediaPlaybackService != null) {
+      // Clean up service when finishing (unless in background playback)
+      if (!isManualBackgroundPlayback && (serviceBound || mediaPlaybackService != null)) {
         endBackgroundPlayback()
       }
       
       setReturnIntent()
-      if (!isInPictureInPictureMode) {
-        overridePendingTransition(0, android.R.anim.fade_out)
-      }
+
     }.onFailure { e ->
       Log.e(TAG, "Error during finish", e)
     }
@@ -829,7 +822,9 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun finishAndRemoveTask() {
     runCatching {
-      isReady = false
+      if (!isManualBackgroundPlayback) {
+        isReady = false
+      }
       isUserFinishing = true
       
       // Restore UI immediately for responsive exit (same as finish())
@@ -837,15 +832,13 @@ class PlayerActivity :
         restoreSystemUI()
       }
       
-      // Clean up service when finishing
-      if (serviceBound || mediaPlaybackService != null) {
+      // Clean up service when finishing (unless in background playback)
+      if (!isManualBackgroundPlayback && (serviceBound || mediaPlaybackService != null)) {
         endBackgroundPlayback()
       }
       
       setReturnIntent()
-      if (!isInPictureInPictureMode) {
-        overridePendingTransition(0, android.R.anim.fade_out)
-      }
+
     }.onFailure { e ->
       Log.e(TAG, "Error during finishAndRemoveTask", e)
     }
@@ -1784,6 +1777,65 @@ class PlayerActivity :
   }
 
   /**
+   * Sets initial orientation synchronously from intent parameters or metadata cache
+   * to avoid orientation jumps on activity launch or intent update.
+   */
+  private fun applyInitialOrientationFromIntent(targetIntent: Intent) {
+    val orient = playerPreferences.orientation.get()
+    if (orient != PlayerOrientation.Video && orient != PlayerOrientation.Smart) {
+      setOrientation()
+      return
+    }
+
+    // 1. Try saved orientation from intent extras (for Smart mode)
+    val intentSavedOrientation = targetIntent.getIntExtra("saved_orientation", ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+    if (orient == PlayerOrientation.Smart && intentSavedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+      requestedOrientation = intentSavedOrientation
+      isOrientationRestored = true
+      Log.d(TAG, "applyInitialOrientationFromIntent - Smart mode: using restored orientation $requestedOrientation from intent")
+      return
+    }
+
+    // 2. Try dimensions from intent extras (for Video/Smart mode)
+    val intentWidth = targetIntent.getIntExtra("width", -1)
+    val intentHeight = targetIntent.getIntExtra("height", -1)
+    val intentRotation = targetIntent.getIntExtra("rotation", 0)
+    if (intentWidth > 0 && intentHeight > 0) {
+      setOrientation(intentWidth, intentHeight, intentRotation)
+      return
+    }
+
+    // 3. Fallback: try saved orientation from DB or metadata cache synchronously
+    val targetFileName = getFileName(targetIntent).ifBlank { targetIntent.data?.lastPathSegment ?: "Unknown Video" }
+    kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+      if (orient == PlayerOrientation.Smart) {
+        val state = playbackStateRepository.getVideoDataByTitle(targetFileName)
+        if (state?.savedOrientation != null && state.savedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+          withContext(Dispatchers.Main) {
+            requestedOrientation = state.savedOrientation!!
+            isOrientationRestored = true
+            Log.d(TAG, "applyInitialOrientationFromIntent - Smart mode: using restored orientation $requestedOrientation from DB")
+          }
+          return@runBlocking
+        }
+      }
+
+      val path = parsePathFromIntent(targetIntent)
+      if (path != null) {
+        val file = File(path)
+        if (file.exists() && !xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(file)) {
+          val metadata = metadataCache.getOrExtractMetadata(file, targetIntent.data ?: "".toUri(), targetFileName)
+          if (metadata != null && metadata.width > 0 && metadata.height > 0) {
+            withContext(Dispatchers.Main) {
+              setOrientation(metadata.width, metadata.height, metadata.rotation)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Handles configuration changes by updating video aspect ratio.
    */
   private fun handleConfigurationChange() {
@@ -2032,7 +2084,6 @@ class PlayerActivity :
    * applies user preferences, and sets up metadata and media session.
    */
   private fun handleFileLoaded() {
-    isOrientationRestored = false
     // Extract fileName from intent only if not already set
     // This preserves fileName set in onNewIntent or onCreate
     if (fileName.isBlank()) {
@@ -2076,11 +2127,19 @@ class PlayerActivity :
       // Load playback state (will skip track restoration if preferred language configured)
       val hasState = loadVideoPlaybackState(fileName)
 
-      // Re-enable video track if it was disabled during media transition
+      // Re-enable the video/album-art track when loading a file in the foreground.
+      // onNewIntent loads new files with vid="no"; if we're not in background
+      // playback we must restore it so both real video AND embedded album art
+      // (which mpv exposes as a video track) render in the player. The background
+      // case is already handled by disableVideoForBackground() above.
       runCatching {
-        val currentVid = MPVLib.getPropertyString("vid")
-        if (currentVid == "no") {
-          safeSetPropertyString("vid", "auto")
+        if (!isInBackgroundPlayback && MPVLib.getPropertyString("vid") == "no") {
+          if (lastVid > 0) {
+            MPVLib.setPropertyInt("vid", lastVid)
+            lastVid = -1
+          } else {
+            safeSetPropertyString("vid", "auto")
+          }
         }
       }
 
@@ -2142,56 +2201,12 @@ class PlayerActivity :
       }
     }
 
-    // Only set orientation immediately if NOT in Video or Smart mode
-    // For these modes, wait for video-params/aspect to become available
+    // Only set orientation if NOT in Video or Smart mode, or if orientation has not been determined yet
     val orientation = playerPreferences.orientation.get()
     if (orientation != PlayerOrientation.Video && orientation != PlayerOrientation.Smart) {
       setOrientation()
-    } else {
-      // For Video and Smart mode, try to get orientation from metadata cache first
-      // then fallback to video-params/aspect update
-      lifecycleScope.launch {
-        // 1. Check for saved orientation first (for Smart mode)
-        if (orientation == PlayerOrientation.Smart) {
-          val state = playbackStateRepository.getVideoDataByTitle(fileName)
-          if (state?.savedOrientation != null && state.savedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-            requestedOrientation = state.savedOrientation!!
-            isOrientationRestored = true
-            Log.d(TAG, "handleFileLoaded - Smart mode: using restored orientation $requestedOrientation from DB")
-            return@launch
-          }
-        }
-
-        // 2. Use metadata cache for dimensions and rotation
-        // Get the actual current URI from playlist manager (intent.data is only for the first video)
-        val currentUri = viewModel.playlistManager.getCurrentUri() ?: intent.data
-        val path = if (currentUri != null) viewModel.historyManager.resolveFilePath(currentUri) else null
-        var metadataWidth = -1
-        var metadataHeight = -1
-        
-        if (path != null) {
-          val file = File(path)
-          if (file.exists()) {
-            val metadata = metadataCache.getOrExtractMetadata(file, currentUri ?: "".toUri(), fileName)
-            if (metadata != null) {
-              metadataWidth = metadata.width
-              metadataHeight = metadata.height
-              setOrientation(metadataWidth, metadataHeight, metadata.rotation)
-            }
-          }
-        }
-
-        // Wait a bit for video-params/aspect to become available as a secondary check/fallback
-        kotlinx.coroutines.delay(100)
-        if (mpvInitialized && !player.isExiting && !isFinishing) {
-          val aspect = player.getVideoOutAspect()
-          Log.d(TAG, "handleFileLoaded - ${if (orientation == PlayerOrientation.Smart) "Smart" else "Video"} mode, aspect after delay: $aspect")
-          if (aspect != null && aspect > 0) {
-            // Re-apply orientation if it might have changed or wasn't set by metadata
-            setOrientation()
-          }
-        }
-      }
+    } else if (requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+      applyInitialOrientationFromIntent(intent)
     }
 
     applySubtitlePreferences()
@@ -2315,8 +2330,18 @@ class PlayerActivity :
             // Update background service if connected
             if (serviceBound && mediaPlaybackService != null) {
               val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
-              val thumbnail = runCatching { MPVLib.grabThumbnail(1080) }.getOrNull()
-              mediaPlaybackService?.setMediaInfo(title = fileName, artist = artist, thumbnail = thumbnail)
+              val currentUri = uri
+              lifecycleScope.launch(Dispatchers.IO) {
+                val thumbnail = if (hasVideoTrack()) {
+                  runCatching { MPVLib.grabThumbnail(1080) }.getOrNull()
+                } else {
+                  loadAudioCoverArt(currentUri)
+                }
+                withContext(Dispatchers.Main) {
+                  mediaPlaybackService?.setMediaInfo(title = fileName, artist = artist, thumbnail = thumbnail)
+                  miniPlayerStateManager.updateState(thumbnail = thumbnail)
+                }
+              }
             }
           }
 
@@ -2657,9 +2682,33 @@ class PlayerActivity :
     // Update the intent first so getFileName uses the new intent data
     setIntent(intent)
 
+    val incomingFileName = getFileName(intent).ifBlank { intent.data?.lastPathSegment ?: "" }
+    val incomingMediaIdentifier = if (incomingFileName.isNotBlank()) getMediaIdentifier(intent, incomingFileName) else ""
+
+    // If currently playing media matches incoming intent or expanding active session without intent media, return to player without reloading stream
+    if (isReady && (incomingFileName.isBlank() || incomingMediaIdentifier == mediaIdentifier || incomingFileName == fileName)) {
+      Log.d(TAG, "onNewIntent: current media already playing or expanding active session, restoring player without reload")
+      enableVideoAfterBackground()
+      @Suppress("DEPRECATION")
+      overridePendingTransition(android.R.anim.fade_in, 0)
+      return
+    }
     // Check if this intent has playlist information
     val hasPlaylistExtras = intent.hasExtra("playlist_id") ||
       intent.hasExtra("playlist")
+
+    // Clean up background playback state when loading a different video
+    if (isManualBackgroundPlayback || isInBackgroundPlayback) {
+      // Reset flag FIRST to prevent the state collector from calling finish()
+      // when clearState() sets isPlaybackActive = false
+      isManualBackgroundPlayback = false
+      endBackgroundPlayback()
+      enableVideoAfterBackground()
+      miniPlayerStateManager.clearState()
+    }
+
+    // Clear stale playlist from previous video so auto-generate runs fresh for the new file
+    viewModel.playlistManager.setPlaylist(items = emptyList(), index = 0)
 
     // Load playlist from intent extras first (fast path)
     val playlistFromIntent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -2668,6 +2717,7 @@ class PlayerActivity :
       @Suppress("DEPRECATION")
       intent.getParcelableArrayListExtra("playlist") ?: emptyList()
     }
+
 
     // Only update playlist state if we have new playlist information
     // This prevents losing the playlist when coming back from notification/PiP
@@ -2735,6 +2785,9 @@ class PlayerActivity :
       fileName = intent.data?.lastPathSegment ?: "Unknown Video"
     }
     mediaIdentifier = getMediaIdentifier(intent, fileName)
+
+    // Synchronously set orientation for the new file before displaying activity
+    applyInitialOrientationFromIntent(intent)
 
     // Set HTTP headers (including referer) BEFORE loading the new file
     setHttpHeadersFromExtras(intent.extras)
@@ -2884,9 +2937,9 @@ class PlayerActivity :
             val aspect = runCatching { player.getVideoOutAspect() }.getOrNull()
             Log.d(TAG, "setOrientation - ${if (isSmartMode) "Smart (fallback)" else "Video"} mode: aspect=$aspect")
             if (aspect == null || aspect <= 0.0) {
-              // Aspect not available yet - wait for video-params/aspect update
-              Log.d(TAG, "setOrientation - Aspect not available, defaulting to landscape")
-              ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+              // Aspect not available yet or audio-only file - do not force orientation change
+              Log.d(TAG, "setOrientation - Aspect not available or audio-only file")
+              ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             } else {
               // Aspect available - set correct orientation now
               val orientation = if (aspect > 1.0) {
@@ -3208,9 +3261,7 @@ class PlayerActivity :
     // Ensure notification channel exists
     MediaPlaybackService.createNotificationChannel(this)
     
-    // Get media info before starting service
     val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
-    val thumbnail = runCatching { MPVLib.grabThumbnail(1080) }.getOrNull()
     
     // Pass media info via intent extras
     val intent = Intent(this, MediaPlaybackService::class.java).apply {
@@ -3218,15 +3269,25 @@ class PlayerActivity :
       putExtra("media_artist", artist)
     }
     
-    // Store thumbnail in companion object for service to access
-    MediaPlaybackService.thumbnail = thumbnail
-    
     try {
       startForegroundService(intent)
       bindService(intent, serviceConnection, BIND_AUTO_CREATE)
       Log.d(TAG, "Service start and bind initiated")
     } catch (e: Exception) {
       Log.e(TAG, "Error starting/binding service", e)
+    }
+
+    // Offload thumbnail or cover art extraction to background coroutine
+    lifecycleScope.launch(Dispatchers.IO) {
+      val currentUri = viewModel.playlistManager.getCurrentUri() ?: extractUriFromIntent(intent)
+      val thumbnail = if (hasVideoTrack()) {
+        runCatching { MPVLib.grabThumbnail(256) }.getOrNull()
+      } else if (currentUri != null) {
+        loadAudioCoverArt(currentUri)
+      } else null
+
+      MediaPlaybackService.thumbnail = thumbnail
+      miniPlayerStateManager.updateState(thumbnail = thumbnail)
     }
   }
 
@@ -3295,12 +3356,20 @@ class PlayerActivity :
   private fun disableVideoForBackground() {
     if (!isReady || fileName.isBlank()) return
 
+    if (!hasVideoTrack()) {
+      isInBackgroundPlayback = true
+      Log.d(TAG, "Audio-only playback in background")
+      return
+    }
+
     val currentVid = MPVLib.getPropertyInt("vid") ?: -1
     if (currentVid > 0) {
       lastVid = currentVid
       MPVLib.setPropertyString("vid", "no")
       isInBackgroundPlayback = true
       Log.d(TAG, "Video disabled for background playback (saved vid: $lastVid)")
+    } else {
+      isInBackgroundPlayback = true
     }
   }
 
@@ -3315,6 +3384,45 @@ class PlayerActivity :
       lastVid = -1
     }
   }
+
+  /**
+   * Checks if the currently loaded media has a valid video track.
+   */
+  private fun hasVideoTrack(): Boolean {
+    if (!mpvInitialized || player.isExiting) return false
+    val w = runCatching { MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0 }.getOrDefault(0)
+    if (w > 0) return true
+
+    val trackCount = runCatching { MPVLib.getPropertyInt("track-list/count") ?: 0 }.getOrDefault(0)
+    for (i in 0 until trackCount) {
+      val type = runCatching { MPVLib.getPropertyString("track-list/$i/type") }.getOrNull()
+      val isAlbumArt = runCatching { MPVLib.getPropertyBoolean("track-list/$i/albumart") }.getOrNull()
+      if (type == "video" && isAlbumArt != true) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Extracts embedded album cover art for audio files.
+   */
+  private suspend fun loadAudioCoverArt(uri: Uri): android.graphics.Bitmap? = withContext(Dispatchers.IO) {
+    runCatching {
+      val retriever = android.media.MediaMetadataRetriever()
+      try {
+        retriever.setDataSource(this@PlayerActivity, uri)
+        val picture = retriever.embeddedPicture
+        if (picture != null) {
+          android.graphics.BitmapFactory.decodeByteArray(picture, 0, picture.size)
+        } else null
+      } finally {
+        runCatching { retriever.release() }
+      }
+    }.getOrNull()
+  }
+
+
 
   // ==================== PlayerHost ====================
   override val context: Context

@@ -55,6 +55,9 @@ import xyz.mpv.rex.ui.browser.playlist.PlaylistScreen
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedScreen
 import xyz.mpv.rex.ui.browser.shorts.ShortsScreen
 import xyz.mpv.rex.ui.browser.selection.SelectionManager
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayer
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -156,6 +159,8 @@ object MainScreen : Screen {
     val context = LocalContext.current
     val density = LocalDensity.current
     val browserPreferences = koinInject<BrowserPreferences>()
+    val miniPlayerStateManager = koinInject<MiniPlayerStateManager>()
+    val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val isShortsEnabled by browserPreferences.enableShorts.collectAsState()
     val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
     val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
@@ -254,59 +259,59 @@ object MainScreen : Screen {
         val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
         
         AnimatedVisibility(
-          visible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1,
-          enter = slideInVertically(
-            animationSpec = tween(durationMillis = 300),
-            initialOffsetY = { fullHeight -> fullHeight }
-          ),
-          exit = slideOutVertically(
-            animationSpec = tween(durationMillis = 300),
-            targetOffsetY = { fullHeight -> fullHeight }
-          )
-        ) {
-          NavigationBar(
-            modifier = Modifier
-              .clip(
-                RoundedCornerShape(
-                  topStart = 28.dp,
-                  topEnd = 28.dp,
-                  bottomStart = 0.dp,
-                  bottomEnd = 0.dp
-                )
-              ),
-            containerColor = if (isShortsTabActive) Color.Transparent else NavigationBarDefaults.containerColor,
-            contentColor = if (isShortsTabActive) Color.White else MaterialTheme.colorScheme.onSurface,
+            visible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1,
+            enter = slideInVertically(
+              animationSpec = tween(durationMillis = 300),
+              initialOffsetY = { fullHeight -> fullHeight }
+            ),
+            exit = slideOutVertically(
+              animationSpec = tween(durationMillis = 300),
+              targetOffsetY = { fullHeight -> fullHeight }
+            )
           ) {
-            val itemColors = if (isShortsTabActive) {
-              NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.7f),
-                unselectedTextColor = Color.White.copy(alpha = 0.7f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-              )
-            } else {
-              NavigationBarItemDefaults.colors()
-            }
+            NavigationBar(
+              modifier = Modifier
+                .clip(
+                  RoundedCornerShape(
+                    topStart = 28.dp,
+                    topEnd = 28.dp,
+                    bottomStart = 0.dp,
+                    bottomEnd = 0.dp
+                  )
+                ),
+              containerColor = if (isShortsTabActive) Color.Transparent else NavigationBarDefaults.containerColor,
+              contentColor = if (isShortsTabActive) Color.White else MaterialTheme.colorScheme.onSurface,
+            ) {
+              val itemColors = if (isShortsTabActive) {
+                NavigationBarItemDefaults.colors(
+                  selectedIconColor = Color.White,
+                  selectedTextColor = Color.White,
+                  unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                  unselectedTextColor = Color.White.copy(alpha = 0.7f),
+                  indicatorColor = Color.White.copy(alpha = 0.2f)
+                )
+              } else {
+                NavigationBarItemDefaults.colors()
+              }
 
-            visibleTabs.forEachIndexed { index, tab ->
-              NavigationBarItem(
-                icon = { Icon(tab.icon, contentDescription = tab.label) },
-                label = { Text(tab.label) },
-                selected = selectedTab == index,
-                onClick = {
-                  if (selectedTab == index) {
-                    _scrollToTopRequest.tryEmit(tab.id)
-                  } else {
-                    selectedTab = index
-                  }
-                },
-                colors = itemColors
-              )
+              visibleTabs.forEachIndexed { index, tab ->
+                NavigationBarItem(
+                  icon = { Icon(tab.icon, contentDescription = tab.label) },
+                  label = { Text(tab.label) },
+                  selected = selectedTab == index,
+                  onClick = {
+                    if (selectedTab == index) {
+                      _scrollToTopRequest.tryEmit(tab.id)
+                    } else {
+                      selectedTab = index
+                    }
+                  },
+                  colors = itemColors
+                )
+              }
             }
           }
         }
-      }
     ) { paddingValues ->
       Box(modifier = Modifier.fillMaxSize()) {
         val fabBottomPadding = 80.dp
@@ -373,8 +378,12 @@ object MainScreen : Screen {
           val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
           val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
           
+          val navBarHeight = if (isNavBarVisible) fabBottomPadding else 0.dp
+          val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) 72.dp else 0.dp
+          val totalBottomPadding = navBarHeight + miniPlayerHeight
+          
           CompositionLocalProvider(
-            LocalNavigationBarHeight provides if (isNavBarVisible) fabBottomPadding else 0.dp
+            LocalNavigationBarHeight provides totalBottomPadding
           ) {
             if (targetTab in visibleTabs.indices) {
               visibleTabs[targetTab].content()

@@ -9,6 +9,8 @@ import org.koin.dsl.module
 import org.koin.android.ext.koin.androidContext
 import java.util.concurrent.TimeUnit
 
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+
 val domainModule = module {
     single {
         OkHttpClient.Builder()
@@ -21,5 +23,7 @@ val domainModule = module {
     single { HdrToysManager(androidContext()) }
     single { WyzieSearchRepository(androidContext(), get(), get(), get()) }
     single { PlaybackManager(get()) }
+    single { MiniPlayerStateManager() }
 }
+
 

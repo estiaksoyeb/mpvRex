@@ -27,6 +27,7 @@ import `is`.xyz.mpv.MPVNode
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.ui.player.SingleActionGesture
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import kotlinx.coroutines.cancel
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -72,6 +73,7 @@ class MediaPlaybackService :
   private val playerPreferences: PlayerPreferences by inject()
   private val gesturePreferences: GesturePreferences by inject()
   private val playbackManager: PlaybackManager by inject()
+  private val miniPlayerStateManager: MiniPlayerStateManager by inject()
 
   private val serviceScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
 
@@ -310,6 +312,16 @@ class MediaPlaybackService :
           .build(),
       )
 
+      miniPlayerStateManager.updateState(
+        isPlaybackActive = true,
+        title = title,
+        artist = mediaArtist,
+        currentPositionMs = position,
+        durationMs = duration,
+        isPaused = paused,
+        thumbnail = thumbnail,
+      )
+
       // Update notification
       updateNotification()
     } catch (e: Exception) {
@@ -502,6 +514,12 @@ class MediaPlaybackService :
       // Clear thumbnail to prevent memory leak
       thumbnail = null
       
+      runCatching {
+        MPVLib.command("stop")
+      }
+
+      miniPlayerStateManager.clearState()
+
       Log.d(TAG, "Service cleanup completed")
       super.onDestroy()
     } catch (e: Exception) {

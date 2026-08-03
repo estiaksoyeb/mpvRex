@@ -347,6 +347,9 @@ class PlayerActivity :
     setupMediaSession()
     viewModel.setupScreenStateReceiver()
 
+    miniPlayerStateManager.onNextHandler = { playNext() }
+    miniPlayerStateManager.onPreviousHandler = { playPrevious() }
+
     lifecycleScope.launch {
       miniPlayerStateManager.state.collect { miniState ->
         if (!miniState.isPlaybackActive && isManualBackgroundPlayback) {
@@ -2283,6 +2286,18 @@ class PlayerActivity :
     val currentTitle = fileName
     val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
 
+    val nextIndex = viewModel.playlistManager.getNextIndex(viewModel.shouldRepeatPlaylist())
+    val nextTitle = if (nextIndex != null) {
+      val uri = viewModel.playlistManager.playlist.value.getOrNull(nextIndex)
+      viewModel.playlistManager.getTitleAt(nextIndex) ?: uri?.let { extractFileNameFromUri(it) }
+    } else null
+
+    val prevIndex = viewModel.playlistManager.getPreviousIndex(viewModel.shouldRepeatPlaylist())
+    val prevTitle = if (prevIndex != null) {
+      val uri = viewModel.playlistManager.playlist.value.getOrNull(prevIndex)
+      viewModel.playlistManager.getTitleAt(prevIndex) ?: uri?.let { extractFileNameFromUri(it) }
+    } else null
+
     lifecycleScope.launch(Dispatchers.IO) {
       val thumbnail = currentUri?.let { extractThumbnailOrCoverArt(it) }
       withContext(Dispatchers.Main) {
@@ -2294,6 +2309,10 @@ class PlayerActivity :
           artist = artist,
           thumbnail = thumbnail,
           videoPath = currentUri?.toString(),
+          hasNext = hasNext(),
+          hasPrevious = hasPrevious(),
+          nextTitle = nextTitle,
+          prevTitle = prevTitle,
         )
       }
     }
@@ -3538,12 +3557,23 @@ class PlayerActivity :
   /**
    * Check if there's a next video in the playlist
    */
-  fun hasNext(): Boolean = viewModel.playlistManager.hasNext(viewModel.shouldRepeatPlaylist())
+  fun hasNext(): Boolean {
+    val playlistHasNext = viewModel.playlistManager.hasNext(viewModel.shouldRepeatPlaylist())
+    val mpvCount = runCatching { MPVLib.getPropertyInt("playlist-count") }.getOrNull() ?: 0
+    val mpvPos = runCatching { MPVLib.getPropertyInt("playlist-pos") }.getOrNull() ?: 0
+    val mpvHasNext = mpvCount > 1 && mpvPos < mpvCount - 1
+    return playlistHasNext || mpvHasNext
+  }
 
   /**
    * Check if there's a previous video in the playlist
    */
-  fun hasPrevious(): Boolean = viewModel.playlistManager.hasPrevious(viewModel.shouldRepeatPlaylist())
+  fun hasPrevious(): Boolean {
+    val playlistHasPrev = viewModel.playlistManager.hasPrevious(viewModel.shouldRepeatPlaylist())
+    val mpvPos = runCatching { MPVLib.getPropertyInt("playlist-pos") }.getOrNull() ?: 0
+    val mpvHasPrev = mpvPos > 0
+    return playlistHasPrev || mpvHasPrev
+  }
 
   /**
    * Play the next video in the playlist

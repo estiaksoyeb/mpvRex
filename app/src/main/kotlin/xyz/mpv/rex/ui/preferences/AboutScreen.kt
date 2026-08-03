@@ -470,7 +470,7 @@ object AboutScreen : Screen {
           }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current + 16.dp))
         }
       }
     }

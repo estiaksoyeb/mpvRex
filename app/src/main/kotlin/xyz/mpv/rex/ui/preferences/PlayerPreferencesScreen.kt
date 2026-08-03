@@ -2,6 +2,7 @@ package xyz.mpv.rex.ui.preferences
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -66,12 +67,14 @@ object PlayerPreferencesScreen : Screen {
         )
       },
     ) { padding ->
+      val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
       ProvidePreferenceLocals {
         LazyColumn(
           modifier =
             Modifier
               .fillMaxSize()
               .padding(padding),
+          contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
         ) {
           // General Section
           item {

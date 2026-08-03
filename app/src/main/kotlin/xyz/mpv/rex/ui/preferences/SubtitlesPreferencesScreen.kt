@@ -181,11 +181,13 @@ object SubtitlesPreferencesScreen : Screen {
             preferences.subtitleSaveFolder.set(uri.toString())
           }
 
+        val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
         LazyColumn(
           modifier =
             Modifier
               .fillMaxSize()
               .padding(padding),
+          contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
         ) {
           // === GENERAL SECTION ===
           item {

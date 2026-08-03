@@ -20,6 +20,10 @@ data class MiniPlayerState(
   val isPaused: Boolean = false,
   val thumbnail: Bitmap? = null,
   val videoPath: String? = null,
+  val hasNext: Boolean = false,
+  val hasPrevious: Boolean = false,
+  val nextTitle: String? = null,
+  val prevTitle: String? = null,
 )
 
 /**
@@ -30,6 +34,12 @@ class MiniPlayerStateManager {
   private val _state = MutableStateFlow(MiniPlayerState())
   val state: StateFlow<MiniPlayerState> = _state.asStateFlow()
 
+  @Volatile
+  var onNextHandler: (() -> Unit)? = null
+
+  @Volatile
+  var onPreviousHandler: (() -> Unit)? = null
+
   fun updateState(
     isPlaybackActive: Boolean = _state.value.isPlaybackActive,
     title: String = _state.value.title,
@@ -39,6 +49,10 @@ class MiniPlayerStateManager {
     isPaused: Boolean = _state.value.isPaused,
     thumbnail: Bitmap? = _state.value.thumbnail,
     videoPath: String? = _state.value.videoPath,
+    hasNext: Boolean = _state.value.hasNext,
+    hasPrevious: Boolean = _state.value.hasPrevious,
+    nextTitle: String? = _state.value.nextTitle,
+    prevTitle: String? = _state.value.prevTitle,
   ) {
     _state.update {
       it.copy(
@@ -50,6 +64,10 @@ class MiniPlayerStateManager {
         isPaused = isPaused,
         thumbnail = thumbnail,
         videoPath = videoPath,
+        hasNext = hasNext,
+        hasPrevious = hasPrevious,
+        nextTitle = nextTitle,
+        prevTitle = prevTitle,
       )
     }
   }
@@ -62,12 +80,34 @@ class MiniPlayerStateManager {
     _state.update { it.copy(isPaused = newPaused) }
   }
 
+  fun playNext() {
+    val handler = onNextHandler
+    if (handler != null) {
+      handler.invoke()
+    } else {
+      runCatching {
+        MPVLib.command("playlist-next")
+      }
+    }
+  }
+
+  fun playPrevious() {
+    val handler = onPreviousHandler
+    if (handler != null) {
+      handler.invoke()
+    } else {
+      runCatching {
+        MPVLib.command("playlist-prev")
+      }
+    }
+  }
+
   @Volatile
   var savedPlayerIntent: Intent? = null
 
   fun clearState() {
     savedPlayerIntent = null
-    _state.value = MiniPlayerState()
+    _state.update { it.copy(isPlaybackActive = false) }
   }
 
   fun openPlayer(context: Context) {

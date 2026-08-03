@@ -84,12 +84,14 @@ object GesturePreferencesScreen : Screen {
         )
       },
     ) { padding ->
+      val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
       ProvidePreferenceLocals {
         LazyColumn(
           modifier =
             Modifier
               .fillMaxSize()
               .padding(padding),
+          contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
         ) {
           item {
             PreferenceSectionHeader(title = stringResource(R.string.pref_gesture_double_tap_title))

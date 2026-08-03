@@ -1156,6 +1156,18 @@
     <string name="pref_player_show_speed_indicator_overlay_summary">Display speed indicator chip when holding for fast playback</string>
     <string name="pref_player_display_show_navigation_bar">Show navigation bar with controls</string>
 
+    <string name="pref_decoder_codec_info_title">Device Codec Support</string>
+    <string name="pref_decoder_codec_info_summary">Check hardware acceleration and software decoding capabilities for video and audio formats</string>
+    <string name="codec_info_hw_badge">HW Accelerated</string>
+    <string name="codec_info_sw_badge">Software (CPU)</string>
+    <string name="codec_info_filter_all">All</string>
+    <string name="codec_info_filter_video">Video</string>
+    <string name="codec_info_filter_audio">Audio</string>
+    <string name="codec_info_filter_hw_only">HW Only</string>
+    <string name="codec_info_stats_title">System Codec Overview</string>
+    <string name="codec_info_stats_summary">%1$d Decoders (%2$d Hardware, %3$d Software)</string>
+    <string name="codec_info_max_res">Max: %s</string>
+
     <plurals name="item_type_video_plural">
         <item quantity="one">video</item>
         <item quantity="other">videos</item>

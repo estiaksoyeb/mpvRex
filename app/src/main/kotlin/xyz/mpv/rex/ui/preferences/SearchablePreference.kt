@@ -448,6 +448,13 @@ object SearchablePreferences {
                 category = "Decoder",
                 screen = DecoderPreferencesScreen,
             ))
+            add(SearchablePreference(
+                titleRes = R.string.pref_decoder_codec_info_title,
+                summaryRes = R.string.pref_decoder_codec_info_summary,
+                keywords = listOf("codec", "hardware", "software", "decoder", "av1", "hevc", "h264", "vp9", "media", "gpu", "hw", "sw"),
+                category = "Decoder",
+                screen = CodecInformationScreen,
+            ))
 
             // Subtitle preferences
             add(SearchablePreference(

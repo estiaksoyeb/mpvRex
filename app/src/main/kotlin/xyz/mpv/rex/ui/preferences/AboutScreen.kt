@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -311,6 +312,29 @@ object AboutScreen : Screen {
               }
             }
           }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        PreferenceSectionHeader(title = stringResource(R.string.pref_decoder_codec_info_title))
+        PreferenceCard {
+          Preference(
+            title = { Text(text = stringResource(R.string.pref_decoder_codec_info_title)) },
+            summary = {
+              Text(
+                text = stringResource(R.string.pref_decoder_codec_info_summary),
+                color = MaterialTheme.colorScheme.outline,
+              )
+            },
+            icon = {
+              Icon(
+                imageVector = Icons.Default.Memory,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+              )
+            },
+            onClick = { backstack.add(CodecInformationScreen) },
+          )
         }
 
         Spacer(Modifier.height(8.dp))

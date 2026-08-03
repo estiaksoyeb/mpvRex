@@ -125,6 +125,19 @@ object DecoderPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              me.zhanghai.compose.preference.Preference(
+                title = { Text(stringResource(R.string.pref_decoder_codec_info_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_decoder_codec_info_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+                onClick = { backstack.add(CodecInformationScreen) },
+              )
+
+              PreferenceDivider()
+
               val gpuNext by preferences.gpuNext.collectAsState()
               val useVulkan by preferences.useVulkan.collectAsState() // Added to check Vulkan state
               SwitchPreference(

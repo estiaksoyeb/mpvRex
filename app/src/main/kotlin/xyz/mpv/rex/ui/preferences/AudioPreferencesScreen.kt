@@ -141,14 +141,6 @@ object AudioPreferencesScreen : Screen {
           )
           
           PreferenceDivider()
-          val automaticBackgroundPlayback by preferences.automaticBackgroundPlayback.collectAsState()
-          SwitchPreference(
-            value = automaticBackgroundPlayback,
-            onValueChange = { preferences.automaticBackgroundPlayback.set(it) },
-            title = { Text(stringResource(R.string.background_playback_title)) },
-          )
-          
-          PreferenceDivider()
           val audioChannel by preferences.audioChannels.collectAsState()
           ListPreference(
             value = audioChannel,

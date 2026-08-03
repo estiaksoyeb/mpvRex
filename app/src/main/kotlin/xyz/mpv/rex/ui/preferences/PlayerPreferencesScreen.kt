@@ -23,6 +23,7 @@ import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.ui.player.BackgroundPlaybackMode
 import xyz.mpv.rex.ui.player.PlayerOrientation
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.utils.LocalBackStack
@@ -91,6 +92,23 @@ object PlayerPreferencesScreen : Screen {
                     text = stringResource(id = orientation.titleRes),
                     color = MaterialTheme.colorScheme.outline,
                   ) 
+                },
+              )
+
+              PreferenceDivider()
+
+              val backgroundPlayback by preferences.backgroundPlayback.collectAsState()
+              ListPreference(
+                value = backgroundPlayback,
+                onValueChange = preferences.backgroundPlayback::set,
+                values = BackgroundPlaybackMode.entries,
+                valueToText = { AnnotatedString(context.getString(it.titleRes)) },
+                title = { Text(text = stringResource(id = R.string.pref_player_background_playback)) },
+                summary = {
+                  Text(
+                    text = stringResource(id = backgroundPlayback.titleRes),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
                 },
               )
 

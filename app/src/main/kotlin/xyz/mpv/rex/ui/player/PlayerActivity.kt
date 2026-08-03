@@ -443,10 +443,19 @@ class PlayerActivity :
     setHttpHeadersFromExtras(intent.extras)
 
     val currentMpvPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
-    val isAlreadyPlayingCurrent = !currentMpvPath.isNullOrBlank() && currentMpvPath != "null"
-
     val playableUri = getPlayableUri(intent)
-    if (playableUri != null && !isAlreadyPlayingCurrent) {
+    val hasPlayableMediaInIntent = playableUri != null
+
+    // Re-attach to active session ONLY when returning from notification/miniplayer (no new intent playable URI) AND MPV is currently playing media
+    val isAlreadyPlayingCurrent = !hasPlayableMediaInIntent && !currentMpvPath.isNullOrBlank() && currentMpvPath != "null"
+
+    if (hasPlayableMediaInIntent) {
+      if (isManualBackgroundPlayback || isInBackgroundPlayback) {
+        isManualBackgroundPlayback = false
+        endBackgroundPlayback()
+        enableVideoAfterBackground()
+        miniPlayerStateManager.clearState()
+      }
       if (isUriM3U(playableUri)) {
         loadM3uPlaylistOrPlayDirectly(playableUri)
       } else {
@@ -1805,9 +1814,9 @@ class PlayerActivity :
       return
     }
 
-    // 3. Fallback: try saved orientation from DB or metadata cache synchronously
+    // 3. Fallback: try saved orientation from DB or metadata cache asynchronously
     val targetFileName = getFileName(targetIntent).ifBlank { targetIntent.data?.lastPathSegment ?: "Unknown Video" }
-    kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+    lifecycleScope.launch(Dispatchers.IO) {
       if (orient == PlayerOrientation.Smart) {
         val state = playbackStateRepository.getVideoDataByTitle(targetFileName)
         if (state?.savedOrientation != null && state.savedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
@@ -1816,7 +1825,7 @@ class PlayerActivity :
             isOrientationRestored = true
             Log.d(TAG, "applyInitialOrientationFromIntent - Smart mode: using restored orientation $requestedOrientation from DB")
           }
-          return@runBlocking
+          return@launch
         }
       }
 
@@ -2112,8 +2121,15 @@ class PlayerActivity :
     // Reset external audio tracks when a new video starts
     viewModel.resetExternalAudioTracks()
 
-    // Reset ambient mode to OFF when a new video starts
-    viewModel.resetAmbientMode()
+    // Apply default background playback behavior based on preference (Always, AudioOnly, VideoOnly, Never)
+    val isAudio = isCurrentMediaAudio()
+    val defaultBgPlayback = when (playerPreferences.backgroundPlayback.get()) {
+      BackgroundPlaybackMode.Always -> true
+      BackgroundPlaybackMode.AudioOnly -> isAudio
+      BackgroundPlaybackMode.VideoOnly -> !isAudio
+      BackgroundPlaybackMode.Never -> false
+    }
+    audioPreferences.automaticBackgroundPlayback.set(defaultBgPlayback)
 
     if (pendingIntentExtras) {
       setIntentExtras(intent.extras)
@@ -2260,6 +2276,26 @@ class PlayerActivity :
     )
     updateMediaSessionPlaybackState(isPlaying = true)
 
+    // Update MiniPlayer state and media notification thumbnail for newly loaded track
+    val currentUri = viewModel.playlistManager.getCurrentUri() ?: extractUriFromIntent(intent)
+    val currentTitle = fileName
+    val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
+
+    lifecycleScope.launch(Dispatchers.IO) {
+      val thumbnail = currentUri?.let { extractThumbnailOrCoverArt(it) }
+      withContext(Dispatchers.Main) {
+        MediaPlaybackService.thumbnail = thumbnail
+        mediaPlaybackService?.setMediaInfo(title = currentTitle, artist = artist, thumbnail = thumbnail)
+        miniPlayerStateManager.updateState(
+          isPlaybackActive = true,
+          title = currentTitle,
+          artist = artist,
+          thumbnail = thumbnail,
+          videoPath = currentUri?.toString(),
+        )
+      }
+    }
+
     // Asynchronously fetch better filename from HTTP headers for network streams
     fetchNetworkStreamTitle()
   }
@@ -2332,12 +2368,9 @@ class PlayerActivity :
               val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
               val currentUri = uri
               lifecycleScope.launch(Dispatchers.IO) {
-                val thumbnail = if (hasVideoTrack()) {
-                  runCatching { MPVLib.grabThumbnail(1080) }.getOrNull()
-                } else {
-                  loadAudioCoverArt(currentUri)
-                }
+                val thumbnail = currentUri?.let { extractThumbnailOrCoverArt(it) }
                 withContext(Dispatchers.Main) {
+                  MediaPlaybackService.thumbnail = thumbnail
                   mediaPlaybackService?.setMediaInfo(title = fileName, artist = artist, thumbnail = thumbnail)
                   miniPlayerStateManager.updateState(thumbnail = thumbnail)
                 }
@@ -2682,11 +2715,16 @@ class PlayerActivity :
     // Update the intent first so getFileName uses the new intent data
     setIntent(intent)
 
+    val incomingUri = getPlayableUri(intent)
     val incomingFileName = getFileName(intent).ifBlank { intent.data?.lastPathSegment ?: "" }
     val incomingMediaIdentifier = if (incomingFileName.isNotBlank()) getMediaIdentifier(intent, incomingFileName) else ""
 
-    // If currently playing media matches incoming intent or expanding active session without intent media, return to player without reloading stream
-    if (isReady && (incomingFileName.isBlank() || incomingMediaIdentifier == mediaIdentifier || incomingFileName == fileName)) {
+    val isSameMedia = isReady && incomingUri != null &&
+      ((incomingMediaIdentifier.isNotBlank() && incomingMediaIdentifier == mediaIdentifier) ||
+       (incomingFileName.isNotBlank() && incomingFileName == fileName))
+
+    // If expanding active session without intent media, or if the exact same media is already active in foreground
+    if (isReady && (incomingUri == null || (isSameMedia && !isInBackgroundPlayback && !isManualBackgroundPlayback))) {
       Log.d(TAG, "onNewIntent: current media already playing or expanding active session, restoring player without reload")
       enableVideoAfterBackground()
       @Suppress("DEPRECATION")
@@ -2797,10 +2835,7 @@ class PlayerActivity :
       if (isUriM3U(uri)) {
         loadM3uPlaylistOrPlayDirectly(uri)
       } else {
-        if (mpvInitialized) {
-          safeSetPropertyString("vid", "no")
-          runCatching { MPVLib.setPropertyBoolean("pause", true) }
-        } else if (playerPreferences.savePositionOnQuit.get()) {
+        if (playerPreferences.savePositionOnQuit.get()) {
           runCatching { MPVLib.setPropertyBoolean("pause", true) }
         }
         // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
@@ -3280,11 +3315,7 @@ class PlayerActivity :
     // Offload thumbnail or cover art extraction to background coroutine
     lifecycleScope.launch(Dispatchers.IO) {
       val currentUri = viewModel.playlistManager.getCurrentUri() ?: extractUriFromIntent(intent)
-      val thumbnail = if (hasVideoTrack()) {
-        runCatching { MPVLib.grabThumbnail(256) }.getOrNull()
-      } else if (currentUri != null) {
-        loadAudioCoverArt(currentUri)
-      } else null
+      val thumbnail = currentUri?.let { extractThumbnailOrCoverArt(it) }
 
       MediaPlaybackService.thumbnail = thumbnail
       miniPlayerStateManager.updateState(thumbnail = thumbnail)
@@ -3364,11 +3395,16 @@ class PlayerActivity :
 
     val currentVid = MPVLib.getPropertyInt("vid") ?: -1
     if (currentVid > 0) {
-      lastVid = currentVid
+      if (lastVid <= 0) {
+        lastVid = currentVid
+      }
       MPVLib.setPropertyString("vid", "no")
       isInBackgroundPlayback = true
       Log.d(TAG, "Video disabled for background playback (saved vid: $lastVid)")
     } else {
+      if (MPVLib.getPropertyString("vid") != "no") {
+        MPVLib.setPropertyString("vid", "no")
+      }
       isInBackgroundPlayback = true
     }
   }
@@ -3381,6 +3417,10 @@ class PlayerActivity :
     if (lastVid > 0) {
       Log.d(TAG, "Restoring video after background playback (vid: $lastVid)")
       MPVLib.setPropertyInt("vid", lastVid)
+      lastVid = -1
+    } else if (mpvInitialized && MPVLib.getPropertyString("vid") == "no") {
+      Log.d(TAG, "Restoring video after background playback (setting vid to auto)")
+      safeSetPropertyString("vid", "auto")
       lastVid = -1
     }
   }
@@ -3405,17 +3445,56 @@ class PlayerActivity :
   }
 
   /**
-   * Extracts embedded album cover art for audio files.
+   * Checks if current loaded media is audio-only.
    */
-  private suspend fun loadAudioCoverArt(uri: Uri): android.graphics.Bitmap? = withContext(Dispatchers.IO) {
+  private fun isCurrentMediaAudio(): Boolean {
+    val path = parsePathFromIntent(intent)
+    if (path != null) {
+      val file = File(path)
+      if (file.exists() && xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(file)) {
+        return true
+      }
+    }
+    return !hasVideoTrack()
+  }
+
+  /**
+   * Extracts embedded album cover art for audio files or a video frame thumbnail for video files.
+   */
+  private suspend fun extractThumbnailOrCoverArt(uri: Uri): android.graphics.Bitmap? = withContext(Dispatchers.IO) {
     runCatching {
+      if (hasVideoTrack() && MPVLib.getPropertyString("vid") != "no") {
+        val mpvThumb = runCatching { MPVLib.grabThumbnail(256) }.getOrNull()
+        if (mpvThumb != null) return@withContext mpvThumb
+      }
+
       val retriever = android.media.MediaMetadataRetriever()
       try {
-        retriever.setDataSource(this@PlayerActivity, uri)
+        if (uri.scheme == "file") {
+          val path = uri.path
+          if (path != null && File(path).exists()) {
+            retriever.setDataSource(path)
+          } else {
+            retriever.setDataSource(this@PlayerActivity, uri)
+          }
+        } else {
+          retriever.setDataSource(this@PlayerActivity, uri)
+        }
+
+        // 1. Try embedded picture (audio cover art or embedded video cover art)
         val picture = retriever.embeddedPicture
         if (picture != null) {
-          android.graphics.BitmapFactory.decodeByteArray(picture, 0, picture.size)
+          val bitmap = android.graphics.BitmapFactory.decodeByteArray(picture, 0, picture.size)
+          if (bitmap != null) return@withContext bitmap
+        }
+
+        // 2. Try video frame at 1 second or start of video
+        val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+        val seekUs = if (durationMs > 2000L) 1_000_000L else 0L
+        val frame = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+          runCatching { retriever.getScaledFrameAtTime(seekUs, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 256, 256) }.getOrNull()
         } else null
+        frame ?: retriever.getFrameAtTime(seekUs, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
       } finally {
         runCatching { retriever.release() }
       }

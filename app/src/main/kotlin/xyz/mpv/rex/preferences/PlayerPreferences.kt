@@ -3,6 +3,7 @@ package xyz.mpv.rex.preferences
 
 import xyz.mpv.rex.preferences.preference.PreferenceStore
 import xyz.mpv.rex.preferences.preference.getEnum
+import xyz.mpv.rex.ui.player.BackgroundPlaybackMode
 import xyz.mpv.rex.ui.player.PlayerOrientation
 import xyz.mpv.rex.ui.player.RepeatMode
 import xyz.mpv.rex.ui.player.VideoAspect
@@ -11,6 +12,7 @@ class PlayerPreferences(
   preferenceStore: PreferenceStore,
 ) {
   val orientation = preferenceStore.getEnum("player_orientation", PlayerOrientation.Video)
+  val backgroundPlayback = preferenceStore.getEnum("background_playback_mode", BackgroundPlaybackMode.Never)
   val invertDuration = preferenceStore.getBoolean("invert_duration")
   val holdForMultipleSpeed = preferenceStore.getFloat("hold_for_multiple_speed", 2f)
   val showDynamicSpeedOverlay = preferenceStore.getBoolean("show_dynamic_speed_overlay", true)

@@ -19,6 +19,15 @@ enum class PlayerOrientation(
   SensorLandscape(R.string.pref_player_orientation_sensor_landscape),
 }
 
+enum class BackgroundPlaybackMode(
+  @StringRes val titleRes: Int,
+) {
+  Always(R.string.pref_background_playback_always),
+  AudioOnly(R.string.pref_background_playback_audio_only),
+  VideoOnly(R.string.pref_background_playback_video_only),
+  Never(R.string.pref_background_playback_never),
+}
+
 enum class VideoAspect(
   @StringRes val titleRes: Int,
 ) {

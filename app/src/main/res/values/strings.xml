@@ -561,6 +561,11 @@
 
     <!-- Background Playback -->
     <string name="background_playback_title">Background playback</string>
+    <string name="pref_player_background_playback">Background Playback</string>
+    <string name="pref_background_playback_always">Always</string>
+    <string name="pref_background_playback_audio_only">Audio files only</string>
+    <string name="pref_background_playback_video_only">Video files only</string>
+    <string name="pref_background_playback_never">Never</string>
     <string name="deselect_all">Deselect All</string>
     <string name="select_all">Select All</string>
     <string name="invert_selection">Invert Selection</string>

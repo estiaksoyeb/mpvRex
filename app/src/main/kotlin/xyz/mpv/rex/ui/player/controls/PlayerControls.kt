@@ -102,6 +102,7 @@ import androidx.constraintlayout.compose.Dimension
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.AudioPreferences
+import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.preferences.preference.deleteAndGet
@@ -173,7 +174,9 @@ fun PlayerControls(
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
   val playerPreferences = koinInject<PlayerPreferences>()
   val audioPreferences = koinInject<AudioPreferences>()
+  val gesturePreferences = koinInject<GesturePreferences>()
   val playerTutorialManager = koinInject<PlayerTutorialManager>()
+  val enableReleaseToCancel by gesturePreferences.enableReleaseToCancel.collectAsState()
   val showSystemStatusBar by playerPreferences.showSystemStatusBar.collectAsState()
   val showSystemNavigationBar by playerPreferences.showSystemNavigationBar.collectAsState()
   val playerGradientOpacity by playerPreferences.playerGradientOpacity.collectAsState()
@@ -196,6 +199,7 @@ fun PlayerControls(
   val showDoubleTapOvals by playerPreferences.showDoubleTapOvals.collectAsState()
   val showCircularDoubleTapSeek by playerPreferences.showCircularDoubleTapSeek.collectAsState()
   val showSeekTime by playerPreferences.showSeekTimeWhileSeeking.collectAsState()
+  val showSpeedIndicatorOverlay by playerPreferences.showSpeedIndicatorOverlay.collectAsState()
   val hideOsdText by playerPreferences.hideOsdText.collectAsState()
   var isSeeking by remember { mutableStateOf(false) }
   var dragStartValue by remember { mutableStateOf(-1f) }
@@ -541,9 +545,13 @@ fun PlayerControls(
         }
 
         val isSpeedLocked by viewModel.isSpeedLocked.collectAsState()
+        val isSpeedUpdate = currentPlayerUpdate is PlayerUpdates.MultipleSpeed ||
+          currentPlayerUpdate is PlayerUpdates.DynamicSpeedControl ||
+          (currentPlayerUpdate is PlayerUpdates.SpeedLockHint && !(currentPlayerUpdate as PlayerUpdates.SpeedLockHint).isLocked)
+        val shouldShowSpeedUpdate = if (isSpeedUpdate) showSpeedIndicatorOverlay else true
 
         AnimatedVisibility(
-          currentPlayerUpdate !is PlayerUpdates.None || isSpeedLocked || (doubleTapSeekAmount != 0 && !hideOsdText),
+          shouldShowSpeedUpdate && (currentPlayerUpdate !is PlayerUpdates.None || isSpeedLocked || (doubleTapSeekAmount != 0 && !hideOsdText)),
           enter = fadeIn(playerControlsEnterAnimationSpec()),
           exit = fadeOut(playerControlsExitAnimationSpec()),
           modifier =
@@ -585,28 +593,36 @@ fun PlayerControls(
             )
           } else {
             when (currentPlayerUpdate) {
-              is PlayerUpdates.MultipleSpeed -> MultipleSpeedPlayerUpdate(currentSpeed = holdForMultipleSpeed)
-            is PlayerUpdates.DynamicSpeedControl -> {
-              val speedUpdate = currentPlayerUpdate as PlayerUpdates.DynamicSpeedControl
-              val currentSpeed = speedUpdate.speed
-              CompactSpeedIndicator(currentSpeed = currentSpeed)
-            }
+              is PlayerUpdates.MultipleSpeed -> {
+                if (showSpeedIndicatorOverlay) {
+                  MultipleSpeedPlayerUpdate(currentSpeed = holdForMultipleSpeed)
+                }
+              }
+              is PlayerUpdates.DynamicSpeedControl -> {
+                if (showSpeedIndicatorOverlay) {
+                  val speedUpdate = currentPlayerUpdate as PlayerUpdates.DynamicSpeedControl
+                  val currentSpeed = speedUpdate.speed
+                  CompactSpeedIndicator(currentSpeed = currentSpeed)
+                }
+              }
 
-            is PlayerUpdates.SpeedLockHint -> {
-              val hintUpdate = currentPlayerUpdate as PlayerUpdates.SpeedLockHint
-              val currentSpeed = hintUpdate.speed
-              val isLocked = hintUpdate.isLocked
-              
-              CompactSpeedIndicator(
-                currentSpeed = currentSpeed,
-                onReset = if (isLocked) {
-                    {
-                        viewModel.isSpeedLocked.value = false
-                        viewModel.resetPlaybackSpeed()
-                    }
-                } else null
-              )
-            }
+              is PlayerUpdates.SpeedLockHint -> {
+                val hintUpdate = currentPlayerUpdate as PlayerUpdates.SpeedLockHint
+                val currentSpeed = hintUpdate.speed
+                val isLocked = hintUpdate.isLocked
+                
+                if (isLocked || showSpeedIndicatorOverlay) {
+                  CompactSpeedIndicator(
+                    currentSpeed = currentSpeed,
+                    onReset = if (isLocked) {
+                        {
+                            viewModel.isSpeedLocked.value = false
+                            viewModel.resetPlaybackSpeed()
+                        }
+                    } else null
+                  )
+                }
+              }
 
             is PlayerUpdates.AspectRatio -> {
               val customRatiosSet by playerPreferences.customAspectRatios.collectAsState()
@@ -1229,7 +1245,7 @@ fun PlayerControls(
 
               val durationFloat = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f
               val threshold = (durationFloat * 0.08f).coerceIn(15f, 400f)
-              val close = changeCount > 1 && abs(newValue - dragStartValue) < threshold
+              val close = enableReleaseToCancel && changeCount > 1 && abs(newValue - dragStartValue) < threshold
 
               if (close) {
                 isCloseToStart = true

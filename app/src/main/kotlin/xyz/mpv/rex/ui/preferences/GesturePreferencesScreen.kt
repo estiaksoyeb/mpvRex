@@ -340,6 +340,22 @@ object GesturePreferencesScreen : Screen {
             },
           )
 
+          val enableReleaseToCancel by preferences.enableReleaseToCancel.collectAsState()
+          SwitchPreference(
+            value = enableReleaseToCancel,
+            onValueChange = { preferences.enableReleaseToCancel.set(it) },
+            title = {
+              Text(
+                text = stringResource(id = R.string.pref_gesture_enable_release_to_cancel_title),
+              )
+            },
+            summary = {
+              Text(
+                text = stringResource(id = R.string.pref_gesture_enable_release_to_cancel_summary),
+              )
+            },
+          )
+
           val doubleTapKeyCodes =
             listOf(
               CustomKeyCodes.DoubleTapLeft,

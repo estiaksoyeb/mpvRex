@@ -446,6 +446,21 @@ object PlayerPreferencesScreen : Screen {
                   )
                 }
               )
+
+              PreferenceDivider()
+
+              val showSpeedIndicatorOverlay by preferences.showSpeedIndicatorOverlay.collectAsState()
+              SwitchPreference(
+                value = showSpeedIndicatorOverlay,
+                onValueChange = preferences.showSpeedIndicatorOverlay::set,
+                title = { Text(stringResource(R.string.pref_player_show_speed_indicator_overlay)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_player_show_speed_indicator_overlay_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                }
+              )
             }
           }
           // Controls Section

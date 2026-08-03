@@ -231,6 +231,8 @@
     <string name="pref_gesture_prevent_seekbar_tap_summary">Video will only seek by dragging the seekbar, not by tapping it.</string>
     <string name="pref_gesture_use_relative_seeking_title">Use Relative Seeking</string>
     <string name="pref_gesture_use_relative_seeking_summary">Seek relative to drag start position instead of absolute finger position.</string>
+    <string name="pref_gesture_enable_release_to_cancel_title">Enable "Release to cancel"</string>
+    <string name="pref_gesture_enable_release_to_cancel_summary">Revert seek position when releasing near the drag start location</string>
 
     <string name="pref_gesture_double_tap_custom_info">You can bind custom actions to these gestures in input.conf using the following key codes:\n\nLeft: MBTN_LEFT_DBL\nCenter: MBTN_MID_DBL\nRight: MBTN_RIGHT_DBL</string>
 
@@ -1150,6 +1152,8 @@
     <string name="pref_player_auto_pip_summary">Automatically enter PIP mode when pressing home or back</string>
     <string name="pref_player_dynamic_speed_overlay">Dynamic Speed Overlay</string>
     <string name="pref_player_dynamic_speed_overlay_summary">Show advance overlay for speed control during long press and swipe</string>
+    <string name="pref_player_show_speed_indicator_overlay">Show Speed Indicator Overlay</string>
+    <string name="pref_player_show_speed_indicator_overlay_summary">Display speed indicator chip when holding for fast playback</string>
     <string name="pref_player_display_show_navigation_bar">Show navigation bar with controls</string>
 
     <plurals name="item_type_video_plural">

@@ -762,11 +762,7 @@ fun VideoTimer(
   val appearancePreferences = koinInject<AppearancePreferences>()
   val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
   
-  val timeText by remember(isInverted) {
-    derivedStateOf {
-      Utils.prettyTime(value().toInt(), isInverted)
-    }
-  }
+  val timeText = Utils.prettyTime(value().toInt(), isInverted)
   
   Text(
     modifier =

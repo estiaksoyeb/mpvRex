@@ -2078,6 +2078,10 @@ class PlayerActivity :
    */
   internal fun event(eventId: Int) {
     when (eventId) {
+      MPVLib.MpvEvent.MPV_EVENT_START_FILE -> {
+        viewModel.onFileStartLoading()
+      }
+
       MPVLib.MpvEvent.MPV_EVENT_FILE_LOADED -> {
         handleFileLoaded()
         isReady = true
@@ -2131,6 +2135,15 @@ class PlayerActivity :
 
     // Reset external audio tracks when a new video starts
     viewModel.resetExternalAudioTracks()
+
+    // Update VM and services with exact loaded duration
+    val loadedDurationSec = MPVLib.getPropertyDouble("duration") ?: 0.0
+    if (loadedDurationSec > 0.0) {
+      viewModel.onFileLoaded(loadedDurationSec)
+      val loadedDurationMs = (loadedDurationSec * 1000).toLong()
+      miniPlayerStateManager.updateState(durationMs = loadedDurationMs)
+      updateMediaSessionMetadata(title = fileName, durationMs = loadedDurationMs)
+    }
 
     // Set the background playback toggle button default based on BackgroundPlaybackMode preference
     val isAudio = isCurrentMediaAudio()
@@ -2881,16 +2894,21 @@ class PlayerActivity :
     setHttpHeadersFromExtras(intent.extras)
 
     // Load the new file
-    getPlayableUri(intent)?.let { uri ->
-      if (isUriM3U(uri)) {
-        loadM3uPlaylistOrPlayDirectly(uri)
+    getPlayableUri(intent)?.let { uriStr ->
+      val parsedUri = runCatching { Uri.parse(uriStr) }.getOrNull()
+      val fastDurationMs = if (parsedUri != null) getFastDurationMsForUri(parsedUri) else 0L
+      val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null
+      viewModel.prepareForFileLoad(fastDurationSec)
+
+      if (parsedUri != null && isUriM3U(parsedUri)) {
+        loadM3uPlaylistOrPlayDirectly(uriStr)
       } else {
         if (playerPreferences.savePositionOnQuit.get()) {
           runCatching { MPVLib.setPropertyBoolean("pause", true) }
         }
         // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
         lifecycleScope.launch(Dispatchers.Default) {
-          MPVLib.command("loadfile", uri)
+          MPVLib.command("loadfile", uriStr)
         }
       }
     }
@@ -3781,17 +3799,28 @@ class PlayerActivity :
     // Generate new media identifier for playback state
     mediaIdentifier = getMediaIdentifierFromUri(uri, fileName)
 
+    val cachedDurationMs = viewModel.playlistManager.getDurationAt(index)
+    val fastDurationMs = if (cachedDurationMs > 0L) cachedDurationMs else getFastDurationMsForUri(uri)
+    val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null
+    viewModel.prepareForFileLoad(fastDurationSec)
+
     val targetUri = uri
     lifecycleScope.launch(Dispatchers.IO) {
       val cachedThumb = getCachedThumbnailForUri(targetUri)
       withContext(Dispatchers.Main) {
         val activeThumb = cachedThumb ?: MediaPlaybackService.thumbnail ?: miniPlayerStateManager.state.value.thumbnail
         MediaPlaybackService.thumbnail = activeThumb
-        mediaPlaybackService?.setMediaInfo(title = fileName, artist = "", thumbnail = activeThumb)
+        mediaPlaybackService?.setMediaInfo(
+          title = fileName,
+          artist = "",
+          thumbnail = activeThumb
+        )
         miniPlayerStateManager.updateState(
           title = fileName,
           thumbnail = activeThumb,
           videoPath = targetUri.toString(),
+          currentPositionMs = 0L,
+          durationMs = fastDurationMs,
           nextThumbnail = null,
           prevThumbnail = null,
         )
@@ -3861,7 +3890,12 @@ class PlayerActivity :
     // Update media session metadata
     lifecycleScope.launch {
       kotlinx.coroutines.delay(100) // Wait for MPV to load the file
-      val durationMs = (MPVLib.getPropertyDouble("duration")?.times(1000))?.toLong() ?: 0L
+      val mpvDuration = MPVLib.getPropertyDouble("duration")
+      val durationMs = if (mpvDuration != null && mpvDuration > 0) {
+        (mpvDuration * 1000).toLong()
+      } else {
+        fastDurationMs
+      }
       updateMediaSessionMetadata(
         title = fileName,
         durationMs = durationMs,
@@ -3869,6 +3903,47 @@ class PlayerActivity :
       // Refresh playlist items to update the currently playing indicator
       viewModel.refreshPlaylistItems()
     }
+  }
+
+  /**
+   * Fast synchronous lookup for media duration in milliseconds.
+   * Checks MediaStore for content:// and file:// URIs.
+   */
+  private fun getFastDurationMsForUri(uri: Uri): Long {
+    return runCatching {
+      when (uri.scheme) {
+        "content" -> {
+          contentResolver.query(
+            uri,
+            arrayOf(MediaStore.MediaColumns.DURATION),
+            null,
+            null,
+            null
+          )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+              val idx = cursor.getColumnIndex(MediaStore.MediaColumns.DURATION)
+              if (idx != -1) cursor.getLong(idx) else 0L
+            } else 0L
+          } ?: 0L
+        }
+        "file", null -> {
+          val path = uri.path ?: return 0L
+          contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            arrayOf(MediaStore.MediaColumns.DURATION),
+            "${MediaStore.MediaColumns.DATA} = ?",
+            arrayOf(path),
+            null
+          )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+              val idx = cursor.getColumnIndex(MediaStore.MediaColumns.DURATION)
+              if (idx != -1) cursor.getLong(idx) else 0L
+            } else 0L
+          } ?: 0L
+        }
+        else -> 0L
+      }
+    }.getOrDefault(0L)
   }
 
   /**
@@ -4078,11 +4153,14 @@ class PlayerActivity :
         val newPlaylist = sortedVideos.map { it.uri }
         val newIndex = sortedVideos.indexOfFirst { it.path == currentPath || it.uri.toString() == currentPath }
         
+        val durations = sortedVideos.map { it.duration }
+
         if (newIndex != -1) {
           withContext(Dispatchers.Main) {
             viewModel.playlistManager.setPlaylist(
               items = newPlaylist,
-              index = newIndex
+              index = newIndex,
+              durations = durations
             )
             Log.d(TAG, "Auto-playlist generated from Media Library: ${newPlaylist.size} videos")
           }
@@ -4144,11 +4222,14 @@ class PlayerActivity :
 
         val newIndex = siblingFiles.indexOfFirst { it.absolutePath == currentFile.absolutePath }
 
+        val durations = siblingFiles.map { file -> getFastDurationMsForUri(file.toUri()) }
+
         if (newIndex != -1) {
           withContext(Dispatchers.Main) {
             viewModel.playlistManager.setPlaylist(
               items = newPlaylist,
-              index = newIndex
+              index = newIndex,
+              durations = durations
             )
             Log.d(TAG, "Auto-playlist generated: ${newPlaylist.size} videos")
           }

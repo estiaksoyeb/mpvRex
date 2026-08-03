@@ -103,6 +103,7 @@ fun GestureHandler(
   val allowGesturesInPanels by playerPreferences.allowGesturesInPanels.collectAsState()
   val paused by MPVLib.propBoolean["pause"].collectAsState()
   val duration by MPVLib.propInt["duration"].collectAsState()
+  val preciseDuration by viewModel.preciseDuration.collectAsState()
   val position by MPVLib.propInt["time-pos"].collectAsState()
   val playbackSpeed by MPVLib.propFloat["speed"].collectAsState()
   val controlsShown by viewModel.controlsShown.collectAsState()
@@ -1048,7 +1049,7 @@ fun GestureHandler(
                     // Calculate seek amount based on horizontal movement
                     val seekAmount = deltaX * seekSensitivity
                     val targetPosition = (initialVideoPosition + seekAmount).coerceAtLeast(0f)
-                    val maxDuration = duration?.toFloat() ?: 0f
+                    val maxDuration = if (preciseDuration > 0f) preciseDuration else duration?.toFloat() ?: 0f
                     val clampedPosition = targetPosition.coerceAtMost(maxDuration)
                     
                     // Use the same seeking mechanism as seekbar scrubbing

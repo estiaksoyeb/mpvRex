@@ -182,7 +182,7 @@ class PlayerViewModel(
     get() = if (_externalAudioTracks.isNotEmpty() && (_primaryVideoDuration.value ?: 0.0) > 0.0) {
       _primaryVideoDuration.value?.toInt()
     } else {
-      _mpvDuration
+      _preciseDuration.value.takeIf { it > 0f }?.toInt() ?: _mpvDuration
     }
 
   // External audio state and duration tracking
@@ -498,7 +498,7 @@ class PlayerViewModel(
       MPVLib.propInt["duration"].collect { _ ->
         val dur = MPVLib.getPropertyDouble("duration")
         if (dur != null && dur > 0) {
-          if (_primaryVideoDuration.value == null && _externalAudioTracks.isEmpty()) {
+          if (_externalAudioTracks.isEmpty()) {
             _primaryVideoDuration.value = dur
           }
           val effectiveDur = if (_externalAudioTracks.isNotEmpty() && (_primaryVideoDuration.value ?: 0.0) > 0.0) {
@@ -516,6 +516,11 @@ class PlayerViewModel(
             ambientModeManager.updateAmbientStretch()
           }
           // --------------------------------------------------------
+        } else if (dur == null || dur <= 0) {
+          if (_externalAudioTracks.isEmpty()) {
+            _primaryVideoDuration.value = null
+            _preciseDuration.value = 0f
+          }
         }
       }
     }
@@ -638,6 +643,36 @@ class PlayerViewModel(
       _externalAudioTracks.clear()
     }
     _primaryVideoDuration.value = null
+  }
+
+  fun prepareForFileLoad(initialDurationSec: Float? = null) {
+    resetExternalAudioTracks()
+    _precisePosition.value = 0f
+    if (initialDurationSec != null && initialDurationSec > 0f) {
+      _primaryVideoDuration.value = initialDurationSec.toDouble()
+      _preciseDuration.value = initialDurationSec
+    } else {
+      _primaryVideoDuration.value = null
+      _preciseDuration.value = 0f
+    }
+  }
+
+  fun onFileStartLoading() {
+    if (_externalAudioTracks.isEmpty()) {
+      _precisePosition.value = 0f
+      if (_primaryVideoDuration.value == null) {
+        _preciseDuration.value = 0f
+      }
+    }
+  }
+
+  fun onFileLoaded(durationSec: Double) {
+    if (durationSec > 0) {
+      if (_externalAudioTracks.isEmpty()) {
+        _primaryVideoDuration.value = durationSec
+        _preciseDuration.value = durationSec.toFloat()
+      }
+    }
   }
 
   fun addSubtitle(uri: Uri, select: Boolean = true, silent: Boolean = false) = _subtitleManager.addSubtitle(uri, select, silent)

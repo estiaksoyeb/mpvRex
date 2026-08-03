@@ -1214,7 +1214,7 @@ fun PlayerControls(
             derivedStateOf {
               val currentPos = position?.toFloat() ?: 0f
               val cacheDuration = demuxerCacheDuration ?: 0f
-              val totalDuration = duration?.toFloat() ?: 0f
+              val totalDuration = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f
               val isBuffering = cacheBufferingState ?: 0
 
               // If cache duration is available and valid, use it (up to 60 seconds)

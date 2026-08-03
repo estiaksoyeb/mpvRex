@@ -1,8 +1,10 @@
 package xyz.mpv.rex
 
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.ComponentActivity
@@ -191,6 +193,10 @@ class MainActivity : ComponentActivity() {
     val navBarHeight = if (isMainScreen && !hideNavigationBar) 80.dp else 0.dp
     val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) 67.dp else 0.dp
     val totalNavigationBarHeight = navBarHeight + miniPlayerHeight
+
+    BackHandler(enabled = isMainScreen) {
+      (context as? Activity)?.moveTaskToBack(true)
+    }
 
     // Provide shared states to all screens
     CompositionLocalProvider(

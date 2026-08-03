@@ -346,6 +346,8 @@ class MediaPlaybackService :
         durationMs = duration,
         isPaused = paused,
         thumbnail = thumbnail,
+        shuffleEnabled = playerPreferences.shuffleEnabled.get(),
+        repeatMode = playerPreferences.repeatMode.get(),
       )
 
       // Update notification

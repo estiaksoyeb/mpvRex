@@ -60,6 +60,10 @@ import xyz.mpv.rex.utils.media.HttpUtils
 import xyz.mpv.rex.utils.media.SubtitleOps
 import xyz.mpv.rex.utils.media.M3UParser
 import xyz.mpv.rex.utils.media.M3UParseResult
+import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
+import xyz.mpv.rex.domain.thumbnail.isMostlySolidThumbnail
+import xyz.mpv.rex.domain.media.model.Video
+import xyz.mpv.rex.utils.media.MediaFormatter
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.ui.player.SingleActionGesture
@@ -182,6 +186,8 @@ class PlayerActivity :
    */
   private val hdrToysManager: HdrToysManager by inject()
   private val miniPlayerStateManager: MiniPlayerStateManager by inject()
+  private val thumbnailRepository: ThumbnailRepository by inject()
+  private val uriThumbnailCache = android.util.LruCache<String, android.graphics.Bitmap>(32)
 
   /**
    * Track selector for automatic audio/subtitle selection
@@ -2287,32 +2293,55 @@ class PlayerActivity :
     val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
 
     val nextIndex = viewModel.playlistManager.getNextIndex(viewModel.shouldRepeatPlaylist())
+    val nextUri = if (nextIndex != null) viewModel.playlistManager.playlist.value.getOrNull(nextIndex) else null
     val nextTitle = if (nextIndex != null) {
-      val uri = viewModel.playlistManager.playlist.value.getOrNull(nextIndex)
-      viewModel.playlistManager.getTitleAt(nextIndex) ?: uri?.let { extractFileNameFromUri(it) }
+      viewModel.playlistManager.getTitleAt(nextIndex) ?: nextUri?.let { extractFileNameFromUri(it) }
     } else null
 
     val prevIndex = viewModel.playlistManager.getPreviousIndex(viewModel.shouldRepeatPlaylist())
+    val prevUri = if (prevIndex != null) viewModel.playlistManager.playlist.value.getOrNull(prevIndex) else null
     val prevTitle = if (prevIndex != null) {
-      val uri = viewModel.playlistManager.playlist.value.getOrNull(prevIndex)
-      viewModel.playlistManager.getTitleAt(prevIndex) ?: uri?.let { extractFileNameFromUri(it) }
+      viewModel.playlistManager.getTitleAt(prevIndex) ?: prevUri?.let { extractFileNameFromUri(it) }
     } else null
 
     lifecycleScope.launch(Dispatchers.IO) {
-      val thumbnail = currentUri?.let { extractThumbnailOrCoverArt(it) }
+      // Step 1: Immediately apply cached thumbnails (memory/disk/embedded cover art cache)
+      val cachedCurrentThumb = currentUri?.let { getCachedThumbnailForUri(it) }
+      val cachedNextThumb = nextUri?.let { getCachedThumbnailForUri(it) }
+      val cachedPrevThumb = prevUri?.let { getCachedThumbnailForUri(it) }
+
       withContext(Dispatchers.Main) {
-        MediaPlaybackService.thumbnail = thumbnail
-        mediaPlaybackService?.setMediaInfo(title = currentTitle, artist = artist, thumbnail = thumbnail)
+        val activeThumb = cachedCurrentThumb ?: MediaPlaybackService.thumbnail ?: miniPlayerStateManager.state.value.thumbnail
+        MediaPlaybackService.thumbnail = activeThumb
+        mediaPlaybackService?.setMediaInfo(title = currentTitle, artist = artist, thumbnail = activeThumb)
         miniPlayerStateManager.updateState(
           isPlaybackActive = true,
           title = currentTitle,
           artist = artist,
-          thumbnail = thumbnail,
+          thumbnail = activeThumb,
           videoPath = currentUri?.toString(),
           hasNext = hasNext(),
           hasPrevious = hasPrevious(),
           nextTitle = nextTitle,
           prevTitle = prevTitle,
+          nextThumbnail = cachedNextThumb,
+          prevThumbnail = cachedPrevThumb,
+        )
+      }
+
+      // Step 2: Full thumbnail extraction/generation in background if needed
+      val fullThumbnail = currentUri?.let { extractThumbnailOrCoverArt(it) }
+      val fullNextThumbnail = nextUri?.let { extractThumbnailOrCoverArt(it) }
+      val fullPrevThumbnail = prevUri?.let { extractThumbnailOrCoverArt(it) }
+
+      withContext(Dispatchers.Main) {
+        val finalThumb = fullThumbnail ?: cachedCurrentThumb ?: MediaPlaybackService.thumbnail ?: miniPlayerStateManager.state.value.thumbnail
+        MediaPlaybackService.thumbnail = finalThumb
+        mediaPlaybackService?.setMediaInfo(title = currentTitle, artist = artist, thumbnail = finalThumb)
+        miniPlayerStateManager.updateState(
+          thumbnail = finalThumb,
+          nextThumbnail = fullNextThumbnail ?: cachedNextThumb,
+          prevThumbnail = fullPrevThumbnail ?: cachedPrevThumb,
         )
       }
     }
@@ -3479,16 +3508,117 @@ class PlayerActivity :
     return !hasVideoTrack()
   }
 
+  private suspend fun createVideoForUri(uri: Uri): Video = withContext(Dispatchers.IO) {
+    val path = when (uri.scheme) {
+      "file" -> uri.path ?: uri.toString()
+      "content" -> {
+        val resolvedPath = runCatching {
+          contentResolver.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DATA), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+              val idx = cursor.getColumnIndex(android.provider.MediaStore.MediaColumns.DATA)
+              if (idx != -1) cursor.getString(idx) else null
+            } else null
+          }
+        }.getOrNull()
+        resolvedPath ?: uri.toString()
+      }
+      else -> uri.toString()
+    }
+
+    val file = if (path.startsWith("/")) File(path) else null
+    val size = file?.length() ?: 0L
+    val dateModified = file?.lastModified() ?: 0L
+    val isAudio = FileTypeUtils.isAudioFile(file ?: File(path))
+    val name = extractFileNameFromUri(uri) ?: uri.lastPathSegment ?: "Media"
+
+    val cachedMeta = file?.let { metadataCache.getOrExtractMetadata(it, uri, name) }
+    val duration = cachedMeta?.durationMs ?: (runCatching { MPVLib.getPropertyDouble("duration")?.times(1000) }.getOrNull())?.toLong() ?: 0L
+
+    Video(
+      id = path.hashCode().toLong(),
+      title = name,
+      displayName = name,
+      path = path,
+      uri = uri,
+      duration = duration,
+      durationFormatted = MediaFormatter.formatDuration(duration),
+      size = size,
+      sizeFormatted = MediaFormatter.formatFileSize(size),
+      dateModified = dateModified,
+      dateAdded = 0,
+      mimeType = if (isAudio) "audio/*" else "video/*",
+      bucketId = file?.parent ?: "",
+      bucketDisplayName = file?.parentFile?.name ?: "",
+      width = cachedMeta?.width ?: 0,
+      height = cachedMeta?.height ?: 0,
+      fps = cachedMeta?.fps ?: 0f,
+      resolution = "",
+      isAudio = isAudio,
+    )
+  }
+
+  private suspend fun getCachedThumbnailForUri(uri: Uri): android.graphics.Bitmap? = withContext(Dispatchers.IO) {
+    val key = uri.toString()
+    uriThumbnailCache.get(key)?.let { if (!it.isRecycled && !isMostlySolidThumbnail(it)) return@withContext it }
+    val video = createVideoForUri(uri)
+    thumbnailRepository.getCachedThumbnail(video, 256, 256)?.let {
+      if (!it.isRecycled && !isMostlySolidThumbnail(it)) {
+        uriThumbnailCache.put(key, it)
+        return@withContext it
+      }
+    }
+
+    if (uri.scheme == "file" || uri.scheme == "content") {
+      runCatching {
+        val retriever = android.media.MediaMetadataRetriever()
+        try {
+          if (uri.scheme == "file") {
+            val path = uri.path
+            if (path != null && File(path).exists()) {
+              retriever.setDataSource(path)
+            } else {
+              retriever.setDataSource(this@PlayerActivity, uri)
+            }
+          } else {
+            retriever.setDataSource(this@PlayerActivity, uri)
+          }
+          val picture = retriever.embeddedPicture
+          if (picture != null) {
+            val bitmap = android.graphics.BitmapFactory.decodeByteArray(picture, 0, picture.size)
+            if (bitmap != null && !bitmap.isRecycled) {
+              uriThumbnailCache.put(key, bitmap)
+              return@withContext bitmap
+            }
+          }
+        } finally {
+          runCatching { retriever.release() }
+        }
+      }
+    }
+    null
+  }
+
   /**
    * Extracts embedded album cover art for audio files or a video frame thumbnail for video files.
+   * Leverages [ThumbnailRepository] to ensure the exact same thumbnails are used in miniplayer as in the file browser.
    */
   private suspend fun extractThumbnailOrCoverArt(uri: Uri): android.graphics.Bitmap? = withContext(Dispatchers.IO) {
+    val cacheKey = uri.toString()
+    uriThumbnailCache.get(cacheKey)?.let {
+      if (!it.isRecycled && !isMostlySolidThumbnail(it)) return@withContext it
+    }
+
     runCatching {
-      if (hasVideoTrack() && MPVLib.getPropertyString("vid") != "no") {
-        val mpvThumb = runCatching { MPVLib.grabThumbnail(256) }.getOrNull()
-        if (mpvThumb != null) return@withContext mpvThumb
+      val video = createVideoForUri(uri)
+
+      // 1. Primary: Use ThumbnailRepository (same repository as file browser)
+      val repoThumbnail = thumbnailRepository.getThumbnail(video, 256, 256)
+      if (repoThumbnail != null && !repoThumbnail.isRecycled && !isMostlySolidThumbnail(repoThumbnail)) {
+        uriThumbnailCache.put(cacheKey, repoThumbnail)
+        return@withContext repoThumbnail
       }
 
+      // 2. Fallback for audio or embedded cover art via MediaMetadataRetriever
       val retriever = android.media.MediaMetadataRetriever()
       try {
         if (uri.scheme == "file") {
@@ -3502,23 +3632,39 @@ class PlayerActivity :
           retriever.setDataSource(this@PlayerActivity, uri)
         }
 
-        // 1. Try embedded picture (audio cover art or embedded video cover art)
         val picture = retriever.embeddedPicture
         if (picture != null) {
           val bitmap = android.graphics.BitmapFactory.decodeByteArray(picture, 0, picture.size)
-          if (bitmap != null) return@withContext bitmap
+          if (bitmap != null && !bitmap.isRecycled) {
+            uriThumbnailCache.put(cacheKey, bitmap)
+            return@withContext bitmap
+          }
         }
 
-        // 2. Try video frame at 1 second or start of video
-        val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-        val seekUs = if (durationMs > 2000L) 1_000_000L else 0L
-        val frame = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-          runCatching { retriever.getScaledFrameAtTime(seekUs, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 256, 256) }.getOrNull()
-        } else null
-        frame ?: retriever.getFrameAtTime(seekUs, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        if (!video.isAudio) {
+          val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+          val seekUs = if (durationMs > 2000L) 1_000_000L else 0L
+          val frame = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            runCatching { retriever.getScaledFrameAtTime(seekUs, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 256, 256) }.getOrNull()
+          } else null
+          val fallbackFrame = frame ?: retriever.getFrameAtTime(seekUs, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+          if (fallbackFrame != null && !fallbackFrame.isRecycled && !isMostlySolidThumbnail(fallbackFrame)) {
+            uriThumbnailCache.put(cacheKey, fallbackFrame)
+            return@withContext fallbackFrame
+          }
+
+          if (hasVideoTrack() && MPVLib.getPropertyString("vid") != "no") {
+            val mpvThumb = runCatching { MPVLib.grabThumbnail(256) }.getOrNull()
+            if (mpvThumb != null && !mpvThumb.isRecycled && !isMostlySolidThumbnail(mpvThumb)) {
+              uriThumbnailCache.put(cacheKey, mpvThumb)
+              return@withContext mpvThumb
+            }
+          }
+        }
       } finally {
         runCatching { retriever.release() }
       }
+      null
     }.getOrNull()
   }
 
@@ -3634,6 +3780,23 @@ class PlayerActivity :
     fileName = if (!customTitle.isNullOrBlank()) customTitle else getFileNameFromUri(uri)
     // Generate new media identifier for playback state
     mediaIdentifier = getMediaIdentifierFromUri(uri, fileName)
+
+    val targetUri = uri
+    lifecycleScope.launch(Dispatchers.IO) {
+      val cachedThumb = getCachedThumbnailForUri(targetUri)
+      withContext(Dispatchers.Main) {
+        val activeThumb = cachedThumb ?: MediaPlaybackService.thumbnail ?: miniPlayerStateManager.state.value.thumbnail
+        MediaPlaybackService.thumbnail = activeThumb
+        mediaPlaybackService?.setMediaInfo(title = fileName, artist = "", thumbnail = activeThumb)
+        miniPlayerStateManager.updateState(
+          title = fileName,
+          thumbnail = activeThumb,
+          videoPath = targetUri.toString(),
+          nextThumbnail = null,
+          prevThumbnail = null,
+        )
+      }
+    }
 
     // Set HTTP headers (including referer) for network streams
     setHttpHeadersForUri(uri)

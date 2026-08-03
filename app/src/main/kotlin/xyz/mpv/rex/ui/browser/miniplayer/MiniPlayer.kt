@@ -177,12 +177,22 @@ fun MiniPlayer(
                     .background(MaterialTheme.colorScheme.primaryContainer),
                   contentAlignment = Alignment.Center,
                 ) {
-                  Icon(
-                    imageVector = Icons.Filled.SkipNext,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp),
-                  )
+                  val nextThumb = state.nextThumbnail
+                  if (nextThumb != null && !nextThumb.isRecycled) {
+                    Image(
+                      bitmap = nextThumb.asImageBitmap(),
+                      contentDescription = null,
+                      contentScale = ContentScale.Crop,
+                      modifier = Modifier.size(48.dp),
+                    )
+                  } else {
+                    Icon(
+                      imageVector = Icons.Filled.SkipNext,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                      modifier = Modifier.size(24.dp),
+                    )
+                  }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -220,12 +230,22 @@ fun MiniPlayer(
                     .background(MaterialTheme.colorScheme.primaryContainer),
                   contentAlignment = Alignment.Center,
                 ) {
-                  Icon(
-                    imageVector = Icons.Filled.SkipPrevious,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp),
-                  )
+                  val prevThumb = state.prevThumbnail
+                  if (prevThumb != null && !prevThumb.isRecycled) {
+                    Image(
+                      bitmap = prevThumb.asImageBitmap(),
+                      contentDescription = null,
+                      contentScale = ContentScale.Crop,
+                      modifier = Modifier.size(48.dp),
+                    )
+                  } else {
+                    Icon(
+                      imageVector = Icons.Filled.SkipPrevious,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                      modifier = Modifier.size(24.dp),
+                    )
+                  }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {

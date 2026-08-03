@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import xyz.mpv.rex.ui.player.PlayerActivity
+import xyz.mpv.rex.ui.player.MediaPlaybackService
 import `is`.xyz.mpv.MPVLib
 
 data class MiniPlayerState(
@@ -24,6 +25,8 @@ data class MiniPlayerState(
   val hasPrevious: Boolean = false,
   val nextTitle: String? = null,
   val prevTitle: String? = null,
+  val nextThumbnail: Bitmap? = null,
+  val prevThumbnail: Bitmap? = null,
 )
 
 /**
@@ -53,6 +56,8 @@ class MiniPlayerStateManager {
     hasPrevious: Boolean = _state.value.hasPrevious,
     nextTitle: String? = _state.value.nextTitle,
     prevTitle: String? = _state.value.prevTitle,
+    nextThumbnail: Bitmap? = _state.value.nextThumbnail,
+    prevThumbnail: Bitmap? = _state.value.prevThumbnail,
   ) {
     _state.update {
       it.copy(
@@ -68,6 +73,8 @@ class MiniPlayerStateManager {
         hasPrevious = hasPrevious,
         nextTitle = nextTitle,
         prevTitle = prevTitle,
+        nextThumbnail = nextThumbnail,
+        prevThumbnail = prevThumbnail,
       )
     }
   }
@@ -81,6 +88,19 @@ class MiniPlayerStateManager {
   }
 
   fun playNext() {
+    val currentNextThumb = _state.value.nextThumbnail
+    val currentNextTitle = _state.value.nextTitle
+    if (!currentNextTitle.isNullOrBlank()) {
+      MediaPlaybackService.thumbnail = currentNextThumb
+      _state.update {
+        it.copy(
+          title = currentNextTitle,
+          thumbnail = currentNextThumb,
+          nextThumbnail = null,
+          prevThumbnail = null,
+        )
+      }
+    }
     val handler = onNextHandler
     if (handler != null) {
       handler.invoke()
@@ -92,6 +112,19 @@ class MiniPlayerStateManager {
   }
 
   fun playPrevious() {
+    val currentPrevThumb = _state.value.prevThumbnail
+    val currentPrevTitle = _state.value.prevTitle
+    if (!currentPrevTitle.isNullOrBlank()) {
+      MediaPlaybackService.thumbnail = currentPrevThumb
+      _state.update {
+        it.copy(
+          title = currentPrevTitle,
+          thumbnail = currentPrevThumb,
+          nextThumbnail = null,
+          prevThumbnail = null,
+        )
+      }
+    }
     val handler = onPreviousHandler
     if (handler != null) {
       handler.invoke()

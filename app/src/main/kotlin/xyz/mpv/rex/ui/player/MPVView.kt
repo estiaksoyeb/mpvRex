@@ -6,6 +6,7 @@ import android.util.AttributeSet
 
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
+import android.view.SurfaceHolder
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.AudioPreferences
 import xyz.mpv.rex.preferences.DecoderPreferences
@@ -34,6 +35,28 @@ class MPVView(
   private val anime4kManager: Anime4KManager by inject()
 
   var isExiting = false
+
+  /**
+   * When the activity handles rotation itself (see `configChanges` in the manifest) the
+   * SurfaceView is resized in place, so only [surfaceChanged] fires — not [surfaceCreated].
+   * The base class merely pushes the new `android-surface-size` to mpv. While playback is
+   * paused mpv's render loop is idle and never draws a frame at the new geometry, so the
+   * compositor stretches the previous (now wrongly-sized) buffer and exposes uninitialized
+   * regions — the "stretched frame + artifacts" seen on rotation while paused (video and
+   * audio album-art alike). Forcing a repaint of the current frame fixes it.
+   */
+  override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+    super.surfaceChanged(holder, format, width, height)
+    if (isExiting) return
+    // Only needed while paused; during playback the next frame repaints at the new size.
+    val paused = runCatching { MPVLib.getPropertyBoolean("pause") }.getOrNull() == true
+    if (paused) {
+      // A zero-distance exact seek re-decodes and re-renders the current frame at the new
+      // surface size without advancing playback. Works for both video and single-frame
+      // album art, and (unlike frame-step) is well-behaved at EOF.
+      runCatching { MPVLib.command("seek", "0", "relative+exact") }
+    }
+  }
 
   fun getVideoOutAspect(): Double? {
     // Try to get aspect from video-params/aspect first

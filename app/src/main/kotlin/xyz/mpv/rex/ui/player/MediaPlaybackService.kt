@@ -5,9 +5,12 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.media.AudioManager
 import android.graphics.Bitmap
 import android.os.Binder
 import android.os.Build
@@ -84,6 +87,20 @@ class MediaPlaybackService :
   private val notificationUpdateIntervalMs = 1000L // Update notification every 1 second
 
   /**
+   * Receiver for ACTION_AUDIO_BECOMING_NOISY (headphone disconnect).
+   * Pauses playback when headphones are unplugged during background playback.
+   */
+  private val noisyReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+      if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+        Log.d(TAG, "Headphones disconnected — pausing background playback")
+        MPVLib.setPropertyBoolean("pause", true)
+      }
+    }
+  }
+  private var noisyReceiverRegistered = false
+
+  /**
    * Listener for playback actions that the service cannot handle alone (like playlist navigation).
    */
   interface ServiceListener {
@@ -111,6 +128,15 @@ class MediaPlaybackService :
     createNotificationChannel(this)
 
     setupMediaSession()
+
+    // Register noisy receiver so headphone disconnects pause background playback
+    if (!noisyReceiverRegistered) {
+      registerReceiver(
+        noisyReceiver,
+        IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+      )
+      noisyReceiverRegistered = true
+    }
     
     // Only add MPV observer if MPV is initialized
     try {
@@ -475,6 +501,12 @@ class MediaPlaybackService :
 
       // Cancel coroutine scope
       serviceScope.cancel()
+
+      // Unregister noisy receiver
+      if (noisyReceiverRegistered) {
+        runCatching { unregisterReceiver(noisyReceiver) }
+        noisyReceiverRegistered = false
+      }
 
       // Remove MPV observer safely
       try {

@@ -1056,6 +1056,11 @@
     <string name="flip_vertical_desc">Vertical Flip</string>
     <string name="ab_loop_short">AB</string>
     <string name="loop">Loop</string>
+    <string name="ab_loop_cut_clip">Cut Clip</string>
+    <string name="ab_loop_set_both_points">Please set both A and B points to cut clip</string>
+    <string name="ab_loop_exporting_clip">Exporting clip...</string>
+    <string name="ab_loop_clip_saved">Clip saved to %s</string>
+    <string name="ab_loop_clip_error">Failed to export clip: %s</string>
     <string name="background_playback">Background</string>
     <string name="ambient">Ambient</string>
     <string name="ambience_mode">Ambience Mode</string>

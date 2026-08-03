@@ -2091,6 +2091,53 @@ class PlayerViewModel(
     MPVLib.setPropertyString("ab-loop-b", "no")
   }
 
+  fun cutABLoopClip(context: Context) {
+    val a = _abLoopA.value
+    val b = _abLoopB.value
+    if (a == null || b == null) {
+      Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), Toast.LENGTH_SHORT).show()
+      return
+    }
+
+    val startMs = (minOf(a, b) * 1000).toLong()
+    val endMs = (maxOf(a, b) * 1000).toLong()
+
+    if (endMs <= startMs) {
+      Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), Toast.LENGTH_SHORT).show()
+      return
+    }
+
+    val path = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
+    if (path.isNullOrBlank()) {
+      Toast.makeText(context, "No active video source found", Toast.LENGTH_SHORT).show()
+      return
+    }
+
+    Toast.makeText(context, context.getString(R.string.ab_loop_exporting_clip), Toast.LENGTH_SHORT).show()
+
+    viewModelScope.launch {
+      val outputFile = xyz.mpv.rex.utils.media.VideoClipper.getOutputClipFile(path, startMs, endMs)
+      val result = xyz.mpv.rex.utils.media.VideoClipper.cutClip(context, path, outputFile, startMs, endMs)
+
+      withContext(Dispatchers.Main) {
+        if (result.isSuccess) {
+          val savedFile = result.getOrNull() ?: outputFile
+          Toast.makeText(
+            context,
+            context.getString(R.string.ab_loop_clip_saved, savedFile.name),
+            Toast.LENGTH_LONG
+          ).show()
+        } else {
+          Toast.makeText(
+            context,
+            context.getString(R.string.ab_loop_clip_error, result.exceptionOrNull()?.localizedMessage ?: "Unknown error"),
+            Toast.LENGTH_LONG
+          ).show()
+        }
+      }
+    }
+  }
+
   fun formatTimestamp(seconds: Double): String {
     val totalSec = seconds.toInt()
     val h = totalSec / 3600

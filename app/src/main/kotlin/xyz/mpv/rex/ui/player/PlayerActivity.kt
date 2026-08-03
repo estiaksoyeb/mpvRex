@@ -582,6 +582,7 @@ class PlayerActivity :
     }
 
     isUserFinishing = true
+    miniPlayerStateManager.clearState()
     finish()
   }
 
@@ -875,6 +876,7 @@ class PlayerActivity :
       
       if (!shouldAllowBackgroundPlayback) {
         viewModel.pause()
+        miniPlayerStateManager.clearState()
         if (isPipDismissed) {
           endBackgroundPlayback()
           finish()
@@ -2121,7 +2123,7 @@ class PlayerActivity :
     // Reset external audio tracks when a new video starts
     viewModel.resetExternalAudioTracks()
 
-    // Apply default background playback behavior based on preference (Always, AudioOnly, VideoOnly, Never)
+    // Set the background playback toggle button default based on BackgroundPlaybackMode preference
     val isAudio = isCurrentMediaAudio()
     val defaultBgPlayback = when (playerPreferences.backgroundPlayback.get()) {
       BackgroundPlaybackMode.Always -> true
@@ -3353,7 +3355,7 @@ class PlayerActivity :
 
   /**
    * Manually triggers background playback when the user clicks the background playback button.
-   * This works independently of the automaticBackgroundPlayback preference.
+   * This works independently of the BackgroundPlaybackMode preference.
    */
   @RequiresApi(Build.VERSION_CODES.P)
   fun triggerBackgroundPlayback() {

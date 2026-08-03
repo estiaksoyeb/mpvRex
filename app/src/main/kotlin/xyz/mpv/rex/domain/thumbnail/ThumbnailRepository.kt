@@ -93,9 +93,14 @@ class ThumbnailRepository(
     video: Video,
     widthPx: Int,
     heightPx: Int,
+    forceFirstFrame: Boolean = false,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
-      val key = thumbnailKey(video, widthPx, heightPx)
+      if (video.isAudio || xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(java.io.File(video.path))) {
+        return@withContext null
+      }
+      
+      val key = thumbnailKey(video, widthPx, heightPx, forceFirstFrame)
 
       if (isNetworkUrl(video.path) && !appearancePreferences.showNetworkThumbnails.get()) {
         return@withContext null
@@ -110,7 +115,7 @@ class ThumbnailRepository(
       val deferred =
         async {
           try {
-            loadFromDisk(video)?.let { thumbnail ->
+            loadFromDisk(video, forceFirstFrame = forceFirstFrame)?.let { thumbnail ->
               if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
               memoryCache.put(key, thumbnail)
               _thumbnailReadyKeys.tryEmit(key)
@@ -124,7 +129,11 @@ class ThumbnailRepository(
             val videoKey = videoBaseKey(video)
             val isAudio = video.isAudio || xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(java.io.File(video.path))
 
-            val thumbnail = if (isNetworkUrl(video.path)) {
+            val thumbnail = if (forceFirstFrame) {
+              // Direct First-Frame (0.0s) extraction for Shorts Player
+              generateWithFastThumbnails(video, diskCacheDimension, targetOffsetsOverride = listOf(0.0))
+                ?: generateWithMediaMetadataRetriever(video, diskCacheDimension, targetOffsetsOverride = listOf(0L))
+            } else if (isNetworkUrl(video.path)) {
               
               // ---- Network path ------------------------------------------------
               // Android's native MediaStore cannot handle network URLs properly,
@@ -222,7 +231,7 @@ class ThumbnailRepository(
             if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
             memoryCache.put(key, thumbnail)
             _thumbnailReadyKeys.tryEmit(key)
-            writeToDisk(video, thumbnail)
+            writeToDisk(video, thumbnail, forceFirstFrame = forceFirstFrame)
 
             thumbnail
           } finally {
@@ -238,15 +247,16 @@ class ThumbnailRepository(
     video: Video,
     widthPx: Int,
     heightPx: Int,
+    forceFirstFrame: Boolean = false,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
       if (isNetworkUrl(video.path) && !appearancePreferences.showNetworkThumbnails.get()) {
         return@withContext null
       }
       
-      val key = thumbnailKey(video, widthPx, heightPx)
+      val key = thumbnailKey(video, widthPx, heightPx, forceFirstFrame)
       synchronized(memoryCache) { memoryCache.get(key) }?.let { return@withContext it }
-      loadFromDisk(video)?.let { thumbnail ->
+      loadFromDisk(video, forceFirstFrame = forceFirstFrame)?.let { thumbnail ->
         synchronized(memoryCache) {
           if (isNetworkUrl(video.path)) networkMemoryKeys.add(key)
           memoryCache.put(key, thumbnail)
@@ -260,12 +270,13 @@ class ThumbnailRepository(
     video: Video,
     widthPx: Int,
     heightPx: Int,
+    forceFirstFrame: Boolean = false,
   ): Bitmap? {
     if (isNetworkUrl(video.path) && !appearancePreferences.showNetworkThumbnails.get()) {
       return null
     }
     
-    val key = thumbnailKey(video, widthPx, heightPx)
+    val key = thumbnailKey(video, widthPx, heightPx, forceFirstFrame)
     return synchronized(memoryCache) { memoryCache.get(key) }
   }
 
@@ -359,9 +370,11 @@ class ThumbnailRepository(
     video: Video,
     width: Int,
     height: Int,
+    forceFirstFrame: Boolean = false,
   ): String {
     val base = videoBaseKey(video)
-    return "$base|$width|$height"
+    val suffix = if (forceFirstFrame) "|forceFirstFrame" else ""
+    return "$base|$width|$height$suffix"
   }
 
   private fun videoBaseKey(video: Video): String {
@@ -380,8 +393,11 @@ class ThumbnailRepository(
     return "$hex.jpg"
   }
 
-  private fun diskKey(video: Video): String {
+  private fun diskKey(video: Video, forceFirstFrame: Boolean = false): String {
     val baseKey = videoBaseKey(video)
+    if (forceFirstFrame) {
+      return "$baseKey|disk|d$diskCacheDimension|forceFirstFrame"
+    }
     return if (isNetworkUrl(video.path)) {
       "$baseKey|disk|d$diskCacheDimension|pos10s"
     } else {
@@ -400,8 +416,12 @@ class ThumbnailRepository(
     }
   }
 
-  private fun loadFromDisk(video: Video, targetDimension: Int = diskCacheDimension): Bitmap? {
-    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video)))
+  private fun loadFromDisk(
+    video: Video,
+    targetDimension: Int = diskCacheDimension,
+    forceFirstFrame: Boolean = false,
+  ): Bitmap? {
+    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video, forceFirstFrame)))
     if (!diskFile.exists()) {
       android.util.Log.d("ThumbnailRepository", "Disk cache MISS: ${diskFile.name} for ${video.displayName}")
       return null
@@ -410,8 +430,12 @@ class ThumbnailRepository(
     return decodeFileSafely(diskFile.absolutePath, targetDimension)
   }
 
-  private fun writeToDisk(video: Video, bitmap: Bitmap) {
-    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video)))
+  private fun writeToDisk(
+    video: Video,
+    bitmap: Bitmap,
+    forceFirstFrame: Boolean = false,
+  ) {
+    val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video, forceFirstFrame)))
     runCatching {
       FileOutputStream(diskFile).use { out ->
         bitmap.compress(Bitmap.CompressFormat.JPEG, diskJpegQuality, out)
@@ -457,6 +481,7 @@ class ThumbnailRepository(
   private suspend fun generateWithFastThumbnails(
     video: Video,
     dimension: Int,
+    targetOffsetsOverride: List<Double>? = null,
   ): Bitmap? {
     if (video.isAudio) return null
     
@@ -469,7 +494,19 @@ class ThumbnailRepository(
     val durationSec = video.duration / 1000.0
 
     return try {
-      if (isNetwork) {
+      if (targetOffsetsOverride != null) {
+        for (offset in targetOffsetsOverride) {
+          val targetPosition = if (durationSec > 0) minOf(offset, max(0.0, durationSec - 0.1)) else offset
+          val bmp = FastThumbnails.generateAsync(
+              video.path.ifBlank { video.uri.toString() },
+              targetPosition,
+              dimension,
+              useHwDec = false
+          ) ?: continue
+          return rotateIfNeeded(video, bmp)
+        }
+        null
+      } else if (isNetwork) {
         // Network: Try 10s mark only. No solid check.
         val targetPosition = if (durationSec > 0) minOf(10.0, max(0.0, durationSec - 1.0)) else 10.0
         val bmp = FastThumbnails.generateAsync(
@@ -795,6 +832,7 @@ class ThumbnailRepository(
   private suspend fun generateWithMediaMetadataRetriever(
     video: Video,
     dimension: Int,
+    targetOffsetsOverride: List<Long>? = null,
   ): Bitmap? = withContext(Dispatchers.IO) {
     val url = video.path.ifBlank { video.uri.toString() }
     val retriever = android.media.MediaMetadataRetriever()
@@ -805,7 +843,7 @@ class ThumbnailRepository(
       val streamDurationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?.takeIf { it > 0L }
       val durationMs = streamDurationMs ?: video.duration.takeIf { it > 0L }
       
-      val attemptOffsetsUs = listOf(10_000_000L, 15_000_000L)
+      val attemptOffsetsUs = targetOffsetsOverride ?: listOf(10_000_000L, 15_000_000L)
 
       for (offsetUs in attemptOffsetsUs) {
         val positionUs: Long = if (durationMs != null && durationMs > 0L) {

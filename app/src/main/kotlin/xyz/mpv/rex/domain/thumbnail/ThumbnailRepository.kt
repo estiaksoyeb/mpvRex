@@ -96,10 +96,6 @@ class ThumbnailRepository(
     forceFirstFrame: Boolean = false,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
-      if (video.isAudio || xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(java.io.File(video.path))) {
-        return@withContext null
-      }
-      
       val key = thumbnailKey(video, widthPx, heightPx, forceFirstFrame)
 
       if (isNetworkUrl(video.path) && !appearancePreferences.showNetworkThumbnails.get()) {

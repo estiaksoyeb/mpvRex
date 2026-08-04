@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -20,8 +21,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -61,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -76,7 +78,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 import xyz.mpv.rex.ui.player.MediaPlaybackService
@@ -96,21 +100,29 @@ fun MiniPlayer(
   val offsetX = remember { Animatable(0f) }
   val expansionFraction = remember { Animatable(0f) }
   var contentWidth by remember { mutableFloatStateOf(1f) }
+  var totalDragDelta by remember { mutableFloatStateOf(0f) }
 
   val fraction = expansionFraction.value.coerceIn(0f, 1f)
 
-  // Sync state expansion state if triggered externally
+  val smoothSpringSpec = remember {
+    spring<Float>(
+      stiffness = Spring.StiffnessMediumLow,
+      dampingRatio = Spring.DampingRatioLowBouncy,
+    )
+  }
+
+  // Sync expansion state if triggered externally
   LaunchedEffect(state.isExpanded) {
     val target = if (state.isExpanded) 1f else 0f
     if (expansionFraction.value != target) {
-      expansionFraction.animateTo(target, spring())
+      expansionFraction.animateTo(target, smoothSpringSpec)
     }
   }
 
   // Intercept back button when expanded to collapse sheet
   BackHandler(enabled = fraction > 0.5f) {
     coroutineScope.launch {
-      expansionFraction.animateTo(0f, spring())
+      expansionFraction.animateTo(0f, smoothSpringSpec)
       stateManager.setExpanded(false)
     }
   }
@@ -121,7 +133,7 @@ fun MiniPlayer(
     exit = slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth }) + fadeOut(),
     modifier = modifier,
   ) {
-    val animatedHeight = androidx.compose.ui.unit.lerp(83.dp, 420.dp, fraction)
+    val animatedHeight = lerp(83.dp, 420.dp, fraction)
 
     Surface(
       modifier = Modifier
@@ -131,53 +143,66 @@ fun MiniPlayer(
         .clip(RoundedCornerShape(
           topStart = 20.dp,
           topEnd = 20.dp,
-          bottomStart = androidx.compose.ui.unit.lerp(16.dp, 20.dp, fraction),
-          bottomEnd = androidx.compose.ui.unit.lerp(16.dp, 20.dp, fraction)
+          bottomStart = lerp(16.dp, 20.dp, fraction),
+          bottomEnd = lerp(16.dp, 20.dp, fraction)
         )),
       color = MaterialTheme.colorScheme.surfaceContainerHigh,
       tonalElevation = 8.dp,
       shadowElevation = 8.dp,
     ) {
-      Box(modifier = Modifier.fillMaxSize()) {
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .pointerInput(Unit) {
+            detectVerticalDragGestures(
+              onDragStart = {
+                totalDragDelta = 0f
+              },
+              onDragEnd = {
+                coroutineScope.launch {
+                  val target = when {
+                    totalDragDelta < -30f -> 1f // Swiped upward -> expand
+                    totalDragDelta > 30f -> 0f  // Swiped downward -> collapse
+                    expansionFraction.value > 0.35f -> 1f
+                    else -> 0f
+                  }
+                  expansionFraction.animateTo(target, smoothSpringSpec)
+                  stateManager.setExpanded(target == 1f)
+                }
+              },
+              onVerticalDrag = { change, dragAmount ->
+                change.consume()
+                totalDragDelta += dragAmount
+                coroutineScope.launch {
+                  val delta = -dragAmount / 350f
+                  val newFraction = (expansionFraction.value + delta).coerceIn(0f, 1f)
+                  expansionFraction.snapTo(newFraction)
+                }
+              }
+            )
+          }
+      ) {
 
-        val compactAlpha = (1f - fraction * 3f).coerceIn(0f, 1f)
+        val compactAlpha = (1f - fraction * 3.5f).coerceIn(0f, 1f)
+        val expandedHeaderAlpha = ((fraction - 0.2f) * 2.5f).coerceIn(0f, 1f)
+        val expandedTextAlpha = ((fraction - 0.3f) * 2.5f).coerceIn(0f, 1f)
+        val seekbarAlpha = ((fraction - 0.4f) * 2.5f).coerceIn(0f, 1f)
+        val expandedControlsAlpha = ((fraction - 0.5f) * 2f).coerceIn(0f, 1f)
 
         // ──────────────────────────────────────────────────────────────
-        // Drag Pill Bar — collapsed state (fades out as panel expands)
+        // Drag Pill Bar Visual Indicator
         // ──────────────────────────────────────────────────────────────
         Box(
           modifier = Modifier
             .fillMaxWidth()
-            .height(18.dp)
+            .height(20.dp)
             .align(Alignment.TopCenter)
-            .graphicsLayer { alpha = compactAlpha }  // visible when collapsed, fades as expanded header appears
-            .pointerInput(Unit) {
-              detectVerticalDragGestures(
-                onDragEnd = {
-                  coroutineScope.launch {
-                    if (expansionFraction.value > 0.35f) {
-                      expansionFraction.animateTo(1f, spring())
-                      stateManager.setExpanded(true)
-                    } else {
-                      expansionFraction.animateTo(0f, spring())
-                      stateManager.setExpanded(false)
-                    }
-                  }
-                },
-                onVerticalDrag = { change, dragAmount ->
-                  change.consume()
-                  coroutineScope.launch {
-                    val delta = -dragAmount / 350f
-                    val newFraction = (expansionFraction.value + delta).coerceIn(0f, 1f)
-                    expansionFraction.snapTo(newFraction)
-                  }
-                }
-              )
-            },
-          contentAlignment = Alignment.Center,
+            .zIndex(10f),
+          contentAlignment = Alignment.TopCenter,
         ) {
           Box(
             modifier = Modifier
+              .padding(top = 7.dp)
               .width(36.dp)
               .height(4.dp)
               .clip(CircleShape)
@@ -186,70 +211,26 @@ fun MiniPlayer(
         }
 
         // ──────────────────────────────────────────────────────────────
-        // Drag Pill Bar — expanded state (fades in as panel expands)
+        // Expanded Header (Collapse Arrow, "NOW PLAYING", Close Button)
         // ──────────────────────────────────────────────────────────────
-        val expandedPillAlpha = ((fraction - 0.25f) * 2.5f).coerceIn(0f, 1f)
-        if (expandedPillAlpha > 0f) {
-          Box(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(20.dp)
-              .align(Alignment.TopCenter)
-              .zIndex(1f)
-              .graphicsLayer { alpha = expandedPillAlpha }
-              .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                  onDragEnd = {
-                    coroutineScope.launch {
-                      if (expansionFraction.value > 0.35f) {
-                        expansionFraction.animateTo(1f, spring())
-                        stateManager.setExpanded(true)
-                      } else {
-                        expansionFraction.animateTo(0f, spring())
-                        stateManager.setExpanded(false)
-                      }
-                    }
-                  },
-                  onVerticalDrag = { change, dragAmount ->
-                    change.consume()
-                    coroutineScope.launch {
-                      val delta = -dragAmount / 350f
-                      val newFraction = (expansionFraction.value + delta).coerceIn(0f, 1f)
-                      expansionFraction.snapTo(newFraction)
-                    }
-                  }
-                )
-              },
-            contentAlignment = Alignment.Center,
-          ) {
-            Box(
-              modifier = Modifier
-                .width(36.dp)
-                .height(4.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
-            )
-          }
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        // Expanded Header (Collapse Button, NOW PLAYING, Close)
-        // ──────────────────────────────────────────────────────────────
-        val headerAlpha = ((fraction - 0.25f) * 2.5f).coerceIn(0f, 1f)
-        if (headerAlpha > 0f) {
+        if (expandedHeaderAlpha > 0f) {
           Row(
             modifier = Modifier
               .fillMaxWidth()
               .padding(top = 16.dp, start = 12.dp, end = 12.dp)
-              .graphicsLayer { alpha = headerAlpha }
-              .align(Alignment.TopCenter),
+              .graphicsLayer {
+                alpha = expandedHeaderAlpha
+                translationY = (1f - expandedHeaderAlpha) * -15f
+              }
+              .align(Alignment.TopCenter)
+              .zIndex(11f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
           ) {
             IconButton(
               onClick = {
                 coroutineScope.launch {
-                  expansionFraction.animateTo(0f, spring())
+                  expansionFraction.animateTo(0f, smoothSpringSpec)
                   stateManager.setExpanded(false)
                 }
               },
@@ -288,18 +269,15 @@ fun MiniPlayer(
         }
 
         // ──────────────────────────────────────────────────────────────
-        // Collapsed content: swipe left/right to skip, click to open player
-        // Progress bar at bottom with 4dp margin; no top/bottom padding on content
-        // Layout: 47dp content + weight(~14dp) + 4dp margin + 3dp progress = 68dp
+        // Collapsed Content Row (Track title/artist + Play/Pause + Close)
         // ──────────────────────────────────────────────────────────────
         if (compactAlpha > 0f) {
           Column(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(top = 18.dp)  // clears the 18dp pill zone; no overlap = no gesture conflict
+              .padding(top = 18.dp)
               .graphicsLayer { alpha = compactAlpha },
           ) {
-            // Sliding content row (Thumbnail + Title/Artist + play/close buttons)
             Box(
               modifier = Modifier
                 .fillMaxWidth()
@@ -314,18 +292,15 @@ fun MiniPlayer(
                         val currentOffset = offsetX.value
 
                         if (currentOffset < -threshold && state.hasNext) {
-                          // Complete slide left → next track
                           offsetX.animateTo(-contentWidth, tween(180))
                           stateManager.playNext()
                           offsetX.snapTo(0f)
                         } else if (currentOffset > threshold && state.hasPrevious) {
-                          // Complete slide right → previous track
                           offsetX.animateTo(contentWidth, tween(180))
                           stateManager.playPrevious()
                           offsetX.snapTo(0f)
                         } else {
-                          // Snap back if threshold not reached
-                          offsetX.animateTo(0f, spring())
+                          offsetX.animateTo(0f, smoothSpringSpec)
                         }
                       }
                     },
@@ -343,11 +318,16 @@ fun MiniPlayer(
                     }
                   )
                 }
-                .clickable { stateManager.openPlayer(context) },
+                .clickable {
+                  coroutineScope.launch {
+                    expansionFraction.animateTo(1f, smoothSpringSpec)
+                    stateManager.setExpanded(true)
+                  }
+                },
             ) {
               val currentDx = offsetX.value.roundToInt()
 
-              // Next track preview (slides in from right when swiping left)
+              // Next track preview
               if (offsetX.value < 0 && state.hasNext) {
                 val nextDx = (contentWidth + offsetX.value).roundToInt()
                 Row(
@@ -402,7 +382,7 @@ fun MiniPlayer(
                 }
               }
 
-              // Previous track preview (slides in from left when swiping right)
+              // Previous track preview
               if (offsetX.value > 0 && state.hasPrevious) {
                 val prevDx = (-contentWidth + offsetX.value).roundToInt()
                 Row(
@@ -457,44 +437,15 @@ fun MiniPlayer(
                 }
               }
 
-              // Current track item content
+              // Current track title/artist & compact action buttons
               Row(
                 modifier = Modifier
                   .fillMaxWidth()
                   .fillMaxHeight()
                   .offset { IntOffset(currentDx, 0) }
-                  .padding(start = 18.dp, end = 6.dp),
+                  .padding(start = 74.dp, end = 6.dp), // Start margin 74dp leaves space for morphing artwork
                 verticalAlignment = Alignment.CenterVertically,
               ) {
-                // Thumbnail or placeholder icon
-                Box(
-                  modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                  contentAlignment = Alignment.Center,
-                ) {
-                  val thumbnail = state.thumbnail
-                  if (thumbnail != null && !thumbnail.isRecycled) {
-                    Image(
-                      bitmap = thumbnail.asImageBitmap(),
-                      contentDescription = null,
-                      contentScale = ContentScale.Crop,
-                      modifier = Modifier.fillMaxSize(),
-                    )
-                  } else {
-                    Icon(
-                      imageVector = Icons.Filled.VideoLibrary,
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                      modifier = Modifier.size(24.dp),
-                    )
-                  }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Media Title and Position / Duration
                 Column(modifier = Modifier.weight(1f)) {
                   Text(
                     text = state.title.ifBlank { "Playing Media" },
@@ -517,7 +468,6 @@ fun MiniPlayer(
                   )
                 }
 
-                // Play / Pause Button
                 IconButton(onClick = { stateManager.togglePlayPause() }) {
                   Icon(
                     imageVector = if (state.isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
@@ -526,7 +476,6 @@ fun MiniPlayer(
                   )
                 }
 
-                // Close / Stop Button
                 IconButton(
                   onClick = {
                     runCatching {
@@ -544,7 +493,6 @@ fun MiniPlayer(
               }
             } // end sliding Box
 
-            // Progress Bar — 7dp top, 8dp bottom, 18dp left/right (18+47+(7+3+8)=83dp total)
             val progress = if (state.durationMs > 0) {
               (state.currentPositionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
             } else 0f
@@ -558,104 +506,92 @@ fun MiniPlayer(
               color = MaterialTheme.colorScheme.primary,
               trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             )
-          } // end Column (compact layout)
-        }
-
-        // ──────────────────────────────────────────────────────────────
-        // Expanded mode: Artwork Container (morphs from collapsed)
-        // ──────────────────────────────────────────────────────────────
-        val artworkSize = androidx.compose.ui.unit.lerp(44.dp, 140.dp, fraction)
-        val artworkCorner = androidx.compose.ui.unit.lerp(8.dp, 16.dp, fraction)
-        val artworkTopPadding = androidx.compose.ui.unit.lerp(22.dp, 64.dp, fraction)
-        val artworkStartPadding = androidx.compose.ui.unit.lerp(12.dp, 0.dp, fraction)
-
-        if (fraction > 0f) {
-          Box(
-            modifier = Modifier
-              .padding(
-                top = artworkTopPadding,
-                start = if (fraction < 0.3f) artworkStartPadding else 0.dp
-              )
-              .then(
-                if (fraction >= 0.3f) Modifier.align(Alignment.TopCenter)
-                else Modifier.align(Alignment.TopStart)
-              )
-              .size(artworkSize)
-              .shadow(
-                elevation = androidx.compose.ui.unit.lerp(0.dp, 8.dp, fraction),
-                shape = RoundedCornerShape(artworkCorner)
-              )
-              .clip(RoundedCornerShape(artworkCorner))
-              .background(MaterialTheme.colorScheme.primaryContainer)
-              .clickable {
-                if (fraction > 0.5f) {
-                  stateManager.openPlayer(context)
-                }
-              },
-            contentAlignment = Alignment.Center,
-          ) {
-            val thumbnail = state.thumbnail
-            if (thumbnail != null && !thumbnail.isRecycled) {
-              Image(
-                bitmap = thumbnail.asImageBitmap(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-              )
-            } else {
-              Icon(
-                imageVector = Icons.Filled.VideoLibrary,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(androidx.compose.ui.unit.lerp(24.dp, 52.dp, fraction)),
-              )
-            }
           }
         }
 
-        // Title & Subtitle Info (expanded view)
-        val textTopPadding = androidx.compose.ui.unit.lerp(24.dp, 220.dp, fraction)
-        val textStartPadding = androidx.compose.ui.unit.lerp(68.dp, 16.dp, fraction)
-        val textEndPadding = androidx.compose.ui.unit.lerp(96.dp, 16.dp, fraction)
+        // ──────────────────────────────────────────────────────────────
+        // Morphing Artwork Container (Glides smoothly between compact and expanded)
+        // ──────────────────────────────────────────────────────────────
+        val artworkSize = lerp(44.dp, 140.dp, fraction)
+        val artworkCorner = lerp(8.dp, 16.dp, fraction)
+        val artworkTopPadding = lerp(20.dp, 64.dp, fraction)
+        val artworkHorizBias = lerp(-1f, 0f, fraction)
+        val artworkStartPadding = lerp(18.dp, 0.dp, fraction)
+        val artworkDx = (offsetX.value * compactAlpha).roundToInt()
 
-        if (fraction > 0f) {
+        Box(
+          modifier = Modifier
+            .padding(top = artworkTopPadding, start = artworkStartPadding)
+            .align(BiasAlignment(artworkHorizBias, -1f))
+            .offset { IntOffset(artworkDx, 0) }
+            .size(artworkSize)
+            .shadow(
+              elevation = lerp(0.dp, 8.dp, fraction),
+              shape = RoundedCornerShape(artworkCorner)
+            )
+            .clip(RoundedCornerShape(artworkCorner))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable {
+              if (fraction > 0.5f) {
+                stateManager.openPlayer(context)
+              } else {
+                coroutineScope.launch {
+                  expansionFraction.animateTo(1f, smoothSpringSpec)
+                  stateManager.setExpanded(true)
+                }
+              }
+            },
+          contentAlignment = Alignment.Center,
+        ) {
+          val thumbnail = state.thumbnail
+          if (thumbnail != null && !thumbnail.isRecycled) {
+            Image(
+              bitmap = thumbnail.asImageBitmap(),
+              contentDescription = null,
+              contentScale = ContentScale.Crop,
+              modifier = Modifier.fillMaxSize(),
+            )
+          } else {
+            Icon(
+              imageVector = Icons.Filled.VideoLibrary,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onPrimaryContainer,
+              modifier = Modifier.size(lerp(24.dp, 52.dp, fraction)),
+            )
+          }
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // Expanded Mode: Title & Subtitle Info (Fades in below expanded artwork)
+        // ──────────────────────────────────────────────────────────────
+        if (expandedTextAlpha > 0f) {
           Column(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(
-                top = textTopPadding,
-                start = textStartPadding,
-                end = textEndPadding
-              ),
-            horizontalAlignment = if (fraction > 0.4f) Alignment.CenterHorizontally else Alignment.Start,
+              .padding(top = 220.dp, start = 16.dp, end = 16.dp)
+              .graphicsLayer {
+                alpha = expandedTextAlpha
+                translationY = (1f - expandedTextAlpha) * 20f
+              },
+            horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
               text = state.title.ifBlank { "Playing Media" },
-              style = if (fraction > 0.4f) {
-                MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-              } else {
-                MaterialTheme.typography.titleMedium
-              },
+              style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
               color = MaterialTheme.colorScheme.onSurface,
-              textAlign = if (fraction > 0.4f) TextAlign.Center else TextAlign.Start,
+              textAlign = TextAlign.Center,
               modifier = Modifier.fillMaxWidth(),
             )
 
-            val timeText = if (state.durationMs > 0) {
-              "${MediaFormatter.formatDuration(state.currentPositionMs)} / ${MediaFormatter.formatDuration(state.durationMs)}"
-            } else {
-              state.artist.ifBlank { "Background Playback" }
-            }
-
             Text(
-              text = if (fraction > 0.4f) state.artist.ifBlank { "mpvRex Media Player" } else timeText,
+              text = state.artist.ifBlank { "mpvRex Media Player" },
               style = MaterialTheme.typography.bodySmall,
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = if (fraction > 0.4f) TextAlign.Center else TextAlign.Start,
+              textAlign = TextAlign.Center,
               modifier = Modifier.fillMaxWidth(),
             )
           }
@@ -664,7 +600,6 @@ fun MiniPlayer(
         // ──────────────────────────────────────────────────────────────
         // Expanded Seekbar + Duration Labels
         // ──────────────────────────────────────────────────────────────
-        val seekbarAlpha = ((fraction - 0.4f) * 2.5f).coerceIn(0f, 1f)
         if (seekbarAlpha > 0f) {
           Column(
             modifier = Modifier
@@ -672,7 +607,7 @@ fun MiniPlayer(
               .padding(top = 275.dp, start = 16.dp, end = 16.dp)
               .graphicsLayer {
                 alpha = seekbarAlpha
-                translationY = (1f - seekbarAlpha) * 30f
+                translationY = (1f - seekbarAlpha) * 25f
               },
           ) {
             var sliderValue by remember(state.currentPositionMs) {
@@ -725,7 +660,6 @@ fun MiniPlayer(
         // ──────────────────────────────────────────────────────────────
         // Expanded Control Row (Shuffle | Prev | Play/Pause | Next | Repeat)
         // ──────────────────────────────────────────────────────────────
-        val expandedControlsAlpha = ((fraction - 0.5f) * 2f).coerceIn(0f, 1f)
         if (expandedControlsAlpha > 0f) {
           Row(
             modifier = Modifier
@@ -733,7 +667,7 @@ fun MiniPlayer(
               .padding(top = 345.dp, start = 16.dp, end = 16.dp)
               .graphicsLayer {
                 alpha = expandedControlsAlpha
-                translationY = (1f - expandedControlsAlpha) * 40f
+                translationY = (1f - expandedControlsAlpha) * 35f
               },
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,

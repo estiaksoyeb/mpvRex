@@ -190,7 +190,9 @@ class MainActivity : ComponentActivity() {
     val currentRoute = typedBackstack.lastOrNull()
     val isMainScreen = currentRoute == MainScreen
     
-    val targetBottomPadding = if (isMainScreen && !hideNavigationBar) 88.dp else 8.dp
+    val targetBottomPadding = if (isMainScreen && !hideNavigationBar) {
+      if (miniPlayerState.isExpanded) 8.dp else 88.dp
+    } else 8.dp
     val animatedBottomPadding by androidx.compose.animation.core.animateDpAsState(
       targetValue = targetBottomPadding,
       animationSpec = tween(220),

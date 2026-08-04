@@ -146,6 +146,7 @@ class MPVView(
 
     MPVLib.setOptionString("tls-verify", "yes")
     MPVLib.setOptionString("tls-ca-file", "${context.filesDir.path}/cacert.pem")
+    MPVLib.setOptionString("ytdl", "no")
 
     val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
     screenshotDir.mkdirs()

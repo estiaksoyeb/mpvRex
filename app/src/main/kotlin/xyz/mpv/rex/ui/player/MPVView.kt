@@ -174,6 +174,20 @@ class MPVView(
     for ((name, format) in observedProps) MPVLib.observeProperty(name, format)
   }
 
+  /**
+   * Attaches this view to an ALREADY-INITIALIZED global MPV instance (e.g. one created by
+   * [HeadlessPlaybackController]). Unlike [initialize], this does NOT call `MPVLib.create()` /
+   * `MPVLib.init()` — it only re-registers the surface callback and property observers so this
+   * view can drive the live session and render video once its surface is created.
+   */
+  fun attachToExistingSession() {
+    // Re-enable the GPU VO the headless controller disabled; surfaceCreated() will attach the
+    // surface and flip force-window on.
+    setVo(if (decoderPreferences.gpuNext.get()) "gpu-next" else "gpu")
+    holder.addCallback(this)
+    observeProperties()
+  }
+
   override fun postInitOptions() {
     when (decoderPreferences.debanding.get()) {
       Debanding.None -> {}

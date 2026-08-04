@@ -59,6 +59,7 @@ import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.HttpUtils
 import xyz.mpv.rex.utils.media.SubtitleOps
 import xyz.mpv.rex.utils.media.M3UParser
+import xyz.mpv.rex.utils.media.FolderPlaylistOps
 import xyz.mpv.rex.utils.media.M3UParseResult
 import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.domain.thumbnail.isMostlySolidThumbnail
@@ -186,6 +187,7 @@ class PlayerActivity :
    */
   private val hdrToysManager: HdrToysManager by inject()
   private val miniPlayerStateManager: MiniPlayerStateManager by inject()
+  private val headlessPlaybackController: HeadlessPlaybackController by inject()
   private val thumbnailRepository: ThumbnailRepository by inject()
   private val uriThumbnailCache = android.util.LruCache<String, android.graphics.Bitmap>(32)
 
@@ -343,7 +345,13 @@ class PlayerActivity :
     setContentView(binding.root)
 
     pendingIntentExtras = true
-    setupMPV()
+    val attachExistingSession =
+      intent.getBooleanExtra("attach_existing_session", false) && headlessPlaybackController.isSessionActive
+    if (attachExistingSession) {
+      setupMPVForHandoff()
+    } else {
+      setupMPV()
+    }
     viewModel.onMpvCoreInitialized()
     MediaPlaybackService.createNotificationChannel(this)
     setupAudio()
@@ -1018,24 +1026,7 @@ class PlayerActivity :
 
     // Copy essential files FIRST, before MPV initialization
     // MPV will load scripts during initialize(), so they must exist beforehand
-    runCatching {
-      Utils.copyAssets(this@PlayerActivity)
-      syncFromUserMpvDirectory()
-
-      // Configure hdr-toys conditional profile in mpv.conf if enabled
-      val isEnabled = decoderPreferences.enableHdrToys.get()
-      val toneStr = decoderPreferences.hdrToysToneMapping.get()
-      val gamutStr = decoderPreferences.hdrToysGamutMapping.get()
-
-      val tone = runCatching { HdrToysManager.ToneMapping.valueOf(toneStr) }.getOrDefault(HdrToysManager.ToneMapping.ASTRA)
-      val gamut = runCatching { HdrToysManager.GamutMapping.valueOf(gamutStr) }.getOrDefault(HdrToysManager.GamutMapping.BOTTOSSON)
-
-      hdrToysManager.configureMpvConf(filesDir, isEnabled, tone, gamut)
-
-      Log.d(TAG, "MPV config and scripts prepared successfully")
-    }.onFailure { e ->
-      Log.e(TAG, "Error copying MPV config and scripts", e)
-    }
+    MpvConfigSync.prepare(this@PlayerActivity)
 
     // NOW initialize MPV - it will find and load the scripts we just copied
     player.initialize(filesDir.path, cacheDir.path)
@@ -1054,273 +1045,31 @@ class PlayerActivity :
   }
 
   /**
-   * Syncs ALL MPV assets from the user's configured MPV directory to internal storage.
-   * Handles: mpv.conf, input.conf, scripts/, script-opts/, shaders/, fonts/
-   *
-   * Uses case-insensitive subfolder matching and falls back to root scanning
-   * if standard subfolders don't exist. Falls back to preferences-based config
-   * if no user directory is configured.
+   * Takes over an already-running MPV instance created by [HeadlessPlaybackController]
+   * (direct mini player mode). Does NOT call [player.initialize] — that would invoke
+   * `MPVLib.create()` a second time on the global native singleton and crash. Instead it
+   * relinquishes ownership from the controller and re-registers this activity's surface
+   * callback and observers, so playback continues seamlessly with video re-enabled.
    */
-  private fun syncFromUserMpvDirectory() {
-    val mpvConfStorageUri = advancedPreferences.mpvConfStorageUri.get()
-
-    // Try to open the user's MPV directory
-    val tree = if (mpvConfStorageUri.isNotBlank()) {
-      runCatching {
-        DocumentFile.fromTreeUri(this, mpvConfStorageUri.toUri())
-      }.getOrNull()?.takeIf { it.exists() && it.canRead() }
-    } else null
-
-    if (tree != null) {
-      Log.d(TAG, "Syncing from user MPV directory: ${tree.uri}")
-      syncConfigFiles(tree)
-      syncScripts(tree)
-      syncScriptOpts(tree)
-      syncShaders(tree)
-      syncFonts(tree)
-      Log.d(TAG, "Full MPV directory sync completed")
-    } else {
-      // Fallback: use preferences-based config (no user directory set)
-      Log.d(TAG, "No MPV directory configured, using preferences fallback")
-      copyMPVConfigFromPreferences()
-    }
-  }
-
-  // ==================== Config Files Sync ====================
-
-  /**
-   * Syncs mpv.conf and input.conf from the user's MPV directory.
-   * Also caches the content in preferences for the config editor.
-   */
-  private fun syncConfigFiles(tree: DocumentFile) {
-    for (configName in listOf("mpv.conf", "input.conf")) {
-      runCatching {
-        val configFile = findFileCaseInsensitive(tree, configName)
-        if (configFile != null && configFile.exists() && configFile.canRead()) {
-          contentResolver.openInputStream(configFile.uri)?.use { input ->
-            val content = input.bufferedReader().readText()
-            File(filesDir, configName).writeText(content)
-            // Cache in preferences for the config editor
-            when (configName) {
-              "mpv.conf" -> advancedPreferences.mpvConf.set(content)
-              "input.conf" -> advancedPreferences.inputConf.set(content)
-            }
-            Log.d(TAG, "Synced config: $configName (${content.length} chars)")
-          }
-        } else {
-          // Config not in directory, fall back to preferences
-          val prefContent = when (configName) {
-            "mpv.conf" -> advancedPreferences.mpvConf.get()
-            "input.conf" -> advancedPreferences.inputConf.get()
-            else -> ""
-          }
-          File(filesDir, configName).apply {
-            if (!exists()) createNewFile()
-            if (prefContent.isNotBlank()) writeText(prefContent)
-          }
-          Log.d(TAG, "Config not found in directory, used preferences: $configName")
-        }
-      }.onFailure { e ->
-        Log.e(TAG, "Error syncing config: $configName", e)
-      }
-    }
-  }
-
-  // ==================== Scripts Sync ====================
-
-  /**
-   * Syncs all script files (.lua, .js) from the user's MPV directory.
-   * Looks in scripts/ subfolder first (case-insensitive), falls back to root.
-   */
-  private fun syncScripts(tree: DocumentFile) {
-    val internalScriptsDir = File(filesDir, "scripts")
-    internalScriptsDir.mkdirs()
-    internalScriptsDir.listFiles()?.forEach { it.delete() }
-
-    if (!advancedPreferences.enableLuaScripts.get()) {
-      Log.d(TAG, "Lua scripts disabled, skipping")
-      return
-    }
-
-    val scriptsSubdir = findSubdirCaseInsensitive(tree, "scripts")
-    val sourceDir = scriptsSubdir ?: tree
-    val scriptExtensions = setOf("lua", "js")
-    var count = 0
-
-    sourceDir.listFiles().forEach { file ->
-      if (!file.isFile) return@forEach
-      val name = file.name ?: return@forEach
-      val ext = name.substringAfterLast('.', "").lowercase()
-      if (ext !in scriptExtensions) return@forEach
-
-      val selectedScripts = advancedPreferences.selectedLuaScripts.get()
-      if (!selectedScripts.contains(name)) {
-          return@forEach
-      }
-
-      runCatching {
-        contentResolver.openInputStream(file.uri)?.use { input ->
-          File(internalScriptsDir, name).outputStream().use { output ->
-            input.copyTo(output)
-          }
-          count++
-          Log.d(TAG, "Synced script: $name")
-        }
-      }.onFailure { e ->
-        Log.e(TAG, "Error syncing script: $name", e)
+  private fun setupMPVForHandoff() {
+    if (MPVLifecycleLock.isTearingDown.value) {
+      kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+        MPVLifecycleLock.awaitTeardown()
       }
     }
 
-    Log.d(TAG, "Scripts sync: $count file(s) from ${if (scriptsSubdir != null) "scripts/" else "root"}")
-  }
+    headlessPlaybackController.detachForHandoff()
+    player.attachToExistingSession()
+    mpvInitialized = true
+    Log.d(TAG, "MPV attached to existing headless session")
 
-  // ==================== Script Options Sync ====================
-
-  /**
-   * Syncs all files from script-opts/ subfolder (case-insensitive).
-   */
-  private fun syncScriptOpts(tree: DocumentFile) {
-    val internalScriptOptsDir = File(filesDir, "script-opts")
-    internalScriptOptsDir.mkdirs()
-    internalScriptOptsDir.listFiles()?.forEach { it.delete() }
-
-    val scriptOptsSubdir = findSubdirCaseInsensitive(tree, "script-opts")
-    if (scriptOptsSubdir == null) {
-      Log.d(TAG, "No script-opts/ subfolder found, skipping")
-      return
-    }
-
-    var count = 0
-    scriptOptsSubdir.listFiles().forEach { file ->
-      if (!file.isFile) return@forEach
-      val name = file.name ?: return@forEach
-
-      runCatching {
-        contentResolver.openInputStream(file.uri)?.use { input ->
-          File(internalScriptOptsDir, name).outputStream().use { output ->
-            input.copyTo(output)
-          }
-          count++
-          Log.d(TAG, "Synced script-opt: $name")
-        }
-      }.onFailure { e ->
-        Log.e(TAG, "Error syncing script-opt: $name", e)
-      }
-    }
-
-    Log.d(TAG, "Script-opts sync: $count file(s)")
-  }
-
-  // ==================== Shaders Sync ====================
-
-  /**
-   * Syncs shader files (.glsl, .hook, .comp) from the user's MPV directory.
-   * Looks in shaders/ subfolder first (case-insensitive), falls back to root.
-   * Saves to shaders/ (same as non-Play Store) so Lua scripts can find them at ~~/shaders/
-   */
-  private fun syncShaders(tree: DocumentFile) {
-    // Use shaders/ directory directly for compatibility with existing Lua scripts
-    val shadersDir = File(filesDir, "shaders")
-    shadersDir.mkdirs()
-
-    val shadersSubdir = findSubdirCaseInsensitive(tree, "shaders")
-    val sourceDir = shadersSubdir ?: tree
-    val shaderExtensions = setOf("glsl", "hook", "comp")
-    
-    val count = syncShaderDirRecursive(sourceDir, shadersDir, shaderExtensions)
-    Log.d(TAG, "Shaders sync: $count file(s) completed")
-  }
-
-  private fun syncShaderDirRecursive(
-    sourceDir: DocumentFile,
-    targetDir: File,
-    shaderExtensions: Set<String>
-  ): Int {
-    var count = 0
-    sourceDir.listFiles().forEach { file ->
-      val name = file.name ?: return@forEach
-      if (file.isDirectory) {
-        val nextTarget = File(targetDir, name)
-        nextTarget.mkdirs()
-        count += syncShaderDirRecursive(file, nextTarget, shaderExtensions)
-      } else if (file.isFile) {
-        val ext = name.substringAfterLast('.', "").lowercase()
-        if (ext in shaderExtensions) {
-          runCatching {
-            contentResolver.openInputStream(file.uri)?.use { input ->
-              File(targetDir, name).outputStream().use { output ->
-                input.copyTo(output)
-              }
-              count++
-              Log.d(TAG, "Synced shader: $name")
-            }
-          }.onFailure { e ->
-            Log.e(TAG, "Error syncing shader: $name", e)
-          }
-        }
-      }
-    }
-    return count
-  }
-
-
-  // ==================== Fonts Sync ====================
-
-  /**
-   * Syncs font files (.ttf, .otf, .ttc, .woff, .woff2) from the user's MPV directory.
-   * Looks in fonts/ subfolder first (case-insensitive), falls back to root.
-   * Also syncs from the subtitle preferences font folder if set.
-   */
-  private fun syncFonts(tree: DocumentFile) {
-    val internalFontsDir = File(filesDir, "fonts")
-    internalFontsDir.mkdirs()
-
-    val fontsSubdir = findSubdirCaseInsensitive(tree, "fonts")
-    val sourceDir = fontsSubdir ?: tree
-    val fontExtensions = setOf("ttf", "otf", "ttc", "woff", "woff2")
-    var count = 0
-
-    sourceDir.listFiles().forEach { file ->
-      if (!file.isFile) return@forEach
-      val name = file.name ?: return@forEach
-      val ext = name.substringAfterLast('.', "").lowercase()
-      if (ext !in fontExtensions) return@forEach
-
-      val target = File(internalFontsDir, name)
-      // Skip if font already exists (fonts can be large)
-      if (target.exists()) return@forEach
-
-      runCatching {
-        contentResolver.openInputStream(file.uri)?.use { input ->
-          target.outputStream().use { output ->
-            input.copyTo(output)
-          }
-          count++
-          Log.d(TAG, "Synced font: $name")
-        }
-      }.onFailure { e ->
-        Log.e(TAG, "Error syncing font: $name", e)
-      }
-    }
-
-    // Also sync from subtitle preferences font folder if set
     runCatching {
-      val fontsFolderUri = subtitlesPreferences.fontsFolder.get()
-      if (fontsFolderUri.isNotBlank()) {
-        val destDir = fileManager.fromPath("${filesDir.path}/fonts")
-        if (!fileManager.exists(destDir)) {
-          fileManager.createDir(fileManager.fromPath(filesDir.path), "fonts")
-        }
-        val fontsDir = fileManager.fromUri(fontsFolderUri.toUri())
-        if (fontsDir != null && fileManager.exists(fontsDir)) {
-          fileManager.copyDirectoryWithContent(fontsDir, destDir, false)
-        }
-      }
+      MPVLib.setPropertyInt("osd-level", if (playerPreferences.hideOsdText.get()) 0 else 1)
     }.onFailure { e ->
-      Log.e(TAG, "Error syncing subtitle fonts: ${e.message}")
+      Log.e(TAG, "Error setting initial osd-level", e)
     }
 
-    Log.d(TAG, "Fonts sync: $count file(s) from MPV directory")
+    MPVLib.addObserver(playerObserver)
   }
 
   /**
@@ -1339,24 +1088,24 @@ class PlayerActivity :
         val tree = DocumentFile.fromTreeUri(this@PlayerActivity, mpvConfStorageUri.toUri())
         if (tree != null && tree.exists()) {
           // Look for scripts/ subfolder first (case-insensitive), fall back to root
-          val scriptsDir = findSubdirCaseInsensitive(tree, "scripts") ?: tree
-          
-          val scriptFile = scriptsDir.listFiles().firstOrNull { 
-            it.name == scriptName 
+          val scriptsDir = MpvConfigSync.findSubdirCaseInsensitive(tree, "scripts") ?: tree
+
+          val scriptFile = scriptsDir.listFiles().firstOrNull {
+            it.name == scriptName
           }
 
           if (scriptFile != null) {
             val internalScriptsDir = File(filesDir, "scripts")
             if (!internalScriptsDir.exists()) internalScriptsDir.mkdirs()
-            
+
             val targetFile = File(internalScriptsDir, scriptName)
-            
+
             contentResolver.openInputStream(scriptFile.uri)?.use { input ->
               targetFile.outputStream().use { output ->
                 input.copyTo(output)
               }
             }
-            
+
             withContext(Dispatchers.Main) {
               MPVLib.command("load-script", targetFile.absolutePath)
               viewModel.showToast("Loaded script: $scriptName")
@@ -1375,47 +1124,6 @@ class PlayerActivity :
       }
     }
   }
-
-  // ==================== Helpers ====================
-
-  /**
-   * Fallback: copies config from preferences when no user MPV directory is set.
-   */
-  private fun copyMPVConfigFromPreferences() {
-    runCatching {
-      File(filesDir, "mpv.conf").apply {
-        if (!exists()) createNewFile()
-        val content = advancedPreferences.mpvConf.get()
-        if (content.isNotBlank()) writeText(content)
-      }
-      File(filesDir, "input.conf").apply {
-        if (!exists()) createNewFile()
-        val content = advancedPreferences.inputConf.get()
-        if (content.isNotBlank()) writeText(content)
-      }
-      // Ensure scripts directory exists even without user dir
-      File(filesDir, "scripts").mkdirs()
-      File(filesDir, "fonts").mkdirs()
-    }.onFailure { e ->
-      Log.e(TAG, "Error creating fallback config files", e)
-    }
-  }
-
-  /**
-   * Finds a subdirectory by name (case-insensitive) within a DocumentFile.
-   */
-  private fun findSubdirCaseInsensitive(parent: DocumentFile, name: String): DocumentFile? =
-    parent.listFiles().firstOrNull {
-      it.isDirectory && it.name?.equals(name, ignoreCase = true) == true
-    }
-
-  /**
-   * Finds a file by name (case-insensitive) within a DocumentFile.
-   */
-  private fun findFileCaseInsensitive(parent: DocumentFile, name: String): DocumentFile? =
-    parent.listFiles().firstOrNull {
-      it.isFile && it.name?.equals(name, ignoreCase = true) == true
-    }
 
   override fun onResume() {
     super.onResume()
@@ -4185,25 +3893,10 @@ class PlayerActivity :
   private fun generatePlaylistFromMediaLibrary(currentPath: String) {
     lifecycleScope.launch(Dispatchers.IO) {
       runCatching {
-        val allVideos = xyz.mpv.rex.repository.MediaFileRepository.getAllVideos(this@PlayerActivity)
-        
-        val videoSortType = browserPreferences.videoSortType.get()
-        val videoSortOrder = browserPreferences.videoSortOrder.get()
-        
-        var filteredVideos = allVideos
-        if (!browserPreferences.showAudioFiles.get()) {
-          filteredVideos = allVideos.filterNot { it.isAudio }
-        }
-        
-        val sortedVideos = xyz.mpv.rex.utils.sort.SortUtils.sortVideos(filteredVideos, videoSortType, videoSortOrder)
-        if (sortedVideos.size <= 1) return@runCatching
-
-        val newPlaylist = sortedVideos.map { it.uri }
-        val newIndex = sortedVideos.indexOfFirst { it.path == currentPath || it.uri.toString() == currentPath }
-        
-        val durations = sortedVideos.map { it.duration }
-
-        if (newIndex != -1) {
+        val result = FolderPlaylistOps.generateMediaLibraryPlaylist(this@PlayerActivity, currentPath)
+        if (result != null) {
+          val (newPlaylist, newIndex) = result
+          val durations = newPlaylist.map { getFastDurationMsForUri(it) }
           withContext(Dispatchers.Main) {
             viewModel.playlistManager.setPlaylist(
               items = newPlaylist,
@@ -4223,57 +3916,11 @@ class PlayerActivity :
   private fun generatePlaylistFromFolder(currentPath: String) {
     lifecycleScope.launch(Dispatchers.IO) {
       runCatching {
-        val currentFile = File(currentPath)
-        if (!currentFile.exists()) return@runCatching
-
-        val parentFolder = currentFile.parentFile ?: return@runCatching
-
-        val videoExtensions = FileTypeUtils.VIDEO_EXTENSIONS
-
-        val files = parentFolder.listFiles { file ->
-          file.isFile &&
-            xyz.mpv.rex.utils.storage.FileTypeUtils.isMediaFile(file) &&
-            !FileFilterUtils.shouldSkipFile(file)
-        } ?: return@runCatching
-
-        val launchSource = intent.getStringExtra("launch_source") ?: ""
-        val siblingFiles = if (launchSource == "video_list" || launchSource == "recently_played_button" || launchSource == "first_video_button") {
-          val videoSortType = browserPreferences.videoSortType.get()
-          val videoSortOrder = browserPreferences.videoSortOrder.get()
-          val bucketId = parentFolder.absolutePath.replace("\\", "/")
-          val videosInFolder =
-            xyz.mpv.rex.repository.MediaFileRepository.getVideosForBuckets(
-              context,
-              setOf(bucketId)
-            )
-          val sortedVideos = xyz.mpv.rex.utils.sort.SortUtils.sortVideos(videosInFolder, videoSortType, videoSortOrder)
-          sortedVideos.mapNotNull { video -> files.find { it.absolutePath == video.path } }
-        } else if (launchSource == "tree_mode") {
-          val folderSortType = browserPreferences.folderSortType.get()
-          val folderSortOrder = browserPreferences.folderSortOrder.get()
-          val videosInFolder = xyz.mpv.rex.utils.storage.VideoScanUtils.getVideosInFolder(context, parentFolder.absolutePath)
-          val sortedVideos = when (folderSortType) {
-            FolderSortType.Title -> videosInFolder.sortedWith { t1, t2 -> xyz.mpv.rex.utils.sort.SortUtils.NaturalOrderComparator.DEFAULT.compare(t1.displayName, t2.displayName) }
-            FolderSortType.Duration -> videosInFolder.sortedBy { it.duration }
-            FolderSortType.Date -> videosInFolder.sortedBy { File(it.path).lastModified() }
-            FolderSortType.Size -> videosInFolder.sortedBy { it.size }
-            FolderSortType.VideoCount -> videosInFolder.sortedBy { it.duration }
-          }
-          val orderedVideos = if (folderSortOrder.isAscending) sortedVideos else sortedVideos.reversed()
-          orderedVideos.mapNotNull { video -> files.find { it.absolutePath == video.path } }
-        } else {
-          files.sortedWith { f1, f2 -> xyz.mpv.rex.utils.sort.SortUtils.NaturalOrderComparator.DEFAULT.compare(f1.name, f2.name) }
-        }
-
-        if (siblingFiles.size <= 1) return@runCatching
-
-        val newPlaylist = siblingFiles.map { it.toUri() }
-
-        val newIndex = siblingFiles.indexOfFirst { it.absolutePath == currentFile.absolutePath }
-
-        val durations = siblingFiles.map { file -> getFastDurationMsForUri(file.toUri()) }
-
-        if (newIndex != -1) {
+        val launchSource = intent.getStringExtra("launch_source")
+        val result = FolderPlaylistOps.generateFolderPlaylist(this@PlayerActivity, currentPath, launchSource)
+        if (result != null) {
+          val (newPlaylist, newIndex) = result
+          val durations = newPlaylist.map { getFastDurationMsForUri(it) }
           withContext(Dispatchers.Main) {
             viewModel.playlistManager.setPlaylist(
               items = newPlaylist,

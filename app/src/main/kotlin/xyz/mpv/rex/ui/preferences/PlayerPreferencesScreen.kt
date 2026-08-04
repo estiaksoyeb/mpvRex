@@ -171,6 +171,24 @@ object PlayerPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              val playInMiniPlayerDirectly by preferences.playInMiniPlayerDirectly.collectAsState()
+              SwitchPreference(
+                value = playInMiniPlayerDirectly,
+                onValueChange = preferences.playInMiniPlayerDirectly::set,
+                title = { Text(text = stringResource(R.string.pref_player_play_in_mini_player)) },
+                summary = {
+                  Text(
+                    text = if (playInMiniPlayerDirectly)
+                      stringResource(R.string.pref_player_play_in_mini_player_summary_on)
+                    else
+                      stringResource(R.string.pref_player_play_in_mini_player_summary_off),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
               val rememberBrightness by preferences.rememberBrightness.collectAsState()
               SwitchPreference(
                 value = rememberBrightness,

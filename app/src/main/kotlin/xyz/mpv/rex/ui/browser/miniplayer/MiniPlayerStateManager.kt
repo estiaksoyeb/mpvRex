@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.MediaPlaybackService
+import xyz.mpv.rex.ui.player.HeadlessPlaybackController
 import xyz.mpv.rex.ui.player.RepeatMode
 import xyz.mpv.rex.preferences.PlayerPreferences
 import org.koin.core.component.KoinComponent
@@ -42,6 +43,7 @@ data class MiniPlayerState(
  */
 class MiniPlayerStateManager : KoinComponent {
   private val playerPreferences: PlayerPreferences by inject()
+  private val headlessPlaybackController: HeadlessPlaybackController by inject()
 
   private val _state = MutableStateFlow(MiniPlayerState())
   val state: StateFlow<MiniPlayerState> = _state.asStateFlow()
@@ -215,6 +217,14 @@ class MiniPlayerStateManager : KoinComponent {
   fun openPlayer(context: Context) {
     val intent = Intent(context, PlayerActivity::class.java).apply {
       flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+      // Direct mini player mode: hand the live headless MPV session over to PlayerActivity
+      // instead of starting a fresh playback (which would double-create MPV).
+      if (headlessPlaybackController.isSessionActive) {
+        putExtra("attach_existing_session", true)
+        putParcelableArrayListExtra("playlist", ArrayList(headlessPlaybackController.activeUris))
+        putExtra("playlist_index", headlessPlaybackController.activeIndex)
+        putExtra("title", headlessPlaybackController.activeTitle)
+      }
     }
     context.startActivity(
       intent,

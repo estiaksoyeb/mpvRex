@@ -123,30 +123,21 @@ class MiniPlayerStateManager : KoinComponent {
     val newShuffle = !_state.value.shuffleEnabled
     runCatching {
       playerPreferences.shuffleEnabled.set(newShuffle)
-      if (newShuffle) {
-        MPVLib.command("playlist-shuffle")
-      } else {
-        MPVLib.command("playlist-unshuffle")
-      }
     }
     _state.update { it.copy(shuffleEnabled = newShuffle) }
   }
 
   fun cycleRepeatMode() {
     val nextMode = when (_state.value.repeatMode) {
-      RepeatMode.OFF -> RepeatMode.ALL
-      RepeatMode.ALL -> RepeatMode.ONE
-      RepeatMode.ONE -> RepeatMode.OFF
+      RepeatMode.OFF -> RepeatMode.ONE
+      RepeatMode.ONE -> RepeatMode.ALL
+      RepeatMode.ALL -> RepeatMode.OFF
     }
     runCatching {
       playerPreferences.repeatMode.set(nextMode)
       when (nextMode) {
-        RepeatMode.OFF -> {
+        RepeatMode.OFF, RepeatMode.ALL -> {
           MPVLib.setPropertyString("loop-playlist", "no")
-          MPVLib.setPropertyString("loop-file", "no")
-        }
-        RepeatMode.ALL -> {
-          MPVLib.setPropertyString("loop-playlist", "inf")
           MPVLib.setPropertyString("loop-file", "no")
         }
         RepeatMode.ONE -> {

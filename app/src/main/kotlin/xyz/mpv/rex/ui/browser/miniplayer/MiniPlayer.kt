@@ -143,7 +143,7 @@ fun MiniPlayer(
         val compactAlpha = (1f - fraction * 3f).coerceIn(0f, 1f)
 
         // ──────────────────────────────────────────────────────────────
-        // Drag Pill Bar — visible when collapsed, on top via zIndex
+        // Drag Pill Bar — collapsed state (fades out as panel expands)
         // ──────────────────────────────────────────────────────────────
         Box(
           modifier = Modifier
@@ -183,6 +183,53 @@ fun MiniPlayer(
               .clip(CircleShape)
               .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
           )
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // Drag Pill Bar — expanded state (fades in as panel expands)
+        // ──────────────────────────────────────────────────────────────
+        val expandedPillAlpha = ((fraction - 0.25f) * 2.5f).coerceIn(0f, 1f)
+        if (expandedPillAlpha > 0f) {
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(20.dp)
+              .align(Alignment.TopCenter)
+              .zIndex(1f)
+              .graphicsLayer { alpha = expandedPillAlpha }
+              .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                  onDragEnd = {
+                    coroutineScope.launch {
+                      if (expansionFraction.value > 0.35f) {
+                        expansionFraction.animateTo(1f, spring())
+                        stateManager.setExpanded(true)
+                      } else {
+                        expansionFraction.animateTo(0f, spring())
+                        stateManager.setExpanded(false)
+                      }
+                    }
+                  },
+                  onVerticalDrag = { change, dragAmount ->
+                    change.consume()
+                    coroutineScope.launch {
+                      val delta = -dragAmount / 350f
+                      val newFraction = (expansionFraction.value + delta).coerceIn(0f, 1f)
+                      expansionFraction.snapTo(newFraction)
+                    }
+                  }
+                )
+              },
+            contentAlignment = Alignment.Center,
+          ) {
+            Box(
+              modifier = Modifier
+                .width(36.dp)
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
+            )
+          }
         }
 
         // ──────────────────────────────────────────────────────────────

@@ -55,6 +55,7 @@ import org.koin.core.component.inject
 import java.io.File
 import androidx.documentfile.provider.DocumentFile
 import xyz.mpv.rex.preferences.AdvancedPreferences
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
@@ -96,6 +97,7 @@ class PlayerViewModel(
   private val wyzieRepository: WyzieSearchRepository by inject()
 
   private val browserPreferences: xyz.mpv.rex.preferences.BrowserPreferences by inject()
+  private val miniPlayerStateManager: MiniPlayerStateManager by inject()
 
   // Cache the application context to prevent leaking the Activity context
   private val appContext = host.context.applicationContext
@@ -393,6 +395,23 @@ class PlayerViewModel(
     // Restore repeat mode and shuffle state from preferences
     _repeatMode.value = playerPreferences.repeatMode.get()
     _shuffleEnabled.value = playerPreferences.shuffleEnabled.get()
+
+    // Observe repeat mode preference changes
+    viewModelScope.launch {
+      playerPreferences.repeatMode.changes().collect { mode ->
+        _repeatMode.value = mode
+        miniPlayerStateManager.updateState(repeatMode = mode)
+      }
+    }
+
+    // Observe shuffle enabled preference changes
+    viewModelScope.launch {
+      playerPreferences.shuffleEnabled.changes().collect { enabled ->
+        _shuffleEnabled.value = enabled
+        _playlistManager.setShuffleEnabled(enabled)
+        miniPlayerStateManager.updateState(shuffleEnabled = enabled)
+      }
+    }
 
     // Observe volume boost cap changes to enforce limits dynamically (in PiP)
     viewModelScope.launch {

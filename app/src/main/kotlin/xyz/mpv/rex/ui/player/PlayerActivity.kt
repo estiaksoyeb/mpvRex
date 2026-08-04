@@ -338,6 +338,7 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
+    activeInstance = this
     // Smooth fade-in transition when opening the player from list
     @Suppress("DEPRECATION")
     overridePendingTransition(android.R.anim.fade_in, 0)
@@ -730,6 +731,10 @@ class PlayerActivity :
       releaseMediaSession()
     }.onFailure { e ->
       Log.e(TAG, "Error during onDestroy", e)
+    }
+
+    if (activeInstance === this) {
+      activeInstance = null
     }
 
     super.onDestroy()
@@ -3990,5 +3995,17 @@ class PlayerActivity :
      * General tag for logging from PlayerActivity.
      */
     const val TAG = "mpvex"
+
+    @Volatile
+    var activeInstance: PlayerActivity? = null
+
+    fun finishBackgroundInstance() {
+      activeInstance?.let { activity ->
+        if (activity.isManualBackgroundPlayback || activity.isInBackgroundPlayback) {
+          Log.d(TAG, "Finishing background PlayerActivity to hand MPV back to headless controller")
+          activity.finish()
+        }
+      }
+    }
   }
 }

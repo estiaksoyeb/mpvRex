@@ -82,6 +82,8 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
       return
     }
 
+    PlayerActivity.finishBackgroundInstance()
+
     activeUris = uris
     activeIndex = startIndex
     activeTitle = title
@@ -90,9 +92,18 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     miniPlayerStateManager.onNextHandler = { playNext() }
     miniPlayerStateManager.onPreviousHandler = { playPrevious() }
 
-    // A session is already running under this controller: reuse the live MPV instance.
-    if (isSessionActive && mpvView != null) {
-      Log.d(TAG, "startHeadless: replacing current headless session")
+    val isMpvNativeInitialized = MPVLifecycleLock.isNativeInitialized
+
+    // A session is already running under this controller or native MPV is alive: reuse live MPV.
+    if ((isSessionActive && mpvView != null) || isMpvNativeInitialized) {
+      Log.d(TAG, "startHeadless: reusing live MPV instance")
+      if (mpvView == null) {
+        val view = createOffWindowView()
+        mpvView = view
+        view.attachToExistingSession()
+        MPVLib.setPropertyString("vo", "null")
+      }
+      isSessionActive = true
       playItem(startIndex, resumePositionSec)
       startService(activeTitle, artist)
       return

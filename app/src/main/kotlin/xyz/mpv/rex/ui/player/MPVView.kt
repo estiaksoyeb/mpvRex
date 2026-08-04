@@ -189,6 +189,7 @@ class MPVView(
   }
 
   override fun postInitOptions() {
+    MPVLifecycleLock.onNativeInitialized()
     when (decoderPreferences.debanding.get()) {
       Debanding.None -> {}
       Debanding.CPU -> MPVLib.command("vf", "add", "@deband:gradfun=radius=12")

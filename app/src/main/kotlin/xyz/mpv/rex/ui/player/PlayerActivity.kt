@@ -1976,15 +1976,17 @@ class PlayerActivity :
         if (hasNextItem && (autoplayEnabled || viewModel.shouldRepeatPlaylist())) {
           // Play next item in playlist
           playNext()
-        } else if (playerPreferences.closeAfterReachingEndOfVideo.get()) {
-          // No autoplay or no next item, end of playlist: close if setting is enabled
-          finishAndRemoveTask()
+        } else {
+          miniPlayerStateManager.clearState()
+          if (playerPreferences.closeAfterReachingEndOfVideo.get()) {
+            finish()
+          }
         }
-        // If autoplay is off and closeAfterReachingEndOfVideo is off, just stay on current video
       } else {
         // Single video playback (no playlist)
+        miniPlayerStateManager.clearState()
         if (playerPreferences.closeAfterReachingEndOfVideo.get()) {
-          finishAndRemoveTask()
+          finish()
         }
       }
     }

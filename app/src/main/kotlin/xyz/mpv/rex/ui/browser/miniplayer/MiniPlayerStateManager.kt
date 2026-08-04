@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.MediaPlaybackService
+import xyz.mpv.rex.ui.player.RepeatMode
+import xyz.mpv.rex.preferences.PlayerPreferences
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import `is`.xyz.mpv.MPVLib
 
 data class MiniPlayerState(
@@ -27,13 +31,18 @@ data class MiniPlayerState(
   val prevTitle: String? = null,
   val nextThumbnail: Bitmap? = null,
   val prevThumbnail: Bitmap? = null,
+  val isExpanded: Boolean = false,
+  val shuffleEnabled: Boolean = false,
+  val repeatMode: RepeatMode = RepeatMode.OFF,
 )
 
 /**
  * Central state manager for the Mini Player component.
  * Coordinates real-time state between MediaPlaybackService, PlayerActivity, and MainScreen.
  */
-class MiniPlayerStateManager {
+class MiniPlayerStateManager : KoinComponent {
+  private val playerPreferences: PlayerPreferences by inject()
+
   private val _state = MutableStateFlow(MiniPlayerState())
   val state: StateFlow<MiniPlayerState> = _state.asStateFlow()
 
@@ -42,6 +51,19 @@ class MiniPlayerStateManager {
 
   @Volatile
   var onPreviousHandler: (() -> Unit)? = null
+
+  init {
+    runCatching {
+      val initShuffle = playerPreferences.shuffleEnabled.get()
+      val initRepeat = playerPreferences.repeatMode.get()
+      _state.update {
+        it.copy(
+          shuffleEnabled = initShuffle,
+          repeatMode = initRepeat,
+        )
+      }
+    }
+  }
 
   fun updateState(
     isPlaybackActive: Boolean = _state.value.isPlaybackActive,
@@ -58,6 +80,9 @@ class MiniPlayerStateManager {
     prevTitle: String? = _state.value.prevTitle,
     nextThumbnail: Bitmap? = _state.value.nextThumbnail,
     prevThumbnail: Bitmap? = _state.value.prevThumbnail,
+    isExpanded: Boolean = _state.value.isExpanded,
+    shuffleEnabled: Boolean = _state.value.shuffleEnabled,
+    repeatMode: RepeatMode = _state.value.repeatMode,
   ) {
     _state.update {
       it.copy(
@@ -75,8 +100,15 @@ class MiniPlayerStateManager {
         prevTitle = prevTitle,
         nextThumbnail = nextThumbnail,
         prevThumbnail = prevThumbnail,
+        isExpanded = isExpanded,
+        shuffleEnabled = shuffleEnabled,
+        repeatMode = repeatMode,
       )
     }
+  }
+
+  fun setExpanded(expanded: Boolean) {
+    _state.update { it.copy(isExpanded = expanded) }
   }
 
   fun togglePlayPause() {
@@ -85,6 +117,43 @@ class MiniPlayerStateManager {
       MPVLib.setPropertyBoolean("pause", newPaused)
     }
     _state.update { it.copy(isPaused = newPaused) }
+  }
+
+  fun toggleShuffle() {
+    val newShuffle = !_state.value.shuffleEnabled
+    runCatching {
+      playerPreferences.shuffleEnabled.set(newShuffle)
+    }
+    _state.update { it.copy(shuffleEnabled = newShuffle) }
+  }
+
+  fun cycleRepeatMode() {
+    val nextMode = when (_state.value.repeatMode) {
+      RepeatMode.OFF -> RepeatMode.ONE
+      RepeatMode.ONE -> RepeatMode.ALL
+      RepeatMode.ALL -> RepeatMode.OFF
+    }
+    runCatching {
+      playerPreferences.repeatMode.set(nextMode)
+      when (nextMode) {
+        RepeatMode.OFF, RepeatMode.ALL -> {
+          MPVLib.setPropertyString("loop-playlist", "no")
+          MPVLib.setPropertyString("loop-file", "no")
+        }
+        RepeatMode.ONE -> {
+          MPVLib.setPropertyString("loop-playlist", "no")
+          MPVLib.setPropertyString("loop-file", "inf")
+        }
+      }
+    }
+    _state.update { it.copy(repeatMode = nextMode) }
+  }
+
+  fun seekTo(positionMs: Long) {
+    runCatching {
+      MPVLib.setPropertyDouble("time-pos", positionMs / 1000.0)
+    }
+    _state.update { it.copy(currentPositionMs = positionMs) }
   }
 
   fun playNext() {
@@ -140,7 +209,7 @@ class MiniPlayerStateManager {
 
   fun clearState() {
     savedPlayerIntent = null
-    _state.update { it.copy(isPlaybackActive = false) }
+    _state.update { it.copy(isPlaybackActive = false, isExpanded = false) }
   }
 
   fun openPlayer(context: Context) {
@@ -153,3 +222,4 @@ class MiniPlayerStateManager {
     )
   }
 }
+

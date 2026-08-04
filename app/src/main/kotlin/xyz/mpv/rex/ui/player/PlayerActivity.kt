@@ -385,6 +385,7 @@ class PlayerActivity :
         id = playlistId,
         titles = titlesFromIntent
       )
+      updateMiniPlayerPlaylistState()
     }
 
     // If playlist is empty but playlist_id is provided, load asynchronously from database
@@ -420,6 +421,7 @@ class PlayerActivity :
               titles = titles
             )
             Log.d(TAG, "Loaded all $totalCount items from playlist $pid (isM3U: $isM3u)")
+            updateMiniPlayerPlaylistState()
           }
         } catch (e: Exception) {
           Log.e(TAG, "Failed to load playlist from database", e)
@@ -2862,6 +2864,7 @@ class PlayerActivity :
               titles = titles
             )
             Log.d(TAG, "onNewIntent: Loaded ${items.size} items from playlist $pid")
+            updateMiniPlayerPlaylistState()
           }
         } catch (e: Exception) {
           Log.e(TAG, "onNewIntent: Failed to load playlist from database", e)
@@ -3741,6 +3744,49 @@ class PlayerActivity :
     return playlistHasPrev || mpvHasPrev
   }
 
+  fun updateMiniPlayerPlaylistState() {
+    val nextIndex = viewModel.playlistManager.getNextIndex(viewModel.shouldRepeatPlaylist())
+    val nextUri = if (nextIndex != null) viewModel.playlistManager.playlist.value.getOrNull(nextIndex) else null
+    val nextTitle = if (nextIndex != null) {
+      viewModel.playlistManager.getTitleAt(nextIndex) ?: nextUri?.let { extractFileNameFromUri(it) }
+    } else null
+
+    val prevIndex = viewModel.playlistManager.getPreviousIndex(viewModel.shouldRepeatPlaylist())
+    val prevUri = if (prevIndex != null) viewModel.playlistManager.playlist.value.getOrNull(prevIndex) else null
+    val prevTitle = if (prevIndex != null) {
+      viewModel.playlistManager.getTitleAt(prevIndex) ?: prevUri?.let { extractFileNameFromUri(it) }
+    } else null
+
+    val hasNextItem = hasNext()
+    val hasPrevItem = hasPrevious()
+
+    miniPlayerStateManager.updateState(
+      hasNext = hasNextItem,
+      hasPrevious = hasPrevItem,
+      nextTitle = nextTitle,
+      prevTitle = prevTitle,
+    )
+
+    lifecycleScope.launch(Dispatchers.IO) {
+      val cachedNextThumb = nextUri?.let { getCachedThumbnailForUri(it) }
+      val cachedPrevThumb = prevUri?.let { getCachedThumbnailForUri(it) }
+      withContext(Dispatchers.Main) {
+        miniPlayerStateManager.updateState(
+          nextThumbnail = cachedNextThumb,
+          prevThumbnail = cachedPrevThumb,
+        )
+      }
+      val fullNextThumbnail = nextUri?.let { extractThumbnailOrCoverArt(it) }
+      val fullPrevThumbnail = prevUri?.let { extractThumbnailOrCoverArt(it) }
+      withContext(Dispatchers.Main) {
+        miniPlayerStateManager.updateState(
+          nextThumbnail = fullNextThumbnail ?: cachedNextThumb,
+          prevThumbnail = fullPrevThumbnail ?: cachedPrevThumb,
+        )
+      }
+    }
+  }
+
   /**
    * Play the next video in the playlist
    */
@@ -4165,6 +4211,7 @@ class PlayerActivity :
               durations = durations
             )
             Log.d(TAG, "Auto-playlist generated from Media Library: ${newPlaylist.size} videos")
+            updateMiniPlayerPlaylistState()
           }
         }
       }.onFailure { e ->
@@ -4234,6 +4281,7 @@ class PlayerActivity :
               durations = durations
             )
             Log.d(TAG, "Auto-playlist generated: ${newPlaylist.size} videos")
+            updateMiniPlayerPlaylistState()
           }
         }
       }.onFailure { e ->

@@ -400,7 +400,11 @@ class PlayerViewModel(
     viewModelScope.launch {
       playerPreferences.repeatMode.changes().collect { mode ->
         _repeatMode.value = mode
-        miniPlayerStateManager.updateState(repeatMode = mode)
+        miniPlayerStateManager.updateState(
+          repeatMode = mode,
+          hasNext = hasNext(),
+          hasPrevious = hasPrevious(),
+        )
       }
     }
 
@@ -409,7 +413,11 @@ class PlayerViewModel(
       playerPreferences.shuffleEnabled.changes().collect { enabled ->
         _shuffleEnabled.value = enabled
         _playlistManager.setShuffleEnabled(enabled)
-        miniPlayerStateManager.updateState(shuffleEnabled = enabled)
+        miniPlayerStateManager.updateState(
+          shuffleEnabled = enabled,
+          hasNext = hasNext(),
+          hasPrevious = hasPrevious(),
+        )
       }
     }
 

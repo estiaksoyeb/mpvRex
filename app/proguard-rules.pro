@@ -20,11 +20,36 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontobfuscate
--keep,allowoptimization class is.xyz.mpv.** { public protected *; }
--keep,allowoptimization class net.mediaarea.mediainfo.lib.** { public protected *; }
+
+# MPV Native & JNI Rules (Do NOT optimize as JNI callbacks rely on exact method signatures)
+-keep class is.xyz.mpv.** { *; }
+-keep class net.mediaarea.mediainfo.lib.** { *; }
+
+# AndroidX Media & MediaSession ProGuard Rules
+# Keeps MediaSessionCompat, MediaBrowserServiceCompat, MediaButtonReceiver, and IPC Callbacks
+-keep class androidx.media.** { *; }
+-keep class android.support.v4.media.** { *; }
+-keep class androidx.media.session.MediaButtonReceiver { *; }
+-keep class * extends androidx.media.MediaBrowserServiceCompat { *; }
+-keep class * extends android.support.v4.media.session.MediaSessionCompat$Callback { *; }
+
+# Keep MediaPlaybackService and its inner classes/binders
+-keep class xyz.mpv.rex.ui.player.MediaPlaybackService { *; }
+-keep class xyz.mpv.rex.ui.player.MediaPlaybackService$** { *; }
+
+# Keep Parcelables (Required for IPC between System UI Media Widget & Service)
+-keepclassmembers class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+
+# Koin DI reflection rules
+-keep class org.koin.** { *; }
+-dontwarn org.koin.**
+
 -dontwarn org.xmlpull.v1.**
 -dontnote org.xmlpull.v1.**
 -dontwarn org.slf4j.impl.StaticLoggerBinder
+
 
 # SMBJ ProGuard Rules
 # Keep SMBJ classes

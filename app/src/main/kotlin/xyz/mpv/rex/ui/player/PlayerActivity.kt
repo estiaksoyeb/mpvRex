@@ -234,6 +234,7 @@ class PlayerActivity :
   private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
   private var lastVid = -1 // Track video track for background playback optimization
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
+  private var inheritedNativeSession = false // MPV ownership came from HeadlessPlaybackController
 
   @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
 
@@ -753,6 +754,16 @@ class PlayerActivity :
     // Stop media notification service when activity is destroyed
     endBackgroundPlayback()
 
+    if (inheritedNativeSession) {
+      runCatching { MPVLib.removeObserver(playerObserver) }
+      // Prevent SurfaceView teardown from racing the explicit detach performed by the controller.
+      player.holder.removeCallback(player)
+      headlessPlaybackController.retainAfterPlayerExit()
+      inheritedNativeSession = false
+      mpvInitialized = false
+      return
+    }
+
     MPVLifecycleLock.onTeardownStart()
     try {
       runCatching {
@@ -1067,6 +1078,7 @@ class PlayerActivity :
 
     headlessPlaybackController.detachForHandoff()
     player.attachToExistingSession()
+    inheritedNativeSession = true
     mpvInitialized = true
     Log.d(TAG, "MPV attached to existing headless session")
 

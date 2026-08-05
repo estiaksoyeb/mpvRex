@@ -315,6 +315,35 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
   }
 
   /**
+   * Takes ownership back after a [PlayerActivity] that inherited this controller's native
+   * session exits. The instance is deliberately retained idle: destroying it while the GPU VO
+   * is still releasing the activity surface can race libmpv's render thread on Android.
+   */
+  fun retainAfterPlayerExit() {
+    resumeObserver?.let { runCatching { MPVLib.removeObserver(it) } }
+    resumeObserver = null
+    miniPlayerStateManager.onNextHandler = null
+    miniPlayerStateManager.onPreviousHandler = null
+    miniPlayerStateManager.onCloseHandler = null
+
+    runCatching { MPVLib.setPropertyString("idle", "yes") }
+    runCatching { MPVLib.setPropertyBoolean("pause", true) }
+    runCatching { MPVLib.command("stop") }
+    runCatching { MPVLib.setPropertyString("vo", "null") }
+    runCatching { MPVLib.setPropertyString("force-window", "no") }
+    runCatching { MPVLib.detachSurface() }
+
+    mpvView = null
+    ownsNativeSession = true
+    isSessionActive = false
+    activeUris = emptyList()
+    activeIndex = 0
+    activeTitle = ""
+    activePlaylistId = null
+    Log.d(TAG, "Retained inherited MPV session idle after player exit")
+  }
+
+  /**
    * Stops headless playback without destroying the process-global MPV instance.
    *
    * The service removes its MPV observer asynchronously from `onDestroy()`. Destroying MPV here

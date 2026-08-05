@@ -198,7 +198,7 @@ object MediaUtils : KoinComponent {
           }
         }
 
-        startHeadless(uris, startIndex, title)
+        startHeadless(uris, startIndex, title, launchSource = launchSource)
         return
       }
     }
@@ -272,7 +272,7 @@ object MediaUtils : KoinComponent {
           video.uri
         }
       }
-      startHeadless(uris, startIndex, firstVideo.displayName)
+      startHeadless(uris, startIndex, firstVideo.displayName, launchSource = launchSource, playlistId = playlistId)
       return
     }
 
@@ -289,6 +289,8 @@ object MediaUtils : KoinComponent {
   fun playInMiniPlayer(
     videos: List<Video>,
     startIndex: Int = 0,
+    launchSource: String? = "mini_player_action",
+    playlistId: Int? = null,
   ) {
     if (videos.isEmpty() || startIndex !in videos.indices) return
 
@@ -302,14 +304,20 @@ object MediaUtils : KoinComponent {
         video.uri
       }
     }
-    startHeadless(uris, startIndex, videos[startIndex].displayName)
+    startHeadless(uris, startIndex, videos[startIndex].displayName, launchSource = launchSource, playlistId = playlistId)
   }
 
   /**
    * Starts headless playback in the mini player, resolving the resume position (if any)
    * for the item at [startIndex] from the saved playback state.
    */
-  private fun startHeadless(uris: List<Uri>, startIndex: Int, title: String) {
+  private fun startHeadless(
+    uris: List<Uri>,
+    startIndex: Int,
+    title: String,
+    launchSource: String? = null,
+    playlistId: Int? = null,
+  ) {
     val resumeSec = kotlinx.coroutines.runBlocking {
       runCatching {
         playbackStateRepository.getVideoDataByTitle(title)?.lastPosition ?: 0
@@ -321,6 +329,8 @@ object MediaUtils : KoinComponent {
       title = title,
       artist = "",
       resumePositionSec = resumeSec,
+      launchSource = launchSource ?: "direct_mini_player",
+      playlistId = playlistId,
     )
   }
 

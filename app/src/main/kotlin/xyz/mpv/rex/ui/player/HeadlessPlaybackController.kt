@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.mpv.rex.R
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.MediaThumbnailUtils
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
@@ -71,6 +72,14 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
   var activeTitle: String = ""
     private set
 
+  @Volatile
+  var activeLaunchSource: String = "direct_mini_player"
+    private set
+
+  @Volatile
+  var activePlaylistId: Int? = null
+    private set
+
   private var resumeObserver: MPVLib.EventObserver? = null
 
   /**
@@ -84,6 +93,8 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     title: String,
     artist: String = "",
     resumePositionSec: Int = 0,
+    launchSource: String = "direct_mini_player",
+    playlistId: Int? = null,
   ) {
     if (uris.isEmpty() || startIndex < 0 || startIndex >= uris.size) {
       Log.w(TAG, "startHeadless: invalid uris/startIndex")
@@ -95,6 +106,8 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     activeUris = uris
     activeIndex = startIndex
     activeTitle = title
+    activeLaunchSource = launchSource
+    activePlaylistId = playlistId
 
     // Set handlers for swipe/button next/previous and close in MiniPlayer
     miniPlayerStateManager.onNextHandler = { playNext() }
@@ -181,6 +194,13 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
 
     scheduleResume(resumePositionSec)
     updateStateAndMetadata(index)
+
+    RecentlyPlayedOps.recordPlaybackStart(
+      uri = uri,
+      fileName = title,
+      launchSource = activeLaunchSource,
+      playlistId = activePlaylistId,
+    )
   }
 
   private fun updateStateAndMetadata(index: Int) {

@@ -265,6 +265,7 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     val intent = Intent(appContext, MediaPlaybackService::class.java).apply {
       putExtra("media_title", title)
       putExtra("media_artist", artist)
+      putExtra("direct_mini_player", true)
     }
     runCatching {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -25,6 +25,7 @@ import androidx.core.app.ServiceCompat
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
 import xyz.mpv.rex.R
+import xyz.mpv.rex.MainActivity
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
 import xyz.mpv.rex.preferences.PlayerPreferences
@@ -82,6 +83,7 @@ class MediaPlaybackService :
 
   private var mediaTitle = ""
   private var mediaArtist = ""
+  private var isDirectMiniPlayerSession = false
   private var paused = false
   private var lastNotificationUpdateTime = 0L
   private val notificationUpdateIntervalMs = 1000L // Update notification every 1 second
@@ -172,6 +174,7 @@ class MediaPlaybackService :
       // Get media info from intent extras if available
       val title = it.getStringExtra("media_title")
       val artist = it.getStringExtra("media_artist")
+      isDirectMiniPlayerSession = it.getBooleanExtra("direct_mini_player", false)
       
       if (!title.isNullOrBlank()) {
         mediaTitle = title
@@ -261,7 +264,7 @@ class MediaPlaybackService :
               if (!canHandle()) return
               Log.d(TAG, "onSkipToNext called")
               listener?.onNextRequested() ?: run {
-                MPVLib.command("playlist-next")
+                miniPlayerStateManager.playNext()
               }
             }
 
@@ -269,7 +272,7 @@ class MediaPlaybackService :
               if (!canHandle()) return
               Log.d(TAG, "onSkipToPrevious called")
               listener?.onPreviousRequested() ?: run {
-                MPVLib.command("playlist-prev")
+                miniPlayerStateManager.playPrevious()
               }
             }
 
@@ -368,7 +371,10 @@ class MediaPlaybackService :
 
   private fun buildNotification(): Notification {
     val openAppIntent =
-      Intent(this, PlayerActivity::class.java).apply {
+      Intent(
+        this,
+        if (isDirectMiniPlayerSession) MainActivity::class.java else PlayerActivity::class.java,
+      ).apply {
         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
       }
     val pendingIntent =

@@ -188,6 +188,29 @@ class MPVView(
     observeProperties()
   }
 
+  override fun surfaceCreated(holder: SurfaceHolder) {
+    super.surfaceCreated(holder)
+    if (!MPVLifecycleLock.isNativeInitialized) return
+
+    // Audio may have been loaded while vo=null with no video track selected. Unlike vid=auto,
+    // selecting the attached-picture track by ID reliably starts its single-frame decoder.
+    val trackCount = runCatching { MPVLib.getPropertyInt("track-list/count") ?: 0 }.getOrDefault(0)
+    val albumArtTrackId = (0 until trackCount).firstNotNullOfOrNull { index ->
+      val type = runCatching { MPVLib.getPropertyString("track-list/$index/type") }.getOrNull()
+      val isAlbumArt = runCatching { MPVLib.getPropertyBoolean("track-list/$index/albumart") }.getOrNull()
+      if (type == "video" && isAlbumArt == true) {
+        runCatching { MPVLib.getPropertyInt("track-list/$index/id") }.getOrNull()
+      } else {
+        null
+      }
+    }
+
+    if (albumArtTrackId != null) {
+      runCatching { MPVLib.setPropertyInt("vid", albumArtTrackId) }
+      runCatching { MPVLib.command("seek", "0", "relative+exact") }
+    }
+  }
+
   override fun postInitOptions() {
     MPVLifecycleLock.onNativeInitialized()
     when (decoderPreferences.debanding.get()) {

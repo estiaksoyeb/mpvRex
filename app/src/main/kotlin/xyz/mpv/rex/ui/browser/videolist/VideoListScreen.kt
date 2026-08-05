@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Title
@@ -396,6 +397,13 @@ data class VideoListScreen(
           },
           onPlayClick = { selectionManager.playSelected() },
           selectionOverflowActions = buildList {
+            add(
+              SelectionOverflowAction(
+                icon = Icons.Filled.PictureInPictureAlt,
+                label = stringResource(R.string.open_with_mini_player),
+                onClick = { selectionManager.playSelectedInMiniPlayer() },
+              )
+            )
             add(
               SelectionOverflowAction(
                 icon = Icons.Filled.Share,
@@ -782,5 +790,4 @@ fun VideoListContent(
     gridState = gridState,
   )
 }
-
 

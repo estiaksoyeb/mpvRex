@@ -283,6 +283,29 @@ object MediaUtils : KoinComponent {
   }
 
   /**
+   * Explicitly plays the supplied files in the bottom mini player, regardless of media type or
+   * the automatic direct-mini-player preference. The list order is preserved as the playlist.
+   */
+  fun playInMiniPlayer(
+    videos: List<Video>,
+    startIndex: Int = 0,
+  ) {
+    if (videos.isEmpty() || startIndex !in videos.indices) return
+
+    val uris = videos.map { video ->
+      if (video.uri.scheme == null &&
+        (video.path.startsWith("/") || video.path.startsWith("file://"))
+      ) {
+        val path = video.path.removePrefix("file://")
+        Uri.fromFile(File(path))
+      } else {
+        video.uri
+      }
+    }
+    startHeadless(uris, startIndex, videos[startIndex].displayName)
+  }
+
+  /**
    * Starts headless playback in the mini player, resolving the resume position (if any)
    * for the item at [startIndex] from the saved playback state.
    */

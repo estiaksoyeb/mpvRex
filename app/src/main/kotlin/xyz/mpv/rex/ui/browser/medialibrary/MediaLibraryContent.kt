@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -281,6 +282,13 @@ fun MediaLibraryContent() {
           },
           onPlayClick = { selectionManager.playSelected() },
           selectionOverflowActions = buildList {
+            add(
+              SelectionOverflowAction(
+                icon = Icons.Filled.PictureInPictureAlt,
+                label = stringResource(R.string.open_with_mini_player),
+                onClick = { selectionManager.playSelectedInMiniPlayer() },
+              )
+            )
             add(
               SelectionOverflowAction(
                 icon = Icons.Filled.Share,

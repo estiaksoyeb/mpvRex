@@ -4,6 +4,7 @@
 
     <string name="generic_reset">Reset</string>
     <string name="generic_share">Share</string>
+    <string name="open_with_mini_player">Open with mini player</string>
     <string name="generic_confirm">Confirm</string>
     <string name="generic_cancel">Cancel</string>
     <string name="generic_ok">OK</string>

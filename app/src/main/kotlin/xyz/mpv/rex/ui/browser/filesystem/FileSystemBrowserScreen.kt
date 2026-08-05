@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
@@ -732,6 +733,22 @@ fun FileSystemBrowserScreen(path: String? = null) {
               videoSelectionManager.clear()
             },
             selectionOverflowActions = buildList {
+              add(SelectionOverflowAction(
+                icon = Icons.Filled.PictureInPictureAlt,
+                label = stringResource(R.string.open_with_mini_player),
+                onClick = {
+                  coroutineScope.launch {
+                    val selectedVideos = videoSelectionManager.getSelectedItems()
+                    val videosFromFolders = folderSelectionManager.getSelectedItems().flatMap { folder ->
+                      collectVideosRecursively(context, folder.path)
+                    }
+                    val allVideos = (selectedVideos + videosFromFolders).distinctBy { it.id }
+                    if (allVideos.isNotEmpty()) MediaUtils.playInMiniPlayer(allVideos)
+                    folderSelectionManager.clear()
+                    videoSelectionManager.clear()
+                  }
+                },
+              ))
               add(SelectionOverflowAction(
                 icon = Icons.Filled.Share,
                 label = stringResource(R.string.generic_share),
@@ -1707,5 +1724,4 @@ private fun FileSystemSearchContent(
     }
   }
 }
-
 

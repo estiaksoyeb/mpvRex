@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PlaylistAdd
@@ -279,6 +280,14 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
             },
             onPlayClick = null, // Don't show play icon in selection mode for playlist
             selectionOverflowActions = buildList {
+              add(SelectionOverflowAction(
+                icon = Icons.Filled.PictureInPictureAlt,
+                label = stringResource(R.string.open_with_mini_player),
+                onClick = {
+                  MediaUtils.playInMiniPlayer(selectionManager.getSelectedItems().map { it.video })
+                  selectionManager.clear()
+                },
+              ))
               if (playlist?.isM3uPlaylist != true) {
                 add(SelectionOverflowAction(
                   icon = Icons.Filled.Share,

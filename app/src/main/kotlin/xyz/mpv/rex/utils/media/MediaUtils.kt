@@ -163,9 +163,21 @@ object MediaUtils : KoinComponent {
       intent.putExtra("title", source.displayName)
     }
 
-    // Direct mini player mode: start headless playback in the bottom bar instead of
-    // launching the full-screen PlayerActivity (avoids the window-transition flicker).
-    if (playerPreferences.playInMiniPlayerDirectly.get()) {
+    val isAudio = when (source) {
+      is Video -> source.isAudio
+      is String -> {
+        val path = if (source.startsWith("file://")) source.removePrefix("file://") else source
+        xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(File(path))
+      }
+      is Uri -> {
+        val path = source.path ?: ""
+        xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(File(path))
+      }
+      else -> false
+    }
+
+    // Direct mini player mode: start headless playback in the bottom bar for audio files
+    if (playerPreferences.playInMiniPlayerDirectly.get() && isAudio) {
       intent.data?.let { uri ->
         val title = intent.getStringExtra("title") ?: deriveTitle(uri, source)
         val path = if (uri.scheme == "file") uri.path else (source as? Video)?.path
@@ -248,8 +260,8 @@ object MediaUtils : KoinComponent {
     // Pass title for the first video
     intent.putExtra("title", firstVideo.displayName)
 
-    // Direct mini player mode: start headless playback with the full playlist.
-    if (playerPreferences.playInMiniPlayerDirectly.get()) {
+    // Direct mini player mode: start headless playback with the full playlist for audio files.
+    if (playerPreferences.playInMiniPlayerDirectly.get() && firstVideo.isAudio) {
       val uris = videos.map { video ->
         if (video.uri.scheme == null &&
           (video.path.startsWith("/") || video.path.startsWith("file://"))

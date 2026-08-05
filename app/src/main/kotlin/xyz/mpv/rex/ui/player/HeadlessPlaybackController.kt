@@ -50,6 +50,14 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
   var isSessionActive: Boolean = false
     private set
 
+  /**
+   * True while this controller owns the process-global MPV instance, including when playback
+   * has been stopped and MPV is deliberately kept idle for safe reuse.
+   */
+  @Volatile
+  var ownsNativeSession: Boolean = false
+    private set
+
   // Metadata for handoff to PlayerActivity.
   @Volatile
   var activeUris: List<Uri> = emptyList()
@@ -88,9 +96,10 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     activeIndex = startIndex
     activeTitle = title
 
-    // Set handlers for swipe/button next/previous in MiniPlayer
+    // Set handlers for swipe/button next/previous and close in MiniPlayer
     miniPlayerStateManager.onNextHandler = { playNext() }
     miniPlayerStateManager.onPreviousHandler = { playPrevious() }
+    miniPlayerStateManager.onCloseHandler = { stop() }
 
     val isMpvNativeInitialized = MPVLifecycleLock.isNativeInitialized
 
@@ -103,6 +112,10 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
         view.attachToExistingSession()
         MPVLib.setPropertyString("vo", "null")
       }
+      // BaseMPVView initializes with idle=once. A stopped headless session must stay alive so
+      // the next loadfile can reuse the process-global native instance.
+      MPVLib.setPropertyString("idle", "yes")
+      ownsNativeSession = true
       isSessionActive = true
       playItem(startIndex, resumePositionSec)
       startService(activeTitle, artist)
@@ -123,6 +136,7 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
         view.initialize(appContext.filesDir.path, appContext.cacheDir.path)
         // Audio-first: no surface exists off-window, so disable video output.
         MPVLib.setPropertyString("vo", "null")
+        MPVLib.setPropertyString("idle", "yes")
       }.onFailure { e ->
         Log.e(TAG, "MPV initialize failed", e)
         runCatching { view.destroy() }
@@ -130,6 +144,7 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
         return@launch
       }
 
+      ownsNativeSession = true
       isSessionActive = true
       playItem(startIndex, resumePositionSec)
       startService(activeTitle, artist)
@@ -269,27 +284,44 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     resumeObserver = null
     miniPlayerStateManager.onNextHandler = null
     miniPlayerStateManager.onPreviousHandler = null
+    miniPlayerStateManager.onCloseHandler = null
     // Drop our surface callback but keep the global MPV instance alive for PlayerActivity.
     mpvView?.let { runCatching { it.holder.removeCallback(it) } }
     mpvView = null
+    ownsNativeSession = false
     isSessionActive = false
     Log.d(TAG, "Detached headless session for handoff")
   }
 
-  /** Fully stops headless playback and destroys the MPV instance owned by this controller. */
+  /**
+   * Stops headless playback without destroying the process-global MPV instance.
+   *
+   * The service removes its MPV observer asynchronously from `onDestroy()`. Destroying MPV here
+   * would let that cleanup call back into an already-freed native singleton, which can terminate
+   * the process with SIGSEGV/SIGKILL. Keeping MPV idle also makes the next headless or full-screen
+   * playback start reuse the existing instance safely.
+   */
   fun stop() {
     resumeObserver?.let { runCatching { MPVLib.removeObserver(it) } }
     resumeObserver = null
     miniPlayerStateManager.onNextHandler = null
     miniPlayerStateManager.onPreviousHandler = null
-    mpvView?.let { runCatching { it.destroy() } }
-    mpvView = null
+    miniPlayerStateManager.onCloseHandler = null
+
+    if (ownsNativeSession || isSessionActive || mpvView != null) {
+      // Set persistent idle before stop; idle=once may emit MPV_EVENT_SHUTDOWN here and leave
+      // the retained handle unable to accept the next loadfile command.
+      runCatching { MPVLib.setPropertyString("idle", "yes") }
+      runCatching { MPVLib.setPropertyBoolean("pause", true) }
+      runCatching { MPVLib.command("stop") }
+      runCatching { MPVLib.setPropertyString("vo", "null") }
+    }
+
     isSessionActive = false
     activeUris = emptyList()
     activeIndex = 0
     activeTitle = ""
-    runCatching { appContext.stopService(Intent(appContext, MediaPlaybackService::class.java)) }
-    Log.d(TAG, "Headless session stopped")
+    Log.d(TAG, "Headless playback stopped; native MPV retained idle")
   }
 
   private fun createOffWindowView(): MPVView {

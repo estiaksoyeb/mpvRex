@@ -346,8 +346,10 @@ class PlayerActivity :
     setContentView(binding.root)
 
     pendingIntentExtras = true
-    val attachExistingSession =
-      intent.getBooleanExtra("attach_existing_session", false) && headlessPlaybackController.isSessionActive
+    // The headless controller may retain MPV idle after its mini player is closed. Always take
+    // ownership before initializing so a normal video launch cannot create the global singleton
+    // a second time.
+    val attachExistingSession = headlessPlaybackController.ownsNativeSession
     if (attachExistingSession) {
       setupMPVForHandoff()
     } else {

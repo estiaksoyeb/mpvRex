@@ -209,6 +209,17 @@ class MiniPlayerStateManager : KoinComponent {
   @Volatile
   var savedPlayerIntent: Intent? = null
 
+  @Volatile
+  var onCloseHandler: (() -> Unit)? = null
+
+  fun closeMiniPlayer(context: Context) {
+    onCloseHandler?.invoke()
+    runCatching {
+      context.stopService(Intent(context, MediaPlaybackService::class.java))
+    }
+    clearState()
+  }
+
   fun clearState() {
     savedPlayerIntent = null
     _state.update { it.copy(isPlaybackActive = false, isExpanded = false) }

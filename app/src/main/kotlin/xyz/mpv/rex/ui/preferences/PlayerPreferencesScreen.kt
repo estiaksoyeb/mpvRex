@@ -100,23 +100,6 @@ object PlayerPreferencesScreen : Screen {
 
               PreferenceDivider()
 
-              val backgroundPlayback by preferences.backgroundPlayback.collectAsState()
-              ListPreference(
-                value = backgroundPlayback,
-                onValueChange = preferences.backgroundPlayback::set,
-                values = BackgroundPlaybackMode.entries,
-                valueToText = { AnnotatedString(context.getString(it.titleRes)) },
-                title = { Text(text = stringResource(id = R.string.pref_player_background_playback)) },
-                summary = {
-                  Text(
-                    text = stringResource(id = backgroundPlayback.titleRes),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
-
-              PreferenceDivider()
-
               val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
               SwitchPreference(
                 value = savePositionOnQuit,
@@ -164,24 +147,6 @@ object PlayerPreferencesScreen : Screen {
                       stringResource(R.string.pref_player_playlist_mode_summary_on)
                     else
                       stringResource(R.string.pref_player_playlist_mode_summary_off),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
-
-              PreferenceDivider()
-
-              val playInMiniPlayerDirectly by preferences.playInMiniPlayerDirectly.collectAsState()
-              SwitchPreference(
-                value = playInMiniPlayerDirectly,
-                onValueChange = preferences.playInMiniPlayerDirectly::set,
-                title = { Text(text = stringResource(R.string.pref_player_play_in_mini_player)) },
-                summary = {
-                  Text(
-                    text = if (playInMiniPlayerDirectly)
-                      stringResource(R.string.pref_player_play_in_mini_player_summary_on)
-                    else
-                      stringResource(R.string.pref_player_play_in_mini_player_summary_off),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
@@ -242,6 +207,48 @@ object PlayerPreferencesScreen : Screen {
                       stringResource(R.string.pref_player_resume_on_unlock_summary_on)
                     else
                       stringResource(R.string.pref_player_resume_on_unlock_summary_off),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+            }
+          }
+
+          // Mini Player Section
+          item {
+            PreferenceSectionHeader(title = stringResource(R.string.pref_player_section_mini_player))
+          }
+
+          item {
+            PreferenceCard {
+              val backgroundPlayback by preferences.backgroundPlayback.collectAsState()
+              ListPreference(
+                value = backgroundPlayback,
+                onValueChange = preferences.backgroundPlayback::set,
+                values = BackgroundPlaybackMode.entries,
+                valueToText = { AnnotatedString(context.getString(it.titleRes)) },
+                title = { Text(text = stringResource(id = R.string.pref_player_background_playback)) },
+                summary = {
+                  Text(
+                    text = stringResource(id = backgroundPlayback.titleRes),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
+              val playInMiniPlayerDirectly by preferences.playInMiniPlayerDirectly.collectAsState()
+              SwitchPreference(
+                value = playInMiniPlayerDirectly,
+                onValueChange = preferences.playInMiniPlayerDirectly::set,
+                title = { Text(text = stringResource(R.string.pref_player_play_in_mini_player)) },
+                summary = {
+                  Text(
+                    text = if (playInMiniPlayerDirectly)
+                      stringResource(R.string.pref_player_play_in_mini_player_summary_on)
+                    else
+                      stringResource(R.string.pref_player_play_in_mini_player_summary_off),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },

@@ -254,10 +254,7 @@ fun MiniPlayer(
 
             IconButton(
               onClick = {
-                runCatching {
-                  context.stopService(Intent(context, MediaPlaybackService::class.java))
-                }
-                stateManager.clearState()
+                stateManager.closeMiniPlayer(context)
               },
             ) {
               Icon(
@@ -482,10 +479,7 @@ fun MiniPlayer(
 
                 IconButton(
                   onClick = {
-                    runCatching {
-                      context.stopService(Intent(context, MediaPlaybackService::class.java))
-                    }
-                    stateManager.clearState()
+                    stateManager.closeMiniPlayer(context)
                   },
                 ) {
                   Icon(

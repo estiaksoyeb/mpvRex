@@ -781,19 +781,29 @@ class PlayerViewModel(
         // Unselecting primary subtitle
         if (secondarySid > 0) {
           // If there's a secondary subtitle, promote it to primary
-          // First clear secondary, then set primary to that value
           val secondaryToPromote = secondarySid
           MPVLib.setPropertyString("secondary-sid", "no")
           MPVLib.setPropertyInt("sid", secondaryToPromote)
+          val track = subtitleTracks.value.firstOrNull { it.id == secondaryToPromote }
+          TrackSelector.rememberSubtitleTrack(track?.title, track?.lang, isOff = false)
         } else {
           // No secondary, just turn off primary
           MPVLib.setPropertyString("sid", "no")
+          TrackSelector.rememberSubtitleTrack(null, null, isOff = true)
         }
       }
       id == secondarySid -> MPVLib.setPropertyString("secondary-sid", "no")
-      primarySid <= 0 -> MPVLib.setPropertyInt("sid", id)
+      primarySid <= 0 -> {
+        MPVLib.setPropertyInt("sid", id)
+        val track = subtitleTracks.value.firstOrNull { it.id == id }
+        TrackSelector.rememberSubtitleTrack(track?.title, track?.lang, isOff = false)
+      }
       secondarySid <= 0 -> MPVLib.setPropertyInt("secondary-sid", id)
-      else -> MPVLib.setPropertyInt("sid", id)
+      else -> {
+        MPVLib.setPropertyInt("sid", id)
+        val track = subtitleTracks.value.firstOrNull { it.id == id }
+        TrackSelector.rememberSubtitleTrack(track?.title, track?.lang, isOff = false)
+      }
     }
   }
 

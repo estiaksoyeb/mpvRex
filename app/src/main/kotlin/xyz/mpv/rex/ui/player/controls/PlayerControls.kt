@@ -116,6 +116,7 @@ import xyz.mpv.rex.ui.player.PlayerUpdates
 import xyz.mpv.rex.ui.player.PlayerViewModel
 import xyz.mpv.rex.ui.player.PlayerTutorialManager
 import xyz.mpv.rex.ui.player.Sheets
+import xyz.mpv.rex.ui.player.TrackSelector
 import xyz.mpv.rex.ui.player.VideoAspect
 import xyz.mpv.rex.ui.player.controls.components.BrightnessSlider
 import xyz.mpv.rex.ui.player.controls.components.CompactSpeedIndicator
@@ -1850,8 +1851,10 @@ fun PlayerControls(
       onSelectAudio = {
         if (MPVLib.getPropertyInt("aid") == it.id) {
           MPVLib.setPropertyBoolean("aid", false)
+          TrackSelector.rememberAudioTrack(null, null)
         } else {
           MPVLib.setPropertyInt("aid", it.id)
+          TrackSelector.rememberAudioTrack(it.title, it.lang)
         }
       },
       chapter = chapters.getOrNull(currentChapter ?: 0),

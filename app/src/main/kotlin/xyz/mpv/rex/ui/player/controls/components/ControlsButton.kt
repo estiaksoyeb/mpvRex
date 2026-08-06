@@ -39,7 +39,7 @@ fun ControlsButton(
   icon: ImageVector,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
-  onLongClick: () -> Unit = {},
+  onLongClick: (() -> Unit)? = null,
   title: String? = null,
   color: Color? = null,
 ) {

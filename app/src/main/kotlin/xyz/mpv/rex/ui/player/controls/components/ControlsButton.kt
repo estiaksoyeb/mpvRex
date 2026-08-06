@@ -39,6 +39,7 @@ fun ControlsButton(
   icon: ImageVector,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
+  onDoubleClick: (() -> Unit)? = null,
   onLongClick: (() -> Unit)? = null,
   title: String? = null,
   color: Color? = null,
@@ -105,6 +106,12 @@ fun ControlsButton(
           onClick = {
             clickEvent()
             onClick()
+          },
+          onDoubleClick = onDoubleClick?.let {
+            {
+              clickEvent()
+              it()
+            }
           },
           onLongClick = onLongClick,
           interactionSource = interactionSource,

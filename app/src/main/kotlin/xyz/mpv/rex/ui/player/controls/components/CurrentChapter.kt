@@ -48,6 +48,7 @@ fun CurrentChapter(
   chapter: Segment,
   modifier: Modifier = Modifier,
   onClick: () -> Unit = {},
+  onDoubleClick: (() -> Unit)? = null,
   onLongClick: (() -> Unit)? = null,
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
@@ -85,6 +86,7 @@ fun CurrentChapter(
         .clip(RoundedCornerShape(50))
         .combinedClickable(
           onClick = onClick,
+          onDoubleClick = onDoubleClick,
           onLongClick = onLongClick,
         ),
     shape = RoundedCornerShape(50),

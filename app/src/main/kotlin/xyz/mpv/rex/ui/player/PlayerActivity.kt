@@ -585,6 +585,7 @@ class PlayerActivity :
 
     // Check if auto PIP is enabled - enter PIP mode instead of finishing
     if (playerPreferences.autoPiPOnNavigation.get() && isReady) {
+      miniPlayerStateManager.clearState()
       pipHelper.enterPipMode()
       return
     }
@@ -686,6 +687,7 @@ class PlayerActivity :
     super.onUserLeaveHint()
     // Enter PIP mode when user presses home button if auto PIP is enabled
     if (playerPreferences.autoPiPOnNavigation.get() && isReady && !isFinishing) {
+      miniPlayerStateManager.clearState()
       pipHelper.enterPipMode()
     } else if (isReady && !isFinishing) {
       val isEnding = isUserFinishing || isFinishing
@@ -817,10 +819,14 @@ class PlayerActivity :
       val isInPip = isInPictureInPictureMode
       val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
       val isEnding = isUserFinishing || isFinishing
+      val isAutoPipEnabled = playerPreferences.autoPiPOnNavigation.get()
+      val isPipTargeted = isInPip || (isAutoPipEnabled && !isEnding)
       val shouldPause = (!audioPreferences.automaticBackgroundPlayback.get() && !isManualBackgroundPlayback) || 
                         (isEnding && !isManualBackgroundPlayback)
 
-      if (!isInPip && !isInMultiWindow) {
+      if (isPipTargeted) {
+        miniPlayerStateManager.clearState()
+      } else if (!isInMultiWindow) {
         if (shouldPause) {
           viewModel.wasPlayingBeforePause = !(viewModel.paused ?: true)
           viewModel.pause()
@@ -832,8 +838,7 @@ class PlayerActivity :
       }
 
       saveVideoPlaybackState(fileName)
-    }
-.onFailure { e ->
+    }.onFailure { e ->
       Log.e(TAG, "Error during onPause", e)
     }
 
@@ -2669,6 +2674,7 @@ class PlayerActivity :
 
     runCatching {
       if (isInPictureInPictureMode) {
+        miniPlayerStateManager.clearState()
         enterPipUIMode()
       } else {
         exitPipUIMode()
@@ -2716,6 +2722,7 @@ class PlayerActivity :
     }
 
     binding.controls.alpha = 0f
+    miniPlayerStateManager.clearState()
 
     pipHelper.enterPipMode()
   }

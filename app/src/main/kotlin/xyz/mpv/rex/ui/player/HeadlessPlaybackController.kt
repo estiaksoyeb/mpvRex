@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.mpv.rex.R
+import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.MediaThumbnailUtils
@@ -42,6 +43,7 @@ import java.io.File
  */
 class HeadlessPlaybackController(private val appContext: Context) : KoinComponent {
   private val miniPlayerStateManager: MiniPlayerStateManager by inject()
+  private val playerPreferences: PlayerPreferences by inject()
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -80,7 +82,21 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
   var activePlaylistId: Int? = null
     private set
 
+  @Volatile
+  private var shuffledIndices: List<Int> = emptyList()
+
+  @Volatile
+  private var shuffledPosition: Int = -1
+
   private var resumeObserver: MPVLib.EventObserver? = null
+  private var headlessObserver: MPVLib.EventObserver? = null
+
+  private fun generateShuffledIndices(startIdx: Int) {
+    if (activeUris.isEmpty()) return
+    val indices = activeUris.indices.filter { it != startIdx }.shuffled()
+    shuffledIndices = listOf(startIdx) + indices
+    shuffledPosition = 0
+  }
 
   /**
    * Starts headless playback of [uris] beginning at [startIndex].
@@ -109,6 +125,13 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     activeLaunchSource = launchSource
     activePlaylistId = playlistId
 
+    if (playerPreferences.shuffleEnabled.get()) {
+      generateShuffledIndices(startIndex)
+    } else {
+      shuffledIndices = emptyList()
+      shuffledPosition = -1
+    }
+
     // Set handlers for swipe/button next/previous and close in MiniPlayer
     miniPlayerStateManager.onNextHandler = { playNext() }
     miniPlayerStateManager.onPreviousHandler = { playPrevious() }
@@ -130,6 +153,7 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
       MPVLib.setPropertyString("idle", "yes")
       ownsNativeSession = true
       isSessionActive = true
+      setupMpvObserver()
       playItem(startIndex, resumePositionSec)
       startService(activeTitle, artist)
       return
@@ -159,31 +183,103 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
 
       ownsNativeSession = true
       isSessionActive = true
+      setupMpvObserver()
       playItem(startIndex, resumePositionSec)
       startService(activeTitle, artist)
       Log.d(TAG, "Headless session started: $title")
     }
   }
 
-  fun playNext() {
+  fun onShuffleToggled(enabled: Boolean) {
+    if (enabled) {
+      generateShuffledIndices(activeIndex)
+    } else {
+      shuffledIndices = emptyList()
+      shuffledPosition = -1
+    }
+    if (activeUris.isNotEmpty()) {
+      updateStateAndMetadata(activeIndex)
+    }
+  }
+
+  fun onRepeatModeChanged(repeatMode: RepeatMode) {
+    if (activeUris.isNotEmpty()) {
+      updateStateAndMetadata(activeIndex)
+    }
+  }
+
+  fun playNext(isAutoAdvance: Boolean = false) {
     if (activeUris.isEmpty()) return
-    val nextIndex = activeIndex + 1
-    if (nextIndex in activeUris.indices) {
-      playItem(nextIndex)
+    val isShuffle = playerPreferences.shuffleEnabled.get()
+    val repeatMode = playerPreferences.repeatMode.get()
+
+    if (isShuffle) {
+      if (shuffledIndices.isEmpty() || shuffledIndices.size != activeUris.size) {
+        generateShuffledIndices(activeIndex)
+      }
+      val nextPos = shuffledPosition + 1
+      if (nextPos < shuffledIndices.size) {
+        shuffledPosition = nextPos
+        playItem(shuffledIndices[nextPos])
+      } else if (repeatMode == RepeatMode.ALL) {
+        generateShuffledIndices(activeIndex)
+        shuffledPosition = 0
+        playItem(shuffledIndices[0])
+      } else if (isAutoAdvance) {
+        stop()
+      }
+    } else {
+      val nextIndex = activeIndex + 1
+      if (nextIndex in activeUris.indices) {
+        playItem(nextIndex)
+      } else if (repeatMode == RepeatMode.ALL) {
+        playItem(0)
+      } else if (isAutoAdvance) {
+        stop()
+      }
     }
   }
 
   fun playPrevious() {
     if (activeUris.isEmpty()) return
-    val prevIndex = activeIndex - 1
-    if (prevIndex in activeUris.indices) {
-      playItem(prevIndex)
+    val isShuffle = playerPreferences.shuffleEnabled.get()
+    val repeatMode = playerPreferences.repeatMode.get()
+
+    if (isShuffle) {
+      if (shuffledIndices.isEmpty() || shuffledIndices.size != activeUris.size) {
+        generateShuffledIndices(activeIndex)
+      }
+      val prevPos = shuffledPosition - 1
+      if (prevPos >= 0) {
+        shuffledPosition = prevPos
+        playItem(shuffledIndices[prevPos])
+      } else if (repeatMode == RepeatMode.ALL) {
+        shuffledPosition = shuffledIndices.size - 1
+        playItem(shuffledIndices.last())
+      }
+    } else {
+      val prevIndex = activeIndex - 1
+      if (prevIndex in activeUris.indices) {
+        playItem(prevIndex)
+      } else if (repeatMode == RepeatMode.ALL) {
+        playItem(activeUris.size - 1)
+      }
     }
   }
 
   fun playItem(index: Int, resumePositionSec: Int = 0) {
     if (index !in activeUris.indices) return
     activeIndex = index
+    val isShuffle = playerPreferences.shuffleEnabled.get()
+    if (isShuffle) {
+      val pos = shuffledIndices.indexOf(index)
+      if (pos != -1) {
+        shuffledPosition = pos
+      } else {
+        generateShuffledIndices(index)
+      }
+    }
+
     val uri = activeUris[index]
     val title = deriveTitle(uri)
     activeTitle = title
@@ -207,11 +303,44 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     val currentUri = activeUris[index]
     val currentTitle = deriveTitle(currentUri)
 
-    val hasNextItem = index < activeUris.size - 1
-    val hasPrevItem = index > 0
+    val isShuffle = playerPreferences.shuffleEnabled.get()
+    val repeatMode = playerPreferences.repeatMode.get()
 
-    val nextUri = if (hasNextItem) activeUris[index + 1] else null
-    val prevUri = if (hasPrevItem) activeUris[index - 1] else null
+    val nextIdx: Int? = if (isShuffle) {
+      if (shuffledIndices.isEmpty() || shuffledIndices.size != activeUris.size) {
+        generateShuffledIndices(index)
+      }
+      val nextPos = shuffledPosition + 1
+      if (nextPos < shuffledIndices.size) shuffledIndices[nextPos]
+      else if (repeatMode == RepeatMode.ALL && shuffledIndices.isNotEmpty()) shuffledIndices[0]
+      else null
+    } else {
+      val nextPos = index + 1
+      if (nextPos < activeUris.size) nextPos
+      else if (repeatMode == RepeatMode.ALL && activeUris.isNotEmpty()) 0
+      else null
+    }
+
+    val prevIdx: Int? = if (isShuffle) {
+      if (shuffledIndices.isEmpty() || shuffledIndices.size != activeUris.size) {
+        generateShuffledIndices(index)
+      }
+      val prevPos = shuffledPosition - 1
+      if (prevPos >= 0) shuffledIndices[prevPos]
+      else if (repeatMode == RepeatMode.ALL && shuffledIndices.isNotEmpty()) shuffledIndices.last()
+      else null
+    } else {
+      val prevPos = index - 1
+      if (prevPos >= 0) prevPos
+      else if (repeatMode == RepeatMode.ALL && activeUris.isNotEmpty()) activeUris.size - 1
+      else null
+    }
+
+    val hasNextItem = nextIdx != null
+    val hasPrevItem = prevIdx != null
+
+    val nextUri = nextIdx?.let { activeUris.getOrNull(it) }
+    val prevUri = prevIdx?.let { activeUris.getOrNull(it) }
 
     val nextTitle = nextUri?.let { deriveTitle(it) }
     val prevTitle = prevUri?.let { deriveTitle(it) }
@@ -226,6 +355,8 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
       prevTitle = prevTitle,
       nextThumbnail = null,
       prevThumbnail = null,
+      shuffleEnabled = isShuffle,
+      repeatMode = repeatMode,
     )
 
     scope.launch(Dispatchers.IO) {
@@ -296,6 +427,42 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     }.onFailure { e -> Log.e(TAG, "Failed to start MediaPlaybackService", e) }
   }
 
+  private fun setupMpvObserver() {
+    removeMpvObserver()
+    val observer = object : MPVLib.EventObserver {
+      override fun eventProperty(property: String, value: Boolean) {
+        if (property == "eof-reached" && value) {
+          if (isSessionActive && ownsNativeSession) {
+            handleEndOfFile()
+          }
+        }
+      }
+      override fun event(eventId: Int, data: MPVNode) {}
+      override fun eventProperty(property: String) {}
+      override fun eventProperty(property: String, value: Long) {}
+      override fun eventProperty(property: String, value: String) {}
+      override fun eventProperty(property: String, value: Double) {}
+      override fun eventProperty(property: String, value: MPVNode) {}
+    }
+    headlessObserver = observer
+    runCatching { MPVLib.addObserver(observer) }
+  }
+
+  private fun removeMpvObserver() {
+    headlessObserver?.let { runCatching { MPVLib.removeObserver(it) } }
+    headlessObserver = null
+  }
+
+  private fun handleEndOfFile() {
+    val repeatMode = playerPreferences.repeatMode.get()
+    if (repeatMode == RepeatMode.ONE) {
+      runCatching { MPVLib.command("seek", "0", "absolute") }
+      runCatching { MPVLib.setPropertyBoolean("pause", false) }
+    } else {
+      playNext(isAutoAdvance = true)
+    }
+  }
+
   /**
    * Relinquishes ownership of the live MPV instance to [PlayerActivity] WITHOUT tearing it down.
    * Called just before launching the full-screen player so playback continues seamlessly.
@@ -303,6 +470,7 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
   fun detachForHandoff() {
     resumeObserver?.let { runCatching { MPVLib.removeObserver(it) } }
     resumeObserver = null
+    removeMpvObserver()
     miniPlayerStateManager.onNextHandler = null
     miniPlayerStateManager.onPreviousHandler = null
     miniPlayerStateManager.onCloseHandler = null
@@ -322,6 +490,7 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
   fun retainAfterPlayerExit() {
     resumeObserver?.let { runCatching { MPVLib.removeObserver(it) } }
     resumeObserver = null
+    removeMpvObserver()
     miniPlayerStateManager.onNextHandler = null
     miniPlayerStateManager.onPreviousHandler = null
     miniPlayerStateManager.onCloseHandler = null
@@ -340,6 +509,8 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     activeIndex = 0
     activeTitle = ""
     activePlaylistId = null
+    shuffledIndices = emptyList()
+    shuffledPosition = -1
     Log.d(TAG, "Retained inherited MPV session idle after player exit")
   }
 
@@ -354,6 +525,7 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
   fun stop() {
     resumeObserver?.let { runCatching { MPVLib.removeObserver(it) } }
     resumeObserver = null
+    removeMpvObserver()
     miniPlayerStateManager.onNextHandler = null
     miniPlayerStateManager.onPreviousHandler = null
     miniPlayerStateManager.onCloseHandler = null
@@ -371,6 +543,8 @@ class HeadlessPlaybackController(private val appContext: Context) : KoinComponen
     activeUris = emptyList()
     activeIndex = 0
     activeTitle = ""
+    shuffledIndices = emptyList()
+    shuffledPosition = -1
     Log.d(TAG, "Headless playback stopped; native MPV retained idle")
   }
 

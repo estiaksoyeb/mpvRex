@@ -127,6 +127,9 @@ class MiniPlayerStateManager : KoinComponent {
       playerPreferences.shuffleEnabled.set(newShuffle)
     }
     _state.update { it.copy(shuffleEnabled = newShuffle) }
+    if (headlessPlaybackController.isSessionActive) {
+      headlessPlaybackController.onShuffleToggled(newShuffle)
+    }
   }
 
   fun cycleRepeatMode() {
@@ -149,6 +152,9 @@ class MiniPlayerStateManager : KoinComponent {
       }
     }
     _state.update { it.copy(repeatMode = nextMode) }
+    if (headlessPlaybackController.isSessionActive) {
+      headlessPlaybackController.onRepeatModeChanged(nextMode)
+    }
   }
 
   fun seekTo(positionMs: Long) {

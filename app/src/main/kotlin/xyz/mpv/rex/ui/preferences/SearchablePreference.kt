@@ -67,6 +67,13 @@ object SearchablePreferences {
                 screen = AppearancePreferencesScreen,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_include_no_media_content_title,
+                summaryRes = R.string.pref_include_no_media_content_summary,
+                keywords = listOf("nomedia", "hidden media", "file explorer", "scan", "excluded"),
+                category = "Appearance",
+                screen = AppearancePreferencesScreen,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_appearance_show_network_thumbnails_title,
                 summaryRes = R.string.pref_appearance_show_network_thumbnails_summary,
                 keywords = listOf("network", "thumbnail", "stream", "preview", "images"),

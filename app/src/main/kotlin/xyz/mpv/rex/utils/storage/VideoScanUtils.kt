@@ -7,7 +7,10 @@ import android.util.Log
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.utils.media.MediaFormatter
 import xyz.mpv.rex.utils.media.MediaInfoOps
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -35,33 +38,64 @@ object VideoScanUtils {
         val album: String = "",
     )
     
+    enum class FolderAccess {
+        READABLE,
+        INACCESSIBLE,
+    }
+
+    data class FolderScanResult(
+        val videos: List<Video>,
+        val access: FolderAccess,
+    )
+
     /**
-     * Get all videos and audio in a specific folder
-     * MediaStore first, filesystem fallback for external devices
+     * Get all videos and audio in a specific folder.
+     * MediaStore remains the fast source and direct storage reconciles it when allowed.
      */
     suspend fun getVideosInFolder(
         context: Context,
-        folderPath: String
-    ): List<Video> = withContext(Dispatchers.IO) {
-        val videosMap = mutableMapOf<String, Video>()
-        
-        // Try MediaStore first (fast)
-        scanVideosFromMediaStore(context, folderPath, videosMap)
-        scanAudioFromMediaStore(context, folderPath, videosMap)
-        
-        // Fallback to filesystem if MediaStore returned nothing
+        folderPath: String,
+        policy: MediaScanPolicy = MediaScanPolicy(),
+    ): List<Video> = scanFolder(context, folderPath, policy).videos
+
+    suspend fun scanFolder(
+        context: Context,
+        folderPath: String,
+        policy: MediaScanPolicy = MediaScanPolicy(),
+    ): FolderScanResult = withContext(Dispatchers.IO) {
         val folder = File(folderPath)
-        if (folder.exists() && folder.canRead() && videosMap.isEmpty()) {
-            scanMediaFromFileSystem(context, folder, videosMap)
+        if (!folder.exists() || !folder.isDirectory || !folder.canRead()) {
+            return@withContext FolderScanResult(emptyList(), FolderAccess.INACCESSIBLE)
         }
-        
-        videosMap.values.sortedBy { it.displayName.lowercase(Locale.getDefault()) }
+
+        if (!policy.includeNoMediaContent && FileFilterUtils.isWithinNoMediaBoundary(folder)) {
+            return@withContext FolderScanResult(emptyList(), FolderAccess.READABLE)
+        }
+
+        val videosMap = mutableMapOf<String, Video>()
+        val normalizedFolderPath = normalizePath(folder)
+
+        scanVideosFromMediaStore(context, normalizedFolderPath, videosMap)
+        scanAudioFromMediaStore(context, normalizedFolderPath, videosMap)
+
+        // When enabled, always reconcile per file instead of discarding a partially
+        // indexed folder. Keep the old fallback for normal unindexed folders.
+        if (policy.includeNoMediaContent || videosMap.isEmpty()) {
+            if (!scanMediaFromFileSystem(folder, videosMap)) {
+                return@withContext FolderScanResult(emptyList(), FolderAccess.INACCESSIBLE)
+            }
+        }
+
+        FolderScanResult(
+            videos = videosMap.values.sortedBy { it.displayName.lowercase(Locale.getDefault()) },
+            access = FolderAccess.READABLE,
+        )
     }
     
     /**
      * Scan videos from MediaStore
      */
-    private fun scanVideosFromMediaStore(
+    private suspend fun scanVideosFromMediaStore(
         context: Context,
         folderPath: String,
         videosMap: MutableMap<String, Video>
@@ -110,11 +144,12 @@ object VideoScanUtils {
                 } else -1
                 
                 while (cursor.moveToNext()) {
+                    currentCoroutineContext().ensureActive()
                     val path = cursor.getString(dataColumn)
                     val file = File(path)
                     
                     // Only direct children
-                    if (file.parent != folderPath) continue
+                    if (file.parentFile?.let(::normalizePath) != folderPath) continue
                     if (!file.exists()) continue
                     
                     val id = cursor.getLong(idColumn)
@@ -129,16 +164,18 @@ object VideoScanUtils {
                     val height = cursor.getInt(heightColumn)
                     val rotation = if (orientationColumn != -1) cursor.getInt(orientationColumn) else 0
                     
+                    val normalizedPath = normalizePath(file)
+
                     val uri = Uri.withAppendedPath(
                         MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
                         id.toString()
                     )
                     
-                    videosMap[path] = Video(
+                    videosMap[normalizedPath] = Video(
                         id = id,
                         title = title,
                         displayName = displayName,
-                        path = path,
+                        path = normalizedPath,
                         uri = uri,
                         duration = duration,
                         durationFormatted = MediaFormatter.formatDuration(duration),
@@ -160,6 +197,8 @@ object VideoScanUtils {
                     )
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "MediaStore video scan error", e)
         }
@@ -168,7 +207,7 @@ object VideoScanUtils {
     /**
      * Scan audio from MediaStore
      */
-    private fun scanAudioFromMediaStore(
+    private suspend fun scanAudioFromMediaStore(
         context: Context,
         folderPath: String,
         videosMap: MutableMap<String, Video>
@@ -209,11 +248,12 @@ object VideoScanUtils {
                 val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
                 
                 while (cursor.moveToNext()) {
+                    currentCoroutineContext().ensureActive()
                     val path = cursor.getString(dataColumn)
                     val file = File(path)
                     
                     // Only direct children
-                    if (file.parent != folderPath) continue
+                    if (file.parentFile?.let(::normalizePath) != folderPath) continue
                     if (!file.exists()) continue
                     
                     val id = cursor.getLong(idColumn)
@@ -227,16 +267,18 @@ object VideoScanUtils {
                     val artist = cursor.getString(artistColumn) ?: "Unknown Artist"
                     val album = cursor.getString(albumColumn) ?: "Unknown Album"
                     
+                    val normalizedPath = normalizePath(file)
+
                     val uri = Uri.withAppendedPath(
                         MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                         id.toString()
                     )
                     
-                    videosMap[path] = Video(
+                    videosMap[normalizedPath] = Video(
                         id = id,
                         title = title,
                         displayName = displayName,
-                        path = path,
+                        path = normalizedPath,
                         uri = uri,
                         duration = duration,
                         durationFormatted = MediaFormatter.formatDuration(duration),
@@ -259,79 +301,82 @@ object VideoScanUtils {
                     )
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "MediaStore audio scan error", e)
         }
     }
     
     /**
-     * Scan media from filesystem (fallback)
+     * Cheap direct-folder discovery. Detailed metadata is enriched later by the
+     * browser's bounded metadata pipeline.
      */
-    private fun scanMediaFromFileSystem(
-        context: Context,
+    private suspend fun scanMediaFromFileSystem(
         folder: File,
-        videosMap: MutableMap<String, Video>
-    ) {
+        videosMap: MutableMap<String, Video>,
+    ): Boolean {
         try {
-            val files = folder.listFiles() ?: return
-            
+            val files = folder.listFiles() ?: return false
+
             for (file in files) {
+                currentCoroutineContext().ensureActive()
                 try {
-                    if (!file.isFile) continue
-                    
+                    if (!file.isFile || FileFilterUtils.shouldSkipFile(file)) continue
+
                     val isVideo = FileTypeUtils.isVideoFile(file)
                     val isAudio = FileTypeUtils.isAudioFile(file)
-                    
                     if (!isVideo && !isAudio) continue
-                    
-                    val path = file.absolutePath
+
+                    val path = normalizePath(file)
                     if (videosMap.containsKey(path)) continue
-                    
-                    val uri = Uri.fromFile(file)
-                    val displayName = file.name
-                    val title = file.nameWithoutExtension
+
                     val size = file.length()
                     val dateModified = file.lastModified() / 1000
-                    
-                    // Extract metadata
-                    val metadata = extractVideoMetadata(context, file)
-                    
                     videosMap[path] = Video(
                         id = path.hashCode().toLong(),
-                        title = title,
-                        displayName = displayName,
+                        title = file.nameWithoutExtension,
+                        displayName = file.name,
                         path = path,
-                        uri = uri,
-                        duration = metadata.duration,
-                        durationFormatted = MediaFormatter.formatDuration(metadata.duration),
+                        uri = Uri.fromFile(file),
+                        duration = 0,
+                        durationFormatted = MediaFormatter.formatDuration(0),
                         size = size,
                         sizeFormatted = MediaFormatter.formatFileSize(size),
                         dateModified = dateModified,
                         dateAdded = dateModified,
-                        mimeType = metadata.mimeType,
-                        bucketId = folder.absolutePath,
+                        mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase()),
+                        bucketId = normalizePath(folder),
                         bucketDisplayName = folder.name,
-                        width = metadata.width,
-                        height = metadata.height,
-                        rotation = metadata.rotation,
+                        width = 0,
+                        height = 0,
+                        rotation = 0,
                         fps = 0f,
-                        resolution = if (isAudio) "" else MediaFormatter.formatResolution(metadata.width, metadata.height),
+                        resolution = "",
                         hasEmbeddedSubtitles = false,
                         subtitleCodec = "",
                         isAudio = isAudio,
-                        artist = metadata.artist,
-                        album = metadata.album
+                        artist = "",
+                        album = "",
                     )
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.w(TAG, "Error processing file: ${file.absolutePath}", e)
-                    continue
                 }
             }
+            return true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Filesystem media scan error", e)
+            return false
         }
     }
-    
+
+    private fun normalizePath(file: File): String =
+        runCatching { file.canonicalPath }.getOrElse { file.absoluteFile.normalize().path }
+
     /**
      * Extracts video metadata using MediaInfo library
      */

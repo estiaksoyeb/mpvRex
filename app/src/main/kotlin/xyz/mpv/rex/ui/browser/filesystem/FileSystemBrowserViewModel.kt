@@ -16,9 +16,12 @@ import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import xyz.mpv.rex.utils.media.MetadataRetrieval
 import xyz.mpv.rex.utils.sort.SortUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -84,6 +87,7 @@ class FileSystemBrowserViewModel(
   val itemsWereDeletedOrMoved: StateFlow<Boolean> = _itemsWereDeletedOrMoved.asStateFlow()
 
   private val itemCountByPath = mutableMapOf<String, Int>()
+  private var directoryLoadJob: Job? = null
 
   companion object {
     private const val TAG = "FileSystemBrowserVM"
@@ -136,6 +140,15 @@ class FileSystemBrowserViewModel(
     viewModelScope.launch {
       foldersPreferences.blacklistedFolders.changes().collectLatest {
         refresh(silent = true)
+      }
+    }
+
+    // This policy affects only active File Explorer discovery. Skip the initial
+    // preference emission because the initial directory load is already running.
+    viewModelScope.launch {
+      browserPreferences.includeNoMediaContent.changes().drop(1).collectLatest {
+        MediaFileRepository.clearCache()
+        loadData()
       }
     }
   }
@@ -274,7 +287,8 @@ class FileSystemBrowserViewModel(
 
   private fun loadCurrentDirectory() {
     if (!isRootResolved) return
-    viewModelScope.launch(Dispatchers.IO) {
+    directoryLoadJob?.cancel()
+    directoryLoadJob = viewModelScope.launch(Dispatchers.IO) {
       _isLoading.value = true
       _error.value = null
 
@@ -457,6 +471,8 @@ class FileSystemBrowserViewModel(
               _unsortedItems.value = emptyList()
             }
         }
+      } catch (e: CancellationException) {
+        throw e
       } catch (e: Exception) {
         _error.value = e.message
         _unsortedItems.value = emptyList()

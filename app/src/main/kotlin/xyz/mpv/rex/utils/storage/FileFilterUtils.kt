@@ -47,8 +47,11 @@ object FileFilterUtils {
     /**
      * Checks if a folder should be skipped during scanning
      */
-    fun shouldSkipFolder(folder: File): Boolean {
-        if (hasNoMediaFile(folder)) {
+    fun shouldSkipFolder(
+        folder: File,
+        policy: MediaScanPolicy = MediaScanPolicy(),
+    ): Boolean {
+        if (!policy.includeNoMediaContent && hasNoMediaFile(folder)) {
             return true
         }
 
@@ -62,5 +65,17 @@ object FileFilterUtils {
      */
     fun shouldSkipFile(file: File): Boolean {
         return file.name.startsWith(".")
+    }
+
+    /**
+     * Returns true when [folder] is at or below a readable .nomedia boundary.
+     */
+    fun isWithinNoMediaBoundary(folder: File): Boolean {
+        var current: File? = folder
+        while (current != null) {
+            if (hasNoMediaFile(current)) return true
+            current = current.parentFile
+        }
+        return false
     }
 }

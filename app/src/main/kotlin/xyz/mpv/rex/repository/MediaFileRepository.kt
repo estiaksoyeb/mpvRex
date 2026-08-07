@@ -8,10 +8,12 @@ import xyz.mpv.rex.domain.media.model.VideoFolder
 import xyz.mpv.rex.utils.storage.CoreMediaScanner
 import xyz.mpv.rex.utils.storage.VideoScanUtils
 import xyz.mpv.rex.utils.storage.FileSystemOps
+import xyz.mpv.rex.utils.storage.MediaScanPolicy
 import xyz.mpv.rex.utils.media.MediaMetadataOps
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
@@ -84,6 +86,9 @@ object MediaFileRepository {
         val playbackStateRepository = koin.get<PlaybackStateRepository>()
         
         val isAudioEnabled = browserPreferences.showAudioFiles.get()
+        val scanPolicy = MediaScanPolicy(
+          includeNoMediaContent = browserPreferences.includeNoMediaContent.get(),
+        )
         val playbackStates = playbackStateRepository.getAllPlaybackStates()
         val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
         
@@ -97,11 +102,12 @@ object MediaFileRepository {
             parentPath = path, 
             playbackStates = playbackStates, 
             thresholdDays = thresholdDays,
-            blacklistedFolders = blacklistedFolders
+            blacklistedFolders = blacklistedFolders,
+            policy = scanPolicy,
         )
         folders
-          .filter { data -> 
-            (isAudioEnabled || data.videoCount > 0)
+          .filter { data ->
+            isAudioEnabled || data.videoCount > 0 || data.hasSubfolders
           }
           .forEach { folderData ->
             items.add(
@@ -122,8 +128,11 @@ object MediaFileRepository {
 
         // Get videos in current directory - Hide if current path is blacklisted
         if (path !in blacklistedFolders) {
-          val videos = VideoScanUtils.getVideosInFolder(context, path)
-          videos
+          val folderScan = VideoScanUtils.scanFolder(context, path, scanPolicy)
+          if (folderScan.access == VideoScanUtils.FolderAccess.INACCESSIBLE) {
+            return@withContext Result.failure(Exception("Directory is not accessible: $path"))
+          }
+          folderScan.videos
             .filter { video -> isAudioEnabled || !video.isAudio }
             .forEach { video ->
               items.add(
@@ -138,6 +147,8 @@ object MediaFileRepository {
         }
 
         Result.success(items)
+      } catch (e: CancellationException) {
+        throw e
       } catch (e: Exception) {
         Result.failure(e)
       }

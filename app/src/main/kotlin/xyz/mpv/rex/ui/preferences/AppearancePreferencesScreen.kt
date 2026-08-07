@@ -526,6 +526,25 @@ object AppearancePreferencesScreen : Screen {
 
                             PreferenceDivider()
 
+                            val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
+                            SwitchPreference(
+                                value = includeNoMediaContent,
+                                onValueChange = { browserPreferences.includeNoMediaContent.set(it) },
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_include_no_media_content_title),
+                                    )
+                                },
+                                summary = {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_include_no_media_content_summary),
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                },
+                            )
+
+                            PreferenceDivider()
+
                             val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
                             SwitchPreference(
                                 value = showTreeViewPath,

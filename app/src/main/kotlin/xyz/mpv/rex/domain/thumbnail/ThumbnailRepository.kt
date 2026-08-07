@@ -835,7 +835,11 @@ class ThumbnailRepository(
     var lastSolidBitmap: Bitmap? = null
 
     try {
-      retriever.setDataSource(url, emptyMap<String, String>())
+      if (url.startsWith("content://") || url.startsWith("file://")) {
+        retriever.setDataSource(context, video.uri)
+      } else {
+        retriever.setDataSource(url, emptyMap<String, String>())
+      }
       val streamDurationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?.takeIf { it > 0L }
       val durationMs = streamDurationMs ?: video.duration.takeIf { it > 0L }
       

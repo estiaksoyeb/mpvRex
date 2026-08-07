@@ -54,6 +54,7 @@ object MediaFileRepository {
         VideoScanUtils.scanFolder(context, bucketId, policy)
       }.getOrNull()?.takeIf { it.access == VideoScanUtils.FolderAccess.READABLE }?.videos.orEmpty()
       val indexed = koin.get<HybridMediaIndexRepository>().getVideosInFolder(bucketId)
+      koin.get<HybridMediaIndexRepository>().enrichFolderMetadata(bucketId)
       (direct + indexed)
         .associateBy { video -> video.path.ifBlank { video.uri.toString() } }
         .values

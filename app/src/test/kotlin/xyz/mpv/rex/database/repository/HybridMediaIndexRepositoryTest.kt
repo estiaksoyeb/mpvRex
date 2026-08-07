@@ -13,13 +13,21 @@ import xyz.mpv.rex.database.entities.PlaybackStateEntity
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.FoldersPreferences
 
+import xyz.mpv.rex.utils.media.MediaInfoOps
+
+import io.mockk.every
+import io.mockk.mockkStatic
+import android.net.Uri
+
 class HybridMediaIndexRepositoryTest {
-  private val dao = mockk<HybridMediaDao>()
+  private val dao = mockk<HybridMediaDao>(relaxed = true)
+  private val metadataCacheRepository = mockk<VideoMetadataCacheRepository>()
   private val repository = HybridMediaIndexRepository(
     context = mockk<Context>(relaxed = true),
     dao = dao,
     browserPreferences = mockk<BrowserPreferences>(relaxed = true),
     foldersPreferences = mockk<FoldersPreferences>(relaxed = true),
+    metadataCacheRepository = metadataCacheRepository,
   )
 
   @Test
@@ -74,6 +82,72 @@ class HybridMediaIndexRepositoryTest {
     coVerify(exactly = 1) { dao.getAvailableMedia(false) }
   }
 
+  @Test
+  fun enrichFolderMetadata_updatesDaoWithIndexedStatus_whenExtractionSucceeds() = runTest {
+    mockkStatic(Uri::class)
+    val mockUri = mockk<Uri>(relaxed = true)
+    every { Uri.fromFile(any()) } returns mockUri
+
+    val pendingItem = media(
+      identity = "file:/storage/A/pending.mp4",
+      location = "/storage/A/pending.mp4",
+      parent = "/storage/A",
+    ).copy(metadataState = "PENDING")
+
+    coEvery { dao.getAvailableMedia(true) } returns listOf(pendingItem)
+    coEvery { metadataCacheRepository.getOrExtractMetadata(any(), any(), any()) } returns MediaInfoOps.VideoMetadata(
+      sizeBytes = 100,
+      durationMs = 12000,
+      width = 1920,
+      height = 1080,
+      rotation = 0,
+      fps = 30f,
+      hasEmbeddedSubtitles = false,
+    )
+
+    repository.enrichFolderMetadata("/storage/A")
+
+    coVerify(exactly = 1) {
+      dao.updateMediaMetadata(
+        identity = "file:/storage/A/pending.mp4",
+        duration = 12000,
+        width = 1920,
+        height = 1080,
+        rotation = 0,
+        metadataState = "INDEXED",
+      )
+    }
+  }
+
+  @Test
+  fun enrichFolderMetadata_updatesDaoWithFailedStatus_whenExtractionFails() = runTest {
+    mockkStatic(Uri::class)
+    val mockUri = mockk<Uri>(relaxed = true)
+    every { Uri.fromFile(any()) } returns mockUri
+
+    val corruptItem = media(
+      identity = "file:/storage/A/corrupt.mp4",
+      location = "/storage/A/corrupt.mp4",
+      parent = "/storage/A",
+    ).copy(metadataState = "PENDING")
+
+    coEvery { dao.getAvailableMedia(true) } returns listOf(corruptItem)
+    coEvery { metadataCacheRepository.getOrExtractMetadata(any(), any(), any()) } returns null
+
+    repository.enrichFolderMetadata("/storage/A")
+
+    coVerify(exactly = 1) {
+      dao.updateMediaMetadata(
+        identity = "file:/storage/A/corrupt.mp4",
+        duration = 0,
+        width = 0,
+        height = 0,
+        rotation = 0,
+        metadataState = "FAILED",
+      )
+    }
+  }
+
   private fun media(
     identity: String,
     location: String,
@@ -94,3 +168,4 @@ class HybridMediaIndexRepositoryTest {
     lastSeenGeneration = 1,
   )
 }
+

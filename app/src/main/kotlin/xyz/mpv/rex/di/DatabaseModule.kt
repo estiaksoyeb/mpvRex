@@ -587,6 +587,7 @@ val DatabaseModule =
         dao = get<MpvExDatabase>().hybridMediaDao(),
         browserPreferences = get(),
         foldersPreferences = get(),
+        metadataCacheRepository = get(),
       )
     }
 

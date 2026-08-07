@@ -25,13 +25,20 @@ import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.StorageVolumeUtils
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -55,8 +62,11 @@ class HybridMediaIndexRepository(
   private val dao: HybridMediaDao,
   private val browserPreferences: BrowserPreferences,
   private val foldersPreferences: FoldersPreferences,
+  private val metadataCacheRepository: VideoMetadataCacheRepository? = null,
 ) {
   private val scanMutex = Mutex()
+  private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+  private var enrichmentJob: Job? = null
   private val _scanState = MutableStateFlow(HybridIndexScanState())
   val scanState: StateFlow<HybridIndexScanState> = _scanState.asStateFlow()
 
@@ -159,8 +169,82 @@ class HybridMediaIndexRepository(
         completedRoots = completedRoots,
         error = lastError,
       )
+      startBackgroundEnrichment()
     }
   }
+
+  /**
+   * Starts background worker to enrich items with PENDING metadata status using bounded concurrency.
+   */
+  fun startBackgroundEnrichment() {
+    enrichmentJob?.cancel()
+    enrichmentJob = repositoryScope.launch {
+      while (isActive) {
+        val pending = dao.getPendingMetadataItems(16)
+        if (pending.isEmpty()) break
+        enrichPendingBatch(pending)
+      }
+    }
+  }
+
+  /**
+   * Prioritizes metadata enrichment for files inside a specific folder when browsed by the user.
+   */
+  suspend fun enrichFolderMetadata(parentIdentity: String) = withContext(Dispatchers.IO) {
+    val items = dao.getAvailableMedia(includeNoMedia = true)
+      .filter { it.parentIdentity == parentIdentity && it.metadataState == "PENDING" }
+    if (items.isNotEmpty()) {
+      enrichPendingBatch(items)
+    }
+  }
+
+  private suspend fun enrichPendingBatch(items: List<HybridMediaEntity>) = withContext(Dispatchers.IO) {
+    val cacheRepo = metadataCacheRepository ?: return@withContext
+    items.chunked(PARALLEL_ENRICHMENT_LIMIT).forEach { batch ->
+      coroutineScope {
+        batch.map { item ->
+          async {
+            currentCoroutineContext().ensureActive()
+            val file = File(item.location)
+            val uri = when {
+              item.location.startsWith("content:") -> item.location.toUri()
+              item.sourceType == SOURCE_SAF -> item.location.toUri()
+              else -> Uri.fromFile(file)
+            }
+
+            val metadata = runCatching {
+              cacheRepo.getOrExtractMetadata(
+                file = file,
+                uri = uri,
+                displayName = item.displayName,
+              )
+            }.getOrNull()
+
+            if (metadata != null) {
+              dao.updateMediaMetadata(
+                identity = item.identity,
+                duration = metadata.durationMs,
+                width = metadata.width,
+                height = metadata.height,
+                rotation = metadata.rotation,
+                metadataState = "INDEXED",
+              )
+            } else {
+              dao.updateMediaMetadata(
+                identity = item.identity,
+                duration = 0,
+                width = 0,
+                height = 0,
+                rotation = 0,
+                metadataState = "FAILED",
+              )
+            }
+          }
+        }.awaitAll()
+      }
+    }
+  }
+
 
   suspend fun getFlatFolders(
     playbackStates: List<PlaybackStateEntity>,
@@ -698,6 +782,7 @@ class HybridMediaIndexRepository(
     private const val BATCH_SIZE = 200
     private const val MAX_DEPTH = 64
     private const val INDEX_TTL_MS = 5 * 60 * 1000L
+    private const val PARALLEL_ENRICHMENT_LIMIT = 4
 
     private fun normalizePath(file: File): String =
       runCatching { file.canonicalPath }.getOrElse { file.absoluteFile.normalize().path }

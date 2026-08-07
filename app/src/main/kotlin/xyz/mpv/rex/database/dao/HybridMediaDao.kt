@@ -67,9 +67,39 @@ interface HybridMediaDao {
   )
   suspend fun markRootComplete(identity: String, generation: Long, completedAt: Long)
 
+  @Query(
+    """
+    SELECT * FROM hybrid_media_index
+    WHERE metadataState = 'PENDING' AND available = 1
+    LIMIT :limit
+    """,
+  )
+  suspend fun getPendingMetadataItems(limit: Int = 50): List<HybridMediaEntity>
+
+  @Query(
+    """
+    UPDATE hybrid_media_index
+    SET duration = :duration,
+        width = :width,
+        height = :height,
+        rotation = :rotation,
+        metadataState = :metadataState
+    WHERE identity = :identity
+    """,
+  )
+  suspend fun updateMediaMetadata(
+    identity: String,
+    duration: Long,
+    width: Int,
+    height: Int,
+    rotation: Int,
+    metadataState: String,
+  )
+
   @Query("DELETE FROM hybrid_media_index")
   suspend fun clearMedia()
 
   @Query("DELETE FROM hybrid_media_roots")
   suspend fun clearRoots()
 }
+

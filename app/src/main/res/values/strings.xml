@@ -732,6 +732,9 @@
     <string name="pref_show_audio_files_summary">Show and index audio files in the browser and playlists</string>
     <string name="pref_include_no_media_content_title">Include &#96;.nomedia&#96; content</string>
     <string name="pref_include_no_media_content_summary">Show media from folders excluded from Android\'s media library. Scanning these folders may take longer.</string>
+    <string name="pref_add_library_root">Add library folder</string>
+    <string name="pref_clear_library_roots">Remove selected library folders</string>
+    <string name="pref_library_root_count">Selected library folders: %1$d</string>
     <string name="pref_show_tree_view_path_title">Show path breadcrumbs</string>
     <string name="pref_show_tree_view_path_summary">Show the folder path breadcrumbs at the top of Tree View</string>
 

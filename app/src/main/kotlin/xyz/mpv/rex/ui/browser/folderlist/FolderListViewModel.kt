@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
+import xyz.mpv.rex.database.repository.HybridMediaIndexRepository
 import xyz.mpv.rex.domain.media.model.VideoFolder
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.repository.MediaFileRepository
@@ -45,6 +46,8 @@ class FolderListViewModel(
   private val appearancePreferences: AppearancePreferences by inject()
   private val browserPreferences: xyz.mpv.rex.preferences.BrowserPreferences by inject()
   private val recentlyPlayedRepository: RecentlyPlayedRepository by inject()
+  private val hybridMediaIndex: HybridMediaIndexRepository by inject()
+  val indexScanState get() = hybridMediaIndex.scanState
 
   private val _allVideoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
   private val _videoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
@@ -112,6 +115,17 @@ class FolderListViewModel(
     }
 
     // Note: BaseBrowserViewModel handles MediaLibraryEvents.changes and playback state observation centrally.
+
+    viewModelScope.launch {
+      hybridMediaIndex.scanState.collectLatest { state ->
+        if (state.isScanning) {
+          _scanStatus.value =
+            "Scanning ${state.rootName ?: "library"}: ${state.scannedItems} files"
+        } else if (state.error != null) {
+          _scanStatus.value = state.error
+        }
+      }
+    }
 
     // Filter folders based on blacklist and audio visibility
     viewModelScope.launch {
@@ -208,6 +222,20 @@ class FolderListViewModel(
       } catch (e: Exception) {
         null
       }
+    }
+  }
+
+  fun cancelIndexScan() {
+    hybridMediaIndex.cancelScan()
+  }
+
+  override fun refresh(silent: Boolean) {
+    viewModelScope.launch(Dispatchers.IO) {
+      if (!silent) _isLoading.value = true
+      hybridMediaIndex.ensureFresh(force = true)
+      currentScanJob?.cancel()
+      currentScanJob = null
+      loadData()
     }
   }
 

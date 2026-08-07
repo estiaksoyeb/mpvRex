@@ -55,9 +55,12 @@ object FileFilterUtils {
             return true
         }
 
-        val name = folder.name.lowercase()
-        val isHidden = name.startsWith(".")
-        return isHidden || SKIP_FOLDERS.contains(name)
+        return shouldSkipFolderName(folder.name)
+    }
+
+    fun shouldSkipFolderName(name: String): Boolean {
+        val normalizedName = name.lowercase()
+        return normalizedName.startsWith(".") || SKIP_FOLDERS.contains(normalizedName)
     }
 
     /**

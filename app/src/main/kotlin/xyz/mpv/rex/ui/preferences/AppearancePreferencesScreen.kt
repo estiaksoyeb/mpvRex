@@ -1,6 +1,8 @@
 package xyz.mpv.rex.ui.preferences
 
 import android.os.Build
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +37,7 @@ import xyz.mpv.rex.preferences.ThumbnailStrategy
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
+import xyz.mpv.rex.preferences.FoldersPreferences
 import xyz.mpv.rex.preferences.MultiChoiceSegmentedButton
 import xyz.mpv.rex.ui.preferences.components.ThemePicker
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
@@ -60,6 +63,8 @@ import kotlinx.coroutines.withContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
+import xyz.mpv.rex.utils.media.MediaLibraryEvents
+import xyz.mpv.rex.utils.media.OpenDocumentTreeContract
 
 @Serializable
 object AppearancePreferencesScreen : Screen {
@@ -69,6 +74,7 @@ object AppearancePreferencesScreen : Screen {
         val preferences = koinInject<AppearancePreferences>()
         val browserPreferences = koinInject<BrowserPreferences>()
         val gesturePreferences = koinInject<GesturePreferences>()
+        val foldersPreferences = koinInject<FoldersPreferences>()
         val backstack = LocalBackStack.current
         val systemDarkTheme = isSystemInDarkTheme()
 
@@ -84,6 +90,19 @@ object AppearancePreferencesScreen : Screen {
 
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
+        val libraryScanRoots by foldersPreferences.libraryScanRoots.collectAsState()
+        val libraryRootPicker = rememberLauncherForActivityResult(OpenDocumentTreeContract()) { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }.onSuccess {
+                foldersPreferences.libraryScanRoots.set(libraryScanRoots + uri.toString())
+                MediaLibraryEvents.notifyChanged()
+            }
+        }
         val thumbnailRepository = koinInject<ThumbnailRepository>()
         var showNetworkWarning by remember { mutableStateOf(false) }
         var pendingStrategyChange by remember { mutableStateOf<ThumbnailStrategy?>(null) }
@@ -529,7 +548,10 @@ object AppearancePreferencesScreen : Screen {
                             val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
                             SwitchPreference(
                                 value = includeNoMediaContent,
-                                onValueChange = { browserPreferences.includeNoMediaContent.set(it) },
+                                onValueChange = {
+                                    browserPreferences.includeNoMediaContent.set(it)
+                                    MediaLibraryEvents.notifyChanged()
+                                },
                                 title = {
                                     Text(
                                         text = stringResource(id = R.string.pref_include_no_media_content_title),
@@ -542,6 +564,34 @@ object AppearancePreferencesScreen : Screen {
                                     )
                                 },
                             )
+
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                TextButton(
+                                    onClick = { libraryRootPicker.launch(null) },
+                                    enabled = includeNoMediaContent,
+                                ) {
+                                    Text(text = stringResource(R.string.pref_add_library_root))
+                                }
+                                Text(
+                                    text = stringResource(
+                                        R.string.pref_library_root_count,
+                                        libraryScanRoots.size,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                )
+                                if (libraryScanRoots.isNotEmpty()) {
+                                    TextButton(
+                                        onClick = {
+                                            foldersPreferences.libraryScanRoots.set(emptySet())
+                                            MediaLibraryEvents.notifyChanged()
+                                        },
+                                    ) {
+                                        Text(text = stringResource(R.string.pref_clear_library_roots))
+                                    }
+                                }
+                            }
 
                             PreferenceDivider()
 

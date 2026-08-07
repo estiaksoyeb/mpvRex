@@ -11,6 +11,7 @@ import xyz.mpv.rex.utils.storage.FileSystemOps
 import xyz.mpv.rex.utils.storage.MediaScanPolicy
 import xyz.mpv.rex.utils.media.MediaMetadataOps
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
+import xyz.mpv.rex.database.repository.HybridMediaIndexRepository
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import kotlinx.coroutines.CancellationException
@@ -44,13 +45,25 @@ object MediaFileRepository {
 
   suspend fun getVideosInFolder(context: Context, bucketId: String): List<Video> =
     withContext(Dispatchers.IO) {
-      runCatching { VideoScanUtils.getVideosInFolder(context, bucketId) }.getOrDefault(emptyList())
+      val koin = GlobalContext.get()
+      val browserPreferences = koin.get<BrowserPreferences>()
+      val policy = MediaScanPolicy(
+        includeNoMediaContent = browserPreferences.includeNoMediaContent.get(),
+      )
+      val direct = runCatching {
+        VideoScanUtils.scanFolder(context, bucketId, policy)
+      }.getOrNull()?.takeIf { it.access == VideoScanUtils.FolderAccess.READABLE }?.videos.orEmpty()
+      val indexed = koin.get<HybridMediaIndexRepository>().getVideosInFolder(bucketId)
+      (direct + indexed)
+        .associateBy { video -> video.path.ifBlank { video.uri.toString() } }
+        .values
+        .sortedBy { it.displayName.lowercase() }
     }
 
   suspend fun getVideosForBuckets(context: Context, bucketIds: Set<String>): List<Video> =
     withContext(Dispatchers.IO) {
       bucketIds.flatMap { id ->
-        runCatching { VideoScanUtils.getVideosInFolder(context, id) }.getOrDefault(emptyList())
+        getVideosInFolder(context, id)
       }
     }
 
@@ -96,15 +109,25 @@ object MediaFileRepository {
         val foldersPreferences = koin.get<xyz.mpv.rex.preferences.FoldersPreferences>()
         val blacklistedFolders = foldersPreferences.blacklistedFolders.get()
 
-        // Get folders using CoreMediaScanner
-        val folders = CoreMediaScanner.getFoldersInDirectory(
-            context = context, 
-            parentPath = path, 
-            playbackStates = playbackStates, 
+        val folders = if (scanPolicy.includeNoMediaContent) {
+          val hybridIndex = koin.get<HybridMediaIndexRepository>()
+          hybridIndex.ensureFresh()
+          hybridIndex.getFoldersInDirectory(
+            parentPath = path,
+            playbackStates = playbackStates,
+            thresholdDays = thresholdDays,
+            watchedThreshold = browserPreferences.watchedThreshold.get(),
+          )
+        } else {
+          CoreMediaScanner.getFoldersInDirectory(
+            context = context,
+            parentPath = path,
+            playbackStates = playbackStates,
             thresholdDays = thresholdDays,
             blacklistedFolders = blacklistedFolders,
             policy = scanPolicy,
-        )
+          )
+        }
         folders
           .filter { data ->
             isAudioEnabled || data.videoCount > 0 || data.hasSubfolders

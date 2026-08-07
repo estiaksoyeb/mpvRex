@@ -1,0 +1,75 @@
+package xyz.mpv.rex.database.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import xyz.mpv.rex.database.entities.HybridMediaEntity
+import xyz.mpv.rex.database.entities.HybridMediaRootEntity
+
+@Dao
+interface HybridMediaDao {
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun upsertMedia(items: List<HybridMediaEntity>)
+
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun upsertRoot(root: HybridMediaRootEntity)
+
+  @Query(
+    """
+    SELECT * FROM hybrid_media_index
+    WHERE available = 1
+      AND (:includeNoMedia OR isNoMedia = 0)
+    ORDER BY displayName COLLATE NOCASE
+    """,
+  )
+  suspend fun getAvailableMedia(includeNoMedia: Boolean): List<HybridMediaEntity>
+
+  @Query("SELECT COUNT(*) FROM hybrid_media_index WHERE available = 1")
+  suspend fun getAvailableCount(): Int
+
+  @Query("SELECT * FROM hybrid_media_roots")
+  suspend fun getRoots(): List<HybridMediaRootEntity>
+
+  @Query("SELECT * FROM hybrid_media_roots WHERE identity = :identity LIMIT 1")
+  suspend fun getRoot(identity: String): HybridMediaRootEntity?
+
+  @Query(
+    """
+    DELETE FROM hybrid_media_index
+    WHERE sourceRoot = :sourceRoot
+      AND lastSeenGeneration != :generation
+    """,
+  )
+  suspend fun deleteStaleForCompletedGeneration(sourceRoot: String, generation: Long)
+
+  @Query("UPDATE hybrid_media_index SET available = 0 WHERE sourceRoot = :sourceRoot")
+  suspend fun markMediaUnavailable(sourceRoot: String)
+
+  @Query(
+    """
+    UPDATE hybrid_media_roots
+    SET available = 0, lastError = :error
+    WHERE identity = :identity
+    """,
+  )
+  suspend fun markRootUnavailable(identity: String, error: String?)
+
+  @Query(
+    """
+    UPDATE hybrid_media_roots
+    SET available = 1,
+        lastGeneration = :generation,
+        lastCompletedAt = :completedAt,
+        lastError = NULL
+    WHERE identity = :identity
+    """,
+  )
+  suspend fun markRootComplete(identity: String, generation: Long, completedAt: Long)
+
+  @Query("DELETE FROM hybrid_media_index")
+  suspend fun clearMedia()
+
+  @Query("DELETE FROM hybrid_media_roots")
+  suspend fun clearRoots()
+}

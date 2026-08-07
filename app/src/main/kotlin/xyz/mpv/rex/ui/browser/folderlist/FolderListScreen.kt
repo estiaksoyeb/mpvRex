@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,6 +57,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
@@ -202,6 +205,7 @@ object FolderListScreen : Screen {
     val playedFolderPaths by viewModel.playedFolderPaths.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val scanStatus by viewModel.scanStatus.collectAsState()
+    val indexScanState by viewModel.indexScanState.collectAsState()
     val hasCompletedInitialLoad by viewModel.hasCompletedInitialLoad.collectAsState()
     val foldersWereDeleted by viewModel.foldersWereDeleted.collectAsState()
 
@@ -751,6 +755,8 @@ object FolderListScreen : Screen {
               autoScrollToLastPlayed = autoScrollToLastPlayed,
               uiSettings = uiSettings,
               scanStatus = scanStatus,
+              isIndexScanning = indexScanState.isScanning,
+              onCancelScan = viewModel::cancelIndexScan,
               listState = listState,
               gridState = gridState,
               isRefreshing = isRefreshing,
@@ -995,6 +1001,8 @@ private fun FolderListContent(
   playedFolderPaths: Set<String>,
   isLoading: Boolean,
   scanStatus: String?,
+  isIndexScanning: Boolean,
+  onCancelScan: () -> Unit,
   hasCompletedInitialLoad: Boolean,
   foldersWereDeleted: Boolean,
   mediaLayoutMode: MediaLayoutMode,
@@ -1013,29 +1021,60 @@ private fun FolderListContent(
 ) {
   val showLoading = isLoading && !hasCompletedInitialLoad
 
-  UnifiedExplorerContent(
-    items = folders,
-    isLoading = showLoading,
-    uiSettings = uiSettings,
-    isSelected = { selectionManager.isSelected(it) },
-    onClick = { onFolderClick(it) },
-    onLongClick = { onFolderLongClick(it) },
-    onToggleSelection = { selectionManager.toggle(it) },
-    emptyTitle = stringResource(R.string.no_video_folders_found),
-    emptyMessage = stringResource(R.string.no_video_folders_found_desc),
-    isRefreshing = isRefreshing,
-    onRefresh = onRefresh,
-    isInSelectionMode = selectionManager.isInSelectionMode,
-    recentlyPlayedFilePath = recentlyPlayedFilePath,
-    recentlyPlayedFilePaths = recentlyPlayedFilePaths,
-    recentlyPlayedPaths = recentlyPlayedPaths,
-    playedFolderPaths = playedFolderPaths,
-    autoScrollToLastPlayed = autoScrollToLastPlayed,
-    listState = listState,
-    gridState = gridState,
-    scrollTriggerKey = scrollTriggerKey,
-    gridColumns = folderGridColumns,
-  )
+  Box(modifier = Modifier.fillMaxSize()) {
+    UnifiedExplorerContent(
+      items = folders,
+      isLoading = showLoading,
+      uiSettings = uiSettings,
+      isSelected = { selectionManager.isSelected(it) },
+      onClick = { onFolderClick(it) },
+      onLongClick = { onFolderLongClick(it) },
+      onToggleSelection = { selectionManager.toggle(it) },
+      emptyTitle = stringResource(R.string.no_video_folders_found),
+      emptyMessage = stringResource(R.string.no_video_folders_found_desc),
+      isRefreshing = isRefreshing,
+      onRefresh = onRefresh,
+      isInSelectionMode = selectionManager.isInSelectionMode,
+      recentlyPlayedFilePath = recentlyPlayedFilePath,
+      recentlyPlayedFilePaths = recentlyPlayedFilePaths,
+      recentlyPlayedPaths = recentlyPlayedPaths,
+      playedFolderPaths = playedFolderPaths,
+      autoScrollToLastPlayed = autoScrollToLastPlayed,
+      listState = listState,
+      gridState = gridState,
+      scrollTriggerKey = scrollTriggerKey,
+      gridColumns = folderGridColumns,
+    )
+
+    if (!scanStatus.isNullOrBlank()) {
+      Surface(
+        modifier = Modifier
+          .align(Alignment.TopCenter)
+          .padding(12.dp),
+        shape = MaterialTheme.shapes.large,
+        tonalElevation = 6.dp,
+      ) {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier.padding(start = 16.dp, end = 8.dp),
+        ) {
+          if (isIndexScanning) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+          }
+          Text(
+            text = scanStatus,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodyMedium,
+          )
+          if (isIndexScanning) {
+            TextButton(onClick = onCancelScan) {
+              Text(stringResource(R.string.generic_cancel))
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 @Composable

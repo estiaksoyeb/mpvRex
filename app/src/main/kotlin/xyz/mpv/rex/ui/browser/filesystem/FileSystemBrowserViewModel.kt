@@ -189,9 +189,6 @@ class FileSystemBrowserViewModel(
           val filePaths = mediaFiles.map { it.absolutePath }.toTypedArray()
           android.media.MediaScannerConnection.scanFile(getApplication(), filePaths, null) { _, _ -> }
         }
-      } else {
-        val externalStorage = android.os.Environment.getExternalStorageDirectory()
-        android.media.MediaScannerConnection.scanFile(getApplication(), arrayOf(externalStorage.absolutePath), null) { _, _ -> }
       }
     } catch (e: Exception) {
       Log.e(TAG, "Failed to trigger media scan", e)

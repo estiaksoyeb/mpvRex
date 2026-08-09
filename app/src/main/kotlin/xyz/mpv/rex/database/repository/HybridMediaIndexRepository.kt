@@ -71,6 +71,28 @@ class HybridMediaIndexRepository(
   val scanState: StateFlow<HybridIndexScanState> = _scanState.asStateFlow()
 
   suspend fun ensureFresh(force: Boolean = false) = withContext(Dispatchers.IO) {
+    if (!force && !scanMutex.isLocked) {
+      val requiredRoots = resolveRoots()
+      val rootsById = dao.getRoots().associateBy { it.identity }
+      val now = System.currentTimeMillis()
+      val stale = requiredRoots.any { root ->
+        val stored = rootsById[root.identity]
+        stored == null || !stored.available || now - stored.lastCompletedAt > INDEX_TTL_MS
+      }
+      if (dao.getAvailableCount() > 0 && !stale) {
+        return@withContext
+      }
+    }
+
+    val runningJob = activeScanJob
+    if (runningJob?.isActive == true) {
+      if (force) {
+        cancelScan()
+      }
+      runCatching { runningJob.join() }
+      if (!force) return@withContext
+    }
+
     scanMutex.withLock {
       val requiredRoots = resolveRoots()
       val rootsById = dao.getRoots().associateBy { it.identity }
@@ -82,6 +104,12 @@ class HybridMediaIndexRepository(
       if (force || dao.getAvailableCount() == 0 || stale) {
         performRefresh(requiredRoots)
       }
+    }
+  }
+
+  suspend fun ensureFreshIfEmpty() = withContext(Dispatchers.IO) {
+    if (dao.getAvailableCount() == 0) {
+      ensureFresh()
     }
   }
 
@@ -333,36 +361,34 @@ class HybridMediaIndexRepository(
   private fun resolveRoots(): List<ScanRoot> {
     val roots = mutableListOf<ScanRoot>()
 
-    if (browserPreferences.includeNoMediaContent.get()) {
-      if (hasDirectStorageAccess()) {
-        StorageVolumeUtils.getAllStorageVolumes(context).forEach { volume ->
-          val path = StorageVolumeUtils.getVolumePath(volume) ?: return@forEach
-          val directory = File(path)
-          if (directory.exists() && directory.canRead()) {
-            val normalized = normalizePath(directory)
-            roots += ScanRoot(
-              identity = "direct:$normalized",
-              sourceType = SOURCE_DIRECT,
-              location = normalized,
-              displayName = volume.getDescription(context),
-            )
-          }
+    if (hasDirectStorageAccess()) {
+      StorageVolumeUtils.getAllStorageVolumes(context).forEach { volume ->
+        val path = StorageVolumeUtils.getVolumePath(volume) ?: return@forEach
+        val directory = File(path)
+        if (directory.exists() && directory.canRead()) {
+          val normalized = normalizePath(directory)
+          roots += ScanRoot(
+            identity = "direct:$normalized",
+            sourceType = SOURCE_DIRECT,
+            location = normalized,
+            displayName = volume.getDescription(context),
+          )
         }
       }
+    }
 
-      val persistedReadUris = context.contentResolver.persistedUriPermissions
-        .filter { it.isReadPermission }
-        .mapTo(mutableSetOf()) { it.uri.toString() }
+    val persistedReadUris = context.contentResolver.persistedUriPermissions
+      .filter { it.isReadPermission }
+      .mapTo(mutableSetOf()) { it.uri.toString() }
 
-      foldersPreferences.libraryScanRoots.get().forEach { uri ->
-        roots += ScanRoot(
-          identity = "saf:$uri",
-          sourceType = SOURCE_SAF,
-          location = uri,
-          displayName = DocumentFile.fromTreeUri(context, uri.toUri())?.name ?: "Selected folder",
-          authorized = uri in persistedReadUris,
-        )
-      }
+    foldersPreferences.libraryScanRoots.get().forEach { uri ->
+      roots += ScanRoot(
+        identity = "saf:$uri",
+        sourceType = SOURCE_SAF,
+        location = uri,
+        displayName = DocumentFile.fromTreeUri(context, uri.toUri())?.name ?: "Selected folder",
+        authorized = uri in persistedReadUris,
+      )
     }
 
     // MediaStore runs last so its valid metadata enriches matching direct files

@@ -87,15 +87,8 @@ class App : Application() {
         metadataCache.performMaintenance()
       }
     }
-    
-    // Trigger media scan on app launch to detect new videos
-    applicationScope.launch {
-      runCatching {
-        triggerMediaScanOnLaunch()
-      }
-    }
   }
-  
+
   private fun registerHybridIndexObservers() {
     val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
       override fun onChange(selfChange: Boolean) {
@@ -130,29 +123,5 @@ class App : Application() {
       storageFilter,
       ContextCompat.RECEIVER_EXPORTED,
     )
-  }
-
-  /**
-   * Trigger a media scan on app launch to ensure MediaStore is up-to-date
-   * This helps detect videos added by external apps while the app was closed
-   */
-  private fun triggerMediaScanOnLaunch() {
-    try {
-      val externalStorage = android.os.Environment.getExternalStorageDirectory()
-      
-      android.media.MediaScannerConnection.scanFile(
-        this,
-        arrayOf(externalStorage.absolutePath),
-        null, // Let MediaScanner detect all media types
-      ) { path, uri ->
-        android.util.Log.d("App", "Launch media scan completed for: $path")
-        // Notify the app that media library may have changed
-        MediaLibraryEvents.notifyChanged()
-      }
-      
-      android.util.Log.d("App", "Triggered media scan on app launch")
-    } catch (e: Exception) {
-      android.util.Log.e("App", "Failed to trigger media scan on launch", e)
-    }
   }
 }

@@ -123,6 +123,8 @@ class FolderListViewModel(
             "Scanning ${state.rootName ?: "library"}: ${state.scannedItems} files"
         } else if (state.error != null) {
           _scanStatus.value = state.error
+        } else {
+          _scanStatus.value = null
         }
       }
     }
@@ -232,9 +234,9 @@ class FolderListViewModel(
   override fun refresh(silent: Boolean) {
     viewModelScope.launch(Dispatchers.IO) {
       if (!silent) _isLoading.value = true
-      hybridMediaIndex.ensureFresh(force = true)
       currentScanJob?.cancel()
       currentScanJob = null
+      hybridMediaIndex.ensureFresh(force = true)
       loadData()
     }
   }

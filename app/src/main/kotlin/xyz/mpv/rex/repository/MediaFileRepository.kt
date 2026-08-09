@@ -112,7 +112,7 @@ object MediaFileRepository {
 
         val folders = if (scanPolicy.includeNoMediaContent) {
           val hybridIndex = koin.get<HybridMediaIndexRepository>()
-          hybridIndex.ensureFresh()
+          hybridIndex.ensureFreshIfEmpty()
           hybridIndex.getFoldersInDirectory(
             parentPath = path,
             playbackStates = playbackStates,

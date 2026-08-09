@@ -36,7 +36,7 @@ object MediaMetadataOps {
                 val blacklistedFolders = foldersPreferences.blacklistedFolders.get()
                 
                 val hybridIndex = koin.get<HybridMediaIndexRepository>()
-                hybridIndex.ensureFresh()
+                hybridIndex.ensureFreshIfEmpty()
                 val folders = hybridIndex.getFlatFolders(
                     playbackStates = playbackStates,
                     thresholdDays = thresholdDays,

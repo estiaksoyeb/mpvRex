@@ -52,7 +52,7 @@ object FileSystemOps {
                 val playbackStates = playbackStateRepository.getAllPlaybackStates()
                 val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
                 val useHybridIndex = browserPreferences.includeNoMediaContent.get()
-                if (useHybridIndex) hybridIndex.ensureFresh()
+                if (useHybridIndex) hybridIndex.ensureFreshIfEmpty()
 
                 val foldersPreferences = koin.get<xyz.mpv.rex.preferences.FoldersPreferences>()
                 val blacklistedFolders = foldersPreferences.blacklistedFolders.get()

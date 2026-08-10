@@ -204,8 +204,6 @@ object FolderListScreen : Screen {
     val recentlyPlayedFilePaths by viewModel.recentlyPlayedFilePaths.collectAsState()
     val playedFolderPaths by viewModel.playedFolderPaths.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val scanStatus by viewModel.scanStatus.collectAsState()
-    val indexScanState by viewModel.indexScanState.collectAsState()
     val hasCompletedInitialLoad by viewModel.hasCompletedInitialLoad.collectAsState()
     val foldersWereDeleted by viewModel.foldersWereDeleted.collectAsState()
 
@@ -754,9 +752,6 @@ object FolderListScreen : Screen {
               foldersWithNewCount = foldersWithNewCount,
               autoScrollToLastPlayed = autoScrollToLastPlayed,
               uiSettings = uiSettings,
-              scanStatus = scanStatus,
-              isIndexScanning = indexScanState.isScanning,
-              onCancelScan = viewModel::cancelIndexScan,
               listState = listState,
               gridState = gridState,
               isRefreshing = isRefreshing,
@@ -1000,9 +995,6 @@ private fun FolderListContent(
   recentlyPlayedFilePaths: Set<String> = emptySet(),
   playedFolderPaths: Set<String>,
   isLoading: Boolean,
-  scanStatus: String?,
-  isIndexScanning: Boolean,
-  onCancelScan: () -> Unit,
   hasCompletedInitialLoad: Boolean,
   foldersWereDeleted: Boolean,
   mediaLayoutMode: MediaLayoutMode,
@@ -1045,35 +1037,6 @@ private fun FolderListContent(
       scrollTriggerKey = scrollTriggerKey,
       gridColumns = folderGridColumns,
     )
-
-    if (!scanStatus.isNullOrBlank()) {
-      Surface(
-        modifier = Modifier
-          .align(Alignment.TopCenter)
-          .padding(12.dp),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 6.dp,
-      ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier = Modifier.padding(start = 16.dp, end = 8.dp),
-        ) {
-          if (isIndexScanning) {
-            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-          }
-          Text(
-            text = scanStatus,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            style = MaterialTheme.typography.bodyMedium,
-          )
-          if (isIndexScanning) {
-            TextButton(onClick = onCancelScan) {
-              Text(stringResource(R.string.generic_cancel))
-            }
-          }
-        }
-      }
-    }
   }
 }
 

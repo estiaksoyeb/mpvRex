@@ -74,7 +74,7 @@ class App : Application() {
         }
     }
     applicationScope.launch {
-      merge(rootInvalidations, MediaLibraryEvents.changes)
+      rootInvalidations
         .debounce(1_000)
         .collect {
           runCatching { hybridMediaIndex.ensureFresh(force = true) }

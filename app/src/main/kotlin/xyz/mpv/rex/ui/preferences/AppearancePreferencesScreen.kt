@@ -75,6 +75,7 @@ object AppearancePreferencesScreen : Screen {
         val browserPreferences = koinInject<BrowserPreferences>()
         val gesturePreferences = koinInject<GesturePreferences>()
         val foldersPreferences = koinInject<FoldersPreferences>()
+        val hybridMediaIndex = koinInject<xyz.mpv.rex.database.repository.HybridMediaIndexRepository>()
         val backstack = LocalBackStack.current
         val systemDarkTheme = isSystemInDarkTheme()
 
@@ -548,9 +549,12 @@ object AppearancePreferencesScreen : Screen {
                             val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
                             SwitchPreference(
                                 value = includeNoMediaContent,
-                                onValueChange = {
-                                    browserPreferences.includeNoMediaContent.set(it)
+                                onValueChange = { newValue ->
+                                    browserPreferences.includeNoMediaContent.set(newValue)
                                     MediaLibraryEvents.notifyChanged()
+                                    scope.launch(Dispatchers.IO) {
+                                        runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
+                                    }
                                 },
                                 title = {
                                     Text(

@@ -165,33 +165,8 @@ class FileSystemBrowserViewModel(
         _isLoading.value = true
       }
       MediaFileRepository.clearCache()
-      triggerMediaScan()
-      delay(if (silent) 100 else 800)
+      delay(if (silent) 100 else 300)
       loadData()
-    }
-  }
-  
-  private fun triggerMediaScan() {
-    try {
-      val path = _currentPath.value
-      if (path == STORAGE_ROOTS_MARKER) return
-      
-      val folder = File(path)
-      if (folder.exists() && folder.isDirectory) {
-        val mediaFiles = folder.listFiles { file ->
-          file.isFile && (
-            FileTypeUtils.isVideoFile(file) || 
-            (browserPreferences.showAudioFiles.get() && FileTypeUtils.isAudioFile(file))
-          )
-        }
-        
-        if (!mediaFiles.isNullOrEmpty()) {
-          val filePaths = mediaFiles.map { it.absolutePath }.toTypedArray()
-          android.media.MediaScannerConnection.scanFile(getApplication(), filePaths, null) { _, _ -> }
-        }
-      }
-    } catch (e: Exception) {
-      Log.e(TAG, "Failed to trigger media scan", e)
     }
   }
 

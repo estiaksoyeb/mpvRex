@@ -45,6 +45,7 @@ import kotlinx.coroutines.withContext
 
 data class HybridIndexScanState(
   val isScanning: Boolean = false,
+  val isUserInitiated: Boolean = false,
   val rootName: String? = null,
   val scannedItems: Int = 0,
   val completedRoots: Int = 0,
@@ -70,7 +71,8 @@ class HybridMediaIndexRepository(
   private val _scanState = MutableStateFlow(HybridIndexScanState())
   val scanState: StateFlow<HybridIndexScanState> = _scanState.asStateFlow()
 
-  suspend fun ensureFresh(force: Boolean = false) = withContext(Dispatchers.IO) {
+  suspend fun ensureFresh(force: Boolean = false, userInitiated: Boolean = false) = withContext(Dispatchers.IO) {
+    Log.d(TAG, "ensureFresh requested: force=$force, userInitiated=$userInitiated, activeScan=${activeScanJob?.isActive}")
     if (!force && !scanMutex.isLocked) {
       val requiredRoots = resolveRoots()
       val rootsById = dao.getRoots().associateBy { it.identity }
@@ -80,6 +82,7 @@ class HybridMediaIndexRepository(
         stored == null || !stored.available || now - stored.lastCompletedAt > INDEX_TTL_MS
       }
       if (dao.getAvailableCount() > 0 && !stale) {
+        Log.d(TAG, "ensureFresh skipped: index is already fresh (availableCount=${dao.getAvailableCount()})")
         return@withContext
       }
     }
@@ -102,38 +105,47 @@ class HybridMediaIndexRepository(
         stored == null || !stored.available || now - stored.lastCompletedAt > INDEX_TTL_MS
       }
       if (force || dao.getAvailableCount() == 0 || stale) {
-        performRefresh(requiredRoots)
+        performRefresh(requiredRoots, userInitiated = userInitiated)
       }
     }
   }
 
   suspend fun ensureFreshIfEmpty() = withContext(Dispatchers.IO) {
-    if (dao.getAvailableCount() == 0) {
+    val count = dao.getAvailableCount()
+    Log.d(TAG, "ensureFreshIfEmpty: availableCount=$count")
+    if (count == 0) {
       ensureFresh()
     }
   }
 
-  suspend fun refresh() = scanMutex.withLock {
-    performRefresh(resolveRoots())
+  suspend fun refresh(userInitiated: Boolean = false) = scanMutex.withLock {
+    performRefresh(resolveRoots(), userInitiated = userInitiated)
   }
 
-  suspend fun refreshMediaStore() = scanMutex.withLock {
-    performRefresh(listOf(mediaStoreRoot()), reconcileRootSet = false)
+  suspend fun refreshMediaStore(userInitiated: Boolean = false) = scanMutex.withLock {
+    performRefresh(listOf(mediaStoreRoot()), reconcileRootSet = false, userInitiated = userInitiated)
   }
 
   fun cancelScan() {
+    Log.d(TAG, "cancelScan called")
     activeScanJob?.cancel()
   }
 
-  private suspend fun performRefresh(roots: List<ScanRoot>, reconcileRootSet: Boolean = true) {
+  private suspend fun performRefresh(
+    roots: List<ScanRoot>,
+    reconcileRootSet: Boolean = true,
+    userInitiated: Boolean = false,
+  ) {
     activeScanJob = currentCoroutineContext()[Job]
     val generation = System.currentTimeMillis()
     var scannedItems = 0
     var completedRoots = 0
     var lastError: String? = null
+    Log.d(TAG, "performRefresh started: userInitiated=$userInitiated, roots=${roots.map { it.displayName }}")
 
     _scanState.value = HybridIndexScanState(
       isScanning = true,
+      isUserInitiated = userInitiated,
       totalRoots = roots.size,
     )
 
@@ -192,11 +204,13 @@ class HybridMediaIndexRepository(
       activeScanJob = null
       _scanState.value = _scanState.value.copy(
         isScanning = false,
+        isUserInitiated = false,
         rootName = null,
         scannedItems = scannedItems,
         completedRoots = completedRoots,
         error = lastError,
       )
+      Log.d(TAG, "performRefresh completed in ${System.currentTimeMillis() - generation}ms, scannedItems=$scannedItems, completedRoots=$completedRoots, error=$lastError")
       startBackgroundEnrichment()
     }
   }
@@ -417,6 +431,7 @@ class HybridMediaIndexRepository(
       throw IllegalStateException("Direct root is unavailable")
     }
 
+    val includeNoMedia = browserPreferences.includeNoMediaContent.get()
     val blacklist = foldersPreferences.blacklistedFolders.get()
       .mapTo(mutableSetOf()) { normalizePath(File(it)) }
     val batch = mutableListOf<HybridMediaEntity>()
@@ -437,6 +452,7 @@ class HybridMediaIndexRepository(
 
       val entries = folder.listFiles() ?: return
       val noMedia = inheritedNoMedia || entries.any { it.isFile && it.name == ".nomedia" }
+      if (!includeNoMedia && noMedia) return
       for (entry in entries) {
         currentCoroutineContext().ensureActive()
         if (entry.isDirectory) {
@@ -493,6 +509,7 @@ class HybridMediaIndexRepository(
       throw SecurityException("Selected folder cannot be read")
     }
 
+    val includeNoMedia = browserPreferences.includeNoMediaContent.get()
     val batch = mutableListOf<HybridMediaEntity>()
     var count = 0
 
@@ -508,6 +525,7 @@ class HybridMediaIndexRepository(
       if (depth > MAX_DEPTH) return
       val entries = folder.listFiles()
       val noMedia = inheritedNoMedia || entries.any { it.isFile && it.name == ".nomedia" }
+      if (!includeNoMedia && noMedia) return
       val parentIdentity = folder.uri.toString()
       val parentName = folder.name ?: "Folder"
 

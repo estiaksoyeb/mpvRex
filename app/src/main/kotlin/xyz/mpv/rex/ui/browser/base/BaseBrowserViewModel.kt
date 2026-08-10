@@ -87,19 +87,13 @@ abstract class BaseBrowserViewModel<T>(
 
   init {
     // Reactive Synchronization:
-    // Observe playback state changes and media library events, debouncing triggers
-    // to prevent redundant reload storms and cache invalidation races.
+    // Observe media library structural changes (file operations), debouncing triggers
+    // to prevent redundant reload storms.
     viewModelScope.launch(Dispatchers.Main) {
-      merge(
-        playbackStateRepository.observeAllPlaybackStates(),
-        MediaLibraryEvents.changes
-      )
+      MediaLibraryEvents.changes
         .debounce(300L)
         .collectLatest {
-          Log.d("BaseBrowserViewModel", "Invalidating scanner cache and refreshing browser data")
-          withContext(Dispatchers.IO) {
-            MediaFileRepository.clearCache()
-          }
+          Log.d("BaseBrowserViewModel", "Refreshing browser data from media library event")
           loadData()
         }
     }

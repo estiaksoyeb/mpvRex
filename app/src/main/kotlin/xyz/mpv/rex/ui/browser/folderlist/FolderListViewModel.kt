@@ -47,7 +47,6 @@ class FolderListViewModel(
   private val browserPreferences: xyz.mpv.rex.preferences.BrowserPreferences by inject()
   private val recentlyPlayedRepository: RecentlyPlayedRepository by inject()
   private val hybridMediaIndex: HybridMediaIndexRepository by inject()
-  val indexScanState get() = hybridMediaIndex.scanState
 
   private val _allVideoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
   private val _videoFolders = MutableStateFlow<List<VideoFolder>>(emptyList())
@@ -75,12 +74,6 @@ class FolderListViewModel(
 
   // Track previous folder count to detect if all folders were deleted
   private var previousFolderCount = 0
-
-  /*
-   * TRACKING LOADING STATE
-   */
-  private val _scanStatus = MutableStateFlow<String?>(null)
-  val scanStatus: StateFlow<String?> = _scanStatus.asStateFlow()
 
   private val _isEnriching = MutableStateFlow(false)
   val isEnriching: StateFlow<Boolean> = _isEnriching.asStateFlow()
@@ -115,19 +108,6 @@ class FolderListViewModel(
     }
 
     // Note: BaseBrowserViewModel handles MediaLibraryEvents.changes and playback state observation centrally.
-
-    viewModelScope.launch {
-      hybridMediaIndex.scanState.collectLatest { state ->
-        if (state.isScanning) {
-          _scanStatus.value =
-            "Scanning ${state.rootName ?: "library"}: ${state.scannedItems} files"
-        } else if (state.error != null) {
-          _scanStatus.value = state.error
-        } else {
-          _scanStatus.value = null
-        }
-      }
-    }
 
     // Filter folders based on blacklist and audio visibility
     viewModelScope.launch {
@@ -236,7 +216,7 @@ class FolderListViewModel(
       if (!silent) _isLoading.value = true
       currentScanJob?.cancel()
       currentScanJob = null
-      hybridMediaIndex.ensureFresh(force = true)
+      hybridMediaIndex.ensureFresh(force = true, userInitiated = !silent)
       loadData()
     }
   }
@@ -257,7 +237,6 @@ class FolderListViewModel(
         val isFirstLoad = _allVideoFolders.value.isEmpty()
         if (isFirstLoad) {
           _isLoading.value = true
-          _scanStatus.value = "Scanning media..."
         }
         
         val startTime = System.currentTimeMillis()
@@ -270,7 +249,6 @@ class FolderListViewModel(
         if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
           if (isFirstLoad) {
             _isEnriching.value = true
-            _scanStatus.value = "Extracting metadata..."
           }
           folders = MetadataRetrieval.enrichFoldersIfNeeded(
             context = getApplication(),
@@ -284,12 +262,10 @@ class FolderListViewModel(
         _allVideoFolders.value = folders
         _isLoading.value = false
         _hasCompletedInitialLoad.value = true
-        _scanStatus.value = null
       } catch (e: Exception) {
         Log.e(TAG, "Error loading video folders", e)
         _isLoading.value = false
         _hasCompletedInitialLoad.value = true
-        _scanStatus.value = "Error loading folders"
       }
     }
   }

@@ -85,7 +85,14 @@ class VideoListViewModel(
 
   init {
     loadData()
-    // Note: BaseBrowserViewModel handles MediaLibraryEvents and Playback changes centrally.
+    viewModelScope.launch {
+      playbackStateRepository.observeAllPlaybackStates()
+        .collect {
+          if (_videos.value.isNotEmpty()) {
+            loadPlaybackInfo(_videos.value)
+          }
+        }
+    }
   }
 
   override fun loadData() {
@@ -109,37 +116,9 @@ class VideoListViewModel(
         previousVideoCount = videoList.size
 
         if (videoList.isEmpty()) {
-          triggerMediaScan()
-          delay(800)
-          var retryVideoList = MediaFileRepository.getVideosInFolder(getApplication(), bucketId)
-          if (!browserPreferences.showAudioFiles.get()) {
-            retryVideoList = retryVideoList.filterNot { it.isAudio }
-          }
-          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && retryVideoList.isNotEmpty()) {
-            retryVideoList = MetadataRetrieval.applyCachedMetadata(
-              videos = retryVideoList,
-              browserPreferences = browserPreferences,
-              metadataCache = metadataCache
-            )
-          }
-          _videos.value = retryVideoList
-          loadPlaybackInfo(retryVideoList)
+          _videos.value = emptyList()
+          loadPlaybackInfo(emptyList())
           _isLoading.value = false
-
-          // Extract metadata in background for any uncached videos
-          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && retryVideoList.isNotEmpty()) {
-            val uncachedCount = retryVideoList.count { it.fps == 0f || it.subtitleCodec.isEmpty() }
-            if (uncachedCount > 0) {
-              val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
-                context = getApplication(),
-                videos = retryVideoList,
-                browserPreferences = browserPreferences,
-                metadataCache = metadataCache
-              )
-              _videos.value = enrichedList
-              loadPlaybackInfo(enrichedList)
-            }
-          }
         } else {
           // Pre-apply DB cached metadata before initial emission to prevent chip flickering
           if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
@@ -244,26 +223,6 @@ class VideoListViewModel(
         )
       }
     _videosWithPlaybackInfo.value = videosWithInfo
-  }
-
-  private fun triggerMediaScan() {
-    try {
-      val folder = File(bucketId)
-      if (folder.exists() && folder.isDirectory) {
-        val mediaFiles = folder.listFiles { file ->
-          file.isFile && (
-            FileTypeUtils.isVideoFile(file) || 
-            (browserPreferences.showAudioFiles.get() && FileTypeUtils.isAudioFile(file))
-          )
-        }
-        if (!mediaFiles.isNullOrEmpty()) {
-          val filePaths = mediaFiles.map { it.absolutePath }.toTypedArray()
-          android.media.MediaScannerConnection.scanFile(getApplication(), filePaths, null) { _, _ -> }
-        }
-      }
-    } catch (e: Exception) {
-      Log.e(tag, "Failed to trigger media scan", e)
-    }
   }
 
   companion object {

@@ -61,24 +61,7 @@ object MediaLibraryPreferencesScreen : Screen {
 
     val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
     val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
-    val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
     val libraryScanRoots by foldersPreferences.libraryScanRoots.collectAsState()
-
-    val libraryRootPicker = rememberLauncherForActivityResult(OpenDocumentTreeContract()) { uri ->
-      uri ?: return@rememberLauncherForActivityResult
-      runCatching {
-        context.contentResolver.takePersistableUriPermission(
-          uri,
-          Intent.FLAG_GRANT_READ_URI_PERMISSION,
-        )
-      }.onSuccess {
-        foldersPreferences.libraryScanRoots.set(libraryScanRoots + uri.toString())
-        MediaLibraryEvents.notifyChanged()
-        scope.launch(Dispatchers.IO) {
-          runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
-        }
-      }
-    }
 
     Scaffold(
       topBar = {
@@ -152,22 +135,6 @@ object MediaLibraryPreferencesScreen : Screen {
                   )
                 },
               )
-
-              PreferenceDivider()
-
-              SwitchPreference(
-                value = showTreeViewPath,
-                onValueChange = { newValue ->
-                  browserPreferences.showTreeViewPath.set(newValue)
-                },
-                title = { Text(text = stringResource(R.string.pref_show_tree_view_path_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_show_tree_view_path_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
             }
           }
 
@@ -192,18 +159,18 @@ object MediaLibraryPreferencesScreen : Screen {
               PreferenceDivider()
 
               Preference(
-                title = { Text(text = stringResource(R.string.pref_add_library_root)) },
+                title = { Text(text = stringResource(R.string.pref_library_roots_title)) },
                 summary = {
                   Text(
                     text = if (libraryScanRoots.isEmpty()) {
-                      stringResource(R.string.no_storage_devices_found)
+                      stringResource(R.string.pref_library_roots_empty_title)
                     } else {
                       stringResource(R.string.pref_library_root_count, libraryScanRoots.size)
                     },
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
-                onClick = { libraryRootPicker.launch(null) },
+                onClick = { backstack.add(LibraryRootsPreferencesScreen) },
               )
             }
           }

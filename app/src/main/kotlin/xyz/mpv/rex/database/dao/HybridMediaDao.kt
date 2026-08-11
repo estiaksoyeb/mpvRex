@@ -101,5 +101,16 @@ interface HybridMediaDao {
 
   @Query("DELETE FROM hybrid_media_roots")
   suspend fun clearRoots()
+
+  @Query(
+    """
+    DELETE FROM hybrid_media_index
+    WHERE location = :path
+       OR location LIKE :prefixPattern ESCAPE '\'
+       OR parentIdentity = :path
+       OR parentIdentity LIKE :prefixPattern ESCAPE '\'
+    """,
+  )
+  suspend fun deleteByPathPrefix(path: String, prefixPattern: String)
 }
 

@@ -37,6 +37,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -70,6 +71,25 @@ class HybridMediaIndexRepository(
   private var enrichmentJob: Job? = null
   private val _scanState = MutableStateFlow(HybridIndexScanState())
   val scanState: StateFlow<HybridIndexScanState> = _scanState.asStateFlow()
+
+  init {
+    repositoryScope.launch {
+      foldersPreferences.blacklistedFolders.changes().drop(1).collect { blacklist ->
+        purgeExcludedFolders(blacklist)
+        ensureFresh(force = true, userInitiated = false)
+      }
+    }
+  }
+
+  suspend fun purgeExcludedFolders(excludedPaths: Set<String> = foldersPreferences.blacklistedFolders.get()) = withContext(Dispatchers.IO) {
+    if (excludedPaths.isEmpty()) return@withContext
+    Log.d(TAG, "Purging excluded folders from Room index: $excludedPaths")
+    excludedPaths.forEach { rawPath ->
+      val normalized = normalizePath(File(rawPath))
+      val escaped = normalized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+      dao.deleteByPathPrefix(normalized, "$escaped/%")
+    }
+  }
 
   suspend fun ensureFresh(force: Boolean = false, userInitiated: Boolean = false) = withContext(Dispatchers.IO) {
     Log.d(TAG, "ensureFresh requested: force=$force, userInitiated=$userInitiated, activeScan=${activeScanJob?.isActive}")
@@ -448,7 +468,10 @@ class HybridMediaIndexRepository(
       currentCoroutineContext().ensureActive()
       if (depth > MAX_DEPTH) return
       val normalizedFolder = normalizePath(folder)
-      if (blacklist.any { normalizedFolder == it || normalizedFolder.startsWith("$it/") }) return
+      if (blacklist.any { normalizedFolder == it || normalizedFolder.startsWith("$it/") }) {
+        Log.d(TAG, "Skipping excluded directory tree: $normalizedFolder")
+        return
+      }
 
       val entries = folder.listFiles() ?: return
       val noMedia = inheritedNoMedia || entries.any { it.isFile && it.name == ".nomedia" }
@@ -510,6 +533,7 @@ class HybridMediaIndexRepository(
     }
 
     val includeNoMedia = browserPreferences.includeNoMediaContent.get()
+    val blacklist = foldersPreferences.blacklistedFolders.get()
     val batch = mutableListOf<HybridMediaEntity>()
     var count = 0
 
@@ -523,6 +547,15 @@ class HybridMediaIndexRepository(
     suspend fun walk(folder: DocumentFile, inheritedNoMedia: Boolean, depth: Int) {
       currentCoroutineContext().ensureActive()
       if (depth > MAX_DEPTH) return
+      val folderUriStr = folder.uri.toString()
+      if (blacklist.any { excluded ->
+          folderUriStr == excluded || folderUriStr.startsWith("$excluded/") ||
+          (excluded.startsWith("/") && Uri.decode(folderUriStr).contains(excluded))
+        }
+      ) {
+        Log.d(TAG, "Skipping excluded SAF directory tree: $folderUriStr")
+        return
+      }
       val entries = folder.listFiles()
       val noMedia = inheritedNoMedia || entries.any { it.isFile && it.name == ".nomedia" }
       if (!includeNoMedia && noMedia) return
@@ -581,6 +614,8 @@ class HybridMediaIndexRepository(
     generation: Long,
     alreadyScanned: Int,
   ): Int {
+    val blacklist = foldersPreferences.blacklistedFolders.get()
+      .mapTo(mutableSetOf()) { normalizePath(File(it)) }
     val batch = mutableListOf<HybridMediaEntity>()
     var count = 0
 
@@ -627,6 +662,10 @@ class HybridMediaIndexRepository(
           val contentUri = Uri.withAppendedPath(uri, id.toString()).toString()
           val location = file?.let(::normalizePath) ?: contentUri
           val parent = file?.parentFile?.let(::normalizePath) ?: contentUri.substringBeforeLast('/')
+          if (blacklist.any { location == it || location.startsWith("$it/") || parent == it || parent.startsWith("$it/") }) {
+            Log.d(TAG, "Skipping excluded MediaStore item: $location")
+            continue
+          }
           val parentName = file?.parentFile?.name ?: "MediaStore"
           batch += HybridMediaEntity(
             identity = if (file != null) "file:$location" else "content:$contentUri",

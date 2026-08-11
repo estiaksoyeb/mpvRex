@@ -72,6 +72,13 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.LaunchedEffect
 import xyz.mpv.rex.ui.utils.CommunityIcon
 import xyz.mpv.rex.ui.browser.dialogs.CommunityLinksDialog
 
@@ -237,27 +244,50 @@ private fun NormalTopBar(
           )
         }
 
-      Text(
-        title,
-        style =
-          if (onBackClick == null) {
-            MaterialTheme.typography.headlineMediumEmphasized
-          } else {
-            MaterialTheme.typography.headlineSmall
-          },
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier =
-          titleModifier.then(
+      val isAppTitleHeader = isHomeScreen || title == stringResource(R.string.app_name) || title == "mpvRex"
+      var showNewName by remember { mutableStateOf(false) }
+
+      if (isAppTitleHeader) {
+        LaunchedEffect(Unit) {
+          while (true) {
+            delay(4000)
+            showNewName = !showNewName
+          }
+        }
+      }
+
+      val displayTitle = if (isAppTitleHeader && showNewName) "REX Player" else title
+
+      AnimatedContent(
+        targetState = displayTitle,
+        transitionSpec = {
+          (fadeIn(animationSpec = tween(600)) + slideInVertically { height -> height / 2 })
+            .togetherWith(fadeOut(animationSpec = tween(600)) + slideOutVertically { height -> -height / 2 })
+        },
+        label = "HeaderTitleTransition",
+      ) { currentTitle ->
+        Text(
+          currentTitle,
+          style =
             if (onBackClick == null) {
-              Modifier.padding(start = 8.dp)
+              MaterialTheme.typography.headlineMediumEmphasized
             } else {
-              Modifier
+              MaterialTheme.typography.headlineSmall
             },
-          ),
-      )
+          fontWeight = FontWeight.ExtraBold,
+          color = MaterialTheme.colorScheme.primary,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          modifier =
+            titleModifier.then(
+              if (onBackClick == null) {
+                Modifier.padding(start = 8.dp)
+              } else {
+                Modifier
+              },
+            ),
+        )
+      }
     },
     navigationIcon = {
       if (onBackClick != null) {

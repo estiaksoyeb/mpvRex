@@ -737,6 +737,17 @@
     <string name="pref_library_root_count">Selected library folders: %1$d</string>
     <string name="pref_show_tree_view_path_title">Show path breadcrumbs</string>
     <string name="pref_show_tree_view_path_summary">Show the folder path breadcrumbs at the top of Tree View</string>
+    <string name="pref_media_library_title">Media &amp; Library</string>
+    <string name="pref_media_library_summary">Manage scan roots, .nomedia files, blacklisted folders, and indexing</string>
+    <string name="pref_category_content_discovery">Content &amp; Discovery</string>
+    <string name="pref_category_storage_exclusions">Storage &amp; Exclusions</string>
+    <string name="pref_category_library_maintenance">Library Maintenance</string>
+    <string name="pref_rescan_library_title">Force Rescan Library</string>
+    <string name="pref_rescan_library_summary">Re-index internal shared storage and custom roots to discover media</string>
+    <string name="pref_clear_metadata_cache_title">Clear Metadata Cache</string>
+    <string name="pref_clear_metadata_cache_summary">Delete cached video metadata, frame dimensions, and thumbnail cache</string>
+    <string name="pref_rescan_started_toast">Media library rescan started</string>
+    <string name="pref_cache_cleared_toast">Metadata cache cleared</string>
 
     <string name="copy_path">Copy path</string>
     <string name="copy_video_path">Copy video file path</string>

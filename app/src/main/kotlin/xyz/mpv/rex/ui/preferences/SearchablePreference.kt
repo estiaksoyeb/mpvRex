@@ -398,6 +398,29 @@ object SearchablePreferences {
                 screen = AppearancePreferencesScreen,
             ))
 
+            // Media & Library preferences
+            add(SearchablePreference(
+                titleRes = R.string.pref_media_library_title,
+                summaryRes = R.string.pref_media_library_summary,
+                keywords = listOf("media", "library", "nomedia", "scan", "rescan", "cache", "blacklist", "audio", "folders", "indexing"),
+                category = "Media & Library",
+                screen = MediaLibraryPreferencesScreen,
+            ))
+            add(SearchablePreference(
+                titleRes = R.string.pref_rescan_library_title,
+                summaryRes = R.string.pref_rescan_library_summary,
+                keywords = listOf("rescan", "scan", "refresh", "indexing", "library", "storage", "reindex"),
+                category = "Media & Library",
+                screen = MediaLibraryPreferencesScreen,
+            ))
+            add(SearchablePreference(
+                titleRes = R.string.pref_clear_metadata_cache_title,
+                summaryRes = R.string.pref_clear_metadata_cache_summary,
+                keywords = listOf("clear", "cache", "metadata", "thumbnails", "reset", "purge"),
+                category = "Media & Library",
+                screen = MediaLibraryPreferencesScreen,
+            ))
+
             // Folder preferences
             add(SearchablePreference(
                 titleRes = R.string.pref_folders_title,

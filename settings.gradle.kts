@@ -11,16 +11,16 @@ pluginManagement {
     gradlePluginPortal()
   }
 }
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
 dependencyResolutionManagement {
   repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
   repositories {
     google()
     mavenLocal()
     mavenCentral()
-    maven(url = "https://sfsakhawat999.github.io/mpvRex-libmpv")
+    val mpvMavenUrl = providers.gradleProperty("MPV_LIB_MAVEN_URL").orNull
+    if (!mpvMavenUrl.isNullOrEmpty()) {
+      maven(url = mpvMavenUrl)
+    }
     maven(url = "https://www.jitpack.io") {
       content {
         // Only use JitPack for specific dependencies to avoid unnecessary checks

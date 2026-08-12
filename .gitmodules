@@ -1,0 +1,3 @@
+[submodule "mpvRex-libmpv"]
+	path = mpvRex-libmpv
+	url = https://github.com/sfsakhawat999/mpvRex-libmpv.git

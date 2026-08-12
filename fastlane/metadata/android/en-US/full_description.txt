@@ -1,19 +1,15 @@
-mpvExtended is a front-end for the versatile media player mpv, built on the libmpv library. It aims to combine the powerful features of mpv with an easier-to-use interface and additional functionality.
+mpvRex is a feature-rich, open-source video player for Android based on libmpv. It combines the powerful playback engine of mpv with a modern, customizable Jetpack Compose interface.
 
- - Simpler and Easier to Use UI: Designed to make navigation and playback smoother, especially for those who want a straightforward media player experience.
- - Advanced Configuration and Scripting: Offers the full capabilities of mpv's scripting and configuration for users who want to customize their playback.
- - Enhanced Playback Features: Frame-by-frame navigation, sleep timer, speed presets, and better playback history implementation.
- - Picture-in-Picture (PiP): Continue watching videos while using other apps.
- - Multi-Modal Controls: Includes customizable gestures for controlling volume, brightness, and playback, along with keyboard input support.
- - High-Quality Rendering: Hardware and software video decoding with advanced rendering settings.
- - Network Streaming: Play network streams with the "Open URL" function.
- - File Management: Provides basic file operations like copy, move, rename, and delete.
+Features:
 
-mpvExtended aims to enhance the mpv experience by making it more accessible while retaining its flexibility and powerful playback capabilities.
+• Playback Engine: High-performance video decoding via libmpv, hardware acceleration, and HDR-to-SDR tone mapping.
+• Intuitive Gestures: Circular double-tap seek, subtitle drag-to-reposition, gesture seek cancellation, and precision frame-by-frame controls.
+• Modern UI: Sleek glassmorphism interface, dynamic accent color matching, and customizable tab layouts.
+• Media & Network Explorer: Unified file browser supporting local storage, network shares (SMB, WebDAV, FTP), M3U playlists, and media library views.
+• Advanced Customization: Saved per-video aspect ratio, zoom, pan, orientation, and track memory.
 
-This app respects your freedom and privacy:
+Privacy & Freedom:
 
-* No trackers
-* No advertisements
-* Fully open source
-* No unnecessary permissions
+• Fully open source (Apache 2.0)
+• Zero trackers or analytics
+• No advertisements

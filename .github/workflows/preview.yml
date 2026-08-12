@@ -27,6 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -39,7 +40,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle
-        run: ./gradlew assemblePreview
+        run: ./gradlew assemblePreview -PMPV_LIB_MAVEN_URL=https://sfsakhawat999.github.io/mpvRex-libmpv
 
       - name: Sign APKs
         run: |

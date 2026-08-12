@@ -1,1 +1,1 @@
-A powerful media player built on mpv with an improved user interface
+A modern Android video player powered by libmpv, built with Jetpack Compose.

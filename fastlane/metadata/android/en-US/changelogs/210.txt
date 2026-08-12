@@ -1,0 +1,7 @@
+- In-App Persistent Mini Player with background playback & fluid gestures
+- Video Clip Cutting: export clips directly from A-B repeat overlay
+- Per-video smart track & external audio memory persistence
+- High-Speed SMB streaming engine with up to 4x throughput boost
+- View device HW & SW decoder capabilities in settings
+- Custom seekbar options, gesture tweaks & performance optimizations
+- Translations: Simplified Chinese, Spanish, and Arabic updates

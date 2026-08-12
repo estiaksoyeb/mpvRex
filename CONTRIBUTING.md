@@ -12,6 +12,12 @@ We welcome bug fixes, performance optimizations, and feature enhancements.
 
 ### Build Setup & Verification
 
+* **Cloning Repository:**
+  ```bash
+  git clone --recurse-submodules https://github.com/sfsakhawat999/mpvRex.git
+  # or if already cloned:
+  git submodule update --init --recursive
+  ```
 * **SDK/JDK Requirements:** Java 17
 * **Build Tool:** Gradle
 

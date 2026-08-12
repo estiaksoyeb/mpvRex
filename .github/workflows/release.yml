@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -29,7 +30,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build release with Gradle
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease -PMPV_LIB_MAVEN_URL=https://sfsakhawat999.github.io/mpvRex-libmpv --stacktrace
 
       - name: Get tag name
         if: startsWith(github.ref, 'refs/tags/')

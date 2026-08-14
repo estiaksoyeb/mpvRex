@@ -851,8 +851,7 @@ object FolderListScreen : Screen {
             showRename = selectionManager.isSingleSelection,
             showDelete = selectionManager.selectedCount <= 1,
             showAddToPlaylist = false,
-            onMarkAsClick = { showMarkAsSheet = true },
-            modifier = Modifier.padding(bottom = navigationBarHeight),
+            onMarkAsClick = { showMarkAsSheet = true }
           )
         }
       }

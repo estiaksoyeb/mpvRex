@@ -494,8 +494,7 @@ fun MediaLibraryContent() {
           onMarkAsClick = { showMarkAsSheet = true },
           showCopy = false,
           showMove = false,
-          showAddToPlaylist = true,
-          modifier = Modifier.padding(bottom = navigationBarHeight + 16.dp)
+          showAddToPlaylist = true
         )
       }
     }

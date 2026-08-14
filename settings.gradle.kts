@@ -35,3 +35,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "mpvEx"
 include(":app")
+include(":mpvRex-libmpv:app")

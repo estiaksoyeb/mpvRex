@@ -205,7 +205,7 @@ dependencies {
   implementation(libs.truetype.parser)
   implementation(libs.fsaf)
   implementation(libs.mediainfo.lib)
-  implementation(libs.mpv.lib)
+  implementation(project(":mpvRex-libmpv:app"))
 
   // Network protocol libraries
   implementation(libs.smbj)

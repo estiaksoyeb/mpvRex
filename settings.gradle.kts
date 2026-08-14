@@ -19,9 +19,7 @@ dependencyResolutionManagement {
     mavenCentral()
     val mpvMavenUrl = providers.gradleProperty("MPV_LIB_MAVEN_URL").orNull
     if (!mpvMavenUrl.isNullOrEmpty()) {
-      maven {
-        setUrl(mpvMavenUrl)
-      }
+      maven(mpvMavenUrl)
     }
     maven(url = "https://www.jitpack.io") {
       content {

@@ -194,18 +194,25 @@ class MPVView(
 
     // Audio may have been loaded while vo=null with no video track selected. Unlike vid=auto,
     // selecting the attached-picture track by ID reliably starts its single-frame decoder.
+    // ONLY do this if the file has NO real (non-albumart) video tracks (i.e. audio-only files).
     val trackCount = runCatching { MPVLib.getPropertyInt("track-list/count") ?: 0 }.getOrDefault(0)
-    val albumArtTrackId = (0 until trackCount).firstNotNullOfOrNull { index ->
+    var hasRealVideoTrack = false
+    var albumArtTrackId: Int? = null
+
+    for (index in 0 until trackCount) {
       val type = runCatching { MPVLib.getPropertyString("track-list/$index/type") }.getOrNull()
-      val isAlbumArt = runCatching { MPVLib.getPropertyBoolean("track-list/$index/albumart") }.getOrNull()
-      if (type == "video" && isAlbumArt == true) {
-        runCatching { MPVLib.getPropertyInt("track-list/$index/id") }.getOrNull()
-      } else {
-        null
+      if (type == "video") {
+        val isAlbumArt = runCatching { MPVLib.getPropertyBoolean("track-list/$index/albumart") }.getOrNull()
+        val id = runCatching { MPVLib.getPropertyInt("track-list/$index/id") }.getOrNull()
+        if (isAlbumArt == true) {
+          if (albumArtTrackId == null) albumArtTrackId = id
+        } else {
+          hasRealVideoTrack = true
+        }
       }
     }
 
-    if (albumArtTrackId != null) {
+    if (!hasRealVideoTrack && albumArtTrackId != null) {
       runCatching { MPVLib.setPropertyInt("vid", albumArtTrackId) }
       runCatching { MPVLib.command("seek", "0", "relative+exact") }
     }

@@ -137,7 +137,8 @@ class TrackSelector(
           forced = MPVLib.getPropertyBoolean("track-list/$i/forced") ?: false,
           hearing = MPVLib.getPropertyBoolean("track-list/$i/hearing-impaired") ?: false,
           external = MPVLib.getPropertyBoolean("track-list/$i/external") ?: false,
-          image = MPVLib.getPropertyBoolean("track-list/$i/image") ?: false
+          image = (MPVLib.getPropertyBoolean("track-list/$i/image") ?: false) ||
+                  (MPVLib.getPropertyBoolean("track-list/$i/albumart") ?: false)
         )
       )
     }

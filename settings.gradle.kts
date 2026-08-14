@@ -19,10 +19,11 @@ dependencyResolutionManagement {
     mavenCentral()
     val mpvMavenUrl = providers.gradleProperty("MPV_LIB_MAVEN_URL").orNull
     if (!mpvMavenUrl.isNullOrEmpty()) {
-      maven {
+      val method = repositories.javaClass.getMethod("maven", Action::class.java)
+      method.invoke(repositories, Action<org.gradle.api.artifacts.repositories.MavenArtifactRepository> {
         name = "MpvPrebuiltRepo"
-        url = java.net.URI.create(mpvMavenUrl)
-      }
+        setUrl(mpvMavenUrl)
+      })
     }
     maven(url = "https://www.jitpack.io") {
       content {

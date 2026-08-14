@@ -284,7 +284,10 @@ class FileSystemBrowserViewModel(
               itemCountByPath[path] = items.size
 
               val filteredItems = if (!browserPreferences.showAudioFiles.get()) {
-                items.filterNot { it is FileSystemItem.VideoFile && it.video.isAudio }
+                items.filterNot { 
+                  (it is FileSystemItem.VideoFile && it.video.isAudio) ||
+                  (it is FileSystemItem.Folder && it.videoCount == 0)
+                }
               } else {
                 items
               }

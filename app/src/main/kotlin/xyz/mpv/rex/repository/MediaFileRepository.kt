@@ -131,7 +131,7 @@ object MediaFileRepository {
         }
         folders
           .filter { data ->
-            isAudioEnabled || data.videoCount > 0 || data.hasSubfolders
+            isAudioEnabled || data.videoCount > 0
           }
           .forEach { folderData ->
             items.add(

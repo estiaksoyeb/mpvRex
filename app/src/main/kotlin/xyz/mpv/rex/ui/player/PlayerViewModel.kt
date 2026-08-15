@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.AudioPreferences
+import xyz.mpv.rex.preferences.DecoderPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.SubtitlesPreferences
@@ -87,6 +88,7 @@ class PlayerViewModel(
 ) : ViewModel(),
   KoinComponent {
   private val playerPreferences: PlayerPreferences by inject()
+  private val decoderPreferences: DecoderPreferences by inject()
   private val gesturePreferences: GesturePreferences by inject()
   private val audioPreferences: AudioPreferences by inject()
   private val subtitlesPreferences: SubtitlesPreferences by inject()
@@ -2188,13 +2190,8 @@ class PlayerViewModel(
   fun toggleMirroring() {
     val newMirrorState = !_isMirrored.value
     _isMirrored.value = newMirrorState
-    
-    // Use labeled video filter for mirroring to avoid state desync
-    if (newMirrorState) {
-      MPVLib.command("vf", "add", "@mpvex_hflip:hflip")
-    } else {
-      MPVLib.command("vf", "remove", "@mpvex_hflip")
-    }
+
+    updateVideoFlipFilters()
     playerUpdate.value = PlayerUpdates.ShowText(if (newMirrorState) "H-Flip On" else "H-Flip Off")
   }
 
@@ -2202,14 +2199,40 @@ class PlayerViewModel(
     val newState = !_isVerticalFlipped.value
     _isVerticalFlipped.value = newState
 
-    // Use labeled video filter for vflip to avoid state desync
-    if (newState) {
-      MPVLib.command("vf", "add", "@mpvex_vflip:vflip")
-    } else {
-      MPVLib.command("vf", "remove", "@mpvex_vflip")
-    }
-
+    updateVideoFlipFilters()
     playerUpdate.value = PlayerUpdates.ShowText(if (newState) "V-Flip On" else "V-Flip Off")
+  }
+
+  private fun updateVideoFlipFilters() {
+    val isMirrored = _isMirrored.value
+    val isFlipped = _isVerticalFlipped.value
+
+    if (isMirrored || isFlipped) {
+      // Software video filters (vf) require hwdec copy mode when hardware decoding is active
+      val currentHwDec = MPVLib.getPropertyString("hwdec-current") ?: ""
+      if (currentHwDec == "mediacodec") {
+        MPVLib.setPropertyString("hwdec", "mediacodec-copy")
+      }
+
+      if (isMirrored) {
+        MPVLib.command("vf", "add", "@mpvex_hflip:hflip")
+      } else {
+        MPVLib.command("vf", "remove", "@mpvex_hflip")
+      }
+
+      if (isFlipped) {
+        MPVLib.command("vf", "add", "@mpvex_vflip:vflip")
+      } else {
+        MPVLib.command("vf", "remove", "@mpvex_vflip")
+      }
+    } else {
+      // Remove filters and restore preferred hwdec mode
+      MPVLib.command("vf", "remove", "@mpvex_hflip")
+      MPVLib.command("vf", "remove", "@mpvex_vflip")
+
+      val preferredHwDec = if (decoderPreferences.tryHWDecoding.get()) "mediacodec" else "no"
+      MPVLib.setPropertyString("hwdec", preferredHwDec)
+    }
   }
 
   // ==================== Ambient Mode Integration ====================

@@ -1849,13 +1849,7 @@ fun PlayerControls(
       audioTracks = audioTracks.toImmutableList(),
       onAddAudio = viewModel::addAudio,
       onSelectAudio = {
-        if (MPVLib.getPropertyInt("aid") == it.id) {
-          MPVLib.setPropertyBoolean("aid", false)
-          TrackSelector.rememberAudioTrack(null, null)
-        } else {
-          MPVLib.setPropertyInt("aid", it.id)
-          TrackSelector.rememberAudioTrack(it.title, it.lang)
-        }
+        viewModel.selectAudioTrack(it.id, it.title, it.lang)
       },
       chapter = chapters.getOrNull(currentChapter ?: 0),
       chapters = chapters.toImmutableList(),

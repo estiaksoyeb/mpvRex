@@ -453,7 +453,7 @@ class PlayerViewModel(
         val videoDuration = duration ?: 0
         // Use precise seeking for videos shorter than 2 minutes, or if AB loop is active, or if preference is enabled
         val isLoopActive = loopA != null || loopB != null
-        val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || videoDuration < 120 || isLoopActive
+        val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (videoDuration in 1..119) || isLoopActive
         
         // Update hr-seek settings dynamically
         MPVLib.setPropertyString("hr-seek", if (shouldUsePreciseSeeking) "yes" else "no")
@@ -815,6 +815,18 @@ class PlayerViewModel(
     return (id == primarySid && primarySid > 0) || (id == secondarySid && secondarySid > 0)
   }
 
+  fun selectAudioTrack(id: Int, title: String?, lang: String?) {
+    val currentAid = MPVLib.getPropertyInt("aid") ?: 0
+    if (currentAid == id) {
+      MPVLib.setPropertyString("aid", "no")
+      TrackSelector.rememberAudioTrack(null, null)
+    } else {
+      MPVLib.setPropertyInt("aid", id)
+      TrackSelector.rememberAudioTrack(title, lang)
+      _playbackManager.resyncAudioOnTrackChange(viewModelScope)
+    }
+  }
+
   private fun getFileNameFromUri(uri: Uri): String? =
     when (uri.scheme) {
       "content" ->
@@ -965,7 +977,8 @@ class PlayerViewModel(
 
   fun rightSeek() {
     if (_doubleTapSeekAmount.value == 0) _doubleTapSeekBasePos.value = pos
-    if ((pos ?: 0) < (duration ?: 0)) {
+    val curDuration = duration ?: 0
+    if (curDuration <= 0 || (pos ?: 0) < curDuration) {
       _doubleTapSeekAmount.value += doubleTapToSeekDuration
     }
     _isSeekingForwards.value = true
@@ -1036,10 +1049,10 @@ class PlayerViewModel(
     text: String?,
   ) {
     val currentPos = pos ?: return
-    val maxDuration = duration ?: return
+    val maxDuration = duration ?: 0
 
     _doubleTapSeekAmount.update {
-      if ((value < 0 && it < 0) || currentPos + value > maxDuration) 0 else it + value
+      if ((value < 0 && it < 0) || (maxDuration > 0 && currentPos + value > maxDuration)) 0 else it + value
     }
     _seekText.value = text
     _isSeekingForwards.value = value > 0

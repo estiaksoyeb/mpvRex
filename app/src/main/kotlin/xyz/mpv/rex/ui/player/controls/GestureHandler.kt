@@ -1050,7 +1050,7 @@ fun GestureHandler(
                     val seekAmount = deltaX * seekSensitivity
                     val targetPosition = (initialVideoPosition + seekAmount).coerceAtLeast(0f)
                     val maxDuration = if (preciseDuration > 0f) preciseDuration else duration?.toFloat() ?: 0f
-                    val clampedPosition = targetPosition.coerceAtMost(maxDuration)
+                    val clampedPosition = if (maxDuration > 0f) targetPosition.coerceAtMost(maxDuration) else targetPosition
                     
                     // Use the same seeking mechanism as seekbar scrubbing
                     // This will update the seekbar position and provide live preview

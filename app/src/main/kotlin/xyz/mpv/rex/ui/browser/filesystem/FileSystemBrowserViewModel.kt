@@ -227,6 +227,9 @@ class FileSystemBrowserViewModel(
     }
 
     if (successCount > 0) {
+      val deletedFolderPaths = folders.map { it.path }.toSet()
+      _items.value = _items.value.filterNot { it is FileSystemItem.Folder && it.path in deletedFolderPaths }
+      _unsortedItems.value = _unsortedItems.value.filterNot { it is FileSystemItem.Folder && it.path in deletedFolderPaths }
       _itemsWereDeletedOrMoved.value = true
       MediaLibraryEvents.notifyChanged()
     }
@@ -234,6 +237,9 @@ class FileSystemBrowserViewModel(
   }
 
   override suspend fun deleteVideos(videos: List<Video>): Pair<Int, Int> {
+    val deletedPaths = videos.map { it.path.ifBlank { it.uri.toString() } }.toSet()
+    _items.value = _items.value.filterNot { it is FileSystemItem.VideoFile && (it.video.path.ifBlank { it.video.uri.toString() }) in deletedPaths }
+    _unsortedItems.value = _unsortedItems.value.filterNot { it is FileSystemItem.VideoFile && (it.video.path.ifBlank { it.video.uri.toString() }) in deletedPaths }
     val result = super.deleteVideos(videos)
     if (result.first > 0) {
       _itemsWereDeletedOrMoved.value = true

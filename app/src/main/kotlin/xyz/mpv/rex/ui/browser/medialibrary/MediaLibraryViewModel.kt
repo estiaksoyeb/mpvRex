@@ -94,6 +94,15 @@ class MediaLibraryViewModel(
     loadData()
   }
 
+  override suspend fun deleteVideos(videos: List<Video>): Pair<Int, Int> {
+    val deletedPaths = videos.map { it.path.ifBlank { it.uri.toString() } }.toSet()
+    _videos.value = _videos.value.filterNot { (it.path.ifBlank { it.uri.toString() }) in deletedPaths }
+    _videosWithPlaybackInfo.value = _videosWithPlaybackInfo.value.filterNot {
+      (it.video.path.ifBlank { it.video.uri.toString() }) in deletedPaths
+    }
+    return super.deleteVideos(videos)
+  }
+
   private suspend fun loadPlaybackInfo(videos: List<Video>) {
     val playbackStates = playbackStateRepository.getAllPlaybackStates()
     val currentTime = System.currentTimeMillis()

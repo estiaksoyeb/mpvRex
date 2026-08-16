@@ -102,6 +102,9 @@ interface HybridMediaDao {
   @Query("DELETE FROM hybrid_media_roots")
   suspend fun clearRoots()
 
+  @Query("DELETE FROM hybrid_media_index WHERE location IN (:paths) OR identity IN (:paths)")
+  suspend fun deleteByLocations(paths: List<String>)
+
   @Query(
     """
     DELETE FROM hybrid_media_index

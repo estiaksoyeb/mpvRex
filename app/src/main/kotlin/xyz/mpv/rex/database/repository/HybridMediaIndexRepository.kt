@@ -91,6 +91,12 @@ class HybridMediaIndexRepository(
     }
   }
 
+  suspend fun removeEntries(paths: List<String>) = withContext(Dispatchers.IO) {
+    if (paths.isEmpty()) return@withContext
+    val normalized = paths.map { normalizePath(File(it)) }
+    dao.deleteByLocations((normalized + paths).distinct())
+  }
+
   suspend fun ensureFresh(force: Boolean = false, userInitiated: Boolean = false) = withContext(Dispatchers.IO) {
     Log.d(TAG, "ensureFresh requested: force=$force, userInitiated=$userInitiated, activeScan=${activeScanJob?.isActive}")
     if (!force && !scanMutex.isLocked) {

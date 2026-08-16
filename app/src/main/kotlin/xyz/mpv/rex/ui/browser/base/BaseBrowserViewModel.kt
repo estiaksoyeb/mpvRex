@@ -115,9 +115,6 @@ abstract class BaseBrowserViewModel<T>(
       // Clear core media scanner cache
       MediaFileRepository.clearCache()
       
-      // Delay to allow filesystem/MediaStore sync if needed
-      delay(if (silent) 100 else 500)
-      
       loadData()
     }
   }
@@ -134,6 +131,7 @@ abstract class BaseBrowserViewModel<T>(
     // Invalidate cache for deleted videos
     val paths = videos.map { it.path }
     metadataCache.invalidateVideos(paths)
+    MediaFileRepository.clearCache()
 
     return result
   }

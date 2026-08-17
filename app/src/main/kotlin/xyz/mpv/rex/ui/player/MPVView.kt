@@ -147,7 +147,6 @@ class MPVView(
     MPVLib.setOptionString("tls-verify", "yes")
     MPVLib.setOptionString("tls-ca-file", "${context.filesDir.path}/cacert.pem")
     MPVLib.setOptionString("ytdl", "no")
-    MPVLib.setOptionString("force-seekable", "yes")
 
     val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
     screenshotDir.mkdirs()
@@ -330,8 +329,6 @@ class MPVView(
     MPVLib.setOptionString("audio-delay", (audioPreferences.defaultAudioDelay.get() / 1000.0).toString())
     MPVLib.setOptionString("audio-pitch-correction", audioPreferences.audioPitchCorrection.get().toString())
     MPVLib.setOptionString("volume-max", (audioPreferences.volumeBoostCap.get() + 100).toString())
-    MPVLib.setOptionString("audio-stream-silence", "yes")
-    MPVLib.setOptionString("audio-wait-open", "0")
     
     // Volume normalization using dynamic audio normalization filter
     if (audioPreferences.volumeNormalization.get()) {

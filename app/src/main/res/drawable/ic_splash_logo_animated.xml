@@ -24,7 +24,7 @@
                     <path
                         android:name="path_1"
                         android:pathData="M 100 92.647 C 100 87 102.774 85.588 108.323 88.412 L 197.798 141.353 C 204.734 145.588 204.734 149.824 197.798 154.059 L 110.404 204.882 C 103.468 209.118 100 207 100 198.529 L 100 92.647 Z"
-                        android:strokeColor="#fff"
+                        android:strokeColor="@color/splash_screen_icon_color"
                         android:strokeAlpha="0"
                         android:strokeWidth="15"
                         android:strokeLineCap="round"

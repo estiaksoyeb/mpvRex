@@ -119,31 +119,28 @@ class VideoListViewModel(
           loadPlaybackInfo(emptyList())
           _isLoading.value = false
         } else {
-          // Pre-apply DB cached metadata before initial emission to prevent chip flickering
-          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
-            videoList = MetadataRetrieval.applyCachedMetadata(
-              videos = videoList,
-              browserPreferences = browserPreferences,
-              metadataCache = metadataCache
-            )
-          }
+          // Pre-apply DB cached metadata before initial emission to ensure durations and chips appear immediately
+          videoList = MetadataRetrieval.applyCachedMetadata(
+            videos = videoList,
+            browserPreferences = browserPreferences,
+            metadataCache = metadataCache
+          )
           _videos.value = videoList
           loadPlaybackInfo(videoList)
           _isLoading.value = false
 
-          // Extract metadata in background for any uncached videos
-          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
-            val uncachedCount = videoList.count { it.fps == 0f || it.subtitleCodec.isEmpty() }
-            if (uncachedCount > 0) {
-              val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
-                context = getApplication(),
-                videos = videoList,
-                browserPreferences = browserPreferences,
-                metadataCache = metadataCache
-              )
-              _videos.value = enrichedList
-              loadPlaybackInfo(enrichedList)
-            }
+          // Extract metadata in background for any uncached videos or videos with missing duration
+          val isMetadataNeeded = MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)
+          val uncachedCount = videoList.count { it.duration <= 0L || (isMetadataNeeded && (it.fps == 0f || it.subtitleCodec.isEmpty())) }
+          if (uncachedCount > 0) {
+            val enrichedList = MetadataRetrieval.enrichVideosIfNeeded(
+              context = getApplication(),
+              videos = videoList,
+              browserPreferences = browserPreferences,
+              metadataCache = metadataCache
+            )
+            _videos.value = enrichedList
+            loadPlaybackInfo(enrichedList)
           }
         }
       } catch (e: Exception) {

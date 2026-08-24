@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import xyz.mpv.rex.domain.media.model.Video
+import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
 import xyz.mpv.rex.utils.media.MediaFormatter
 import xyz.mpv.rex.utils.media.MediaInfoOps
 import kotlinx.coroutines.CancellationException
@@ -13,6 +14,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.koin.core.context.GlobalContext
 import java.io.File
 import java.util.Locale
 import kotlin.math.log10
@@ -38,15 +40,18 @@ object VideoScanUtils {
         val album: String = "",
     )
     
-    enum class FolderAccess {
-        READABLE,
-        INACCESSIBLE,
-    }
-
+    /**
+     * Folder scan result
+     */
     data class FolderScanResult(
         val videos: List<Video>,
         val access: FolderAccess,
     )
+    
+    enum class FolderAccess {
+        READABLE,
+        INACCESSIBLE,
+    }
 
     /**
      * Get all videos and audio in a specific folder.
@@ -86,6 +91,35 @@ object VideoScanUtils {
             }
         }
 
+        // Fast DB cache enrichment for any files that don't have duration yet
+        val uncachedDurationPaths = videosMap.values.filter { it.duration <= 0L }.map { it.path }
+        if (uncachedDurationPaths.isNotEmpty()) {
+            val metadataCache = runCatching {
+                GlobalContext.get().get<VideoMetadataCacheRepository>()
+            }.getOrNull()
+            if (metadataCache != null) {
+                val cached = metadataCache.getCachedMetadataBatch(uncachedDurationPaths)
+                for ((path, meta) in cached) {
+                    val v = videosMap[path]
+                    if (v != null && meta.durationMs > 0) {
+                        videosMap[path] = v.copy(
+                            duration = meta.durationMs,
+                            durationFormatted = MediaFormatter.formatDuration(meta.durationMs),
+                            width = if (meta.width > 0) meta.width else v.width,
+                            height = if (meta.height > 0) meta.height else v.height,
+                            rotation = if (meta.rotation != 0) meta.rotation else v.rotation,
+                            fps = meta.fps,
+                            resolution = MediaFormatter.formatResolutionWithFps(meta.width, meta.height, meta.fps),
+                            hasEmbeddedSubtitles = meta.hasEmbeddedSubtitles,
+                            subtitleCodec = meta.subtitleCodec,
+                            artist = if (meta.artist.isNotEmpty()) meta.artist else v.artist,
+                            album = if (meta.album.isNotEmpty()) meta.album else v.album,
+                        )
+                    }
+                }
+            }
+        }
+
         FolderScanResult(
             videos = videosMap.values.sortedBy { it.displayName.lowercase(Locale.getDefault()) },
             access = FolderAccess.READABLE,
@@ -118,8 +152,10 @@ object VideoScanUtils {
             projection.add(MediaStore.Video.Media.ORIENTATION)
         }
         
-        val selection = "${MediaStore.Video.Media.DATA} LIKE ? AND ${MediaStore.Video.Media.DATA} NOT LIKE ?"
-        val selectionArgs = arrayOf("$folderPath/%", "$folderPath/%/%")
+        val bucketId = folderPath.hashCode().toString()
+        val bucketIdLower = folderPath.lowercase(Locale.ROOT).hashCode().toString()
+        val selection = "(${MediaStore.Video.Media.BUCKET_ID} = ? OR ${MediaStore.Video.Media.BUCKET_ID} = ? OR ${MediaStore.Video.Media.DATA} LIKE ?)"
+        val selectionArgs = arrayOf(bucketId, bucketIdLower, "$folderPath/%")
         
         try {
             context.contentResolver.query(
@@ -225,8 +261,10 @@ object VideoScanUtils {
             MediaStore.Audio.Media.ALBUM
         )
         
-        val selection = "${MediaStore.Audio.Media.DATA} LIKE ? AND ${MediaStore.Audio.Media.DATA} NOT LIKE ?"
-        val selectionArgs = arrayOf("$folderPath/%", "$folderPath/%/%")
+        val bucketId = folderPath.hashCode().toString()
+        val bucketIdLower = folderPath.lowercase(Locale.ROOT).hashCode().toString()
+        val selection = "(${MediaStore.Audio.Media.BUCKET_ID} = ? OR ${MediaStore.Audio.Media.BUCKET_ID} = ? OR ${MediaStore.Audio.Media.DATA} LIKE ?)"
+        val selectionArgs = arrayOf(bucketId, bucketIdLower, "$folderPath/%")
         
         try {
             context.contentResolver.query(

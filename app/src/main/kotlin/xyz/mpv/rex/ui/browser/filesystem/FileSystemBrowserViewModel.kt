@@ -298,7 +298,7 @@ class FileSystemBrowserViewModel(
               val basicThresholdMillis = basicThresholdDays * 24 * 60 * 60 * 1000L
               val basicWatchedThreshold = browserPreferences.watchedThreshold.get()
 
-              val preEnrichedItems = if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+              val preEnrichedItems = run {
                 val videoFiles = filteredItems.filterIsInstance<FileSystemItem.VideoFile>()
                 if (videoFiles.isNotEmpty()) {
                   val cachedVideos = MetadataRetrieval.applyCachedMetadata(
@@ -314,7 +314,7 @@ class FileSystemBrowserViewModel(
                     } else item
                   }
                 } else filteredItems
-              } else filteredItems
+              }
 
               val basicEnrichedItems = preEnrichedItems.map { item ->
                 if (item is FileSystemItem.VideoFile) {
@@ -364,18 +364,18 @@ class FileSystemBrowserViewModel(
               _unsortedItems.value = basicEnrichedItems
               _isLoading.value = false
 
-              // 2. Fetch detailed video metadata (MediaInfo) asynchronously in the background ONLY for uncached videos
-              if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
-                val videoFiles = preEnrichedItems.filterIsInstance<FileSystemItem.VideoFile>()
-                val uncachedVideos = videoFiles.map { it.video }.filter { it.fps == 0f || it.subtitleCodec.isEmpty() }
-                if (uncachedVideos.isNotEmpty()) {
-                  val videos = videoFiles.map { it.video }
-                  val enrichedVideos = MetadataRetrieval.enrichVideosIfNeeded(
-                    context = getApplication(),
-                    videos = videos,
-                    browserPreferences = browserPreferences,
-                    metadataCache = metadataCache
-                  )
+              // 2. Fetch detailed video metadata (MediaInfo) asynchronously in the background for uncached videos or missing durations
+              val videoFiles = preEnrichedItems.filterIsInstance<FileSystemItem.VideoFile>()
+              val isMetadataNeeded = MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)
+              val uncachedVideos = videoFiles.map { it.video }.filter { it.duration <= 0L || (isMetadataNeeded && (it.fps == 0f || it.subtitleCodec.isEmpty())) }
+              if (uncachedVideos.isNotEmpty()) {
+                val videos = videoFiles.map { it.video }
+                val enrichedVideos = MetadataRetrieval.enrichVideosIfNeeded(
+                  context = getApplication(),
+                  videos = videos,
+                  browserPreferences = browserPreferences,
+                  metadataCache = metadataCache
+                )
                   
                   val enrichedVideoMap = enrichedVideos.associateBy { it.id }
                   
@@ -436,7 +436,6 @@ class FileSystemBrowserViewModel(
                   _watchedVideoIds.value = finalWatchedIds
                   _unsortedItems.value = finalEnrichedItems
                 }
-              }
             }.onFailure { error ->
               _error.value = error.message
               _unsortedItems.value = emptyList()

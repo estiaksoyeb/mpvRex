@@ -31,6 +31,29 @@ interface HybridMediaDao {
   @Query("SELECT COUNT(*) FROM hybrid_media_index WHERE available = 1 AND isNoMedia = 1")
   suspend fun getNoMediaCount(): Int
 
+  @Query(
+    """
+    SELECT * FROM hybrid_media_index
+    WHERE available = 1
+      AND (:includeNoMedia OR isNoMedia = 0)
+      AND (displayName LIKE '%' || :query || '%' OR parentDisplayName LIKE '%' || :query || '%')
+    ORDER BY displayName COLLATE NOCASE
+    """,
+  )
+  suspend fun searchMedia(query: String, includeNoMedia: Boolean): List<HybridMediaEntity>
+
+  @Query(
+    """
+    SELECT * FROM hybrid_media_index
+    WHERE available = 1
+      AND (:includeNoMedia OR isNoMedia = 0)
+      AND (location = :parentPath OR location LIKE :parentPathPrefix OR parentIdentity = :parentPath OR parentIdentity LIKE :parentPathPrefix)
+      AND (displayName LIKE '%' || :query || '%' OR parentDisplayName LIKE '%' || :query || '%')
+    ORDER BY displayName COLLATE NOCASE
+    """,
+  )
+  suspend fun searchMediaInPath(query: String, parentPath: String, parentPathPrefix: String, includeNoMedia: Boolean): List<HybridMediaEntity>
+
   @Query("SELECT * FROM hybrid_media_roots")
   suspend fun getRoots(): List<HybridMediaRootEntity>
 

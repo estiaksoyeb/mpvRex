@@ -378,6 +378,14 @@ data class VideoListScreen(
           },
           onCancelSelection = { selectionManager.clear() },
           onSortClick = { sortDialogOpen.value = true },
+          onSearchClick = {
+            backstack.add(
+              xyz.mpv.rex.ui.browser.search.SearchScreen(
+                initialPath = bucketId,
+                initialFolderName = displayFolderName,
+              )
+            )
+          },
           onSettingsClick = {
             backstack.add(xyz.mpv.rex.ui.preferences.PreferencesScreen)
           },

@@ -394,6 +394,21 @@ class HybridMediaIndexRepository(
       .toList()
   }
 
+  suspend fun searchMedia(
+    query: String,
+    parentPath: String? = null,
+    includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
+  ): List<Video> = withContext(Dispatchers.IO) {
+    if (query.isBlank()) return@withContext emptyList()
+    val entities = if (parentPath.isNullOrBlank()) {
+      dao.searchMedia(query, includeNoMedia)
+    } else {
+      val prefix = "$parentPath/%"
+      dao.searchMediaInPath(query, parentPath, prefix, includeNoMedia)
+    }
+    entities.map { it.toVideo() }
+  }
+
   suspend fun clear() {
     dao.clearMedia()
     dao.clearRoots()

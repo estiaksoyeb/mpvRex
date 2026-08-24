@@ -264,7 +264,7 @@ fun MediaLibraryContent() {
           isHomeScreen = true,
           onCancelSelection = { selectionManager.clear() },
           onSortClick = { sortDialogOpen.value = true },
-          onSearchClick = { isSearching = true },
+          onSearchClick = { backstack.add(xyz.mpv.rex.ui.browser.search.SearchScreen()) },
           onSettingsClick = {
             backstack.add(xyz.mpv.rex.ui.preferences.PreferencesScreen)
           },

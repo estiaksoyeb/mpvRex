@@ -241,6 +241,10 @@ class HybridMediaIndexRepository(
     }
   }
 
+  suspend fun getNoMediaCount(): Int = withContext(Dispatchers.IO) {
+    dao.getNoMediaCount()
+  }
+
   /**
    * Starts background worker to enrich items with PENDING metadata status using bounded concurrency.
    */

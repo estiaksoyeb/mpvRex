@@ -44,7 +44,6 @@ class FolderListViewModel(
   KoinComponent {
   private val foldersPreferences: FoldersPreferences by inject()
   private val appearancePreferences: AppearancePreferences by inject()
-  private val browserPreferences: xyz.mpv.rex.preferences.BrowserPreferences by inject()
   private val recentlyPlayedRepository: RecentlyPlayedRepository by inject()
   private val hybridMediaIndex: HybridMediaIndexRepository by inject()
 
@@ -226,12 +225,7 @@ class FolderListViewModel(
   }
 
   private fun loadVideoFolders() {
-    // Prevent multiple concurrent scans
-    if (currentScanJob?.isActive == true) {
-      Log.d(TAG, "Scan already in progress, skipping")
-      return
-    }
-
+    currentScanJob?.cancel()
     currentScanJob = viewModelScope.launch(Dispatchers.IO) {
       try {
         val isFirstLoad = _allVideoFolders.value.isEmpty()

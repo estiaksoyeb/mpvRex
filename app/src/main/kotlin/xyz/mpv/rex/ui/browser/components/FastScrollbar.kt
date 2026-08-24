@@ -203,34 +203,48 @@ fun FastScrollbar(
       scrollProgress * maxScrollableDistancePx
     }
 
+    val currentThumbOffsetYState by androidx.compose.runtime.rememberUpdatedState(currentThumbOffsetY)
+    val maxScrollableDistancePxState by androidx.compose.runtime.rememberUpdatedState(maxScrollableDistancePx)
+    val effectiveThumbHeightPxState by androidx.compose.runtime.rememberUpdatedState(effectiveThumbHeightPx)
     val effectiveThumbHeightDp = with(density) { effectiveThumbHeightPx.toDp() }
+    val touchMarginPx = with(density) { 16.dp.toPx() }
 
     Box(
       modifier = Modifier
         .fillMaxHeight()
         .width(touchTargetWidth)
         .align(Alignment.CenterEnd)
-        .pointerInput(listState, gridState, maxScrollableDistancePx) {
+        .pointerInput(listState, gridState) {
           awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
-            down.consume()
-            isDragging = true
+            val thumbPos = currentThumbOffsetYState
+            val thumbHeight = effectiveThumbHeightPxState
+            val maxDist = maxScrollableDistancePxState
+            val thumbTop = thumbPos - touchMarginPx
+            val thumbBottom = thumbPos + thumbHeight + touchMarginPx
 
-            var currentY = (down.position.y - effectiveThumbHeightPx / 2f).coerceIn(0f, maxScrollableDistancePx)
-            dragOffsetY = currentY
-            var progress = if (maxScrollableDistancePx > 0f) currentY / maxScrollableDistancePx else 0f
-            coroutineScope.launch { scrollToProgress(progress) }
+            // Only trigger fast scroll drag if the touch lands on or near the thumb indicator
+            if (maxDist > 0f && down.position.y in thumbTop..thumbBottom) {
+              down.consume()
+              isDragging = true
 
-            while (true) {
-              val event = awaitPointerEvent()
-              val change = event.changes.firstOrNull { it.pressed } ?: break
-              change.consume()
-              currentY = (change.position.y - effectiveThumbHeightPx / 2f).coerceIn(0f, maxScrollableDistancePx)
+              val touchOffsetInsideThumb = (down.position.y - thumbPos).coerceIn(0f, thumbHeight)
+              var currentY = (down.position.y - touchOffsetInsideThumb).coerceIn(0f, maxDist)
               dragOffsetY = currentY
-              progress = if (maxScrollableDistancePx > 0f) currentY / maxScrollableDistancePx else 0f
+              var progress = currentY / maxDist
               coroutineScope.launch { scrollToProgress(progress) }
+
+              while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.pressed } ?: break
+                change.consume()
+                currentY = (change.position.y - touchOffsetInsideThumb).coerceIn(0f, maxDist)
+                dragOffsetY = currentY
+                progress = currentY / maxDist
+                coroutineScope.launch { scrollToProgress(progress) }
+              }
+              isDragging = false
             }
-            isDragging = false
           }
         }
     ) {

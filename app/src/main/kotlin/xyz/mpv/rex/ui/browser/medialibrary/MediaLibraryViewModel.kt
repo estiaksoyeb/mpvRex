@@ -29,7 +29,6 @@ class MediaLibraryViewModel(
 ) : BaseBrowserViewModel<VideoWithPlaybackInfo>(application),
   KoinComponent {
   private val appearancePreferences: xyz.mpv.rex.preferences.AppearancePreferences by inject()
-  private val browserPreferences: xyz.mpv.rex.preferences.BrowserPreferences by inject()
   private val recentlyPlayedRepository: xyz.mpv.rex.domain.recentlyplayed.repository.RecentlyPlayedRepository by inject()
 
   private val _videos = MutableStateFlow<List<Video>>(emptyList())

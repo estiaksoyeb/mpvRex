@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
+import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.UiPreferences
 import xyz.mpv.rex.preferences.UiSettings
 import xyz.mpv.rex.repository.MediaFileRepository
@@ -46,6 +47,7 @@ abstract class BaseBrowserViewModel<T>(
   protected val metadataCache: VideoMetadataCacheRepository by inject()
   protected val uiPreferences: UiPreferences by inject()
   protected val playbackStateRepository: PlaybackStateRepository by inject()
+  protected val browserPreferences: BrowserPreferences by inject()
   
   // Common UI States
   val uiSettings: StateFlow<UiSettings> = uiPreferences.observeUiSettings()
@@ -108,6 +110,28 @@ abstract class BaseBrowserViewModel<T>(
         .collectLatest {
           Log.d("BaseBrowserViewModel", "Refreshing browser data from playback state update")
           MediaFileRepository.clearCache()
+          loadData()
+        }
+    }
+
+    // Observe .nomedia folder visibility changes
+    viewModelScope.launch(Dispatchers.Main) {
+      browserPreferences.includeNoMediaContent.changes()
+        .drop(1)
+        .collectLatest { includeNoMedia ->
+          Log.d("BaseBrowserViewModel", "includeNoMediaContent changed to $includeNoMedia")
+          MediaFileRepository.clearCache()
+          if (includeNoMedia) {
+            val hybridIndex = org.koin.core.context.GlobalContext.get().get<xyz.mpv.rex.database.repository.HybridMediaIndexRepository>()
+            val count = withContext(Dispatchers.IO) { hybridIndex.getNoMediaCount() }
+            if (count == 0) {
+              withContext(Dispatchers.IO) {
+                runCatching {
+                  hybridIndex.ensureFresh(force = true, userInitiated = false)
+                }
+              }
+            }
+          }
           loadData()
         }
     }

@@ -41,7 +41,6 @@ class FileSystemBrowserViewModel(
   initialPath: String? = null,
 ) : BaseBrowserViewModel<FileSystemItem>(application),
   KoinComponent {
-  private val browserPreferences: BrowserPreferences by inject()
   private val foldersPreferences: xyz.mpv.rex.preferences.FoldersPreferences by inject()
   private val appearancePreferences: xyz.mpv.rex.preferences.AppearancePreferences by inject()
 
@@ -140,15 +139,6 @@ class FileSystemBrowserViewModel(
     viewModelScope.launch {
       foldersPreferences.blacklistedFolders.changes().collectLatest {
         refresh(silent = true)
-      }
-    }
-
-    // This policy affects only active File Explorer discovery. Skip the initial
-    // preference emission because the initial directory load is already running.
-    viewModelScope.launch {
-      browserPreferences.includeNoMediaContent.changes().drop(1).collectLatest {
-        MediaFileRepository.clearCache()
-        loadData()
       }
     }
   }

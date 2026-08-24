@@ -148,9 +148,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.LazyVerticalGridScrollbar
-import my.nanihadesuka.compose.ScrollbarSettings
+
 import org.koin.compose.koinInject
 import java.io.File
 
@@ -719,7 +717,7 @@ object FolderListScreen : Screen {
         }
       },
     ) { padding ->
-      Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+      Box(modifier = Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
         when (permissionState.status) {
           PermissionStatus.Granted -> {
             if (isSearching) {
@@ -1039,158 +1037,6 @@ private fun FolderListContent(
   }
 }
 
-@Composable
-private fun GridContent(
-  folders: List<VideoFolder>,
-  foldersWithNewCount: List<xyz.mpv.rex.ui.browser.folderlist.FolderWithNewCount>,
-  uiSettings: UiSettings,
-  recentlyPlayedFilePath: String?,
-  playedFolderPaths: Set<String>,
-  folderGridColumns: Int,
-  tapThumbnailToSelect: Boolean,
-  navigationBarHeight: androidx.compose.ui.unit.Dp,
-  gridState: androidx.compose.foundation.lazy.grid.LazyGridState,
-  scrollbarAlpha: Float,
-  selectionManager: xyz.mpv.rex.ui.browser.selection.SelectionManager<VideoFolder, String>,
-  onFolderClick: (VideoFolder) -> Unit,
-  onFolderLongClick: (VideoFolder) -> Unit,
-) {
-  Box(modifier = Modifier.fillMaxSize()) {
-    LazyVerticalGrid(
-      columns = GridCells.Fixed(folderGridColumns),
-      state = gridState,
-      modifier = Modifier.fillMaxSize(),
-      contentPadding = PaddingValues(
-        start = if (folderGridColumns == 1) 20.dp else 8.dp,
-        end = if (folderGridColumns == 1) 20.dp else 8.dp,
-        top = if (folderGridColumns == 1) 20.dp else 8.dp,
-        bottom = navigationBarHeight
-      ),
-      horizontalArrangement = Arrangement.spacedBy(if (folderGridColumns == 1) 0.dp else 4.dp),
-      verticalArrangement = Arrangement.spacedBy(if (folderGridColumns == 1) 20.dp else 4.dp),
-    ) {
-      items(folders.size) { index ->
-        val folder = folders[index]
-        val isRecentlyPlayed = recentlyPlayedFilePath?.let {
-          java.io.File(it).parent == folder.path
-        } ?: false
-        val isNeverPlayed = folder.path !in playedFolderPaths
-        val newCount = foldersWithNewCount
-          .find { it.folder.bucketId == folder.bucketId }
-          ?.newVideoCount ?: 0
-
-        FolderCard(
-          folder = folder,
-          uiSettings = uiSettings,
-          isSelected = selectionManager.isSelected(folder),
-          isRecentlyPlayed = isRecentlyPlayed,
-          isNeverPlayed = isNeverPlayed,
-          isWatched = (folder.videoCount > 0 || folder.audioCount > 0) && folder.unwatchedVideoCount == 0,
-          onClick = { onFolderClick(folder) },
-          onLongClick = { onFolderLongClick(folder) },
-          onThumbClick = if (tapThumbnailToSelect && !selectionManager.isInSelectionMode) {
-            { onFolderLongClick(folder) }
-          } else null,
-          newVideoCount = newCount,
-          isGridMode = true,
-          gridColumns = folderGridColumns,
-        )
-      }
-    }
-
-    // Scrollbar with bottom padding
-    Box(
-      modifier = Modifier
-        .fillMaxSize()
-        .padding(bottom = navigationBarHeight)
-    ) {
-      LazyVerticalGridScrollbar(
-        state = gridState,
-        settings = ScrollbarSettings(
-          thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-          thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-        ),
-      ) {
-        // Empty content - scrollbar only
-      }
-    }
-  }
-}
-
-@Composable
-private fun ListContent(
-  folders: List<VideoFolder>,
-  foldersWithNewCount: List<FolderWithNewCount>,
-  uiSettings: UiSettings,
-  recentlyPlayedFilePath: String?,
-  playedFolderPaths: Set<String>,
-  tapThumbnailToSelect: Boolean,
-  navigationBarHeight: androidx.compose.ui.unit.Dp,
-  listState: LazyListState,
-  scrollbarAlpha: Float,
-  selectionManager: xyz.mpv.rex.ui.browser.selection.SelectionManager<VideoFolder, String>,
-  onFolderClick: (VideoFolder) -> Unit,
-  onFolderLongClick: (VideoFolder) -> Unit,
-) {
-  Box(modifier = Modifier.fillMaxSize()) {
-    LazyColumn(
-      state = listState,
-      modifier = Modifier.fillMaxSize(),
-      verticalArrangement = Arrangement.spacedBy(2.dp),
-      contentPadding = PaddingValues(
-        start = 8.dp,
-        end = 8.dp,
-        bottom = navigationBarHeight
-      ),
-    ) {
-      items(folders) { folder ->
-        val isRecentlyPlayed = recentlyPlayedFilePath?.let {
-          java.io.File(it).parent == folder.path
-        } ?: false
-        val isNeverPlayed = folder.path !in playedFolderPaths
-        val newCount = foldersWithNewCount
-          .find { it.folder.bucketId == folder.bucketId }
-          ?.newVideoCount ?: 0
-
-        FolderCard(
-          folder = folder,
-          uiSettings = uiSettings,
-          isSelected = selectionManager.isSelected(folder),
-          isRecentlyPlayed = isRecentlyPlayed,
-          isNeverPlayed = isNeverPlayed,
-          isWatched = (folder.videoCount > 0 || folder.audioCount > 0) && folder.unwatchedVideoCount == 0,
-          onClick = { onFolderClick(folder) },
-          onLongClick = { onFolderLongClick(folder) },
-          onThumbClick = if (tapThumbnailToSelect && !selectionManager.isInSelectionMode) {
-            { onFolderLongClick(folder) }
-          } else null,
-          newVideoCount = newCount,
-          isGridMode = false,
-        )
-      }
-    }
-
-    // Scrollbar with bottom padding
-    Box(
-      modifier = Modifier
-        .fillMaxSize()
-        .padding(bottom = navigationBarHeight)
-    ) {
-      LazyColumnScrollbar(
-        state = listState,
-        settings = ScrollbarSettings(
-          thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-          thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-        ),
-      ) {
-        // Empty content - scrollbar only
-      }
-      
-      // Show background enrichment progress if list is visible but still processing
-
-    }
-  }
-}
 
 
 

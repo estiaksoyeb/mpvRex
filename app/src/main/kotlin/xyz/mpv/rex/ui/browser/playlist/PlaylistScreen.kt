@@ -84,9 +84,7 @@ import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.LazyVerticalGridScrollbar
-import my.nanihadesuka.compose.ScrollbarSettings
+
 import org.koin.compose.koinInject
 
 @Serializable
@@ -329,7 +327,7 @@ object PlaylistScreen : Screen {
             onPlaylistLongClick = { playlistWithCount ->
               selectionManager.handleLongClick(playlistWithCount)
             },
-            modifier = Modifier.padding(paddingValues),
+            modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
             isInSelectionMode = selectionManager.isInSelectionMode,
           )
         }

@@ -140,8 +140,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.ScrollbarSettings
+import androidx.compose.foundation.layout.fillMaxHeight
+import xyz.mpv.rex.ui.browser.components.FastScrollbar
 import org.koin.compose.koinInject
 
 /**
@@ -929,7 +929,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
         }
       },
     ) { padding ->
-      Box(modifier = Modifier.padding(padding)) {
+      Box(modifier = Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
         when (permissionState.status) {
           PermissionStatus.Granted -> {
             if (isSearching) {
@@ -1703,21 +1703,14 @@ private fun FileSystemSearchContent(
           }
           
           // Scrollbar with bottom padding to avoid overlap with navigation
-          Box(
+          FastScrollbar(
+            listState = listState,
             modifier = Modifier
-              .fillMaxSize()
-              .padding(bottom = navigationBarHeight)
-          ) {
-            LazyColumnScrollbar(
-              state = listState,
-              settings = ScrollbarSettings(
-                thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                thumbSelectedColor = MaterialTheme.colorScheme.primary,
-              ),
-            ) {
-              // Empty content - scrollbar only
-            }
-          }
+              .align(Alignment.CenterEnd)
+              .fillMaxHeight()
+              .padding(top = 12.dp, bottom = navigationBarHeight),
+            thumbColor = MaterialTheme.colorScheme.primary,
+          )
         }
       }
     }

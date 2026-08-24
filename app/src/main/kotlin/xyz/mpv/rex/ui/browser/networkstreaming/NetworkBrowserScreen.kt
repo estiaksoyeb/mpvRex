@@ -46,8 +46,8 @@ import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.ScrollbarSettings
+import androidx.compose.foundation.layout.fillMaxHeight
+import xyz.mpv.rex.ui.browser.components.FastScrollbar
 
 @Serializable
 data class NetworkBrowserScreen(
@@ -135,7 +135,7 @@ data class NetworkBrowserScreen(
         onVideoClick = { video ->
           viewModel.playVideo(video)
         },
-        modifier = Modifier.padding(padding),
+        modifier = Modifier.padding(top = padding.calculateTopPadding()),
       )
     }
   }
@@ -233,28 +233,17 @@ private fun NetworkBrowserContent(
         modifier = modifier.fillMaxSize(),
       ) {
         val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
-        Box(
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = navigationBarHeight)
-        ) {
-          LazyColumnScrollbar(
+        Box(modifier = Modifier.fillMaxSize()) {
+          LazyColumn(
             state = networkListState,
-            settings = ScrollbarSettings(
-              thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-              thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+              start = 8.dp,
+              end = 8.dp,
+              top = 8.dp,
+              bottom = navigationBarHeight
             ),
           ) {
-            LazyColumn(
-              state = networkListState,
-              modifier = Modifier.fillMaxSize(),
-              contentPadding = PaddingValues(
-                start = 8.dp,
-                end = 8.dp,
-                top = 8.dp,
-                bottom = navigationBarHeight
-              ),
-            ) {
             // Folders section
             if (folders.isNotEmpty()) {
               item {
@@ -304,9 +293,17 @@ private fun NetworkBrowserContent(
               }
             }
           }
+
+          FastScrollbar(
+            listState = networkListState,
+            modifier = Modifier
+              .align(Alignment.CenterEnd)
+              .fillMaxHeight()
+              .padding(top = 8.dp, bottom = navigationBarHeight),
+            thumbColor = MaterialTheme.colorScheme.primary,
+          )
         }
       }
     }
   }
-}
 }

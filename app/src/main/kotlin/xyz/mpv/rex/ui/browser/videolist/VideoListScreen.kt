@@ -125,9 +125,7 @@ import xyz.mpv.rex.utils.media.MediaUtils
 import xyz.mpv.rex.utils.sort.SortUtils
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.LazyVerticalGridScrollbar
-import my.nanihadesuka.compose.ScrollbarSettings
+
 import org.koin.compose.koinInject
 import java.io.File
 import kotlin.math.roundToInt

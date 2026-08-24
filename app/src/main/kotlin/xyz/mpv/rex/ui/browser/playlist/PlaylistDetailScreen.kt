@@ -82,8 +82,7 @@ import xyz.mpv.rex.utils.media.MediaInfoOps
 import xyz.mpv.rex.utils.media.MediaUtils
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import my.nanihadesuka.compose.LazyColumnScrollbar
-import my.nanihadesuka.compose.ScrollbarSettings
+
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState

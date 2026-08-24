@@ -15,19 +15,20 @@ object WebShareHtmlTemplate {
 
   fun renderHtml(
     files: List<SharedFileItem>,
-    token: String,
+    token: String? = null,
     serverTitle: String = "mpvRex Web Share",
   ): String {
     val totalSize = files.sumOf { it.size }
     val totalSizeFormatted = formatFileSize(totalSize)
     val fileCount = files.size
     val multipleFiles = fileCount > 1
+    val querySuffix = if (!token.isNullOrEmpty()) "?t=$token" else ""
 
     val fileCards = buildString {
       files.forEachIndexed { index, file ->
         val safeName = escapeHtml(file.name)
-        val downloadUrl = "/download/${file.id}?token=$token"
-        val streamUrl = "/stream/${file.id}?token=$token"
+        val downloadUrl = "/download/${file.id}$querySuffix"
+        val streamUrl = "/stream/${file.id}$querySuffix"
 
         append("""
           <div class="card">
@@ -370,7 +371,7 @@ object WebShareHtmlTemplate {
 
           ${if (multipleFiles) """
             <div class="bulk-action">
-              <a href="/download-all?token=$token" class="btn btn-primary" download="mpvRex_shared_files.zip">
+              <a href="/download-all$querySuffix" class="btn btn-primary" download="mpvRex_shared_files.zip">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="21 8 21 21 3 21 3 8"></polyline>
                   <rect x="1" y="3" width="22" height="5"></rect>

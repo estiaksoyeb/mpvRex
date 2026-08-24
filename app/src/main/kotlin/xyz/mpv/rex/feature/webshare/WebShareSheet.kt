@@ -3,9 +3,11 @@ package xyz.mpv.rex.feature.webshare
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -23,25 +24,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,12 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,6 +63,7 @@ import java.io.File
 fun WebShareSheet(
   videos: List<Video> = emptyList(),
   files: List<File> = emptyList(),
+  uris: List<Uri> = emptyList(),
   onDismiss: () -> Unit,
 ) {
   val context = LocalContext.current
@@ -76,7 +72,7 @@ fun WebShareSheet(
   var copied by remember { mutableStateOf(false) }
 
   // 1. Prepare shareable files on initial composition
-  LaunchedEffect(videos, files) {
+  LaunchedEffect(videos, files, uris) {
     val shareables = mutableListOf<WebShareServer.ShareableFile>()
 
     for (video in videos) {
@@ -86,6 +82,7 @@ fun WebShareSheet(
           WebShareServer.ShareableFile(
             id = video.id.toString(),
             file = f,
+            size = f.length(),
             displayName = video.displayName,
             durationFormatted = MediaFormatter.formatDuration(video.duration)
           )
@@ -99,10 +96,45 @@ fun WebShareSheet(
           WebShareServer.ShareableFile(
             id = file.name.hashCode().toString(),
             file = file,
+            size = file.length(),
             displayName = file.name
           )
         )
       }
+    }
+
+    for (uri in uris) {
+      var displayName = "shared_file_${System.currentTimeMillis()}"
+      var size = 0L
+      try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+          val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+          val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+          if (cursor.moveToFirst()) {
+            if (nameIndex != -1) displayName = cursor.getString(nameIndex) ?: displayName
+            if (sizeIndex != -1) size = cursor.getLong(sizeIndex)
+          }
+        }
+      } catch (e: Exception) {
+        // Ignore
+      }
+      if (size <= 0L) {
+        try {
+          context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
+            size = afd.length
+          }
+        } catch (e: Exception) {
+          // Ignore
+        }
+      }
+      shareables.add(
+        WebShareServer.ShareableFile(
+          id = uri.toString().hashCode().toString(),
+          displayName = displayName,
+          size = size,
+          uri = uri
+        )
+      )
     }
 
     if (shareables.isNotEmpty()) {
@@ -119,7 +151,7 @@ fun WebShareSheet(
   }
 
   val totalSize = remember(shareState.files) {
-    shareState.files.sumOf { it.file.length() }
+    shareState.files.sumOf { it.size }
   }
   val totalSizeFormatted = remember(totalSize) {
     MediaFormatter.formatFileSize(totalSize)
@@ -147,161 +179,146 @@ fun WebShareSheet(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 24.dp)
-        .padding(bottom = 32.dp)
+        .padding(horizontal = 20.dp)
+        .padding(bottom = 24.dp)
         .verticalScroll(rememberScrollState()),
       horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       // Header
-      Row(
+      Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalAlignment = Alignment.Start,
       ) {
-        Column {
-          Text(
-            text = "Web Share",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-          )
-          Text(
-            text = "${shareState.files.size} ${if (shareState.files.size == 1) "file" else "files"} ($totalSizeFormatted)",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
-
-        IconButton(
-          onClick = {
-            WebShareManager.stopSharing(context)
-            onDismiss()
-          }
-        ) {
-          Icon(
-            imageVector = Icons.Default.Close,
-            contentDescription = "Close",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
+        Text(
+          text = "Web Share",
+          style = MaterialTheme.typography.titleLarge,
+          fontWeight = FontWeight.Bold,
+          color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+          text = "${shareState.files.size} ${if (shareState.files.size == 1) "file" else "files"} • $totalSizeFormatted",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
       }
 
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(14.dp))
 
-      // Network Status Pill / Banner
-      Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = when (shareState.networkType) {
-          WebShareManager.NetworkType.HOTSPOT -> MaterialTheme.colorScheme.primaryContainer
-          WebShareManager.NetworkType.WIFI -> MaterialTheme.colorScheme.secondaryContainer
-          WebShareManager.NetworkType.NONE -> MaterialTheme.colorScheme.errorContainer
-        },
-        modifier = Modifier.fillMaxWidth(),
-      ) {
-        Row(
-          modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-          Icon(
-            imageVector = when (shareState.networkType) {
-              WebShareManager.NetworkType.HOTSPOT -> Icons.Default.Language
-              WebShareManager.NetworkType.WIFI -> Icons.Default.Language
-              WebShareManager.NetworkType.NONE -> Icons.Default.Warning
-            },
-            contentDescription = null,
-            tint = when (shareState.networkType) {
-              WebShareManager.NetworkType.HOTSPOT -> MaterialTheme.colorScheme.onPrimaryContainer
-              WebShareManager.NetworkType.WIFI -> MaterialTheme.colorScheme.onSecondaryContainer
-              WebShareManager.NetworkType.NONE -> MaterialTheme.colorScheme.onErrorContainer
-            },
-            modifier = Modifier.size(22.dp),
-          )
-
-          Column {
-            Text(
-              text = when (shareState.networkType) {
-                WebShareManager.NetworkType.HOTSPOT -> "Sharing via Mobile Hotspot"
-                WebShareManager.NetworkType.WIFI -> "Sharing via Local Wi-Fi"
-                WebShareManager.NetworkType.NONE -> "No Wi-Fi or Hotspot active"
-              },
-              style = MaterialTheme.typography.labelLarge,
-              fontWeight = FontWeight.SemiBold,
-              color = when (shareState.networkType) {
-                WebShareManager.NetworkType.HOTSPOT -> MaterialTheme.colorScheme.onPrimaryContainer
-                WebShareManager.NetworkType.WIFI -> MaterialTheme.colorScheme.onSecondaryContainer
-                WebShareManager.NetworkType.NONE -> MaterialTheme.colorScheme.onErrorContainer
-              },
-            )
-            Text(
-              text = when (shareState.networkType) {
-                WebShareManager.NetworkType.HOTSPOT -> "Receiver connects to your Hotspot"
-                WebShareManager.NetworkType.WIFI -> "Receiver connects to the same Wi-Fi network"
-                WebShareManager.NetworkType.NONE -> "Turn on Hotspot or connect to Wi-Fi to share"
-              },
-              style = MaterialTheme.typography.bodySmall,
-              color = when (shareState.networkType) {
-                WebShareManager.NetworkType.HOTSPOT -> MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                WebShareManager.NetworkType.WIFI -> MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                WebShareManager.NetworkType.NONE -> MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-              },
-            )
-          }
-        }
-      }
-
-      Spacer(modifier = Modifier.height(20.dp))
-
-      // QR Code Card
+      // 1. QR Code Card (Enlarged to 172.dp)
       if (qrBitmap != null) {
         Surface(
           shape = RoundedCornerShape(16.dp),
           color = Color.White,
-          shadowElevation = 4.dp,
-          modifier = Modifier.size(200.dp),
+          shadowElevation = 3.dp,
+          modifier = Modifier.size(172.dp),
         ) {
           Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(8.dp),
           ) {
             Image(
               bitmap = qrBitmap,
               contentDescription = "Scan QR Code",
-              modifier = Modifier.size(176.dp),
+              modifier = Modifier.size(156.dp),
             )
           }
         }
       }
 
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(12.dp))
 
-      // URL Display & Copy Card
+      // 2. Require Security Token Row (Placed below QR Code)
+      Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Row(
+          modifier = Modifier
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.weight(1f),
+          ) {
+            Icon(
+              imageVector = Icons.Filled.Lock,
+              contentDescription = null,
+              modifier = Modifier.size(20.dp),
+              tint = if (shareState.isTokenEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Column {
+              Text(
+                text = "Require Security Token",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+              )
+              Text(
+                text = if (shareState.isTokenEnabled) "Requires ?t= token to view files" else "Open access (fast & easy)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+          }
+
+          Switch(
+            checked = shareState.isTokenEnabled,
+            onCheckedChange = { enabled ->
+              WebShareManager.setTokenEnabled(context, enabled)
+            },
+            thumbContent = {
+              Crossfade(
+                targetState = shareState.isTokenEnabled,
+                animationSpec = tween(durationMillis = 200),
+                label = "SwitchIconAnimation"
+              ) { isChecked ->
+                if (isChecked) {
+                  Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                  )
+                } else {
+                  Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                  )
+                }
+              }
+            }
+          )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(10.dp))
+
+      // 3. URL Display & Copy Pill
       shareState.serverUrl?.let { url ->
         Surface(
-          shape = RoundedCornerShape(12.dp),
-          color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+          shape = RoundedCornerShape(10.dp),
+          color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
           modifier = Modifier.fillMaxWidth(),
         ) {
           Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
           ) {
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = "Browser Address",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-              Text(
-                text = url,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-              )
-            }
+            Text(
+              text = url,
+              style = MaterialTheme.typography.bodyMedium,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.primary,
+              maxLines = 2,
+              softWrap = true,
+              modifier = Modifier.weight(1f).padding(end = 8.dp),
+            )
 
             IconButton(
               onClick = {
@@ -309,33 +326,104 @@ fun WebShareSheet(
                 clipboard.setPrimaryClip(ClipData.newPlainText("Web Share Link", url))
                 copied = true
                 Toast.makeText(context, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
-              }
+              },
+              modifier = Modifier.size(32.dp),
             ) {
               Icon(
                 imageVector = if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
                 contentDescription = "Copy Link",
                 tint = if (copied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
               )
             }
           }
         }
       }
 
-      Spacer(modifier = Modifier.height(16.dp))
-
-      // Step-by-step guidance
-      Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-      ) {
-        InstructionRow(step = "1", text = "Connect receiver device to this Wi-Fi or Hotspot")
-        InstructionRow(step = "2", text = "Scan QR Code with Camera or open the link in any browser")
-        InstructionRow(step = "3", text = "Tap Download or Play in browser (zero app required)")
+      // No network warning banner if applicable
+      if (shareState.networkType == WebShareManager.NetworkType.NONE) {
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+          Icon(
+            imageVector = Icons.Filled.Warning,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(16.dp),
+          )
+          Text(
+            text = "Turn on Hotspot or connect to Wi-Fi to share",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+          )
+        }
       }
 
-      Spacer(modifier = Modifier.height(24.dp))
+      Spacer(modifier = Modifier.height(10.dp))
 
-      // Stop Sharing Button
+      // 4. Guidance Steps
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+      ) {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            modifier = Modifier.size(18.dp),
+          ) {
+            Box(contentAlignment = Alignment.Center) {
+              Text(
+                text = "1",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+              )
+            }
+          }
+          Text(
+            text = "Connect receiving phone to this Hotspot or Wi-Fi",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            modifier = Modifier.size(18.dp),
+          ) {
+            Box(contentAlignment = Alignment.Center) {
+              Text(
+                text = "2",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+              )
+            }
+          }
+          Text(
+            text = "Scan QR code or type URL in any browser",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(14.dp))
+
+      // 5. Stop Sharing Button
       Button(
         onClick = {
           WebShareManager.stopSharing(context)
@@ -345,46 +433,15 @@ fun WebShareSheet(
           containerColor = MaterialTheme.colorScheme.errorContainer,
           contentColor = MaterialTheme.colorScheme.onErrorContainer,
         ),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth().height(44.dp),
       ) {
         Text(
           text = "Stop Sharing",
           fontWeight = FontWeight.SemiBold,
-          fontSize = 15.sp,
+          fontSize = 14.sp,
         )
       }
     }
-  }
-}
-
-@Composable
-private fun InstructionRow(step: String, text: String) {
-  Row(
-    verticalAlignment = Alignment.Top,
-    horizontalArrangement = Arrangement.spacedBy(10.dp),
-    modifier = Modifier.fillMaxWidth(),
-  ) {
-    Surface(
-      shape = RoundedCornerShape(8.dp),
-      color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-      modifier = Modifier.size(22.dp),
-    ) {
-      Box(contentAlignment = Alignment.Center) {
-        Text(
-          text = step,
-          style = MaterialTheme.typography.labelSmall,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.primary,
-        )
-      }
-    }
-
-    Text(
-      text = text,
-      style = MaterialTheme.typography.bodySmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.weight(1f),
-    )
   }
 }

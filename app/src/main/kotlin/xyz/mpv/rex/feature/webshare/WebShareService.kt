@@ -61,8 +61,9 @@ class WebShareService : Service() {
     try {
       server = WebShareServer(
         port = state.port,
+        files = state.files,
         token = state.token,
-        files = state.files
+        context = applicationContext
       )
       server?.start()
       WebShareManager.updateServerState(server)

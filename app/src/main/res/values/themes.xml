@@ -14,4 +14,10 @@
     <style name="Theme.mpvex.Player" parent="Theme.mpvex">
         <item name="android:windowBackground">@android:color/black</item>
     </style>
+
+    <style name="Theme.mpvex.Transparent" parent="Theme.mpvex">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowElevation">0dp</item>
+    </style>
 </resources>

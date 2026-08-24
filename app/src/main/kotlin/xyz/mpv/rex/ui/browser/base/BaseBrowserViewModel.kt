@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -94,6 +95,19 @@ abstract class BaseBrowserViewModel<T>(
         .debounce(300L)
         .collectLatest {
           Log.d("BaseBrowserViewModel", "Refreshing browser data from media library event")
+          loadData()
+        }
+    }
+
+    // Observe playback state updates (when a video is watched or marked as watched/unwatched)
+    // Clear the core media scanner cache and reload folder/video states
+    viewModelScope.launch(Dispatchers.Main) {
+      playbackStateRepository.observeAllPlaybackStates()
+        .drop(1)
+        .debounce(250L)
+        .collectLatest {
+          Log.d("BaseBrowserViewModel", "Refreshing browser data from playback state update")
+          MediaFileRepository.clearCache()
           loadData()
         }
     }

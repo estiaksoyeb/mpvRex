@@ -66,6 +66,7 @@ object CoreMediaScanner {
      */
     private data class ScannedItem(
         val name: String,
+        val path: String,
         val size: Long,
         val duration: Long,
         val dateModified: Long,
@@ -333,7 +334,9 @@ object CoreMediaScanner {
                     }
 
                     // Calculate unwatched status for all media (audio and video)
-                    val playbackState = playbackStates.find { it.mediaTitle == item.name }
+                    val playbackState = playbackStates.find {
+                        it.mediaTitle == item.path || it.mediaTitle == item.name || it.mediaTitle == File(item.path).name
+                    }
                     var isWatched = false
                     
                     if (playbackState != null) {
@@ -344,7 +347,7 @@ object CoreMediaScanner {
                             val watched = durationSeconds - playbackState.timeRemaining.toLong()
                             val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
                             if (progressValue >= (watchedThreshold / 100f)) {
-                                isWatched = true
+                                 isWatched = true
                             }
                         }
                     }
@@ -353,7 +356,7 @@ object CoreMediaScanner {
                         unwatchedCount++
                     }
 
-                    // Calculate NEW status
+                    // Calculate NEW status: unplayed videos within the time threshold
                     val videoAge = currentTime - (item.dateModified * 1000)
                     val isNew = (playbackState == null && videoAge <= thresholdMillis) || (playbackState != null && playbackState.timeRemaining == -1)
                     if (isNew) {
@@ -422,6 +425,7 @@ object CoreMediaScanner {
                     rawMedia.getOrPut(folderPath) { mutableListOf() }.add(
                         ScannedItem(
                             name = cursor.getString(nameIdx) ?: file.name,
+                            path = path,
                             size = cursor.getLong(sizeIdx),
                             duration = cursor.getLong(durationIdx),
                             dateModified = cursor.getLong(dateIdx),
@@ -472,6 +476,7 @@ object CoreMediaScanner {
                     itemsInFolder.add(
                         ScannedItem(
                             name = file.name,
+                            path = file.absolutePath,
                             size = file.length(),
                             duration = 0, // Filesystem doesn't give duration
                             dateModified = file.lastModified() / 1000,

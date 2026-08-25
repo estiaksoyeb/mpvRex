@@ -10,7 +10,9 @@ import xyz.mpv.rex.repository.MediaFileRepository
 import xyz.mpv.rex.ui.browser.base.BaseBrowserViewModel
 import xyz.mpv.rex.ui.browser.videolist.VideoWithPlaybackInfo
 import xyz.mpv.rex.utils.media.MetadataRetrieval
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -81,10 +83,14 @@ class MediaLibraryViewModel(
             loadPlaybackInfo(enrichedList)
           }
         }
+      } catch (e: CancellationException) {
+        throw e
       } catch (e: Exception) {
         Log.e(tag, "Error loading media library videos", e)
       } finally {
-        _isLoading.value = false
+        if (coroutineContext.isActive) {
+          _isLoading.value = false
+        }
       }
     }
   }

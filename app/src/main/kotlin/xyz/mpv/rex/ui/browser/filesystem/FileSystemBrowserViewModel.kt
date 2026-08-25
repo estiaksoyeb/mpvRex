@@ -20,6 +20,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.StateFlow
@@ -137,7 +138,7 @@ class FileSystemBrowserViewModel(
 
     // Refresh when blacklist changes
     viewModelScope.launch {
-      foldersPreferences.blacklistedFolders.changes().collectLatest {
+      foldersPreferences.blacklistedFolders.changes().drop(1).collectLatest {
         refresh(silent = true)
       }
     }
@@ -265,7 +266,14 @@ class FileSystemBrowserViewModel(
         if (path == STORAGE_ROOTS_MARKER) {
           _breadcrumbs.value = emptyList()
           val roots = MediaFileRepository.getStorageRoots(getApplication())
+          val sortedRoots = SortUtils.sortFileSystemItems(
+            roots,
+            browserPreferences.folderSortType.get(),
+            browserPreferences.folderSortOrder.get()
+          )
           _unsortedItems.value = roots
+          _items.value = sortedRoots
+          _isLoading.value = false
         } else {
           _breadcrumbs.value = MediaFileRepository.getPathComponents(path)
           MediaFileRepository
@@ -358,10 +366,16 @@ class FileSystemBrowserViewModel(
               }
 
               // Instantly publish the pre-enriched items so the UI displays immediately with cached metadata
+              val sortedBasicItems = SortUtils.sortFileSystemItems(
+                basicEnrichedItems,
+                browserPreferences.folderSortType.get(),
+                browserPreferences.folderSortOrder.get()
+              )
               _videoFilesWithPlayback.value = basicPlaybackMap
               _newVideoIds.value = basicNewIds
               _watchedVideoIds.value = basicWatchedIds
               _unsortedItems.value = basicEnrichedItems
+              _items.value = sortedBasicItems
               _isLoading.value = false
 
               // 2. Fetch detailed video metadata (MediaInfo) asynchronously in the background for uncached videos or missing durations
@@ -430,15 +444,22 @@ class FileSystemBrowserViewModel(
                     }
                   }
 
+                  val sortedFinalItems = SortUtils.sortFileSystemItems(
+                    finalEnrichedItems,
+                    browserPreferences.folderSortType.get(),
+                    browserPreferences.folderSortOrder.get()
+                  )
                   // Publish the final fully-enriched list
                   _videoFilesWithPlayback.value = finalPlaybackMap
                   _newVideoIds.value = finalNewIds
                   _watchedVideoIds.value = finalWatchedIds
                   _unsortedItems.value = finalEnrichedItems
+                  _items.value = sortedFinalItems
                 }
             }.onFailure { error ->
               _error.value = error.message
               _unsortedItems.value = emptyList()
+              _items.value = emptyList()
             }
         }
       } catch (e: CancellationException) {
@@ -446,8 +467,11 @@ class FileSystemBrowserViewModel(
       } catch (e: Exception) {
         _error.value = e.message
         _unsortedItems.value = emptyList()
+        _items.value = emptyList()
       } finally {
-        _isLoading.value = false
+        if (coroutineContext.isActive) {
+          _isLoading.value = false
+        }
       }
     }
   }

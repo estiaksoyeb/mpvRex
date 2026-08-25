@@ -13,14 +13,18 @@ import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import xyz.mpv.rex.utils.media.MetadataRetrieval
 import xyz.mpv.rex.utils.storage.FileTypeUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -39,6 +43,7 @@ data class VideoWithPlaybackInfo(
   val isNeverPlayed: Boolean = true, // true if video has never been opened
 )
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 class VideoListViewModel(
   application: Application,
   private val bucketId: String,
@@ -86,6 +91,8 @@ class VideoListViewModel(
     loadData()
     viewModelScope.launch {
       playbackStateRepository.observeAllPlaybackStates()
+        .drop(1)
+        .debounce(250L)
         .collect {
           if (_videos.value.isNotEmpty()) {
             loadPlaybackInfo(_videos.value)
@@ -116,7 +123,7 @@ class VideoListViewModel(
 
         if (videoList.isEmpty()) {
           _videos.value = emptyList()
-          loadPlaybackInfo(emptyList())
+          _videosWithPlaybackInfo.value = emptyList()
           _isLoading.value = false
         } else {
           // Pre-apply DB cached metadata before initial emission to ensure durations and chips appear immediately
@@ -143,10 +150,16 @@ class VideoListViewModel(
             loadPlaybackInfo(enrichedList)
           }
         }
+      } catch (e: CancellationException) {
+        throw e
       } catch (e: Exception) {
         Log.e(tag, "Error loading videos for bucket $bucketId", e)
+        _videos.value = emptyList()
+        _videosWithPlaybackInfo.value = emptyList()
       } finally {
-        _isLoading.value = false
+        if (coroutineContext.isActive) {
+          _isLoading.value = false
+        }
       }
     }
   }

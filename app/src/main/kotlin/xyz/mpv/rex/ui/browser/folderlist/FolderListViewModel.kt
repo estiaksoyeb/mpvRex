@@ -17,8 +17,10 @@ import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import xyz.mpv.rex.utils.media.MetadataRetrieval
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -253,13 +255,28 @@ class FolderListViewModel(
           _isEnriching.value = false
         }
 
+        val blacklist = foldersPreferences.blacklistedFolders.get()
+        val showAudio = browserPreferences.showAudioFiles.get()
+        val filteredFolders = folders.filter { folder -> 
+          folder.path !in blacklist && (showAudio || folder.videoCount > 0)
+        }
+        _videoFolders.value = filteredFolders
+        _foldersWithNewCount.value = filteredFolders.map { 
+          FolderWithNewCount(it, it.newCount) 
+        }
         _allVideoFolders.value = folders
-        _isLoading.value = false
-        _hasCompletedInitialLoad.value = true
+      } catch (e: CancellationException) {
+        throw e
       } catch (e: Exception) {
         Log.e(TAG, "Error loading video folders", e)
-        _isLoading.value = false
-        _hasCompletedInitialLoad.value = true
+        _videoFolders.value = emptyList()
+        _foldersWithNewCount.value = emptyList()
+        _allVideoFolders.value = emptyList()
+      } finally {
+        if (coroutineContext.isActive) {
+          _isLoading.value = false
+          _hasCompletedInitialLoad.value = true
+        }
       }
     }
   }

@@ -6,7 +6,9 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,11 +25,32 @@ import xyz.mpv.rex.ui.theme.MpvexTheme
 class WebShareActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge(
+      statusBarStyle = SystemBarStyle.auto(
+        android.graphics.Color.TRANSPARENT,
+        android.graphics.Color.TRANSPARENT,
+      ),
+      navigationBarStyle = SystemBarStyle.auto(
+        android.graphics.Color.TRANSPARENT,
+        android.graphics.Color.TRANSPARENT,
+      )
+    )
     super.onCreate(savedInstanceState)
+    handleIntent(intent)
+  }
 
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    handleIntent(intent)
+  }
+
+  private fun handleIntent(intent: Intent?) {
     val incomingUris = extractUrisFromIntent(intent)
-    if (incomingUris.isEmpty()) {
-      Toast.makeText(this, "No files received for Web Share", Toast.LENGTH_SHORT).show()
+    val isRunning = WebShareManager.state.value.isRunning
+
+    if (incomingUris.isEmpty() && !isRunning) {
+      Toast.makeText(this, "No active Web Share session", Toast.LENGTH_SHORT).show()
       finish()
       return
     }

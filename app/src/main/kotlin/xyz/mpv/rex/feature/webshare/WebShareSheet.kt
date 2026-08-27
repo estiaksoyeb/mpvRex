@@ -3,14 +3,20 @@ package xyz.mpv.rex.feature.webshare
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +31,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Warning
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,6 +78,32 @@ fun WebShareSheet(
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val shareState by WebShareManager.state.collectAsState()
   var copied by remember { mutableStateOf(false) }
+
+  var hasNotificationPermission by remember {
+    mutableStateOf(
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(
+          context,
+          android.Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+      } else {
+        true
+      }
+    )
+  }
+
+  val notificationPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestPermission(),
+    onResult = { isGranted ->
+      hasNotificationPermission = isGranted
+      if (isGranted) {
+        val updateIntent = Intent(context, WebShareService::class.java).apply {
+          action = WebShareService.ACTION_UPDATE
+        }
+        context.startService(updateIntent)
+      }
+    }
+  )
 
   // 1. Prepare shareable files on initial composition
   LaunchedEffect(videos, files, uris) {
@@ -150,6 +184,21 @@ fun WebShareSheet(
     }
   }
 
+  // Reset copied indicator back to copy icon after 2 seconds
+  LaunchedEffect(copied) {
+    if (copied) {
+      kotlinx.coroutines.delay(2000L)
+      copied = false
+    }
+  }
+
+  // If reopening an existing share and sharing was stopped, dismiss sheet
+  LaunchedEffect(shareState.isRunning) {
+    if (!shareState.isRunning && (videos.isEmpty() && files.isEmpty() && uris.isEmpty())) {
+      onDismiss()
+    }
+  }
+
   val totalSize = remember(shareState.files) {
     shareState.files.sumOf { it.size }
   }
@@ -169,7 +218,7 @@ fun WebShareSheet(
 
   ModalBottomSheet(
     onDismissRequest = {
-      WebShareManager.stopSharing(context)
+      // Dismiss UI only — background service continues running
       onDismiss()
     },
     sheetState = sheetState,
@@ -221,6 +270,64 @@ fun WebShareSheet(
               contentDescription = "Scan QR Code",
               modifier = Modifier.size(156.dp),
             )
+          }
+        }
+      }
+
+      // Notification Permission Banner (placed below QR code if not granted on Android 13+)
+      if (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Spacer(modifier = Modifier.height(10.dp))
+        Surface(
+          shape = RoundedCornerShape(12.dp),
+          color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Row(
+            modifier = Modifier
+              .padding(horizontal = 14.dp, vertical = 10.dp)
+              .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(10.dp),
+              modifier = Modifier.weight(1f),
+            ) {
+              Icon(
+                imageVector = Icons.Filled.Notifications,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary,
+              )
+              Column {
+                Text(
+                  text = "Enable Notifications",
+                  style = MaterialTheme.typography.bodyMedium,
+                  fontWeight = FontWeight.SemiBold,
+                  color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                  text = "Keep sharing in background & reopen anytime",
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+              }
+            }
+
+            Button(
+              onClick = {
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+              },
+              shape = RoundedCornerShape(8.dp),
+              contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+              Text(
+                text = "Allow",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+              )
+            }
           }
         }
       }

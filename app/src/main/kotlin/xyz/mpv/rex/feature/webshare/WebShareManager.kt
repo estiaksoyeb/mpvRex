@@ -102,6 +102,11 @@ object WebShareManager {
         context = context.applicationContext
       )
       activeServer?.start()
+
+      val updateIntent = Intent(context, WebShareService::class.java).apply {
+        action = WebShareService.ACTION_UPDATE
+      }
+      context.startService(updateIntent)
     } catch (e: Exception) {
       android.util.Log.e("WebShareManager", "Failed to update token on server", e)
     }
@@ -119,6 +124,12 @@ object WebShareManager {
     _state.value = WebShareState(isRunning = false)
   }
 
+  internal fun onServiceStopped() {
+    activeServer?.stop()
+    activeServer = null
+    _state.value = WebShareState(isRunning = false)
+  }
+
   internal fun updateServerState(server: WebShareServer?) {
     activeServer = server
   }
@@ -132,11 +143,19 @@ object WebShareManager {
     val baseHost = ip ?: "localhost"
     val fullUrl = if (token != null) "http://$baseHost:$port/?t=$token" else "http://$baseHost:$port/"
 
+    val ipChanged = current.ipAddress != ip || current.networkType != networkType
     _state.value = current.copy(
       ipAddress = ip,
       networkType = networkType,
       serverUrl = fullUrl
     )
+
+    if (ipChanged) {
+      val updateIntent = Intent(context, WebShareService::class.java).apply {
+        action = WebShareService.ACTION_UPDATE
+      }
+      context.startService(updateIntent)
+    }
   }
 
   private fun getLocalIpAddress(context: Context): Pair<String?, NetworkType> {

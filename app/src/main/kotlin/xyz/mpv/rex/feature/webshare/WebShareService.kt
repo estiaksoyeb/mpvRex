@@ -21,6 +21,7 @@ class WebShareService : Service() {
   companion object {
     const val ACTION_START = "xyz.mpv.rex.feature.webshare.ACTION_START"
     const val ACTION_STOP = "xyz.mpv.rex.feature.webshare.ACTION_STOP"
+    const val ACTION_UPDATE = "xyz.mpv.rex.feature.webshare.ACTION_UPDATE"
     private const val NOTIFICATION_ID = 4092
     private const val CHANNEL_ID = "web_share_service_channel"
   }
@@ -45,8 +46,11 @@ class WebShareService : Service() {
       ACTION_START -> {
         startServerAndService()
       }
+      ACTION_UPDATE -> {
+        updateNotificationState()
+      }
     }
-    return START_STICKY
+    return START_NOT_STICKY
   }
 
   private fun startServerAndService() {
@@ -59,14 +63,16 @@ class WebShareService : Service() {
     acquireLocks()
 
     try {
-      server = WebShareServer(
-        port = state.port,
-        files = state.files,
-        token = state.token,
-        context = applicationContext
-      )
-      server?.start()
-      WebShareManager.updateServerState(server)
+      if (server == null) {
+        server = WebShareServer(
+          port = state.port,
+          files = state.files,
+          token = state.token,
+          context = applicationContext
+        )
+        server?.start()
+        WebShareManager.updateServerState(server)
+      }
     } catch (e: Exception) {
       android.util.Log.e("WebShareService", "Failed to start WebShareServer on port ${state.port}", e)
       stopSelf()
@@ -89,6 +95,17 @@ class WebShareService : Service() {
     }
   }
 
+  private fun updateNotificationState() {
+    val state = WebShareManager.state.value
+    if (!state.isRunning) {
+      stopServerAndService()
+      return
+    }
+    val notification = buildNotification(state)
+    val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+    manager?.notify(NOTIFICATION_ID, notification)
+  }
+
   private fun stopServerAndService() {
     try {
       server?.stop()
@@ -101,11 +118,12 @@ class WebShareService : Service() {
     releaseLocks()
     stopForeground(STOP_FOREGROUND_REMOVE)
     stopSelf()
+    WebShareManager.onServiceStopped()
   }
 
   private fun buildNotification(state: WebShareManager.WebShareState): Notification {
-    val openIntent = Intent(this, MainActivity::class.java).apply {
-      flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    val openIntent = Intent(this, WebShareActivity::class.java).apply {
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
     }
     val openPendingIntent = PendingIntent.getActivity(
       this,
@@ -129,7 +147,7 @@ class WebShareService : Service() {
     val contentText = state.serverUrl ?: "Local Web Share running"
 
     return NotificationCompat.Builder(this, CHANNEL_ID)
-      .setSmallIcon(R.drawable.baseline_play_arrow_24)
+      .setSmallIcon(R.drawable.baseline_share_24)
       .setContentTitle("mpvRex Web Share")
       .setContentText(contentText)
       .setSubText(subText)

@@ -38,7 +38,7 @@ object WebShareHtmlTemplate {
               </svg>
             </div>
             <div class="card-content">
-              <div class="card-title" title="$safeName">$safeName</div>
+              <div class="card-title" title="$safeName" data-full-name="$safeName">$safeName</div>
               <div class="card-meta">
                 <span>${file.formattedSize}</span>
                 ${if (file.durationFormatted != null) """<span class="dot">•</span><span>${file.durationFormatted}</span>""" else ""}
@@ -344,6 +344,9 @@ object WebShareHtmlTemplate {
               align-items: flex-start;
               gap: 12px;
             }
+            .card-content {
+              width: 100%;
+            }
             .card-actions {
               width: 100%;
               justify-content: flex-end;
@@ -401,13 +404,86 @@ object WebShareHtmlTemplate {
         </div>
 
         <script>
+          function truncateTitle(el) {
+            const fullName = el.getAttribute('data-full-name') || el.textContent;
+            if (!fullName) return;
+            if (!el.hasAttribute('data-full-name')) {
+              el.setAttribute('data-full-name', fullName);
+            }
+
+            // Always reset to full original filename first to measure unclipped dimensions
+            el.textContent = fullName;
+
+            // Strict check: if filename fits without overflowing, never shorten it!
+            if (el.scrollWidth <= el.clientWidth) {
+              return;
+            }
+
+            const dotIdx = fullName.lastIndexOf('.');
+            const hasExt = dotIdx > 0 && dotIdx < fullName.length - 1;
+            const ext = hasExt ? fullName.substring(dotIdx) : '';
+            const base = hasExt ? fullName.substring(0, dotIdx) : fullName;
+
+            // Preserve last 4 characters before the extension (e.g. "...this.apk")
+            const tailLen = Math.min(4, Math.max(0, Math.floor(base.length / 2) - 1));
+            const tail = tailLen > 0 ? base.slice(-tailLen) : '';
+            const head = tailLen > 0 ? base.slice(0, -tailLen) : base;
+            const suffix = '...' + tail + ext;
+
+            let low = 1;
+            let high = head.length;
+            let best = 0;
+
+            while (low <= high) {
+              const mid = Math.floor((low + high) / 2);
+              el.textContent = head.substring(0, mid) + suffix;
+              if (el.scrollWidth <= el.clientWidth) {
+                best = mid;
+                low = mid + 1;
+              } else {
+                high = mid - 1;
+              }
+            }
+
+            if (best > 0) {
+              el.textContent = head.substring(0, best) + suffix;
+            } else {
+              // Fallback to head + '...' + ext if suffix was too long
+              const simpleSuffix = '...' + ext;
+              low = 1;
+              high = base.length - 1;
+              best = 1;
+              while (low <= high) {
+                const mid = Math.floor((low + high) / 2);
+                el.textContent = base.substring(0, mid) + simpleSuffix;
+                if (el.scrollWidth <= el.clientWidth) {
+                  best = mid;
+                  low = mid + 1;
+                } else {
+                  high = mid - 1;
+                }
+              }
+              el.textContent = base.substring(0, best) + simpleSuffix;
+            }
+          }
+
+          function truncateAllTitles() {
+            document.querySelectorAll('.card-title').forEach(truncateTitle);
+            const modalTitle = document.getElementById('modalTitle');
+            if (modalTitle && modalTitle.textContent) {
+              truncateTitle(modalTitle);
+            }
+          }
+
           function playMedia(streamUrl, title) {
             const modal = document.getElementById('mediaModal');
             const player = document.getElementById('mediaPlayer');
             const titleEl = document.getElementById('modalTitle');
+            titleEl.setAttribute('data-full-name', title);
             titleEl.textContent = title;
             player.src = streamUrl;
             modal.style.display = 'flex';
+            truncateTitle(titleEl);
             player.play().catch(() => {});
           }
 
@@ -423,6 +499,13 @@ object WebShareHtmlTemplate {
           document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closePlayer();
           });
+
+          window.addEventListener('load', truncateAllTitles);
+          window.addEventListener('resize', truncateAllTitles);
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(truncateAllTitles);
+          }
+          truncateAllTitles();
         </script>
       </body>
       </html>

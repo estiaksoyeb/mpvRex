@@ -817,7 +817,7 @@
     <string name="no_video_folders_found_desc">Add videos to your device to see folders here</string>
 
     <!-- File System Browser Screen Strings -->
-    <string name="search_in_all_storage_volumes">Search in all storage volumes…</string>
+    <string name="search_in_all_storage_volumes">Search all storage</string>
     <string name="search_in_folder_placeholder">Search in %1$s…</string>
     <string name="search_default_folder_name">folder</string>
     <string name="empty_folder_title">Empty folder</string>

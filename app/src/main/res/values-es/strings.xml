@@ -366,8 +366,6 @@ Next: NEXT</string>
     <string name="pref_about_telegram_channel_summary">Únete a nuestro canal para estar al tanto de actualizaciones y novedades</string>
     <string name="pref_about_telegram_group">Grupo de chat de Telegram</string>
     <string name="pref_about_telegram_group_summary">Interactúa y conversa con la comunidad</string>
-    <string name="pref_about_show_community_icon_title">Acceso rápido a la comunidad</string>
-    <string name="pref_about_show_community_icon_summary">Mostrar acceso rápido a los enlaces de la comunidad en la cabecera de inicio</string>
 
     <string name="player_sheets_add_ext_sub">Añadir subtítulos externos</string>
     <string name="player_sheets_add_ext_audio">Añadir pistas de audio externas</string>

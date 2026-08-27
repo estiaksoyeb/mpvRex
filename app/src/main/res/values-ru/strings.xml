@@ -375,8 +375,6 @@
 	<string name="pref_about_telegram_channel_summary">Присоединяйтесь к нашему каналу для новостей и обновлений</string>
 	<string name="pref_about_telegram_group">Чат в Telegram</string>
 	<string name="pref_about_telegram_group_summary">Общайтесь и обсуждайте с сообществом</string>
-	<string name="pref_about_show_community_icon_title">Ярлык сообщества</string>
-	<string name="pref_about_show_community_icon_summary">Показывать ярлык ссылок на сообщество в заголовке главной страницы</string>
 
 	<string name="player_sheets_add_ext_sub">Добавить внешние субтитры</string>
 	<string name="player_sheets_add_ext_audio">Добавить внешние аудиодорожки</string>

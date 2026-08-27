@@ -360,8 +360,6 @@
     <string name="pref_about_telegram_channel_summary">انضم إلى قناتنا للتحديثات والأخبار</string>
     <string name="pref_about_telegram_group">مجموعة دردشة تيليغرام</string>
     <string name="pref_about_telegram_group_summary">ناقش وتحدث مع المجتمع</string>
-    <string name="pref_about_show_community_icon_title">اختصار المجتمع</string>
-    <string name="pref_about_show_community_icon_summary">إظهار اختصار روابط المجتمع في رأس الصفحة الرئيسية</string>
 
     <string name="player_sheets_add_ext_sub">إضافة ترجمات خارجية</string>
     <string name="player_sheets_add_ext_audio">إضافة مسارات صوتية خارجية</string>

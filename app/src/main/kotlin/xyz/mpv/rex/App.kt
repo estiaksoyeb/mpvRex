@@ -40,6 +40,10 @@ class App : Application() {
   private val mediaStoreInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
   private val rootInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
+  override fun attachBaseContext(base: Context) {
+    super.attachBaseContext(xyz.mpv.rex.utils.locale.LocaleHelper.wrapContext(base))
+  }
+
   override fun onCreate() {
     super.onCreate()
 

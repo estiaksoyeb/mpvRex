@@ -22,6 +22,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.provider.Settings
+import androidx.core.content.ContextCompat
 import xyz.mpv.rex.BuildConfig
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
@@ -41,6 +45,52 @@ import java.io.File
  */
 object PermissionUtils {
   private const val FILE_ACCESS_TAG = "FileAccessRequest"
+  
+  /**
+   * Check if storage permission is currently granted.
+   */
+  fun isStoragePermissionGranted(context: Context): Boolean =
+    if (!BuildConfig.SCOPED_STORAGE_ONLY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      android.os.Environment.isExternalStorageManager()
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.READ_MEDIA_VIDEO,
+      ) == PackageManager.PERMISSION_GRANTED
+    } else if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+      ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+      ) == PackageManager.PERMISSION_GRANTED
+    } else {
+      ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+      ) == PackageManager.PERMISSION_GRANTED
+    }
+
+  /**
+   * Launch system storage permission request (All Files Access settings on Android 11+ non-playstore, or runtime permission).
+   */
+  fun requestStorageAccess(context: Context, onRequestPermission: () -> Unit) {
+    if (BuildConfig.SCOPED_STORAGE_ONLY) {
+      onRequestPermission()
+    } else {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        try {
+          val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+            data = Uri.parse("package:${context.packageName}")
+          }
+          context.startActivity(intent)
+        } catch (_: Exception) {
+          val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+          context.startActivity(intent)
+        }
+      } else {
+        onRequestPermission()
+      }
+    }
+  }
   
   private var mediaRequestLauncher: ActivityResultLauncher<IntentSenderRequest>? = null
   private var resultOkCallback: () -> Unit = {}

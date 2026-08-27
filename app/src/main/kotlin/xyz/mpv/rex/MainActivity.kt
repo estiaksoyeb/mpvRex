@@ -27,6 +27,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.toArgb
@@ -51,6 +52,7 @@ import xyz.mpv.rex.utils.permission.PermissionUtils
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayer
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
+import xyz.mpv.rex.ui.welcome.WelcomeScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -84,6 +86,10 @@ class MainActivity : ComponentActivity() {
     ActivityResultContracts.StartIntentSenderForResult()
   ) { result ->
     PermissionUtils.handleMediaAccessResult(result.resultCode)
+  }
+
+  override fun attachBaseContext(newBase: android.content.Context) {
+    super.attachBaseContext(xyz.mpv.rex.utils.locale.LocaleHelper.wrapContext(newBase))
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -168,12 +174,21 @@ class MainActivity : ComponentActivity() {
    */
   @Composable
   fun Navigator() {
-    val backstack = rememberNavBackStack(MainScreen)
+    val context = LocalContext.current
+    val hasCompletedOnboarding = appearancePreferences.onboardingCompleted.get()
+    val isStorageGranted = PermissionUtils.isStoragePermissionGranted(context)
+    val initialScreen = remember {
+      if (hasCompletedOnboarding && isStorageGranted) {
+        MainScreen
+      } else {
+        WelcomeScreen
+      }
+    }
+    val backstack = rememberNavBackStack(initialScreen)
 
     @Suppress("UNCHECKED_CAST")
     val typedBackstack = backstack as NavBackStack<Screen>
 
-    val context = LocalContext.current
     val currentVersion = BuildConfig.VERSION_NAME.replace("-dev", "")
 
     // Conditionally initialize update feature based on build config
@@ -189,6 +204,7 @@ class MainActivity : ComponentActivity() {
     val hideNavigationBar by MainScreen.shouldHideNavigationBar.collectAsState()
     val currentRoute = typedBackstack.lastOrNull()
     val isMainScreen = currentRoute == MainScreen
+    val isWelcomeScreen = currentRoute == WelcomeScreen
     
     val targetBottomPadding = if (isMainScreen && !hideNavigationBar) {
       if (miniPlayerState.isExpanded) 8.dp else 88.dp
@@ -208,7 +224,7 @@ class MainActivity : ComponentActivity() {
     val navBarHeight = if (isMainScreen && !hideNavigationBar) 80.dp else 0.dp
     val totalNavigationBarHeight = navBarHeight + miniPlayerHeight
 
-    BackHandler(enabled = isMainScreen) {
+    BackHandler(enabled = isMainScreen || isWelcomeScreen) {
       (context as? Activity)?.moveTaskToBack(true)
     }
 

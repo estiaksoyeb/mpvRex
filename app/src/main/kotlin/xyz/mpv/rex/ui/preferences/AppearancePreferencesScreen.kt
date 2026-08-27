@@ -6,12 +6,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -48,6 +51,18 @@ import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.ui.semantics.Role
+import xyz.mpv.rex.utils.locale.LocaleHelper
+import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SliderPreference
 import org.koin.compose.koinInject
@@ -108,6 +123,7 @@ object AppearancePreferencesScreen : Screen {
         var showNetworkWarning by remember { mutableStateOf(false) }
         var pendingStrategyChange by remember { mutableStateOf<ThumbnailStrategy?>(null) }
         var pendingPositionChange by remember { mutableStateOf<Int?>(null) }
+        var showLanguageDialog by remember { mutableStateOf(false) }
 
         // ملاحظة: النصوص أدناه (Toast) لم تُلمس عمداً — stringResource() لا يعمل
         // خارج composition، وتحتاج تعديل توقيع الدالة (تمرير Context.getString
@@ -162,6 +178,37 @@ object AppearancePreferencesScreen : Screen {
                         .padding(padding),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
                 ) {
+                    item {
+                        PreferenceSectionHeader(title = stringResource(id = R.string.pref_appearance_language_title))
+                    }
+
+                    item {
+                        val currentLanguage = remember { LocaleHelper.getCurrentLanguage(context) }
+                        PreferenceCard {
+                            Preference(
+                                title = { Text(text = stringResource(id = R.string.pref_appearance_language_title)) },
+                                summary = {
+                                    Text(
+                                        text = if (currentLanguage.code.isEmpty()) {
+                                            stringResource(R.string.system_default)
+                                        } else {
+                                            "${currentLanguage.nativeName} (${currentLanguage.localizedName})"
+                                        },
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                },
+                                icon = {
+                                    Icon(
+                                        Icons.Outlined.Language,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                onClick = { showLanguageDialog = true },
+                            )
+                        }
+                    }
+
                     item {
                         PreferenceSectionHeader(title = stringResource(id = R.string.pref_appearance_category_theme))
                     }
@@ -904,6 +951,93 @@ object AppearancePreferencesScreen : Screen {
 
                 }
             }
+        }
+
+        if (showLanguageDialog) {
+            val currentCode = remember { LocaleHelper.getSavedLanguageCode(context) }
+            var selectedCode by remember { mutableStateOf(currentCode) }
+            val languages = remember { LocaleHelper.getSupportedLanguages(context) }
+
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Language,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                title = {
+                    Text(
+                        text = stringResource(R.string.pref_appearance_language_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 350.dp)
+                            .verticalScroll(rememberScrollState())
+                            .selectableGroup(),
+                    ) {
+                        languages.forEach { language ->
+                            val isSelected = selectedCode == language.code
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .selectable(
+                                        selected = isSelected,
+                                        onClick = { selectedCode = language.code },
+                                        role = Role.RadioButton,
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = null,
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = language.nativeName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    if (language.code.isNotEmpty()) {
+                                        Text(
+                                            text = language.localizedName,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    FilledTonalButton(
+                        onClick = {
+                            LocaleHelper.setAppLanguage(context, selectedCode)
+                            showLanguageDialog = false
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(stringResource(R.string.generic_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLanguageDialog = false }) {
+                        Text(stringResource(R.string.generic_cancel))
+                    }
+                },
+                shape = RoundedCornerShape(24.dp),
+            )
         }
     }
 }

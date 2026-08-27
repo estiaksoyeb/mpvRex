@@ -22,6 +22,8 @@ class AppearancePreferences(
 ) {
   val darkMode = preferenceStore.getEnum("dark_mode", DarkMode.System)
   val appTheme = preferenceStore.getEnum("app_theme", AppTheme.Default)
+  val appLanguage = preferenceStore.getString("app_language", "")
+  val onboardingCompleted = preferenceStore.getBoolean("onboarding_completed", false)
   val materialYou = preferenceStore.getBoolean("material_you", true)
   val amoledMode = preferenceStore.getBoolean("amoled_mode", false)
   val matchPlayerControlsToTheme = preferenceStore.getBoolean("match_player_controls_to_theme", false)

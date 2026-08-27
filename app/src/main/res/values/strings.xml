@@ -1123,6 +1123,7 @@
     <string name="pref_player_display_custom_time_summary">Custom (%1$d ms)</string>
 
     <!-- Generic reusable strings -->
+    <string name="generic_off">Off</string>
     <string name="generic_none">None</string>
     <string name="generic_custom">Custom</string>
     <string name="generic_edit_content_description">Edit %1$s</string>

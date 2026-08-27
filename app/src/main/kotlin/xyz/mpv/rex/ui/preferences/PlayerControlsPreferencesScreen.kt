@@ -329,8 +329,10 @@ object PlayerControlsPreferencesScreen : Screen {
                         val enableGlassSeekbarBackground by appearancePrefs.enableGlassSeekbarBackground.collectAsState()
                         val playerAlwaysDarkMode by appearancePrefs.playerAlwaysDarkMode.collectAsState()
                         val playerTimeToDisappear by playerPrefs.playerTimeToDisappear.collectAsState()
-                        val predefinedTimeValues = listOf(500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)
+                        val predefinedTimeValues = listOf(0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)
                         val isCustomTimeValue = !predefinedTimeValues.contains(playerTimeToDisappear)
+                        val offLabel = stringResource(R.string.generic_off)
+                        val customLabel = stringResource(R.string.generic_custom)
                         var showCustomTimeDialog by remember { mutableStateOf(false) }
                         var customTimeValue by remember { mutableStateOf("") }
 
@@ -465,29 +467,29 @@ object PlayerControlsPreferencesScreen : Screen {
                                 },
                                 values = predefinedTimeValues + listOf(-1),
                                 valueToText = { value ->
-                                    // NOTE (#20 - not touched): needs confirmation whether this
-                                    // lambda runs in a @Composable scope in this version of
-                                    // me.zhanghai.compose.preference before calling
-                                    // stringResource() here. Left as literal for now.
-                                    if (value == -1) {
-                                        AnnotatedString("Custom")
-                                    } else {
-                                        AnnotatedString("$value ms")
+                                    when (value) {
+                                        0 -> AnnotatedString(offLabel)
+                                        -1 -> AnnotatedString(customLabel)
+                                        else -> AnnotatedString("$value ms")
                                     }
                                 },
                                 title = { Text(text = stringResource(R.string.pref_player_display_hide_player_control_time)) },
                                 summary = {
                                     Text(
-                                        text = if (isCustomTimeValue) {
-                                            stringResource(
-                                                R.string.pref_player_display_custom_time_summary,
-                                                playerTimeToDisappear
-                                            )
-                                        } else {
-                                            stringResource(
-                                                R.string.pref_player_display_time_ms_format,
-                                                playerTimeToDisappear
-                                            )
+                                        text = when {
+                                            playerTimeToDisappear == 0 -> offLabel
+                                            isCustomTimeValue -> {
+                                                stringResource(
+                                                    R.string.pref_player_display_custom_time_summary,
+                                                    playerTimeToDisappear
+                                                )
+                                            }
+                                            else -> {
+                                                stringResource(
+                                                    R.string.pref_player_display_time_ms_format,
+                                                    playerTimeToDisappear
+                                                )
+                                            }
                                         },
                                         color = MaterialTheme.colorScheme.outline,
                                     )
@@ -523,7 +525,7 @@ object PlayerControlsPreferencesScreen : Screen {
                                     TextButton(
                                         onClick = {
                                             val value = customTimeValue.toIntOrNull()
-                                            if (value != null && value in 100..1000000000000) {
+                                            if (value != null && value in 0..1000000000) {
                                                 playerPrefs.playerTimeToDisappear.set(value)
                                                 showCustomTimeDialog = false
                                             }

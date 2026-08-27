@@ -71,14 +71,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import xyz.mpv.rex.ui.utils.CommunityIcon
 import xyz.mpv.rex.ui.browser.dialogs.CommunityLinksDialog
 
@@ -157,6 +151,8 @@ fun BrowserTopBar(
     )
   }
 }
+
+private var hasHeaderAnimationPlayed = false
 
 /**
  * Normal mode top bar
@@ -244,50 +240,66 @@ private fun NormalTopBar(
           )
         }
 
-      val isAppTitleHeader = isHomeScreen || title == stringResource(R.string.app_name) || title == "mpvRex"
-      var showNewName by remember { mutableStateOf(false) }
+      val isAppTitleHeader = isHomeScreen || title == stringResource(R.string.app_name) || title == "mpvRex" || title == "REX Player"
+      var animatedTitleText by remember {
+        mutableStateOf(if (isAppTitleHeader && !hasHeaderAnimationPlayed) "mpvRex|" else title)
+      }
 
-      if (isAppTitleHeader) {
+      if (isAppTitleHeader && !hasHeaderAnimationPlayed) {
         LaunchedEffect(Unit) {
-          while (true) {
-            delay(4000)
-            showNewName = !showNewName
+          // Initial pause showing "mpvRex|"
+          delay(600)
+
+          // Delete "mpvRex" backwards
+          val initialWord = "mpvRex"
+          for (i in (initialWord.length - 1) downTo 0) {
+            animatedTitleText = initialWord.substring(0, i) + "|"
+            delay(90)
           }
+
+          delay(150)
+
+          // Type "REX Player" forwards
+          val targetWord = "REX Player"
+          for (i in 1..targetWord.length) {
+            animatedTitleText = targetWord.substring(0, i) + "|"
+            delay(85)
+          }
+
+          // Finish: blink cursor, then settle on final text
+          delay(400)
+          animatedTitleText = targetWord
+          delay(300)
+          animatedTitleText = "$targetWord|"
+          delay(300)
+          animatedTitleText = targetWord
+          hasHeaderAnimationPlayed = true
         }
       }
 
-      val displayTitle = if (isAppTitleHeader && showNewName) "REX Player" else title
+      val displayTitle = if (isAppTitleHeader && !hasHeaderAnimationPlayed) animatedTitleText else title
 
-      AnimatedContent(
-        targetState = displayTitle,
-        transitionSpec = {
-          (fadeIn(animationSpec = tween(600)) + slideInVertically { height -> height / 2 })
-            .togetherWith(fadeOut(animationSpec = tween(600)) + slideOutVertically { height -> -height / 2 })
-        },
-        label = "HeaderTitleTransition",
-      ) { currentTitle ->
-        Text(
-          currentTitle,
-          style =
+      Text(
+        text = displayTitle,
+        style =
+          if (onBackClick == null) {
+            MaterialTheme.typography.headlineMediumEmphasized
+          } else {
+            MaterialTheme.typography.headlineSmall
+          },
+        fontWeight = FontWeight.ExtraBold,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier =
+          titleModifier.then(
             if (onBackClick == null) {
-              MaterialTheme.typography.headlineMediumEmphasized
+              Modifier.padding(start = 8.dp)
             } else {
-              MaterialTheme.typography.headlineSmall
+              Modifier
             },
-          fontWeight = FontWeight.ExtraBold,
-          color = MaterialTheme.colorScheme.primary,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          modifier =
-            titleModifier.then(
-              if (onBackClick == null) {
-                Modifier.padding(start = 8.dp)
-              } else {
-                Modifier
-              },
-            ),
-        )
-      }
+          ),
+      )
     },
     navigationIcon = {
       if (onBackClick != null) {

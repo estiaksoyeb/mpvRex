@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">mpvRex</string>
+    <string name="app_name" translatable="false">REX Player</string>
     <string name="author_name" translatable="false">Sakhawat</string>
 
     <string name="generic_reset">Reset</string>

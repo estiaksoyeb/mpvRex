@@ -415,8 +415,8 @@ fun GestureHandler(
           var lastMPVVolumeValue = currentMPVVolume ?: 100
           var lastBrightnessValue = currentBrightness
           val brightnessGestureSens = 0.0022f
-          val volumeGestureSens = 0.035f
-          val mpvVolumeGestureSens = 0.035f
+          val volumeGestureSens = (viewModel.maxVolume * brightnessGestureSens).coerceAtLeast(0.001f)
+          val mpvVolumeGestureSens = (volumeBoostingCap.coerceAtLeast(1) * brightnessGestureSens).coerceAtLeast(0.001f)
 
           // State for subtitle-position drag (touch on the subtitle, drag up/down)
           var subPosOriginal = 0

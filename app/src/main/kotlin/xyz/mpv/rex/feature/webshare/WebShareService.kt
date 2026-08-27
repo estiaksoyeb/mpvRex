@@ -153,7 +153,7 @@ class WebShareService : Service() {
 
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.baseline_share_24)
-      .setContentTitle("mpvRex Web Share")
+      .setContentTitle("REX Player Web Share")
       .setContentText(contentText)
       .setSubText(subText)
       .setOngoing(true)
@@ -183,12 +183,12 @@ class WebShareService : Service() {
   private fun acquireLocks() {
     try {
       val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-      wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "mpvRex:WebShareWakeLock").apply {
+      wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "REXPlayer:WebShareWakeLock").apply {
         acquire(4 * 60 * 60 * 1000L) // 4 hours timeout
       }
 
       val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-      wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "mpvRex:WebShareWifiLock").apply {
+      wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "REXPlayer:WebShareWifiLock").apply {
         acquire()
       }
     } catch (e: Exception) {

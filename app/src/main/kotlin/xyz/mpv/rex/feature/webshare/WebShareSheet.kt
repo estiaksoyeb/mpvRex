@@ -427,7 +427,7 @@ fun WebShareSheet(
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
               )
               Text(
-                text = "• Download/mpvRex",
+                text = "• Download/REX Player",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
               )

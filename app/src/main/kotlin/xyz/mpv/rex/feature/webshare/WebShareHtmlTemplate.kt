@@ -16,7 +16,7 @@ object WebShareHtmlTemplate {
   fun renderHtml(
     files: List<SharedFileItem>,
     token: String? = null,
-    serverTitle: String = "mpvRex Web Share",
+    serverTitle: String = "REX Player Web Share",
   ): String {
     val totalSize = files.sumOf { it.size }
     val totalSizeFormatted = formatFileSize(totalSize)
@@ -477,7 +477,7 @@ object WebShareHtmlTemplate {
                 <circle cx="12" cy="12" r="10"></circle>
                 <polygon points="10 8 16 12 10 16 10 8"></polygon>
               </svg>
-              mpvRex Share
+              REX Player Share
             </div>
             <h1 class="title">Shared Files</h1>
             <p class="subtitle">$fileCount ${if (multipleFiles) "files" else "file"} • $totalSizeFormatted total</p>
@@ -495,7 +495,7 @@ object WebShareHtmlTemplate {
                 </svg>
               </div>
               <div class="upload-text">
-                <div class="upload-title">Send Files to mpvRex</div>
+                <div class="upload-title">Send Files to REX Player</div>
                 <div class="upload-desc">Tap to browse or drop files to send</div>
               </div>
             </div>
@@ -504,7 +504,7 @@ object WebShareHtmlTemplate {
 
           ${if (multipleFiles) """
             <div class="bulk-action">
-              <a href="/download-all$querySuffix" class="btn btn-primary" download="mpvRex_shared_files.zip">
+              <a href="/download-all$querySuffix" class="btn btn-primary" download="REX_Player_shared_files.zip">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="21 8 21 21 3 21 3 8"></polyline>
                   <rect x="1" y="3" width="22" height="5"></rect>

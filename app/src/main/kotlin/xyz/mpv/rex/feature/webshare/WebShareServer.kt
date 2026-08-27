@@ -2,21 +2,25 @@ package xyz.mpv.rex.feature.webshare
 
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.webkit.MimeTypeMap
 import fi.iki.elonen.NanoHTTPD
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.net.URLDecoder
 import java.net.URLEncoder
+import java.util.HashMap
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.concurrent.thread
 
 /**
  * Embedded NanoHTTPD server for sharing local files with nearby devices over Wi-Fi / Hotspot.
- * Supports partial content (HTTP 206) for video/audio seeking and resumable downloads.
+ * Supports partial content (HTTP 206) for video/audio seeking, resumable downloads, and uploads.
  */
 class WebShareServer(
   port: Int,
@@ -53,6 +57,7 @@ class WebShareServer(
     return try {
       when {
         uri == "/" -> serveIndexPage()
+        uri == "/upload" && session.method == Method.POST -> handleUpload(session)
         uri.startsWith("/download/") -> {
           val fileId = uri.removePrefix("/download/")
           serveFile(session, fileId, isAttachment = true)
@@ -218,6 +223,125 @@ class WebShareServer(
       "wav" -> "audio/wav"
       else -> "application/octet-stream"
     }
+  }
+
+  private fun handleUpload(session: IHTTPSession): Response {
+    return try {
+      val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+      val mpvRexDir = File(downloadsDir, "mpvRex")
+      if (!mpvRexDir.exists()) {
+        mpvRexDir.mkdirs()
+      }
+
+      val contentType = session.headers["content-type"] ?: ""
+      val savedFiles = mutableListOf<File>()
+
+      if (contentType.contains("multipart/form-data")) {
+        val filesMap = HashMap<String, String>()
+        session.parseBody(filesMap)
+        for ((key, tempPath) in filesMap) {
+          if (key == "postData" || key == "content") continue
+          val tempFile = File(tempPath)
+          if (tempFile.exists()) {
+            val originalName = session.parameters[key]?.firstOrNull()
+              ?: session.parameters["name"]?.firstOrNull()
+              ?: session.parameters["filename"]?.firstOrNull()
+              ?: tempFile.name
+            val destFile = getUniqueDestinationFile(mpvRexDir, originalName)
+            tempFile.copyTo(destFile, overwrite = true)
+            tempFile.delete()
+            onFileSuccessfullySaved(destFile)
+            savedFiles.add(destFile)
+          }
+        }
+      } else {
+        val rawName = session.parameters["name"]?.firstOrNull()
+          ?: session.parameters["filename"]?.firstOrNull()
+          ?: session.headers["x-filename"]
+          ?: session.headers["x-file-name"]
+          ?: "received_${System.currentTimeMillis()}"
+
+        val decodedName = try {
+          URLDecoder.decode(rawName, "UTF-8")
+        } catch (e: Exception) {
+          rawName
+        }
+
+        val contentLength = session.headers["content-length"]?.toLongOrNull() ?: -1L
+        val destFile = getUniqueDestinationFile(mpvRexDir, decodedName)
+
+        FileOutputStream(destFile).use { fos ->
+          val buffer = ByteArray(64 * 1024)
+          var remaining = if (contentLength >= 0) contentLength else Long.MAX_VALUE
+          val inputStream = session.inputStream
+          while (remaining > 0) {
+            val readLen = Math.min(buffer.size.toLong(), remaining).toInt()
+            val read = inputStream.read(buffer, 0, readLen)
+            if (read == -1) break
+            fos.write(buffer, 0, read)
+            if (contentLength >= 0) {
+              remaining -= read
+            }
+          }
+          fos.flush()
+        }
+        onFileSuccessfullySaved(destFile)
+        savedFiles.add(destFile)
+      }
+
+      val firstSaved = savedFiles.firstOrNull()
+      val json = "{\"success\":true,\"count\":${savedFiles.size},\"filename\":\"${escapeJson(firstSaved?.name ?: "")}\",\"size\":${firstSaved?.length() ?: 0}}"
+      val response = newFixedLengthResponse(Response.Status.OK, "application/json; charset=UTF-8", json)
+      response.addHeader("Access-Control-Allow-Origin", "*")
+      response
+    } catch (e: Exception) {
+      android.util.Log.e("WebShareServer", "Failed to handle file upload", e)
+      newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=UTF-8", "{\"success\":false,\"error\":\"${escapeJson(e.message ?: "Upload failed")}\"}")
+    }
+  }
+
+  private fun getUniqueDestinationFile(dir: File, rawFilename: String): File {
+    var cleanName = File(rawFilename).name.trim()
+      .replace(Regex("[/\\\\?%*:|\"<>]"), "_")
+      .ifEmpty { "received_${System.currentTimeMillis()}" }
+
+    val dotIndex = cleanName.lastIndexOf('.')
+    val baseName = if (dotIndex > 0) cleanName.substring(0, dotIndex) else cleanName
+    val extension = if (dotIndex > 0) cleanName.substring(dotIndex) else ""
+
+    var targetFile = File(dir, cleanName)
+    var counter = 1
+    while (targetFile.exists()) {
+      targetFile = File(dir, "$baseName ($counter)$extension")
+      counter++
+    }
+    return targetFile
+  }
+
+  private fun onFileSuccessfullySaved(file: File) {
+    context?.let { ctx ->
+      try {
+        android.media.MediaScannerConnection.scanFile(
+          ctx.applicationContext,
+          arrayOf(file.absolutePath),
+          null
+        ) { path, uri ->
+          android.util.Log.d("WebShareServer", "MediaScanner indexed: $path -> $uri")
+        }
+        WebShareManager.onFileReceived(ctx.applicationContext, file)
+      } catch (e: Exception) {
+        android.util.Log.e("WebShareServer", "Failed to invoke MediaScanner", e)
+      }
+    }
+  }
+
+  private fun escapeJson(text: String): String {
+    return text.replace("\\", "\\\\")
+      .replace("\"", "\\\"")
+      .replace("\b", "\\b")
+      .replace("\n", "\\n")
+      .replace("\r", "\\r")
+      .replace("\t", "\\t")
   }
 
   private fun formatSize(size: Long): String {

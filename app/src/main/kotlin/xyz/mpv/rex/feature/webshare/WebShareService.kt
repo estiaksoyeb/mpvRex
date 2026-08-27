@@ -143,8 +143,13 @@ class WebShareService : Service() {
     )
 
     val fileCount = state.files.size
-    val subText = if (fileCount == 1) "Sharing 1 file" else "Sharing $fileCount files"
-    val contentText = state.serverUrl ?: "Local Web Share running"
+    val receivedCount = state.receivedFiles.size
+    val subText = if (receivedCount > 0) {
+      "$fileCount shared • $receivedCount received"
+    } else {
+      if (fileCount == 1) "Sharing 1 file" else "Sharing $fileCount files"
+    }
+    val contentText = state.latestReceivedFile?.let { "Received: $it" } ?: (state.serverUrl ?: "Local Web Share running")
 
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.baseline_share_24)

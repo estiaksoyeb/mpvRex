@@ -403,6 +403,47 @@ fun WebShareSheet(
         }
       }
 
+      // 3. Received Files Banner (if any files received from other devices)
+      if (shareState.receivedFiles.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(10.dp))
+        Surface(
+          shape = RoundedCornerShape(12.dp),
+          color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Column(
+            modifier = Modifier
+              .padding(horizontal = 14.dp, vertical = 10.dp)
+              .fillMaxWidth(),
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+              Text(
+                text = "📥 Received (${shareState.receivedFiles.size})",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+              )
+              Text(
+                text = "• Download/mpvRex",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
+              )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+              text = shareState.receivedFiles.takeLast(3).joinToString("\n") { "• ${it.name}" },
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSecondaryContainer,
+              maxLines = 3,
+              overflow = TextOverflow.Ellipsis,
+            )
+          }
+        }
+      }
+
       Spacer(modifier = Modifier.height(10.dp))
 
       // 3. URL Display & Copy Pill

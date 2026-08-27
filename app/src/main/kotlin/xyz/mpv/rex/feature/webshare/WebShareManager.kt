@@ -29,6 +29,8 @@ object WebShareManager {
     val serverUrl: String? = null,
     val files: List<WebShareServer.ShareableFile> = emptyList(),
     val networkType: NetworkType = NetworkType.NONE,
+    val receivedFiles: List<java.io.File> = emptyList(),
+    val latestReceivedFile: String? = null,
   )
 
   private val _state = MutableStateFlow(WebShareState())
@@ -128,6 +130,21 @@ object WebShareManager {
     activeServer?.stop()
     activeServer = null
     _state.value = WebShareState(isRunning = false)
+  }
+
+  fun onFileReceived(context: Context, file: java.io.File) {
+    val current = _state.value
+    val updated = current.receivedFiles + file
+    _state.value = current.copy(
+      receivedFiles = updated,
+      latestReceivedFile = file.name
+    )
+
+    // Notify service to update notification with received file status
+    val updateIntent = Intent(context, WebShareService::class.java).apply {
+      action = WebShareService.ACTION_UPDATE
+    }
+    context.startService(updateIntent)
   }
 
   internal fun updateServerState(server: WebShareServer?) {

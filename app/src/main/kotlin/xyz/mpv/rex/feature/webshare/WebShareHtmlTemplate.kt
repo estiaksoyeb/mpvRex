@@ -338,6 +338,117 @@ object WebShareHtmlTemplate {
             height: 100%;
           }
 
+          .upload-section {
+            margin-bottom: 24px;
+          }
+
+          .upload-card {
+            background-color: var(--surface-color);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow);
+          }
+
+          .upload-card:hover, .upload-card.drag-over {
+            border-color: var(--primary-color);
+            background-color: var(--surface-hover);
+          }
+
+          .upload-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            background-color: rgba(59, 130, 246, 0.12);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .upload-text {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .upload-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 2px;
+          }
+
+          .upload-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+          }
+
+          .upload-queue {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+          }
+
+          .upload-item {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            box-shadow: var(--shadow);
+          }
+
+          .upload-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            margin-bottom: 6px;
+          }
+
+          .upload-item-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 65%;
+          }
+
+          .upload-item-meta {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+          }
+
+          .upload-progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--secondary-bg);
+            border-radius: 9999px;
+            overflow: hidden;
+          }
+
+          .upload-progress-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 9999px;
+            width: 0%;
+            transition: width 0.15s ease;
+          }
+
+          .upload-item.success .upload-progress-fill {
+            background-color: #10b981;
+          }
+
+          .upload-item.error .upload-progress-fill {
+            background-color: #ef4444;
+          }
+
           @media (max-width: 480px) {
             .card {
               flex-direction: column;
@@ -371,6 +482,25 @@ object WebShareHtmlTemplate {
             <h1 class="title">Shared Files</h1>
             <p class="subtitle">$fileCount ${if (multipleFiles) "files" else "file"} • $totalSizeFormatted total</p>
           </header>
+
+          <!-- Send Files to Host Dropzone -->
+          <section class="upload-section">
+            <div class="upload-card" id="dropZone" onclick="document.getElementById('fileInput').click()">
+              <input type="file" id="fileInput" multiple style="display:none" onchange="handleFileSelect(this.files)">
+              <div class="upload-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <div class="upload-text">
+                <div class="upload-title">Send Files to mpvRex</div>
+                <div class="upload-desc">Tap to browse or drop files to send</div>
+              </div>
+            </div>
+            <div id="uploadQueue" class="upload-queue"></div>
+          </section>
 
           ${if (multipleFiles) """
             <div class="bulk-action">
@@ -499,6 +629,112 @@ object WebShareHtmlTemplate {
           document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closePlayer();
           });
+
+          // Upload Controller
+          const tokenQuery = '$querySuffix';
+
+          function handleFileSelect(files) {
+            if (!files || files.length === 0) return;
+            const queue = Array.from(files);
+            uploadFilesSequential(queue);
+            const input = document.getElementById('fileInput');
+            if (input) input.value = '';
+          }
+
+          function uploadFilesSequential(queue) {
+            if (queue.length === 0) return;
+            const file = queue.shift();
+            uploadSingleFile(file, () => {
+              uploadFilesSequential(queue);
+            });
+          }
+
+          function uploadSingleFile(file, onComplete) {
+            const queueContainer = document.getElementById('uploadQueue');
+            const itemId = 'upload-' + Math.random().toString(36).substring(2, 9);
+            const safeName = escapeHtmlText(file.name);
+
+            const itemEl = document.createElement('div');
+            itemEl.className = 'upload-item';
+            itemEl.id = itemId;
+            itemEl.innerHTML = '<div class="upload-item-header"><div class="upload-item-name" title="' + safeName + '">' + safeName + '</div><div class="upload-item-meta" id="' + itemId + '-status">0%</div></div><div class="upload-progress-bar"><div class="upload-progress-fill" id="' + itemId + '-fill"></div></div>';
+            queueContainer.prepend(itemEl);
+
+            const xhr = new XMLHttpRequest();
+            const url = '/upload?name=' + encodeURIComponent(file.name) + (tokenQuery ? (tokenQuery.startsWith('?') ? '&' + tokenQuery.substring(1) : tokenQuery) : '');
+            let startTime = Date.now();
+
+            xhr.upload.onprogress = function(e) {
+              if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                const fillEl = document.getElementById(itemId + '-fill');
+                const statusEl = document.getElementById(itemId + '-status');
+                if (fillEl) fillEl.style.width = percent + '%';
+                const elapsedSec = (Date.now() - startTime) / 1000;
+                if (elapsedSec > 0.5) {
+                  const speedMB = ((e.loaded / (1024 * 1024)) / elapsedSec).toFixed(1);
+                  if (statusEl) statusEl.textContent = percent + '% • ' + speedMB + ' MB/s';
+                } else {
+                  if (statusEl) statusEl.textContent = percent + '%';
+                }
+              }
+            };
+
+            xhr.onload = function() {
+              const statusEl = document.getElementById(itemId + '-status');
+              const fillEl = document.getElementById(itemId + '-fill');
+              if (xhr.status >= 200 && xhr.status < 300) {
+                itemEl.classList.add('success');
+                if (fillEl) fillEl.style.width = '100%';
+                if (statusEl) statusEl.textContent = '✓ Saved';
+              } else {
+                itemEl.classList.add('error');
+                if (statusEl) statusEl.textContent = '✗ Upload failed';
+              }
+              if (onComplete) onComplete();
+            };
+
+            xhr.onerror = function() {
+              const statusEl = document.getElementById(itemId + '-status');
+              itemEl.classList.add('error');
+              if (statusEl) statusEl.textContent = '✗ Connection error';
+              if (onComplete) onComplete();
+            };
+
+            xhr.open('POST', url, true);
+            xhr.send(file);
+          }
+
+          function escapeHtmlText(text) {
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+          }
+
+          // Drag and drop listeners
+          const dropZone = document.getElementById('dropZone');
+          if (dropZone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+              dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('drag-over');
+              }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+              dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drag-over');
+              }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+              const dt = e.dataTransfer;
+              if (dt && dt.files) {
+                handleFileSelect(dt.files);
+              }
+            }, false);
+          }
 
           window.addEventListener('load', truncateAllTitles);
           window.addEventListener('resize', truncateAllTitles);

@@ -91,7 +91,6 @@ object AboutScreen : Screen {
     val updateViewModel = LocalUpdateViewModel.current
     val updateState by (updateViewModel?.updateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
     val preferences = koinInject<AppearancePreferences>()
-    val showCommunityIcon by preferences.showCommunityIcon.collectAsState()
     
     val packageManager: PackageManager = context.packageManager
     val packageInfo = packageManager.getPackageInfo(context.packageName, 0)
@@ -389,29 +388,6 @@ object AboutScreen : Screen {
                   Intent.ACTION_VIEW,
                   context.getString(R.string.pref_about_telegram_chat_url).toUri(),
                 ),
-              )
-            },
-          )
-
-          PreferenceDivider()
-
-          SwitchPreference(
-            value = showCommunityIcon,
-            onValueChange = { newValue ->
-              preferences.showCommunityIcon.set(newValue)
-            },
-            title = { Text(text = stringResource(id = R.string.pref_about_show_community_icon_title)) },
-            summary = {
-              Text(
-                text = stringResource(id = R.string.pref_about_show_community_icon_summary),
-                color = MaterialTheme.colorScheme.outline,
-              )
-            },
-            icon = {
-              Icon(
-                imageVector = CommunityIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
               )
             },
           )

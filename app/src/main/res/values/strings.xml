@@ -381,8 +381,6 @@
     <string name="pref_about_telegram_channel_summary">Join our channel for updates and news</string>
     <string name="pref_about_telegram_group">Telegram Chat Group</string>
     <string name="pref_about_telegram_group_summary">Discuss and chat with the community</string>
-    <string name="pref_about_show_community_icon_title">Community Shortcut</string>
-    <string name="pref_about_show_community_icon_summary">Show community links shortcut in the home header</string>
     <string name="pref_about_telegram_url" translatable="false">https://t.me/mpvRex</string>
     <string name="pref_about_telegram_chat_url" translatable="false">https://t.me/mpvRex_chat</string>
 
@@ -936,6 +934,10 @@
     <string name="community_links">Community Links</string>
     <string name="community_hub">Community Hub</string>
     <string name="connect_social_media">Connect with us on social media</string>
+    <string name="community_already_joined">Already joined</string>
+    <string name="community_never_show_again">Never show again</string>
+    <string name="community_not_now">Not now</string>
+    <string name="community_already_joined_message">You can also find these community links in Preferences → About.</string>
 
     <!-- Sort Dialog Strings -->
     <string name="sort_and_view_options">Sort &amp; View Options</string>

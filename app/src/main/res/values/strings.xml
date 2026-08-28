@@ -173,6 +173,21 @@
     <string name="pref_player_orientation_reverse_landscape">Reverse landscape</string>
     <string name="pref_player_orientation_sensor_landscape">Sensor landscape</string>
     <string name="pref_player_save_position_on_quit">Save position on quit</string>
+    <string name="pref_player_resume_playback_title">Resume playback</string>
+    <string name="pref_player_resume_playback_summary">Choose how previously watched videos are opened</string>
+    <string name="pref_player_resume_mode_always">Always resume</string>
+    <string name="pref_player_resume_mode_always_summary">Automatically resume from last saved position</string>
+    <string name="pref_player_resume_mode_ask">Ask every time</string>
+    <string name="pref_player_resume_mode_ask_summary">Prompt to resume or start afresh</string>
+    <string name="pref_player_resume_mode_never">Always start afresh</string>
+    <string name="pref_player_resume_mode_never_summary">Always start playback from 00:00</string>
+    <string name="player_resume_prompt_title">Resume playback?</string>
+    <string name="player_resume_prompt_message">You previously watched up to %1$s.</string>
+    <string name="player_resume_prompt_message_with_duration">You previously watched up to %1$s of %2$s.</string>
+    <string name="player_resume_action_resume">Resume</string>
+    <string name="player_resume_action_start_over">Start afresh</string>
+    <string name="player_resumed_from_pill">Resumed from %1$s</string>
+    <string name="player_restart_action">Restart</string>
     <string name="pref_player_section_mini_player">Mini Player</string>
     <string name="pref_player_play_in_mini_player">Play audio in mini player</string>
     <string name="pref_player_play_in_mini_player_summary_on">Tapping an audio file starts playback directly in the bottom mini player bar</string>
@@ -199,6 +214,8 @@
     <string name="pref_player_gestures_horizontal_swipe_sensitivity">Horizontal swipe sensitivity</string>
     <string name="pref_player_gestures_horizontal_swipe_sensitivity_summary">Adjust how much distance is covered per swipe</string>
     <string name="pref_player_gestures_hold_for_multiple_speed">Hold for multi - x speed</string>
+    <string name="pref_player_remember_long_press_speed_title">Remember adjusted speed</string>
+    <string name="pref_player_remember_long_press_speed_summary">Use the last swiped speed for subsequent long presses</string>
 
     <string name="pref_player_controls">Controls</string>
     <string name="pref_player_controls_disable_media_buttons_title">Disable media buttons</string>
@@ -1358,5 +1375,6 @@
     <string name="storage_access_granted_desc">Permission is granted. mpvRex is ready to discover and play your media.</string>
     <string name="welcome_grant_permission">Grant Permission</string>
     <string name="welcome_get_started">Get Started</string>
+    <string name="welcome_skip_permission">Continue without storage access</string>
 
 </resources>

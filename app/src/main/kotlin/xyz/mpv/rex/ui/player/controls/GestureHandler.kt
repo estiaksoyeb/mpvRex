@@ -125,6 +125,7 @@ fun GestureHandler(
     viewModel.hideSeekBar()
   }
   val multipleSpeedGesture by playerPreferences.holdForMultipleSpeed.collectAsState()
+  val rememberLongPressSpeed by playerPreferences.rememberLongPressSpeed.collectAsState()
   val showDynamicSpeedOverlay by playerPreferences.showDynamicSpeedOverlay.collectAsState()
   val brightnessGesture by playerPreferences.brightnessGesture.collectAsState()
   val volumeGesture by playerPreferences.volumeGesture.collectAsState()
@@ -768,6 +769,9 @@ fun GestureHandler(
           longPressJob.cancel()
 
           if (isLongPressing) {
+            if (hasSwipedEnough && rememberLongPressSpeed && lastAppliedSpeed > 0f) {
+              playerPreferences.holdForMultipleSpeed.set(lastAppliedSpeed)
+            }
             isLongPressing = false
             isDynamicSpeedControlActive = false
             hasSwipedEnough = false

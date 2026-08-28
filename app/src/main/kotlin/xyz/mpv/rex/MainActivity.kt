@@ -176,9 +176,8 @@ class MainActivity : ComponentActivity() {
   fun Navigator() {
     val context = LocalContext.current
     val hasCompletedOnboarding = appearancePreferences.onboardingCompleted.get()
-    val isStorageGranted = PermissionUtils.isStoragePermissionGranted(context)
     val initialScreen = remember {
-      if (hasCompletedOnboarding && isStorageGranted) {
+      if (hasCompletedOnboarding) {
         MainScreen
       } else {
         WelcomeScreen

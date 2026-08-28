@@ -482,7 +482,7 @@ class PlayerActivity :
       if (isUriM3U(playableUri)) {
         loadM3uPlaylistOrPlayDirectly(playableUri)
       } else {
-        if (playerPreferences.savePositionOnQuit.get()) {
+        if (playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
           runCatching { MPVLib.setPropertyBoolean("pause", true) }
         }
         player.playFile(playableUri)
@@ -1897,6 +1897,7 @@ class PlayerActivity :
     }
     // Reset aspect ration to preferred and pan to neutral
     viewModel.resetVisualPreferences()
+    viewModel.clearResumePrompt()
     needsAspectReapply = true
 
     lifecycleScope.launch(Dispatchers.IO) {
@@ -1919,9 +1920,11 @@ class PlayerActivity :
         }
       }
 
-      // Unpause playback after position and state restoration complete
-      runCatching {
-        MPVLib.setPropertyBoolean("pause", false)
+      // Unpause playback after position and state restoration complete (unless asking user to resume)
+      if (viewModel.resumePrompt.value == null) {
+        runCatching {
+          MPVLib.setPropertyBoolean("pause", false)
+        }
       }
 
       // Apply track selection logic (defaults only apply when no saved state)
@@ -2458,10 +2461,25 @@ class PlayerActivity :
     MPVLib.setPropertyDouble("video-zoom", state.videoZoom.toDouble())
     viewModel.setVideoZoom(state.videoZoom)
 
-    if (playerPreferences.savePositionOnQuit.get() && state != null && state.lastPosition > 3) {
-      MPVLib.setPropertyInt("time-pos", state.lastPosition)
-    } else {
-      MPVLib.setPropertyInt("time-pos", 0)
+    val resumeMode = playerPreferences.resumePlaybackMode.get()
+    val hasValidSavedPosition = state.lastPosition > 3
+
+    when {
+      !playerPreferences.savePositionOnQuit.get() || resumeMode == ResumePlaybackMode.Never || !hasValidSavedPosition -> {
+        MPVLib.setPropertyInt("time-pos", 0)
+      }
+      resumeMode == ResumePlaybackMode.Ask -> {
+        MPVLib.setPropertyInt("time-pos", 0)
+        withContext(Dispatchers.Main) {
+          viewModel.showResumePrompt(state.lastPosition, (state.timeRemaining + state.lastPosition))
+        }
+      }
+      resumeMode == ResumePlaybackMode.Always -> {
+        MPVLib.setPropertyInt("time-pos", state.lastPosition)
+        withContext(Dispatchers.Main) {
+          viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
+        }
+      }
     }
   }
 
@@ -2640,7 +2658,7 @@ class PlayerActivity :
       if (parsedUri != null && isUriM3U(parsedUri)) {
         loadM3uPlaylistOrPlayDirectly(uriStr)
       } else {
-        if (playerPreferences.savePositionOnQuit.get()) {
+        if (playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
           runCatching { MPVLib.setPropertyBoolean("pause", true) }
         }
         // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
@@ -3647,7 +3665,7 @@ class PlayerActivity :
     if (mpvInitialized) {
       safeSetPropertyString("vid", "no")
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
-    } else if (playerPreferences.savePositionOnQuit.get()) {
+    } else if (playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
     }
     // Load the new video

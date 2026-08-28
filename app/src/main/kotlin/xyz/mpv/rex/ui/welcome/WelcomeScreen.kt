@@ -159,6 +159,7 @@ object WelcomeScreen : Screen {
               .fillMaxWidth()
               .navigationBarsPadding()
               .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             FilledTonalButton(
               onClick = {
@@ -197,6 +198,20 @@ object WelcomeScreen : Screen {
                   },
                   style = MaterialTheme.typography.titleMedium,
                   fontWeight = FontWeight.Bold,
+                )
+              }
+            }
+
+            if (!isGranted) {
+              Spacer(modifier = Modifier.height(8.dp))
+              TextButton(
+                onClick = { navigateToMain() },
+                modifier = Modifier.fillMaxWidth(),
+              ) {
+                Text(
+                  text = stringResource(R.string.welcome_skip_permission),
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
               }
             }

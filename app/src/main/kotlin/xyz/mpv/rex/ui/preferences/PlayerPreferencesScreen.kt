@@ -26,6 +26,7 @@ import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.player.BackgroundPlaybackMode
 import xyz.mpv.rex.ui.player.PlayerOrientation
+import xyz.mpv.rex.ui.player.ResumePlaybackMode
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
@@ -100,11 +101,34 @@ object PlayerPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              val resumePlaybackMode by preferences.resumePlaybackMode.collectAsState()
+              ListPreference(
+                value = resumePlaybackMode,
+                onValueChange = preferences.resumePlaybackMode::set,
+                values = ResumePlaybackMode.entries,
+                valueToText = { AnnotatedString(context.getString(it.titleRes)) },
+                title = { Text(text = stringResource(id = R.string.pref_player_resume_playback_title)) },
+                summary = {
+                  Text(
+                    text = stringResource(id = resumePlaybackMode.titleRes),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
               val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
               SwitchPreference(
                 value = savePositionOnQuit,
                 onValueChange = preferences.savePositionOnQuit::set,
                 title = { Text(stringResource(R.string.pref_player_save_position_on_quit)) },
+                summary = {
+                  Text(
+                    text = stringResource(R.string.pref_player_save_position_on_quit_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
               )
 
               PreferenceDivider()
@@ -458,6 +482,21 @@ object PlayerPreferencesScreen : Screen {
                 },
                 onSliderValueChange = { preferences.holdForMultipleSpeed.set(it.toFixed(2)) },
                 sliderValue = holdForMultipleSpeed,
+              )
+
+              PreferenceDivider()
+
+              val rememberLongPressSpeed by preferences.rememberLongPressSpeed.collectAsState()
+              SwitchPreference(
+                value = rememberLongPressSpeed,
+                onValueChange = preferences.rememberLongPressSpeed::set,
+                title = { Text(stringResource(R.string.pref_player_remember_long_press_speed_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_player_remember_long_press_speed_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
               )
 
               PreferenceDivider()

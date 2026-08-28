@@ -123,6 +123,8 @@ import xyz.mpv.rex.ui.player.controls.components.CompactSpeedIndicator
 import xyz.mpv.rex.ui.player.controls.components.ControlsButton
 import xyz.mpv.rex.ui.player.controls.components.LockHint
 import xyz.mpv.rex.ui.player.controls.components.MultipleSpeedPlayerUpdate
+import xyz.mpv.rex.ui.player.controls.components.ResumePlaybackPromptDialog
+import xyz.mpv.rex.ui.player.controls.components.ResumedFromPlayerUpdate
 import xyz.mpv.rex.ui.player.controls.components.SeekPlayerUpdate
 import xyz.mpv.rex.ui.player.controls.components.SeekbarWithTimers
 import xyz.mpv.rex.ui.player.controls.components.SlideToUnlock
@@ -547,7 +549,8 @@ fun PlayerControls(
           ) {
             return@LaunchedEffect
           }
-          delay(2000)
+          val dismissDelay = if (currentPlayerUpdate is PlayerUpdates.ResumedFrom) 4000L else 2000L
+          delay(dismissDelay)
           viewModel.playerUpdate.update { PlayerUpdates.None }
         }
 
@@ -728,6 +731,18 @@ fun PlayerControls(
                 "Frame: ${frameInfo.currentFrame}"
               }
               TextPlayerUpdate(text)
+            }
+
+            is PlayerUpdates.ResumedFrom -> {
+              val resumedUpdate = currentPlayerUpdate as PlayerUpdates.ResumedFrom
+              ResumedFromPlayerUpdate(
+                position = resumedUpdate.position,
+                onRestart = {
+                  viewModel.playerUpdate.value = PlayerUpdates.None
+                  viewModel.restartFromBeginning()
+                },
+                modifier = Modifier,
+              )
             }
 
             else -> {}
@@ -1886,6 +1901,16 @@ fun PlayerControls(
       panelShown = panel,
       onDismissRequest = { onOpenPanel(Panels.None) },
     )
+
+    val resumePrompt by viewModel.resumePrompt.collectAsState()
+    resumePrompt?.let { promptData ->
+      ResumePlaybackPromptDialog(
+        promptData = promptData,
+        onConfirmResume = { pos -> viewModel.confirmResume(pos) },
+        onRestart = { viewModel.restartFromBeginning() },
+        onDismiss = { viewModel.dismissResumePrompt() },
+      )
+    }
   }
 }
 

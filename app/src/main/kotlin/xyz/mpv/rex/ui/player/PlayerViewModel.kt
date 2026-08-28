@@ -249,6 +249,36 @@ class PlayerViewModel(
   val areControlsLocked: StateFlow<Boolean> = _areControlsLocked.asStateFlow()
 
   val playerUpdate = MutableStateFlow<PlayerUpdates>(PlayerUpdates.None)
+
+  // Resume playback prompt state (for Ask Every Time mode)
+  private val _resumePrompt = MutableStateFlow<ResumePromptData?>(null)
+  val resumePrompt: StateFlow<ResumePromptData?> = _resumePrompt.asStateFlow()
+
+  fun showResumePrompt(position: Int, duration: Int = 0) {
+    _resumePrompt.value = ResumePromptData(position = position, duration = duration)
+  }
+
+  fun clearResumePrompt() {
+    _resumePrompt.value = null
+  }
+
+  fun dismissResumePrompt() {
+    _resumePrompt.value = null
+    runCatching { MPVLib.setPropertyBoolean("pause", false) }
+  }
+
+  fun confirmResume(position: Int) {
+    _resumePrompt.value = null
+    seekTo(position)
+    runCatching { MPVLib.setPropertyBoolean("pause", false) }
+  }
+
+  fun restartFromBeginning() {
+    _resumePrompt.value = null
+    seekTo(0)
+    runCatching { MPVLib.setPropertyBoolean("pause", false) }
+  }
+
   val isBrightnessSliderShown = MutableStateFlow(false)
   val isVolumeSliderShown = MutableStateFlow(false)
   val volumeSliderTimestamp = MutableStateFlow(0L)

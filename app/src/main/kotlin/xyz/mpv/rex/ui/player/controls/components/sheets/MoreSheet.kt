@@ -28,6 +28,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Settings
@@ -88,6 +89,7 @@ import xyz.mpv.rex.preferences.DecoderPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.preferences.PlayerButton
 import xyz.mpv.rex.preferences.PlayerPreferences
+import xyz.mpv.rex.ui.player.ResumePlaybackMode
 import xyz.mpv.rex.preferences.getPlayerButtonLabel
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.components.PlayerSheet
@@ -921,6 +923,8 @@ fun InteractionTab() {
       onCheckedChange = { playerPreferences.savePositionOnQuit.set(it) }
     )
 
+    ResumePlaybackModePreferenceItem()
+
     InteractionSwitch(
       label = stringResource(R.string.pref_auto_pip_title),
       description = stringResource(R.string.pref_auto_pip_summary),
@@ -1028,6 +1032,94 @@ private fun OrientationPreferenceItem() {
                 text = stringResource(mode.titleRes),
                 style = MaterialTheme.typography.bodyLarge
               )
+            }
+          }
+        }
+      },
+      confirmButton = {
+        TextButton(onClick = { showDialog = false }) {
+          Text(stringResource(R.string.generic_cancel))
+        }
+      }
+    )
+  }
+}
+
+@Composable
+private fun ResumePlaybackModePreferenceItem() {
+  val playerPreferences = koinInject<PlayerPreferences>()
+  val resumePlaybackMode by playerPreferences.resumePlaybackMode.collectAsState()
+  var showDialog by remember { mutableStateOf(false) }
+
+  Surface(
+    shape = MaterialTheme.shapes.medium,
+    color = MaterialTheme.colorScheme.surfaceContainerLow,
+    modifier = Modifier.fillMaxWidth()
+  ) {
+    ListItem(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable { showDialog = true },
+      headlineContent = {
+        Text(
+          text = stringResource(R.string.pref_player_resume_playback_title),
+          style = MaterialTheme.typography.bodyLarge
+        )
+      },
+      supportingContent = {
+        Text(
+          text = stringResource(resumePlaybackMode.titleRes),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.outline
+        )
+      },
+      trailingContent = {
+        Icon(
+          imageVector = Icons.Default.History,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+      }
+    )
+  }
+
+  if (showDialog) {
+    AlertDialog(
+      onDismissRequest = { showDialog = false },
+      title = { Text(stringResource(R.string.pref_player_resume_playback_title)) },
+      text = {
+        Column(
+          modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+        ) {
+          ResumePlaybackMode.entries.forEach { mode ->
+            Row(
+              modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                  playerPreferences.resumePlaybackMode.set(mode)
+                  showDialog = false
+                }
+                .padding(vertical = 12.dp, horizontal = 8.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              RadioButton(
+                selected = resumePlaybackMode == mode,
+                onClick = null
+              )
+              Spacer(modifier = Modifier.width(12.dp))
+              Column {
+                Text(
+                  text = stringResource(mode.titleRes),
+                  style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                  text = stringResource(mode.summaryRes),
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.outline
+                )
+              }
             }
           }
         }

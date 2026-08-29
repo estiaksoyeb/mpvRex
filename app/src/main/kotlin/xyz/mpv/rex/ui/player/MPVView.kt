@@ -418,6 +418,10 @@ class MPVView(
     MPVLib.setOptionString("sub-use-margins", scaleByWindow)
     MPVLib.setOptionString("secondary-sub-scale-by-window", scaleByWindow)
     MPVLib.setOptionString("secondary-sub-use-margins", scaleByWindow)
+
+    val forceLtr = if (subtitlesPreferences.forceLtr.get()) "yes" else "no"
+    MPVLib.setOptionString("sub-vsfilter-bidi-compat", forceLtr)
+    MPVLib.setOptionString("sub-codepage", "auto:cp1256:utf-8")
   }
 
 

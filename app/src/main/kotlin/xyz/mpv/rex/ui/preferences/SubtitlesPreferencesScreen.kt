@@ -291,6 +291,21 @@ object SubtitlesPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              val forceLtr by preferences.forceLtr.collectAsState()
+              SwitchPreference(
+                value = forceLtr,
+                onValueChange = { preferences.forceLtr.set(it) },
+                title = { Text(stringResource(R.string.pref_subtitles_force_ltr_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_subtitles_force_ltr_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
               val openAtVideoLocation by preferences.openPickerAtVideoLocation.collectAsState()
               SwitchPreference(
                 value = openAtVideoLocation,

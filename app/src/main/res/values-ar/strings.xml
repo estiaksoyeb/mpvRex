@@ -712,7 +712,7 @@
     <string name="also_delete_files">حذف الملف الأصلي أيضًا</string>
     <string name="no_video_folders_found">لم يتم العثور على أي مجلد فيديو</string>
     <string name="no_video_folders_found_desc">أضف فيديوهات إلى جهازك لتظهر المجلدات هنا</string>
-    <string name="search_in_all_storage_volumes">البحث في جميع وحدات التخزين...</string>
+    <string name="search_in_all_storage_volumes">البحث في جميع وحدات التخزين</string>
     <string name="search_in_folder_placeholder">البحث في %1$s...</string>
     <string name="search_default_folder_name">مجلد</string>
     <string name="empty_folder_title">مجلد فارغ</string>
@@ -825,7 +825,7 @@
     <string name="pref_max_horizontal_video_duration">الحد الأقصى لمدة الفيديوهات الأفقية</string>
     <plurals name="pref_max_horizontal_video_duration_desc">
         <item quantity="zero">تقييد الفيديوهات الأفقية إلى %d دقيقة</item>
-        <item quantity="one">تقييد الفيديوهات الأفقية إلى دقيقة واحدة</item>
+        <item quantity="one">الحد من مقاطع الفيديو الأفقية إلى %d دقيقة</item>
         <item quantity="two">تقييد الفيديوهات الأفقية إلى دقيقتين</item>
         <item quantity="few">تقييد الفيديوهات الأفقية إلى %d دقائق</item>
         <item quantity="many">تقييد الفيديوهات الأفقية إلى %d دقيقة</item>
@@ -1222,12 +1222,12 @@
     <string name="custom_button_field_label_with_slot">%1$s  ·  %2$s</string>
 
     <plurals name="custom_buttons_imported_count">
-        <item quantity="zero">لم يتم استيراد أي زر</item>
-        <item quantity="one">تم استيراد زر واحد</item>
-        <item quantity="two">تم استيراد زرين</item>
+        <item quantity="zero">تم استيراد زر %1$d</item>
+        <item quantity="two">تم استيراد زر %1$d</item>
         <item quantity="few">تم استيراد %1$d أزرار</item>
         <item quantity="many">تم استيراد %1$d زرًا</item>
         <item quantity="other">تم استيراد %1$d زر</item>
+        <item quantity="one">تم استيراد زر %1$d</item>
     </plurals>
 
         <!-- Video Settings Filter Presets Card -->
@@ -1313,4 +1313,40 @@
     <string name="pref_clear_metadata_cache_summary">حذف البيانات الوصفية المخزنة مؤقتاً للفيديو، وأبعاد الإطارات، وذاكرة التخزين المؤقت للصور المصغرة</string>
     <string name="pref_rescan_started_toast">بدأ إعادة فحص مكتبة الوسائط</string>
     <string name="pref_cache_cleared_toast">تم مسح ذاكرة التخزين المؤقت للبيانات الوصفية</string>
+    <string name="pref_player_resume_playback_title">استئناف التشغيل</string>
+    <string name="pref_player_resume_playback_summary">اختر كيفية فتح مقاطع الفيديو التي شاهدتها سابقًا</string>
+    <string name="pref_player_resume_mode_always">استئناف دائما</string>
+    <string name="pref_player_resume_mode_always_summary">استئناف تلقائي من آخر موضع محفوظ</string>
+    <string name="pref_player_resume_mode_ask_summary">المطالبة بالاستئناف أو البدء من جديد</string>
+    <string name="pref_player_resume_mode_never_summary">ابدأ التشغيل دائمًا من الساعة 00:00</string>
+    <string name="player_resume_prompt_message">لقد شاهدت سابقًا ما يصل إلى %1$s.</string>
+    <string name="player_resume_action_resume">استئناف</string>
+    <string name="player_resume_action_start_over">ابدأ من جديد</string>
+    <string name="player_resumed_from_pill">تم الاستئناف من %1$s</string>
+    <string name="player_restart_action">إعادة تشغيل</string>
+    <string name="pref_player_remember_long_press_speed_title">تذكر السرعة المعدلة</string>
+    <string name="pref_player_remember_long_press_speed_summary">استخدم سرعة التمرير الأخيرة للضغطات المطولة اللاحقة</string>
+    <string name="pref_subtitles_force_ltr_summary">فرض الاتجاه من اليسار إلى اليمين لترجمات RTL</string>
+    <string name="community_already_joined">انضممت بالفعل</string>
+    <string name="community_not_now">‫ليس الآن‬</string>
+    <string name="community_already_joined_message">يمكنك أيضًا العثور على روابط المجتمع هذه في التفضيلات → حول.</string>
+    <string name="generic_off">إيقاف</string>
+    <string name="system_default">الإعدادات الافتراضية للنظام</string>
+    <string name="pref_appearance_language_summary">تغيير لغة عرض التطبيق</string>
+    <string name="welcome_title">mpvRx أهلا بكم في</string>
+    <string name="welcome_subtitle">مشغل الوسائط العصري والقوي والقابل للتخصيص.</string>
+    <string name="welcome_language_section_title">اللغة المفضلة</string>
+    <string name="welcome_language_section_desc">اختر لغة العرض الخاصة بك</string>
+    <string name="storage_access_granted">تم منح الوصول إلى التخزين</string>
+    <string name="welcome_grant_permission">منح الإذن</string>
+    <string name="welcome_get_started">ابدأ الآن</string>
+    <string name="pref_player_resume_mode_ask">اسأل في كل مرة</string>
+    <string name="pref_player_resume_mode_never">ابدأ دائمًا من جديد</string>
+    <string name="player_resume_prompt_title">استئناف التشغيل ؟</string>
+    <string name="player_resume_prompt_message_with_duration">لقد شاهدت سابقًا ما يصل إلى %1$s من %2$s.</string>
+    <string name="pref_subtitles_force_ltr_title">LTR فرض اتجاه اليسار إلى اليمين</string>
+    <string name="community_never_show_again">لا تظهر مرة أخرى</string>
+    <string name="pref_appearance_language_title">لغة التطبيق</string>
+    <string name="storage_access_granted_desc">تم منح الإذن. mpvRex جاهز لاكتشاف وتشغيل الوسائط الخاصة بك.</string>
+    <string name="welcome_skip_permission">المتابعة دون الوصول إلى التخزين</string>
 </resources>

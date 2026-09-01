@@ -4,6 +4,8 @@
     <string name="generic_confirm">Bestätigen</string>
     <string name="generic_cancel">Abbrechen</string>
     <string name="generic_ok">OK</string>
+    <string name="generic_reset">Zurücksetzen</string>
+    <string name="generic_share">Teilen</string>
     <string name="generic_unit_ms">ms</string>
     <string name="generic_disabled">Deaktiviert</string>
     <string name="pref_preferences">Präferenzen</string>
@@ -1037,7 +1039,7 @@
     <string name="pref_player_keep_screen_on_when_paused_summary_on">Der Bildschirm bleibt aktiv, während das Video angehalten wird</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_off">Der Bildschirm kann ausgeschaltet werden, während das Video angehalten ist</string>
     <string name="pref_player_auto_pip">Automatisches Bild-in-Bild</string>
-    <string name="pref_player_auto_pip_summary">Wechsele automatisch in den PIP-Modus, wenn die Home- oder Zurück-Taste gedrückt wurdd</string>
+    <string name="pref_player_auto_pip_summary">Wechsele automatisch in den PIP-Modus, wenn die Home- oder Zurück-Taste gedrückt wurde</string>
     <string name="pref_player_dynamic_speed_overlay">Dynamische Geschwindigkeitsüberlagerung</string>
     <string name="pref_player_dynamic_speed_overlay_summary">Bei langem Drücken und Wischen wird ein Vorab-Overlay zur Geschwindigkeitssteuerung angezeigt</string>
     <string name="pref_player_show_speed_indicator_overlay">Geschwindigkeitsanzeige-Overlay anzeigen</string>
@@ -1153,8 +1155,6 @@
     <string name="custom_button_field_label_with_slot">%1$s · %2$s</string>
     <plurals name="custom_buttons_imported_count">
         <item quantity="one">Importierte Schaltfläche (%1$d)</item>
-    </plurals>
-    <plurals name="custom_buttons_imported_count">
         <item quantity="other">Importierte Schaltflächen (%1$d)</item>
     </plurals>
     <string name="video_settings_filter_presets_title">Filtervoreinstellungen</string>
@@ -1194,47 +1194,4 @@
     <string name="welcome_grant_permission">Erlaubnis erteilen</string>
     <string name="welcome_get_started">Legen Sie los</string>
     <string name="welcome_skip_permission">Ohne Speicherzugriff fortfahren</string>
-    <string name="pref_appearance_tab_shorts_summary">Schalte den vertikalen Hochgeschwindigkeits-Video-Feeds ein</string>
-    <string name="pref_appearance_tab_network_summary">Greife auf SMB-, FTP- und WebDAV-Laufwerke zu</string>
-    <string name="pref_appearance_enable_bounce_animation_title">Aktiviere hüpfende Animationen</string>
-    <string name="pref_appearance_hide_player_buttons_background_summary">Blende den Hintergrund aller Player-Steuerschaltflächen aus</string>
-    <string name="pref_appearance_enable_glass_player_controls_summary">Wende den Glasmorphismus-Stil auf die Player-Steuerschaltflächen an</string>
-    <string name="pref_appearance_match_player_controls_to_theme_title">Passt die Spielersteuerung an das Thema an</string>
-    <string name="pref_appearance_match_player_controls_to_theme_summary">Färbt die Player-Schaltflächen mit den aktuellen Designfarben</string>
-    <string name="pref_appearance_player_always_dark_mode_summary">Behält die Player-Steuerung unabhängig vom App-Design im dunklen Design bei</string>
-    <string name="pref_appearance_use_system_font_title">Verwendet die Systemschriftart</string>
-    <string name="pref_appearance_thumbnail_strategy_summary">Wählt aus, wie Miniaturansichten aus Videos extrahiert werden</string>
-    <string name="pref_autoplay_title">Aktiviert die nächste/vorherige Navigation</string>
-    <string name="pref_auto_pip_summary">Wechselt automatisch in den PIP-Modus, wenn Sie die Home- oder Zurück-Taste drücken</string>
-    <string name="pref_auto_pip_summary">Wechselt automatisch in den PIP-Modus, wenn die Home- oder Zurück-Taste gedrüxkt wurdd</string>
-    <string name="pref_auto_pip_summary">Wechselt automatisch in den PIP-Modus, wenn die Home- oder Zurück-Taste gedrüxkt wurde</string>
-    <string name="pref_player_auto_pip_summary">Wechsele automatisch in den PIP-Modus, wenn die Home- oder Zurück-Taste gedrückt wurde</string>
-    <string name="pref_double_tap_seek_area_width_title">Doppeltippe auf die Breite des Suchbereichs</string>
-    <string name="pref_export_settings_summary">Exportiere  die Einstellungen in eine XML-Datei</string>
-    <string name="pref_import_settings_summary">Importiere Einstellungen aus einer XML-Datei</string>
-    <string name="pref_enable_lua_scripts_title">Aktiviere Lua-Skripte</string>
-    <string name="pref_enable_lua_scripts_summary">Lade Lua-Skripte aus dem Konfigurationsverzeichnis</string>
-    <string name="pref_manage_lua_scripts_summary">Verwalte aktivierte Lua-Skripte</string>
-    <string name="pref_clear_config_cache_summary">Löschen die zwischengespeicherten mpv.conf-Einstellungen</string>
-    <string name="pref_layout_summary">Passen das Layout der Player-Tasten an</string>
-    <string name="pref_player_orientation_smart_summary">Befolge die Videoausrichtung, sofern sie nicht manuell geändert wird</string>
-    <string name="pref_player_orientation_smart_summary">Befolge die Videoausrichtung, sofern diesd nicht manuell geändert wird</string>
-    <string name="pref_player_orientation_smart_summary">Befolge die Videoausrichtung, sofern diese nicht manuell geändert wird</string>
-    <string name="pref_player_resume_playback_summary">Wähle aus, wie zuvor angesehene Videos geöffnet werden</string>
-    <string name="pref_player_play_in_mini_player">Spiele Audio im Miniplayer ab</string>
-    <string name="pref_player_gestures_horizontal_swipe_to_seek_summary">Wische auf dem Bildschirm nach links oder rechts, um vorwärts oder rückwärts zu suchen</string>
-    <string name="pref_player_gestures_move_subtitle_by_dragging_summary">Berühren den Untertitel und ziehe ihn nach oben oder unten, um ihn zu verschieben. Helligkeits- und Lautstärke-Wischbewegungen funktionieren anderswo noch</string>
-    <string name="pref_player_gestures_horizontal_swipe_sensitivity_summary">Passe an, wie viel Strecke pro Wisch zurückgelegt wird</string>
-    <string name="pref_player_remember_long_press_speed_summary">Verwende die zuletzt gewischte Geschwindigkeit für nachfolgende lange Drücke</string>
-    <string name="pref_gesture_use_single_tap_for_left_right_title">Verwende für die Links-/Rechtsgeste ein einmaliges Tippen</string>
-    <string name="pref_gesture_use_relative_seeking_summary">Suche relativ zur Zieh-Startposition anstelle der absoluten Fingerposition.</string>
-    <string name="pref_gesture_enable_release_to_cancel_title">Aktiviere  „Zum Abbrechen freigeben“</string>
-    <string name="pref_gesture_tap_thumbnail_to_select_title">Tippe zur Auswahl auf die Miniaturansicht</string>
-    <string name="pref_decoder_try_hw_dec_title">Versuche es mit Hardware-Dekodierung</string>
-    <string name="pref_decoder_yuv420p_title">Verwende  das YUV420P-Pixelformat</string>
-    <string name="pref_subtitles_disable_by_default_summary">Untertitel werden nur angezeigt, wenn diese während der Wiedergabe manuell aktiviert werden.</string>
-    <string name="pref_subtitles_clear_downloads_summary">Lösche alle Dateien am aktuellen Speicherort</string>
-    <string name="pref_subtitles_clear_downloads_confirmation">Sicher, dass allle heruntergeladenen Untertitel gelöscht werden möchten? Diese Aktion kann nicht rückgängig gemacht werden.</string>
-    <string name="generic_reset">Zurücksetzen</string>
-    <string name="generic_share">Teilen</string>
 </resources>

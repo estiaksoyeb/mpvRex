@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="custom_button_tap_action">Tippen Sie auf Aktion</string>
     <string name="open_with_mini_player">Mit Miniplayer öffnen</string>
     <string name="generic_confirm">Bestätigen</string>
     <string name="generic_cancel">Abbrechen</string>

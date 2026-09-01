@@ -1700,7 +1700,11 @@ fun PlayerControls(
                   .size(buttonSize - 4.dp)
                   .clip(CircleShape)
                   .clickable(onClick = {
-                    viewModel.cutABLoopClip(context)
+                    if (canCut) {
+                      onOpenSheet(Sheets.ClipExport)
+                    } else {
+                      android.widget.Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), android.widget.Toast.LENGTH_SHORT).show()
+                    }
                   }),
               ) {
                 Box(contentAlignment = Alignment.Center) {

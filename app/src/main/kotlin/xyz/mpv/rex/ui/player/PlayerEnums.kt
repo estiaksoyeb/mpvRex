@@ -140,6 +140,7 @@ enum class Sheets {
   FrameNavigation,
   CustomSkipDuration,
   SleepTimer,
+  ClipExport,
 }
 
 enum class Panels {

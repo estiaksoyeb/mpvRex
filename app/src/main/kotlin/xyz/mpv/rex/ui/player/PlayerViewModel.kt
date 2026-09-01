@@ -2173,7 +2173,7 @@ class PlayerViewModel(
     MPVLib.setPropertyString("ab-loop-b", "no")
   }
 
-  fun cutABLoopClip(context: Context) {
+  fun cutABLoopClip(context: Context, mode: `is`.xyz.mpv.FastClipper.ClipMode = `is`.xyz.mpv.FastClipper.ClipMode.FAST_COPY) {
     val a = _abLoopA.value
     val b = _abLoopB.value
     if (a == null || b == null) {
@@ -2198,8 +2198,8 @@ class PlayerViewModel(
     Toast.makeText(context, context.getString(R.string.ab_loop_exporting_clip), Toast.LENGTH_SHORT).show()
 
     viewModelScope.launch {
-      val outputFile = xyz.mpv.rex.utils.media.VideoClipper.getOutputClipFile(path, startMs, endMs)
-      val result = xyz.mpv.rex.utils.media.VideoClipper.cutClip(context, path, outputFile, startMs, endMs)
+      val outputFile = xyz.mpv.rex.utils.media.VideoClipper.getOutputClipFile(path, startMs, endMs, mode)
+      val result = xyz.mpv.rex.utils.media.VideoClipper.cutClip(context, path, outputFile, startMs, endMs, mode)
 
       withContext(Dispatchers.Main) {
         if (result.isSuccess) {

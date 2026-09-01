@@ -27,6 +27,7 @@ import xyz.mpv.rex.ui.player.controls.components.sheets.PlaybackSpeedSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.PlaylistSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.SubtitlesSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.OnlineSubtitleSearchSheet
+import xyz.mpv.rex.ui.player.controls.components.sheets.ClipExportSheet
 import xyz.mpv.rex.utils.media.MediaInfoParser
 import dev.vivvvek.seeker.Segment
 import kotlinx.collections.immutable.ImmutableList
@@ -483,6 +484,25 @@ fun PlayerSheets(
       SleepTimerSheet(
         remainingTime = sleepTimerTimeRemaining,
         onStartTimer = onStartSleepTimer,
+        onDismissRequest = onDismissRequest,
+      )
+    }
+
+    Sheets.ClipExport -> {
+      val a by viewModel.abLoopA.composeCollectAsState()
+      val b by viewModel.abLoopB.composeCollectAsState()
+      val valA = a ?: 0.0
+      val valB = b ?: 0.0
+      val startSec = minOf(valA, valB)
+      val endSec = maxOf(valA, valB)
+      val context = androidx.compose.ui.platform.LocalContext.current
+
+      ClipExportSheet(
+        startSec = startSec,
+        endSec = endSec,
+        onExport = { mode ->
+          viewModel.cutABLoopClip(context, mode)
+        },
         onDismissRequest = onDismissRequest,
       )
     }

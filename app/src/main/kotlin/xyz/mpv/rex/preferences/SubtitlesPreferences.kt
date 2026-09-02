@@ -36,6 +36,8 @@ class SubtitlesPreferences(
 
   val justification = preferenceStore.getEnum("sub_justify", SubtitleJustification.Auto)
   val subPos = preferenceStore.getInt("sub_pos", 100)
+  val secondarySubPos = preferenceStore.getInt("secondary_sub_pos", 10)
+  val secondarySubScale = preferenceStore.getFloat("secondary_sub_scale", 1f)
 
   val overrideAssSubs = preferenceStore.getBoolean("sub_override_ass")
   val scaleByWindow = preferenceStore.getBoolean("sub_scale_by_window", true)

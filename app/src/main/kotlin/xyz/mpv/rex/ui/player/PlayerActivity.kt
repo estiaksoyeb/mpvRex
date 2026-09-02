@@ -2270,7 +2270,7 @@ class PlayerActivity :
     // Miscellaneous settings
     val overrideAssSubs = subtitlesPreferences.overrideAssSubs.get()
     safeSetPropertyString("sub-ass-override", if (overrideAssSubs) "force" else "scale")
-    safeSetPropertyString("secondary-sub-ass-override", if (overrideAssSubs) "force" else "scale")
+    safeSetPropertyString("secondary-sub-ass-override", "force")
 
     val scaleByWindow = subtitlesPreferences.scaleByWindow.get()
     val scaleValue = if (scaleByWindow) "yes" else "no"
@@ -2279,6 +2279,8 @@ class PlayerActivity :
 
     MPVLib.setPropertyFloat("sub-scale", subtitlesPreferences.subScale.get())
     MPVLib.setPropertyInt("sub-pos", subtitlesPreferences.subPos.get())
+    MPVLib.setPropertyFloat("secondary-sub-scale", subtitlesPreferences.secondarySubScale.get())
+    MPVLib.setPropertyInt("secondary-sub-pos", subtitlesPreferences.secondarySubPos.get())
 
     Log.d(TAG, "Applied subtitle preferences")
   }

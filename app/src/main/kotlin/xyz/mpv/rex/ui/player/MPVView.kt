@@ -301,6 +301,8 @@ class MPVView(
       "sub-speed" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
       "sub-scale" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
       "sub-pos" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+      "secondary-sub-scale" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
+      "secondary-sub-pos" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "sub-bold" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
       "sub-italic" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
       "sub-justify" to MPVLib.MpvFormat.MPV_FORMAT_STRING,
@@ -366,11 +368,11 @@ class MPVView(
     if (subtitlesPreferences.overrideAssSubs.get()) {
       MPVLib.setOptionString("sub-ass-override", "force")
       MPVLib.setOptionString("sub-ass-justify", "yes")
-      MPVLib.setOptionString("secondary-sub-ass-override", "force")
     } else {
       MPVLib.setOptionString("sub-ass-override", "no")
-      MPVLib.setOptionString("secondary-sub-ass-override", "no")
     }
+    // Force secondary subtitle override so secondary-sub-pos anchors it cleanly at the top without overlapping primary
+    MPVLib.setOptionString("secondary-sub-ass-override", "force")
 
     // Typography and styling for both primary and secondary
     val fontSize = subtitlesPreferences.fontSize.get().toString()
@@ -385,6 +387,8 @@ class MPVView(
     val shadowOffset = subtitlesPreferences.shadowOffset.get().toString()
     val subPos = subtitlesPreferences.subPos.get().toString()
     val subScale = subtitlesPreferences.subScale.get().toString()
+    val secondarySubPos = subtitlesPreferences.secondarySubPos.get().toString()
+    val secondarySubScale = subtitlesPreferences.secondarySubScale.get().toString()
 
     MPVLib.setOptionString("sub-font-size", fontSize)
     MPVLib.setOptionString("sub-bold", bold)
@@ -409,9 +413,9 @@ class MPVView(
     MPVLib.setOptionString("secondary-sub-border-size", borderSize)
     MPVLib.setOptionString("secondary-sub-border-style", borderStyle)
     MPVLib.setOptionString("secondary-sub-shadow-offset", shadowOffset)
-    MPVLib.setOptionString("secondary-sub-scale", subScale)
-    // Position secondary subtitle at top (10) instead of bottom to avoid overlap with primary
-    MPVLib.setOptionString("secondary-sub-pos", "10")
+    MPVLib.setOptionString("secondary-sub-scale", secondarySubScale)
+    // Position secondary subtitle at top (default 10) instead of bottom to avoid overlap with primary
+    MPVLib.setOptionString("secondary-sub-pos", secondarySubPos)
 
     val scaleByWindow = if (subtitlesPreferences.scaleByWindow.get()) "yes" else "no"
     MPVLib.setOptionString("sub-scale-by-window", scaleByWindow)

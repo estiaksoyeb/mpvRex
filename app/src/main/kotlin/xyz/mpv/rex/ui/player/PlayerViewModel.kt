@@ -816,6 +816,10 @@ class PlayerViewModel(
           val secondaryToPromote = secondarySid
           MPVLib.setPropertyString("secondary-sid", "no")
           MPVLib.setPropertyInt("sid", secondaryToPromote)
+          val overrideAssSubs = subtitlesPreferences.overrideAssSubs.get()
+          MPVLib.setPropertyString("sub-ass-override", if (overrideAssSubs) "force" else "scale")
+          MPVLib.setPropertyInt("sub-pos", subtitlesPreferences.subPos.get())
+          MPVLib.setPropertyFloat("sub-scale", subtitlesPreferences.subScale.get())
           val track = subtitleTracks.value.firstOrNull { it.id == secondaryToPromote }
           TrackSelector.rememberSubtitleTrack(track?.title, track?.lang, isOff = false)
         } else {
@@ -830,7 +834,12 @@ class PlayerViewModel(
         val track = subtitleTracks.value.firstOrNull { it.id == id }
         TrackSelector.rememberSubtitleTrack(track?.title, track?.lang, isOff = false)
       }
-      secondarySid <= 0 -> MPVLib.setPropertyInt("secondary-sid", id)
+      secondarySid <= 0 -> {
+        MPVLib.setPropertyString("secondary-sub-ass-override", "force")
+        MPVLib.setPropertyInt("secondary-sub-pos", subtitlesPreferences.secondarySubPos.get())
+        MPVLib.setPropertyFloat("secondary-sub-scale", subtitlesPreferences.secondarySubScale.get())
+        MPVLib.setPropertyInt("secondary-sid", id)
+      }
       else -> {
         MPVLib.setPropertyInt("sid", id)
         val track = subtitleTracks.value.firstOrNull { it.id == id }

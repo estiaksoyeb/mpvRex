@@ -5898,5 +5898,45 @@
     "source_hash": "d81acf87bed65a9c158c3d391a01add7d9f72d0635159558ac5776b52155bfba",
     "translated_value": "इस एक्शन को वापस नहीं किया जा सकता। चयनित आइटम स्थायी रूप से हटा दिया जाएगा.",
     "ignore_warnings": false
+  },
+  "clip_export_title": {
+    "source_hash": "e451241a796d1a078628d746383417d8994dd62b8db95f781eae26a0712259a5",
+    "translated_value": "क्लिप निर्यात करें",
+    "ignore_warnings": false
+  },
+  "clip_export_fast_title": {
+    "source_hash": "d64456a493972b23f66ea664509da8d82391b0e0c5c710038d44fee4c9101f4a",
+    "translated_value": "तेज़ (दोषरहित प्रतिलिपि)",
+    "ignore_warnings": false
+  },
+  "clip_export_fast_desc": {
+    "source_hash": "6df31d35ac20fd08ab985332c7aecd55af5b06782ba1299ec1e5ef88b90d3149",
+    "translated_value": "100% मूल गुणवत्ता के साथ त्वरित स्ट्रीम कॉपी। निकटतम मुख्यफ़्रेम पर प्रारंभ होता है.",
+    "ignore_warnings": true
+  },
+  "clip_export_exact_title": {
+    "source_hash": "c14bb9d0b0a8d9d4612b7d9606c96b17e20a2142a3468d89762e071a491b3a43",
+    "translated_value": "सटीक फ़्रेम (हार्डवेयर ट्रांसकोड)",
+    "ignore_warnings": false
+  },
+  "clip_export_exact_desc": {
+    "source_hash": "90e2067882f0bf74126b88d1577b9ac5af36013cf5a7e70c36b72ad500d93001",
+    "translated_value": "फ़्रेम-सटीक निर्यात सटीक फ़्रेम पर प्रारंभ हो रहा है। हार्डवेयर-त्वरित MP4.",
+    "ignore_warnings": false
+  },
+  "clip_export_fast_tag": {
+    "source_hash": "6f3ebc51c80eb314f5bb665bc7910b75989732366104e3ebe2afdb0e054ab871",
+    "translated_value": "त्वरित • लॉसलेस",
+    "ignore_warnings": false
+  },
+  "clip_export_exact_tag": {
+    "source_hash": "5ae8ac11e13e33480e61e468bfdacaa89251306cf70d644f83603bdd9ac0edbb",
+    "translated_value": "फ़्रेम-सटीक • MP4",
+    "ignore_warnings": false
+  },
+  "clip_export_duration": {
+    "source_hash": "270fd8d2cd2c082852e29a6da892ce04087fcae52b38a06c4579ddc3eaa53ac7",
+    "translated_value": "अवधि: %s",
+    "ignore_warnings": false
   }
 }

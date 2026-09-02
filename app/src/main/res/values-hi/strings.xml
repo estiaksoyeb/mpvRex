@@ -1198,4 +1198,12 @@
     <string name="welcome_grant_permission">अनुमति प्रदान करें</string>
     <string name="welcome_get_started">शुरू करे</string>
     <string name="welcome_skip_permission">स्टोरेज एक्सेस के बिना जारी रखें</string>
+    <string name="clip_export_title">क्लिप निर्यात करें</string>
+    <string name="clip_export_fast_title">तेज़ (दोषरहित प्रतिलिपि)</string>
+    <string name="clip_export_fast_desc">100% मूल गुणवत्ता के साथ त्वरित स्ट्रीम कॉपी। निकटतम मुख्यफ़्रेम पर प्रारंभ होता है.</string>
+    <string name="clip_export_exact_title">सटीक फ़्रेम (हार्डवेयर ट्रांसकोड)</string>
+    <string name="clip_export_exact_desc">फ़्रेम-सटीक निर्यात सटीक फ़्रेम पर प्रारंभ हो रहा है। हार्डवेयर-त्वरित MP4.</string>
+    <string name="clip_export_fast_tag">त्वरित • लॉसलेस</string>
+    <string name="clip_export_exact_tag">फ़्रेम-सटीक • MP4</string>
+    <string name="clip_export_duration">अवधि: %s</string>
 </resources>

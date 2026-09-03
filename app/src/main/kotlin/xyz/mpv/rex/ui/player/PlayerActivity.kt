@@ -380,6 +380,18 @@ class PlayerActivity :
       }
     }
 
+    lifecycleScope.launch {
+      viewModel.repeatMode.collect {
+        mediaPlaybackService?.updateMediaSession()
+      }
+    }
+
+    lifecycleScope.launch {
+      viewModel.shuffleEnabled.collect {
+        mediaPlaybackService?.updateMediaSession()
+      }
+    }
+
     val playlistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
     val playlistIndex = intent.getIntExtra("playlist_index", 0)
 
@@ -3490,6 +3502,16 @@ class PlayerActivity :
 
    override fun onPreviousRequested() {
      viewModel.handleMediaPrevious()
+   }
+
+   override fun onRepeatToggled() {
+     viewModel.cycleRepeatMode()
+     mediaPlaybackService?.updateMediaSession()
+   }
+
+   override fun onShuffleToggled() {
+     viewModel.toggleShuffle()
+     mediaPlaybackService?.updateMediaSession()
    }
   // ==================== Playlist Management ====================
 

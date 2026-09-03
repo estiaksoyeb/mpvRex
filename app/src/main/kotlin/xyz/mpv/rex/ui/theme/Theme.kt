@@ -10,6 +10,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -396,10 +397,12 @@ fun MpvexTheme(content: @Composable () -> Unit) {
         DarkMode.System -> darkTheme
     }
 
+    val isAmoled = useDarkTheme && amoledMode
+
     val colorScheme = when {
         appTheme.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             when {
-                useDarkTheme && amoledMode -> {
+                isAmoled -> {
                     dynamicDarkColorScheme(context).copy(
                         background = backgroundPureBlack,
                         surface = surfacePureBlack,
@@ -416,7 +419,7 @@ fun MpvexTheme(content: @Composable () -> Unit) {
                 else -> dynamicLightColorScheme(context)
             }
         }
-        useDarkTheme && amoledMode -> appTheme.getAmoledColorScheme()
+        isAmoled -> appTheme.getAmoledColorScheme()
         useDarkTheme -> appTheme.getDarkColorScheme()
         else -> appTheme.getLightColorScheme()
     }
@@ -430,8 +433,9 @@ fun MpvexTheme(content: @Composable () -> Unit) {
             MaterialTheme(
                 colorScheme = colorScheme,
                 typography = getTypography(useSystemFont),
-                content = content,
+                shapes = AppShapes,
                 motionScheme = MotionScheme.expressive(),
+                content = content,
             )
         }
     }
@@ -493,8 +497,9 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
             MaterialTheme(
                 colorScheme = colorScheme,
                 typography = getTypography(useSystemFont),
-                content = content,
+                shapes = AppShapes,
                 motionScheme = MotionScheme.expressive(),
+                content = content,
             )
         }
     }

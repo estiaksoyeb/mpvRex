@@ -46,6 +46,8 @@ import xyz.mpv.rex.ui.preferences.components.ThemePicker
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.GroupPosition
+import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.theme.DarkMode
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.collections.immutable.persistentListOf
@@ -147,8 +149,12 @@ object AppearancePreferencesScreen : Screen {
         }
 
         Scaffold(
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
             topBar = {
                 TopAppBar(
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    ),
                     title = {
                         Text(
                             text = stringResource(R.string.pref_appearance_title),
@@ -184,28 +190,30 @@ object AppearancePreferencesScreen : Screen {
 
                     item {
                         val currentLanguage = remember { LocaleHelper.getCurrentLanguage(context) }
-                        PreferenceCard {
-                            Preference(
-                                title = { Text(text = stringResource(id = R.string.pref_appearance_language_title)) },
-                                summary = {
-                                    Text(
-                                        text = if (currentLanguage.code.isEmpty()) {
-                                            stringResource(R.string.system_default)
-                                        } else {
-                                            "${currentLanguage.nativeName} (${currentLanguage.localizedName})"
-                                        },
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
-                                icon = {
-                                    Icon(
-                                        Icons.Outlined.Language,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                },
-                                onClick = { showLanguageDialog = true },
-                            )
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                                Preference(
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_language_title)) },
+                                    summary = {
+                                        Text(
+                                            text = if (currentLanguage.code.isEmpty()) {
+                                                stringResource(R.string.system_default)
+                                            } else {
+                                                "${currentLanguage.nativeName} (${currentLanguage.localizedName})"
+                                            },
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    icon = {
+                                        Icon(
+                                            Icons.Outlined.Language,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = { showLanguageDialog = true },
+                                )
+                            }
                         }
                     }
 
@@ -214,156 +222,102 @@ object AppearancePreferencesScreen : Screen {
                     }
 
                     item {
-                        PreferenceCard {
-                            Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                                // Dark mode selector
-                                MultiChoiceSegmentedButton(
-                                    choices = DarkMode.entries.map { stringResource(it.titleRes) }.toImmutableList(),
-                                    selectedIndices = persistentListOf(DarkMode.entries.indexOf(darkMode)),
-                                    onClick = { preferences.darkMode.set(DarkMode.entries[it]) },
+                        val amoledMode by preferences.amoledMode.collectAsState()
+                        val useSystemFont by preferences.useSystemFont.collectAsState()
+                        val matchPlayerControlsToTheme by preferences.matchPlayerControlsToTheme.collectAsState()
+                        val hidePlayerButtonsBackground by preferences.hidePlayerButtonsBackground.collectAsState()
+                        val enableGlassPlayerControls by preferences.enableGlassPlayerControls.collectAsState()
+                        val enableGlassSeekbarBackground by preferences.enableGlassSeekbarBackground.collectAsState()
+                        val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
+
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                    MultiChoiceSegmentedButton(
+                                        choices = DarkMode.entries.map { stringResource(it.titleRes) }.toImmutableList(),
+                                        selectedIndices = persistentListOf(DarkMode.entries.indexOf(darkMode)),
+                                        onClick = { preferences.darkMode.set(DarkMode.entries[it]) },
+                                    )
+                                    ThemePicker(
+                                        currentTheme = appTheme,
+                                        isDarkMode = isDarkMode,
+                                        onThemeSelected = { preferences.appTheme.set(it) },
+                                        modifier = Modifier.padding(vertical = 8.dp),
+                                    )
+                                    SwitchPreference(
+                                        value = amoledMode,
+                                        onValueChange = { preferences.amoledMode.set(it) },
+                                        title = { Text(text = stringResource(id = R.string.pref_appearance_amoled_mode_title)) },
+                                        summary = {
+                                            Text(
+                                                text = stringResource(id = R.string.pref_appearance_amoled_mode_summary),
+                                                color = MaterialTheme.colorScheme.outline,
+                                            )
+                                        },
+                                        enabled = darkMode != DarkMode.Light,
+                                    )
+                                }
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = useSystemFont,
+                                    onValueChange = { preferences.useSystemFont.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_use_system_font_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_use_system_font_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
                                 )
                             }
 
-                            PreferenceDivider()
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = matchPlayerControlsToTheme,
+                                    onValueChange = { preferences.matchPlayerControlsToTheme.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_title)) },
+                                    summary = { Text(text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_summary)) },
+                                )
+                            }
 
-                            // AMOLED mode state - need it before theme picker
-                            val amoledMode by preferences.amoledMode.collectAsState()
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = hidePlayerButtonsBackground,
+                                    onValueChange = { preferences.hidePlayerButtonsBackground.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_title)) },
+                                    summary = { Text(text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_summary)) },
+                                )
+                            }
 
-                            // Theme picker - Aniyomi style
-                            ThemePicker(
-                                currentTheme = appTheme,
-                                isDarkMode = isDarkMode,
-                                onThemeSelected = { preferences.appTheme.set(it) },
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = enableGlassPlayerControls,
+                                    onValueChange = { preferences.enableGlassPlayerControls.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_enable_glass_player_controls_title)) },
+                                    summary = { Text(text = stringResource(id = R.string.pref_appearance_enable_glass_player_controls_summary)) },
+                                )
+                            }
 
-                            PreferenceDivider()
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = enableGlassSeekbarBackground,
+                                    onValueChange = { preferences.enableGlassSeekbarBackground.set(it) },
+                                    enabled = enableGlassPlayerControls,
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_title)) },
+                                    summary = { Text(text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_summary)) },
+                                )
+                            }
 
-                            // AMOLED mode toggle
-                            SwitchPreference(
-                                value = amoledMode,
-                                onValueChange = { newValue ->
-                                    preferences.amoledMode.set(newValue)
-                                },
-                                title = { Text(text = stringResource(id = R.string.pref_appearance_amoled_mode_title)) },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_amoled_mode_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
-                                enabled = darkMode != DarkMode.Light
-                            )
-
-                            PreferenceDivider()
-
-                            // System font toggle
-                            val useSystemFont by preferences.useSystemFont.collectAsState()
-
-                            SwitchPreference(
-                                value = useSystemFont,
-                                onValueChange = { newValue ->
-                                    preferences.useSystemFont.set(newValue)
-                                },
-                                title = { Text(text = stringResource(id = R.string.pref_appearance_use_system_font_title)) },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_use_system_font_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
-                            )
-
-                            PreferenceDivider()
-
-                            val matchPlayerControlsToTheme by preferences.matchPlayerControlsToTheme.collectAsState()
-                            SwitchPreference(
-                                value = matchPlayerControlsToTheme,
-                                onValueChange = { preferences.matchPlayerControlsToTheme.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_summary),
-                                    )
-                                },
-                            )
-
-                            PreferenceDivider()
-
-                            val hidePlayerButtonsBackground by preferences.hidePlayerButtonsBackground.collectAsState()
-                            SwitchPreference(
-                                value = hidePlayerButtonsBackground,
-                                onValueChange = { preferences.hidePlayerButtonsBackground.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_summary),
-                                    )
-                                },
-                            )
-
-                            PreferenceDivider()
-
-                            val enableGlassPlayerControls by preferences.enableGlassPlayerControls.collectAsState()
-                            SwitchPreference(
-                                value = enableGlassPlayerControls,
-                                onValueChange = { preferences.enableGlassPlayerControls.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_enable_glass_player_controls_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_enable_glass_player_controls_summary),
-                                    )
-                                },
-                            )
-
-                            PreferenceDivider()
-
-                            val enableGlassSeekbarBackground by preferences.enableGlassSeekbarBackground.collectAsState()
-                            SwitchPreference(
-                                value = enableGlassSeekbarBackground,
-                                onValueChange = { preferences.enableGlassSeekbarBackground.set(it) },
-                                enabled = enableGlassPlayerControls,
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_summary),
-                                    )
-                                },
-                            )
-
-                            PreferenceDivider()
-
-                            val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
-                            SwitchPreference(
-                                value = playerAlwaysDarkMode,
-                                onValueChange = { preferences.playerAlwaysDarkMode.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_summary),
-                                    )
-                                },
-                            )
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                SwitchPreference(
+                                    value = playerAlwaysDarkMode,
+                                    onValueChange = { preferences.playerAlwaysDarkMode.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_title)) },
+                                    summary = { Text(text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_summary)) },
+                                )
+                            }
                         }
                     }
 
@@ -372,100 +326,82 @@ object AppearancePreferencesScreen : Screen {
                     }
 
                     item {
-                        PreferenceCard {
-                            SwitchPreference(
-                                value = true,
-                                onValueChange = {},
-                                enabled = false,
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_home_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_home_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
+                        val enableShorts by browserPreferences.enableShorts.collectAsState()
+                        val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
+                        val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
+                        val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
 
-                            PreferenceDivider()
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                SwitchPreference(
+                                    value = true,
+                                    onValueChange = {},
+                                    enabled = false,
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_home_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_tab_home_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
 
-                            val enableShorts by browserPreferences.enableShorts.collectAsState()
-                            val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
-                            val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
-                            val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = enableShorts,
+                                    onValueChange = { browserPreferences.enableShorts.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_shorts_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_tab_shorts_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
 
-                            SwitchPreference(
-                                value = enableShorts,
-                                onValueChange = { browserPreferences.enableShorts.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_shorts_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_shorts_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = enableTabRecents,
+                                    onValueChange = { browserPreferences.enableTabRecents.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_recents_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_tab_recents_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
 
-                            PreferenceDivider()
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = enableTabPlaylists,
+                                    onValueChange = { browserPreferences.enableTabPlaylists.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_playlists_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_tab_playlists_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
 
-                            SwitchPreference(
-                                value = enableTabRecents,
-                                onValueChange = { browserPreferences.enableTabRecents.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_recents_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_recents_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
-
-                            PreferenceDivider()
-
-                            SwitchPreference(
-                                value = enableTabPlaylists,
-                                onValueChange = { browserPreferences.enableTabPlaylists.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_playlists_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_playlists_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
-
-                            PreferenceDivider()
-
-                            SwitchPreference(
-                                value = enableTabNetwork,
-                                onValueChange = { browserPreferences.enableTabNetwork.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_network_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_tab_network_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                SwitchPreference(
+                                    value = enableTabNetwork,
+                                    onValueChange = { browserPreferences.enableTabNetwork.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_network_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_tab_network_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -474,193 +410,176 @@ object AppearancePreferencesScreen : Screen {
                     }
 
                     item {
-                        PreferenceCard {
-                            val unlimitedNameLines by preferences.unlimitedNameLines.collectAsState()
-                            SwitchPreference(
-                                value = unlimitedNameLines,
-                                onValueChange = { preferences.unlimitedNameLines.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_unlimited_name_lines_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_unlimited_name_lines_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
+                        val unlimitedNameLines by preferences.unlimitedNameLines.collectAsState()
+                        val showUnplayedOldVideoLabel by preferences.showUnplayedOldVideoLabel.collectAsState()
+                        val unplayedOldVideoDays by preferences.unplayedOldVideoDays.collectAsState()
+                        val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
+                        val watchedThreshold by browserPreferences.watchedThreshold.collectAsState()
+                        val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
+                        val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
+                        val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
 
-                            PreferenceDivider()
-
-                            val showUnplayedOldVideoLabel by preferences.showUnplayedOldVideoLabel.collectAsState()
-                            SwitchPreference(
-                                value = showUnplayedOldVideoLabel,
-                                onValueChange = { preferences.showUnplayedOldVideoLabel.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_show_unplayed_old_video_label_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_show_unplayed_old_video_label_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
-
-                            PreferenceDivider()
-
-                            val unplayedOldVideoDays by preferences.unplayedOldVideoDays.collectAsState()
-                            SliderPreference(
-                                value = unplayedOldVideoDays.toFloat(),
-                                onValueChange = { preferences.unplayedOldVideoDays.set(it.roundToInt()) },
-                                title = { Text(text = stringResource(id = R.string.pref_appearance_unplayed_old_video_days_title)) },
-                                valueRange = 1f..30f,
-                                summary = {
-                                    Text(
-                                        text = stringResource(
-                                            id = R.string.pref_appearance_unplayed_old_video_days_summary,
-                                            unplayedOldVideoDays,
-                                        ),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
-                                onSliderValueChange = { preferences.unplayedOldVideoDays.set(it.roundToInt()) },
-                                sliderValue = unplayedOldVideoDays.toFloat(),
-                                enabled = showUnplayedOldVideoLabel
-                            )
-
-                            PreferenceDivider()
-
-                            val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
-                            SwitchPreference(
-                                value = autoScrollToLastPlayed,
-                                onValueChange = { browserPreferences.autoScrollToLastPlayed.set(it) },
-                                title = {
-                                    Text(text = stringResource(R.string.pref_appearance_auto_scroll_title))
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(R.string.pref_appearance_auto_scroll_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
-
-                            PreferenceDivider()
-
-                            val watchedThreshold by browserPreferences.watchedThreshold.collectAsState()
-                            SliderPreference(
-                                value = watchedThreshold.toFloat(),
-                                onValueChange = { browserPreferences.watchedThreshold.set(it.roundToInt()) },
-                                sliderValue = watchedThreshold.toFloat(),
-                                onSliderValueChange = { browserPreferences.watchedThreshold.set(it.roundToInt()) },
-                                title = { Text(text = stringResource(id = R.string.pref_appearance_watched_threshold_title)) },
-                                valueRange = 50f..100f,
-                                valueSteps = 9,
-                                summary = {
-                                    Text(
-                                        text = stringResource(
-                                            id = R.string.pref_appearance_watched_threshold_summary,
-                                            watchedThreshold,
-                                        ),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
-                            )
-
-                            PreferenceDivider()
-
-                            val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
-                            SwitchPreference(
-                                value = showAudioFiles,
-                                onValueChange = { browserPreferences.showAudioFiles.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_show_audio_files_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_show_audio_files_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
-
-                            PreferenceDivider()
-
-                            val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
-                            SwitchPreference(
-                                value = includeNoMediaContent,
-                                onValueChange = { newValue ->
-                                    browserPreferences.includeNoMediaContent.set(newValue)
-                                    MediaLibraryEvents.notifyChanged()
-                                    scope.launch(Dispatchers.IO) {
-                                        runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                SwitchPreference(
+                                    value = unlimitedNameLines,
+                                    onValueChange = { preferences.unlimitedNameLines.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_unlimited_name_lines_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_unlimited_name_lines_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
                                     }
-                                },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_include_no_media_content_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_include_no_media_content_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                },
-                            )
-
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                TextButton(
-                                    onClick = { libraryRootPicker.launch(null) },
-                                    enabled = includeNoMediaContent,
-                                ) {
-                                    Text(text = stringResource(R.string.pref_add_library_root))
-                                }
-                                Text(
-                                    text = stringResource(
-                                        R.string.pref_library_root_count,
-                                        libraryScanRoots.size,
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    modifier = Modifier.padding(horizontal = 16.dp),
                                 )
-                                if (libraryScanRoots.isNotEmpty()) {
-                                    TextButton(
-                                        onClick = {
-                                            foldersPreferences.libraryScanRoots.set(emptySet())
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = showUnplayedOldVideoLabel,
+                                    onValueChange = { preferences.showUnplayedOldVideoLabel.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_show_unplayed_old_video_label_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_show_unplayed_old_video_label_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SliderPreference(
+                                    value = unplayedOldVideoDays.toFloat(),
+                                    onValueChange = { preferences.unplayedOldVideoDays.set(it.roundToInt()) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_unplayed_old_video_days_title)) },
+                                    valueRange = 1f..30f,
+                                    summary = {
+                                        Text(
+                                            text = stringResource(
+                                                id = R.string.pref_appearance_unplayed_old_video_days_summary,
+                                                unplayedOldVideoDays,
+                                            ),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    onSliderValueChange = { preferences.unplayedOldVideoDays.set(it.roundToInt()) },
+                                    sliderValue = unplayedOldVideoDays.toFloat(),
+                                    enabled = showUnplayedOldVideoLabel
+                                )
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = autoScrollToLastPlayed,
+                                    onValueChange = { browserPreferences.autoScrollToLastPlayed.set(it) },
+                                    title = { Text(text = stringResource(R.string.pref_appearance_auto_scroll_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(R.string.pref_appearance_auto_scroll_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SliderPreference(
+                                    value = watchedThreshold.toFloat(),
+                                    onValueChange = { browserPreferences.watchedThreshold.set(it.roundToInt()) },
+                                    sliderValue = watchedThreshold.toFloat(),
+                                    onSliderValueChange = { browserPreferences.watchedThreshold.set(it.roundToInt()) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_watched_threshold_title)) },
+                                    valueRange = 50f..100f,
+                                    valueSteps = 9,
+                                    summary = {
+                                        Text(
+                                            text = stringResource(
+                                                id = R.string.pref_appearance_watched_threshold_summary,
+                                                watchedThreshold,
+                                            ),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                )
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = showAudioFiles,
+                                    onValueChange = { browserPreferences.showAudioFiles.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_show_audio_files_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_show_audio_files_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    SwitchPreference(
+                                        value = includeNoMediaContent,
+                                        onValueChange = { newValue ->
+                                            browserPreferences.includeNoMediaContent.set(newValue)
                                             MediaLibraryEvents.notifyChanged()
+                                            scope.launch(Dispatchers.IO) {
+                                                runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
+                                            }
                                         },
-                                    ) {
-                                        Text(text = stringResource(R.string.pref_clear_library_roots))
+                                        title = { Text(text = stringResource(id = R.string.pref_include_no_media_content_title)) },
+                                        summary = {
+                                            Text(
+                                                text = stringResource(id = R.string.pref_include_no_media_content_summary),
+                                                color = MaterialTheme.colorScheme.outline,
+                                            )
+                                        },
+                                    )
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        TextButton(
+                                            onClick = { libraryRootPicker.launch(null) },
+                                            enabled = includeNoMediaContent,
+                                        ) {
+                                            Text(text = stringResource(R.string.pref_add_library_root))
+                                        }
+                                        Text(
+                                            text = stringResource(
+                                                R.string.pref_library_root_count,
+                                                libraryScanRoots.size,
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                        )
+                                        if (libraryScanRoots.isNotEmpty()) {
+                                            TextButton(
+                                                onClick = {
+                                                    foldersPreferences.libraryScanRoots.set(emptySet())
+                                                    MediaLibraryEvents.notifyChanged()
+                                                },
+                                            ) {
+                                                Text(text = stringResource(R.string.pref_clear_library_roots))
+                                            }
+                                        }
                                     }
                                 }
                             }
 
-                            PreferenceDivider()
-
-                            val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
-                            SwitchPreference(
-                                value = showTreeViewPath,
-                                onValueChange = { browserPreferences.showTreeViewPath.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_show_tree_view_path_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_show_tree_view_path_summary),
-                                    )
-                                }
-                            )
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                SwitchPreference(
+                                    value = showTreeViewPath,
+                                    onValueChange = { browserPreferences.showTreeViewPath.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_show_tree_view_path_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_show_tree_view_path_summary),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -669,283 +588,279 @@ object AppearancePreferencesScreen : Screen {
                     }
 
                     item {
-                        PreferenceCard {
-                            val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
-                            SwitchPreference(
-                                value = tapThumbnailToSelect,
-                                onValueChange = { gesturePreferences.tapThumbnailToSelect.set(it) },
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_title),
-                                    )
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
+                        val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
+                        val showNetworkThumbnails by preferences.showNetworkThumbnails.collectAsState()
+                        val thumbnailStrategy by preferences.thumbnailStrategy.collectAsState()
+                        val thumbnailPositionPercent by preferences.thumbnailPositionPercent.collectAsState()
+                        val isPositionStrategy = thumbnailStrategy == ThumbnailStrategy.Position
+                        var draftPosition by remember(thumbnailPositionPercent) { mutableStateOf(thumbnailPositionPercent.toFloat()) }
 
-                            PreferenceDivider()
-
-                            val showNetworkThumbnails by preferences.showNetworkThumbnails.collectAsState()
-                            SwitchPreference(
-                                value = showNetworkThumbnails,
-                                onValueChange = { newValue ->
-                                    if (newValue) {
-                                        showNetworkWarning = true
-                                    } else {
-                                        preferences.showNetworkThumbnails.set(false)
-                                    }
-                                },
-                                title = {
-                                    Text(text = stringResource(id = R.string.pref_appearance_show_network_thumbnails_title))
-                                },
-                                summary = {
-                                    Text(
-                                        text = stringResource(id = R.string.pref_appearance_show_network_thumbnails_summary),
-                                        color = MaterialTheme.colorScheme.outline,
-                                    )
-                                }
-                            )
-
-                            if (showNetworkWarning) {
-                                AlertDialog(
-                                    onDismissRequest = { showNetworkWarning = false },
-                                    title = { Text(stringResource(R.string.pref_appearance_network_thumbnails_dialog_title)) },
-                                    text = {
-                                        Column {
-                                            Text(
-                                                text = stringResource(R.string.pref_appearance_network_thumbnails_dialog_message),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    },
-                                    confirmButton = {
-                                        TextButton(onClick = {
-                                            preferences.showNetworkThumbnails.set(true)
-                                            showNetworkWarning = false
-                                        }) {
-                                            Text(stringResource(R.string.generic_confirm))
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showNetworkWarning = false }) {
-                                            Text(stringResource(R.string.generic_cancel))
-                                        }
-                                    }
-                                )
-                            }
-
-                            PreferenceDivider()
-
-                            val thumbnailStrategy by preferences.thumbnailStrategy.collectAsState()
-                            Column(modifier = Modifier.padding(vertical = 16.dp)) {
-                                Text(
-                                    text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_title),
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_summary),
-                                    modifier = Modifier.padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 12.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                                MultiChoiceSegmentedButton(
-                                    choices = persistentListOf(
-                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_title),
-                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_title)
-                                    ),
-                                    selectedIndices = persistentListOf(ThumbnailStrategy.entries.indexOf(thumbnailStrategy)),
-                                    onClick = { index ->
-                                        val newStrategy = ThumbnailStrategy.entries[index]
-                                        if (newStrategy != thumbnailStrategy) {
-                                            pendingStrategyChange = newStrategy
-                                        }
-                                    },
-                                )
-
-                                Text(
-                                    text = if (thumbnailStrategy == ThumbnailStrategy.FirstFrame) {
-                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_summary)
-                                    } else {
-                                        stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_summary)
-                                    },
-                                    modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            pendingStrategyChange?.let { newStrategy ->
-                                AlertDialog(
-                                    onDismissRequest = { pendingStrategyChange = null },
-                                    title = { Text(stringResource(R.string.pref_appearance_thumbnail_strategy_dialog_title)) },
-                                    text = {
-                                        Column {
-                                            val summaryText = if (newStrategy == ThumbnailStrategy.FirstFrame) {
-                                                stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_summary)
-                                            } else {
-                                                stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_summary)
-                                            }
-                                            Text(
-                                                text = summaryText,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                                            Text(
-                                                text = stringResource(R.string.pref_appearance_thumbnail_strategy_dialog_message),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    },
-                                    confirmButton = {
-                                        TextButton(onClick = {
-                                            clearCacheAndApply(
-                                                onSuccess = {
-                                                    preferences.thumbnailStrategy.set(newStrategy)
-                                                    pendingStrategyChange = null
-                                                },
-                                                onFailure = {
-                                                    pendingStrategyChange = null
-                                                }
-                                            )
-                                        }) {
-                                            Text(stringResource(R.string.generic_confirm))
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { pendingStrategyChange = null }) {
-                                            Text(stringResource(R.string.generic_cancel))
-                                        }
-                                    }
-                                )
-                            }
-
-                            PreferenceDivider()
-
-                            val thumbnailPositionPercent by preferences.thumbnailPositionPercent.collectAsState()
-                            val isPositionStrategy = thumbnailStrategy == ThumbnailStrategy.Position
-
-                            // Track the drag visually without saving it to the backend yet
-                            var draftPosition by remember(thumbnailPositionPercent) { mutableStateOf(thumbnailPositionPercent.toFloat()) }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                SliderPreference(
-                                    modifier = Modifier.weight(1f),
-                                    value = thumbnailPositionPercent.toFloat(),
-                                    onValueChange = { finalValue ->
-                                        val newInt = finalValue.roundToInt()
-                                        if (newInt != thumbnailPositionPercent) {
-                                            pendingPositionChange = newInt
-                                        }
-                                    },
-                                    sliderValue = draftPosition,
-                                    onSliderValueChange = { slidingValue ->
-                                        draftPosition = slidingValue
-                                    },
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_thumbnail_position_title)) },
-                                    valueRange = 1f..100f,
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                SwitchPreference(
+                                    value = tapThumbnailToSelect,
+                                    onValueChange = { gesturePreferences.tapThumbnailToSelect.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_title)) },
                                     summary = {
                                         Text(
-                                            text = stringResource(
-                                                id = R.string.pref_appearance_thumbnail_position_summary,
-                                                draftPosition.roundToInt(),
-                                            ),
+                                            text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_summary),
                                             color = MaterialTheme.colorScheme.outline,
                                         )
-                                    },
-                                    enabled = isPositionStrategy
+                                    }
                                 )
+                            }
 
-                                IconButton(
-                                    onClick = {
-                                        val default = AppearancePreferences.THUMBNAIL_POSITION_DEFAULT
-                                        if (thumbnailPositionPercent != default) {
-                                            pendingPositionChange = default
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                Column {
+                                    SwitchPreference(
+                                        value = showNetworkThumbnails,
+                                        onValueChange = { newValue ->
+                                            if (newValue) {
+                                                showNetworkWarning = true
+                                            } else {
+                                                preferences.showNetworkThumbnails.set(false)
+                                            }
+                                        },
+                                        title = { Text(text = stringResource(id = R.string.pref_appearance_show_network_thumbnails_title)) },
+                                        summary = {
+                                            Text(
+                                                text = stringResource(id = R.string.pref_appearance_show_network_thumbnails_summary),
+                                                color = MaterialTheme.colorScheme.outline,
+                                            )
                                         }
-                                    },
-                                    enabled = isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT,
-                                    modifier = Modifier
-                                        .padding(end = 8.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            color = if (isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT)
-                                                MaterialTheme.colorScheme.primaryContainer
-                                            else
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+
+                                    if (showNetworkWarning) {
+                                        AlertDialog(
+                                            onDismissRequest = { showNetworkWarning = false },
+                                            title = { Text(stringResource(R.string.pref_appearance_network_thumbnails_dialog_title)) },
+                                            text = {
+                                                Column {
+                                                    Text(
+                                                        text = stringResource(R.string.pref_appearance_network_thumbnails_dialog_message),
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            },
+                                            confirmButton = {
+                                                TextButton(onClick = {
+                                                    preferences.showNetworkThumbnails.set(true)
+                                                    showNetworkWarning = false
+                                                }) {
+                                                    Text(stringResource(R.string.generic_confirm))
+                                                }
+                                            },
+                                            dismissButton = {
+                                                TextButton(onClick = { showNetworkWarning = false }) {
+                                                    Text(stringResource(R.string.generic_cancel))
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                Column(modifier = Modifier.padding(vertical = 16.dp)) {
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_title),
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = stringResource(id = R.string.pref_appearance_thumbnail_strategy_summary),
+                                        modifier = Modifier.padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 12.dp),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                    MultiChoiceSegmentedButton(
+                                        choices = persistentListOf(
+                                            stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_title),
+                                            stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_title)
                                         ),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Refresh,
-                                        contentDescription = stringResource(id = R.string.pref_appearance_thumbnail_position_reset),
-                                        tint = if (isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        selectedIndices = persistentListOf(ThumbnailStrategy.entries.indexOf(thumbnailStrategy)),
+                                        onClick = { index ->
+                                            val newStrategy = ThumbnailStrategy.entries[index]
+                                            if (newStrategy != thumbnailStrategy) {
+                                                pendingStrategyChange = newStrategy
+                                            }
+                                        },
+                                    )
+
+                                    Text(
+                                        text = if (thumbnailStrategy == ThumbnailStrategy.FirstFrame) {
+                                            stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_summary)
+                                        } else {
+                                            stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_summary)
+                                        },
+                                        modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
 
-                            pendingPositionChange?.let { newPosition ->
-                                AlertDialog(
-                                    onDismissRequest = { 
-                                        pendingPositionChange = null 
-                                        draftPosition = thumbnailPositionPercent.toFloat()
-                                    },
-                                    title = { Text(stringResource(R.string.pref_appearance_thumbnail_position_dialog_title)) },
-                                    text = {
-                                        Column {
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    SliderPreference(
+                                        modifier = Modifier.weight(1f),
+                                        value = thumbnailPositionPercent.toFloat(),
+                                        onValueChange = { finalValue ->
+                                            val newInt = finalValue.roundToInt()
+                                            if (newInt != thumbnailPositionPercent) {
+                                                pendingPositionChange = newInt
+                                            }
+                                        },
+                                        sliderValue = draftPosition,
+                                        onSliderValueChange = { slidingValue ->
+                                            draftPosition = slidingValue
+                                        },
+                                        title = { Text(text = stringResource(id = R.string.pref_appearance_thumbnail_position_title)) },
+                                        valueRange = 1f..100f,
+                                        summary = {
                                             Text(
                                                 text = stringResource(
-                                                    R.string.pref_appearance_thumbnail_position_reset_confirm,
-                                                    newPosition,
+                                                    id = R.string.pref_appearance_thumbnail_position_summary,
+                                                    draftPosition.roundToInt(),
                                                 ),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = MaterialTheme.colorScheme.outline,
                                             )
-                                            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                                            Text(
-                                                text = stringResource(R.string.pref_appearance_thumbnail_position_dialog_message),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    },
-                                    confirmButton = {
-                                        TextButton(onClick = {
-                                            clearCacheAndApply(
-                                                onSuccess = {
-                                                    preferences.thumbnailPositionPercent.set(newPosition)
-                                                    pendingPositionChange = null
-                                                },
-                                                onFailure = {
-                                                    pendingPositionChange = null
-                                                    draftPosition = thumbnailPositionPercent.toFloat()
-                                                }
-                                            )
-                                        }) {
-                                            Text(stringResource(R.string.generic_confirm))
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { 
-                                            pendingPositionChange = null 
-                                            draftPosition = thumbnailPositionPercent.toFloat()
-                                        }) {
-                                            Text(stringResource(R.string.generic_cancel))
-                                        }
+                                        },
+                                        enabled = isPositionStrategy
+                                    )
+
+                                    IconButton(
+                                        onClick = {
+                                            val default = AppearancePreferences.THUMBNAIL_POSITION_DEFAULT
+                                            if (thumbnailPositionPercent != default) {
+                                                pendingPositionChange = default
+                                            }
+                                        },
+                                        enabled = isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT,
+                                        modifier = Modifier
+                                            .padding(end = 8.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                color = if (isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT)
+                                                    MaterialTheme.colorScheme.primaryContainer
+                                                else
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                            ),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Refresh,
+                                            contentDescription = stringResource(id = R.string.pref_appearance_thumbnail_position_reset),
+                                            tint = if (isPositionStrategy && thumbnailPositionPercent != AppearancePreferences.THUMBNAIL_POSITION_DEFAULT)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        )
                                     }
-                                )
+                                }
                             }
+                        }
+
+                        pendingStrategyChange?.let { newStrategy ->
+                            AlertDialog(
+                                onDismissRequest = { pendingStrategyChange = null },
+                                title = { Text(stringResource(R.string.pref_appearance_thumbnail_strategy_dialog_title)) },
+                                text = {
+                                    Column {
+                                        val summaryText = if (newStrategy == ThumbnailStrategy.FirstFrame) {
+                                            stringResource(id = R.string.pref_appearance_thumbnail_strategy_first_frame_summary)
+                                        } else {
+                                            stringResource(id = R.string.pref_appearance_thumbnail_strategy_position_summary)
+                                        }
+                                        Text(
+                                            text = summaryText,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                                        Text(
+                                            text = stringResource(R.string.pref_appearance_thumbnail_strategy_dialog_message),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        clearCacheAndApply(
+                                            onSuccess = {
+                                                preferences.thumbnailStrategy.set(newStrategy)
+                                                pendingStrategyChange = null
+                                            },
+                                            onFailure = {
+                                                pendingStrategyChange = null
+                                            }
+                                        )
+                                    }) {
+                                        Text(stringResource(R.string.generic_confirm))
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { pendingStrategyChange = null }) {
+                                        Text(stringResource(R.string.generic_cancel))
+                                    }
+                                }
+                            )
+                        }
+
+                        pendingPositionChange?.let { newPosition ->
+                            AlertDialog(
+                                onDismissRequest = { 
+                                    pendingPositionChange = null 
+                                    draftPosition = thumbnailPositionPercent.toFloat()
+                                },
+                                title = { Text(stringResource(R.string.pref_appearance_thumbnail_position_dialog_title)) },
+                                text = {
+                                    Column {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.pref_appearance_thumbnail_position_reset_confirm,
+                                                newPosition,
+                                            ),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                                        Text(
+                                            text = stringResource(R.string.pref_appearance_thumbnail_position_dialog_message),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        clearCacheAndApply(
+                                            onSuccess = {
+                                                preferences.thumbnailPositionPercent.set(newPosition)
+                                                pendingPositionChange = null
+                                            },
+                                            onFailure = {
+                                                pendingPositionChange = null
+                                                draftPosition = thumbnailPositionPercent.toFloat()
+                                            }
+                                        )
+                                    }) {
+                                        Text(stringResource(R.string.generic_confirm))
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { 
+                                        pendingPositionChange = null 
+                                        draftPosition = thumbnailPositionPercent.toFloat()
+                                    }) {
+                                        Text(stringResource(R.string.generic_cancel))
+                                    }
+                                }
+                            )
                         }
                     }
 

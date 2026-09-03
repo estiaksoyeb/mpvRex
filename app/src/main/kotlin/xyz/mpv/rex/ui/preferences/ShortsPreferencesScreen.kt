@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.GroupPosition
+import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
@@ -116,40 +118,42 @@ object ShortsPreferencesScreen : Screen {
                     }
 
                     item {
-                        PreferenceCard {
-                            SwitchPreference(
-                                value = enableShorts,
-                                onValueChange = { browserPreferences.enableShorts.set(it) },
-                                title = { Text(stringResource(R.string.pref_enable_rexshorts)) },
-                                summary = { Text(stringResource(R.string.pref_enable_rexshorts_summary)) },
-                            )
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                SwitchPreference(
+                                    value = enableShorts,
+                                    onValueChange = { browserPreferences.enableShorts.set(it) },
+                                    title = { Text(stringResource(R.string.pref_enable_rexshorts)) },
+                                    summary = { Text(stringResource(R.string.pref_enable_rexshorts_summary)) },
+                                )
+                            }
 
-                            PreferenceDivider()
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = autoSwipeShorts,
+                                    onValueChange = { browserPreferences.autoSwipeShorts.set(it) },
+                                    title = { Text(stringResource(R.string.pref_auto_swipe_shorts)) },
+                                    summary = { Text(stringResource(R.string.pref_auto_swipe_shorts_summary)) },
+                                )
+                            }
 
-                            SwitchPreference(
-                                value = autoSwipeShorts,
-                                onValueChange = { browserPreferences.autoSwipeShorts.set(it) },
-                                title = { Text(stringResource(R.string.pref_auto_swipe_shorts)) },
-                                summary = { Text(stringResource(R.string.pref_auto_swipe_shorts_summary)) },
-                            )
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = enableGlassShortsControls,
+                                    onValueChange = { browserPreferences.enableGlassShortsControls.set(it) },
+                                    title = { Text(stringResource(R.string.pref_enable_glass_shorts_controls)) },
+                                    summary = { Text(stringResource(R.string.pref_enable_glass_shorts_controls_summary)) },
+                                )
+                            }
 
-                            PreferenceDivider()
-
-                            SwitchPreference(
-                                value = enableGlassShortsControls,
-                                onValueChange = { browserPreferences.enableGlassShortsControls.set(it) },
-                                title = { Text(stringResource(R.string.pref_enable_glass_shorts_controls)) },
-                                summary = { Text(stringResource(R.string.pref_enable_glass_shorts_controls_summary)) },
-                            )
-
-                            PreferenceDivider()
-
-                            SwitchPreference(
-                                value = showShortsBackButton,
-                                onValueChange = { browserPreferences.showShortsBackButton.set(it) },
-                                title = { Text(stringResource(R.string.pref_show_shorts_back_button)) },
-                                summary = { Text(stringResource(R.string.pref_show_shorts_back_button_summary)) },
-                            )
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                SwitchPreference(
+                                    value = showShortsBackButton,
+                                    onValueChange = { browserPreferences.showShortsBackButton.set(it) },
+                                    title = { Text(stringResource(R.string.pref_show_shorts_back_button)) },
+                                    summary = { Text(stringResource(R.string.pref_show_shorts_back_button_summary)) },
+                                )
+                            }
                         }
                     }
 
@@ -158,54 +162,56 @@ object ShortsPreferencesScreen : Screen {
                     }
 
                     item {
-                        PreferenceCard {
-                            SwitchPreference(
-                                value = includeHorizontal,
-                                onValueChange = { browserPreferences.includeShortHorizontalVideos.set(it) },
-                                title = { Text(stringResource(R.string.pref_include_short_horizontal_videos)) },
-                                summary = { Text(stringResource(R.string.pref_include_short_horizontal_videos_summary)) },
-                            )
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                SwitchPreference(
+                                    value = includeHorizontal,
+                                    onValueChange = { browserPreferences.includeShortHorizontalVideos.set(it) },
+                                    title = { Text(stringResource(R.string.pref_include_short_horizontal_videos)) },
+                                    summary = { Text(stringResource(R.string.pref_include_short_horizontal_videos_summary)) },
+                                )
+                            }
 
-                            PreferenceDivider()
-
-                             SliderPreference(
-                                value = maxDuration.toFloat(),
-                                onValueChange = { browserPreferences.maxHorizontalVideoDurationMinutes.set(it.roundToInt()) },
-                                sliderValue = maxDuration.toFloat(),
-                                onSliderValueChange = { browserPreferences.maxHorizontalVideoDurationMinutes.set(it.roundToInt()) },
-                                title = { Text(stringResource(R.string.pref_max_horizontal_video_duration)) },
-                                summary = { 
-                                    Text(
-                                        text = pluralStringResource(R.plurals.pref_max_horizontal_video_duration_desc, maxDuration, maxDuration),
-                                        color = MaterialTheme.colorScheme.outline
-                                    ) 
-                                },
-                                valueRange = 1f..10f,
-                                valueSteps = 9,
-                                enabled = includeHorizontal,
-                            )
-
-                            PreferenceDivider()
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                 SliderPreference(
+                                    value = maxDuration.toFloat(),
+                                    onValueChange = { browserPreferences.maxHorizontalVideoDurationMinutes.set(it.roundToInt()) },
+                                    sliderValue = maxDuration.toFloat(),
+                                    onSliderValueChange = { browserPreferences.maxHorizontalVideoDurationMinutes.set(it.roundToInt()) },
+                                    title = { Text(stringResource(R.string.pref_max_horizontal_video_duration)) },
+                                    summary = { 
+                                        Text(
+                                            text = pluralStringResource(R.plurals.pref_max_horizontal_video_duration_desc, maxDuration, maxDuration),
+                                            color = MaterialTheme.colorScheme.outline
+                                        ) 
+                                    },
+                                    valueRange = 1f..10f,
+                                    valueSteps = 9,
+                                    enabled = includeHorizontal,
+                                )
+                            }
 
                             val sourcedAllText = stringResource(R.string.pref_sourced_folders_all)
                             val sourcedCountText = stringResource(R.string.pref_sourced_folders_count, shortsSourceFolders.size)
-                            Preference(
-                                title = { Text(stringResource(R.string.pref_sourced_folders)) },
-                                summary = {
-                                    val text = if (shortsSourceFolders.isEmpty()) {
-                                        sourcedAllText
-                                    } else {
-                                        val names = allFolders.filter { it.path in shortsSourceFolders }.map { it.name }
-                                        if (names.isEmpty()) {
-                                            sourcedCountText
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                Preference(
+                                    title = { Text(stringResource(R.string.pref_sourced_folders)) },
+                                    summary = {
+                                        val text = if (shortsSourceFolders.isEmpty()) {
+                                            sourcedAllText
                                         } else {
-                                            stringResource(R.string.pref_sourced_folders_list, names.joinToString())
+                                            val names = allFolders.filter { it.path in shortsSourceFolders }.map { it.name }
+                                            if (names.isEmpty()) {
+                                                sourcedCountText
+                                            } else {
+                                                stringResource(R.string.pref_sourced_folders_list, names.joinToString())
+                                            }
                                         }
-                                    }
-                                    Text(text = text, color = MaterialTheme.colorScheme.outline)
-                                },
-                                onClick = { showFolderSelector = true }
-                            )
+                                        Text(text = text, color = MaterialTheme.colorScheme.outline)
+                                    },
+                                    onClick = { showFolderSelector = true }
+                                )
+                            }
                         }
                     }
 
@@ -214,17 +220,19 @@ object ShortsPreferencesScreen : Screen {
                     }
 
                     item {
-                        PreferenceCard {
-                            Preference(
-                                title = { Text(stringResource(R.string.pref_blocked_videos)) },
-                                summary = { 
-                                    Text(
-                                        text = stringResource(R.string.pref_blocked_videos_summary),
-                                        color = MaterialTheme.colorScheme.outline
-                                    ) 
-                                },
-                                onClick = { backstack.add(BlockedShortsScreen) }
-                            )
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                                Preference(
+                                    title = { Text(stringResource(R.string.pref_blocked_videos)) },
+                                    summary = { 
+                                        Text(
+                                            text = stringResource(R.string.pref_blocked_videos_summary),
+                                            color = MaterialTheme.colorScheme.outline
+                                        ) 
+                                    },
+                                    onClick = { backstack.add(BlockedShortsScreen) }
+                                )
+                            }
                         }
                     }
                 }

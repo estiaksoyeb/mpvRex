@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,15 +30,16 @@ import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.FoldersPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.GroupPosition
+import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
-import xyz.mpv.rex.utils.media.OpenDocumentTreeContract
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SwitchPreference
+import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -100,41 +97,43 @@ object MediaLibraryPreferencesScreen : Screen {
           }
 
           item {
-            PreferenceCard {
-              SwitchPreference(
-                value = includeNoMediaContent,
-                onValueChange = { newValue ->
-                  browserPreferences.includeNoMediaContent.set(newValue)
-                  MediaLibraryEvents.notifyChanged()
-                  scope.launch(Dispatchers.IO) {
-                    runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
-                  }
-                },
-                title = { Text(text = stringResource(R.string.pref_include_no_media_content_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_include_no_media_content_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                SwitchPreference(
+                  value = includeNoMediaContent,
+                  onValueChange = { newValue ->
+                    browserPreferences.includeNoMediaContent.set(newValue)
+                    MediaLibraryEvents.notifyChanged()
+                    scope.launch(Dispatchers.IO) {
+                      runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
+                    }
+                  },
+                  title = { Text(text = stringResource(R.string.pref_include_no_media_content_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_include_no_media_content_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
 
-              PreferenceDivider()
-
-              SwitchPreference(
-                value = showAudioFiles,
-                onValueChange = { newValue ->
-                  browserPreferences.showAudioFiles.set(newValue)
-                  MediaLibraryEvents.notifyChanged()
-                },
-                title = { Text(text = stringResource(R.string.pref_show_audio_files_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_show_audio_files_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                SwitchPreference(
+                  value = showAudioFiles,
+                  onValueChange = { newValue ->
+                    browserPreferences.showAudioFiles.set(newValue)
+                    MediaLibraryEvents.notifyChanged()
+                  },
+                  title = { Text(text = stringResource(R.string.pref_show_audio_files_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_show_audio_files_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
             }
           }
 
@@ -144,34 +143,36 @@ object MediaLibraryPreferencesScreen : Screen {
           }
 
           item {
-            PreferenceCard {
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_folders_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_folders_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                onClick = { backstack.add(FoldersPreferencesScreen) },
-              )
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.pref_folders_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_folders_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = { backstack.add(FoldersPreferencesScreen) },
+                )
+              }
 
-              PreferenceDivider()
-
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_library_roots_title)) },
-                summary = {
-                  Text(
-                    text = if (libraryScanRoots.isEmpty()) {
-                      stringResource(R.string.pref_library_roots_empty_title)
-                    } else {
-                      stringResource(R.string.pref_library_root_count, libraryScanRoots.size)
-                    },
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                onClick = { backstack.add(LibraryRootsPreferencesScreen) },
-              )
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.pref_library_roots_title)) },
+                  summary = {
+                    Text(
+                      text = if (libraryScanRoots.isEmpty()) {
+                        stringResource(R.string.pref_library_roots_empty_title)
+                      } else {
+                        stringResource(R.string.pref_library_root_count, libraryScanRoots.size)
+                      },
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = { backstack.add(LibraryRootsPreferencesScreen) },
+                )
+              }
             }
           }
 
@@ -181,40 +182,42 @@ object MediaLibraryPreferencesScreen : Screen {
           }
 
           item {
-            PreferenceCard {
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_rescan_library_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_rescan_library_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                onClick = {
-                  scope.launch(Dispatchers.IO) {
-                    runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
-                  }
-                  Toast.makeText(context, context.getString(R.string.pref_rescan_started_toast), Toast.LENGTH_SHORT).show()
-                },
-              )
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.pref_rescan_library_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_rescan_library_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = {
+                    scope.launch(Dispatchers.IO) {
+                      runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
+                    }
+                    Toast.makeText(context, context.getString(R.string.pref_rescan_started_toast), Toast.LENGTH_SHORT).show()
+                  },
+                )
+              }
 
-              PreferenceDivider()
-
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_clear_metadata_cache_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_clear_metadata_cache_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                onClick = {
-                  scope.launch(Dispatchers.IO) {
-                    runCatching { metadataCache.clearAll() }
-                  }
-                  Toast.makeText(context, context.getString(R.string.pref_cache_cleared_toast), Toast.LENGTH_SHORT).show()
-                },
-              )
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.pref_clear_metadata_cache_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_clear_metadata_cache_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = {
+                    scope.launch(Dispatchers.IO) {
+                      runCatching { metadataCache.clearAll() }
+                    }
+                    Toast.makeText(context, context.getString(R.string.pref_cache_cleared_toast), Toast.LENGTH_SHORT).show()
+                  },
+                )
+              }
             }
           }
         }

@@ -53,11 +53,12 @@ import xyz.mpv.rex.preferences.SettingsManager
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.ConfirmDialog
+import xyz.mpv.rex.presentation.components.GroupPosition
+import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.presentation.crash.CrashActivity
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -70,8 +71,6 @@ import java.io.File
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
 import kotlin.io.path.readLines
-
-import xyz.mpv.rex.BuildConfig
 
 @Serializable
 object AdvancedPreferencesScreen : Screen {
@@ -213,39 +212,9 @@ object AdvancedPreferencesScreen : Screen {
           ) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
 
-            val flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             context.contentResolver.takePersistableUriPermission(uri, flags)
             preferences.mpvConfStorageUri.set(uri.toString())
-
-            // Auto-create standard MPV folder structure
-            scope.launch(Dispatchers.IO) {
-              runCatching {
-                val tree = DocumentFile.fromTreeUri(context, uri)
-                if (tree != null && tree.exists() && tree.canWrite()) {
-                  val subdirs = listOf("fonts", "script-opts", "scripts", "shaders")
-                  for (name in subdirs) {
-                    val existing = tree.listFiles().firstOrNull {
-                      it.isDirectory && it.name?.equals(name, ignoreCase = true) == true
-                    }
-                    if (existing == null) {
-                      tree.createDirectory(name)
-                    }
-                  }
-                  // Create default mpv.conf if missing
-                  val hasConf = tree.listFiles().any {
-                    it.isFile && it.name?.equals("mpv.conf", ignoreCase = true) == true
-                  }
-                  if (!hasConf) {
-                    tree.createFile("application/octet-stream", "mpv.conf")
-                  }
-                  withContext(Dispatchers.Main) {
-                    Toast.makeText(context, context.getString(R.string.pref_advanced_mpv_directory_ready), Toast.LENGTH_SHORT).show()
-                  }
-                }
-              }.onFailure { e ->
-                android.util.Log.e("AdvancedPrefs", "Error creating MPV directory structure", e)
-              }
-            }
           }
         val mpvConfStorageLocation by preferences.mpvConfStorageUri.collectAsState()
         val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
@@ -261,48 +230,50 @@ object AdvancedPreferencesScreen : Screen {
           }
           
           item {
-            PreferenceCard {
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_export_settings_title)) },
-                summary = { 
-                  Text(
-                    text = stringResource(R.string.pref_export_settings_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-                icon = { 
-                  Icon(
-                    Icons.Outlined.FileUpload, 
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                  ) 
-                },
-                onClick = {
-                  exportLauncher.launch(settingsManager.getDefaultExportFilename())
-                },
-              )
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.pref_export_settings_title)) },
+                  summary = { 
+                    Text(
+                      text = stringResource(R.string.pref_export_settings_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                  icon = { 
+                    Icon(
+                      Icons.Outlined.FileUpload, 
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.primary
+                    ) 
+                  },
+                  onClick = {
+                    exportLauncher.launch(settingsManager.getDefaultExportFilename())
+                  },
+                )
+              }
               
-              PreferenceDivider()
-              
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_import_settings_title)) },
-                summary = { 
-                  Text(
-                    text = stringResource(R.string.pref_import_settings_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-                icon = { 
-                  Icon(
-                    Icons.Outlined.FileDownload, 
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                  ) 
-                },
-                onClick = {
-                  importLauncher.launch(arrayOf("text/xml", "application/xml", "*/*"))
-                },
-              )
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.pref_import_settings_title)) },
+                  summary = { 
+                    Text(
+                      text = stringResource(R.string.pref_import_settings_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                  icon = { 
+                    Icon(
+                      Icons.Outlined.FileDownload, 
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.primary
+                    ) 
+                  },
+                  onClick = {
+                    importLauncher.launch(arrayOf("text/xml", "application/xml", "*/*"))
+                  },
+                )
+              }
             }
           }
           
@@ -312,135 +283,137 @@ object AdvancedPreferencesScreen : Screen {
           }
           
           item {
-            PreferenceCard {
-              var mpvConf by remember { mutableStateOf(preferences.mpvConf.get()) }
-              var inputConf by remember { mutableStateOf(preferences.inputConf.get()) }
-              
-              // Load config files when storage location changes
-              LaunchedEffect(mpvConfStorageLocation) {
-                if (mpvConfStorageLocation.isBlank()) return@LaunchedEffect
-                withContext(Dispatchers.IO) {
-                  val tempFile = kotlin.io.path.createTempFile()
-                  runCatching {
-                    val tree =
-                      DocumentFile.fromTreeUri(
-                        context,
-                        mpvConfStorageLocation.toUri(),
-                      )
-                    val mpvConfFile = tree?.findFile("mpv.conf")
-                    if (mpvConfFile != null && mpvConfFile.exists()) {
-                      context.contentResolver
-                        .openInputStream(
-                          mpvConfFile.uri,
-                        )?.copyTo(tempFile.outputStream())
-                      val content = tempFile.readLines().fastJoinToString("\n")
-                      preferences.mpvConf.set(content)
-                      File(context.filesDir, "mpv.conf").writeText(content)
-                      withContext(Dispatchers.Main) {
-                        mpvConf = content
-                      }
+            var mpvConf by remember { mutableStateOf(preferences.mpvConf.get()) }
+            var inputConf by remember { mutableStateOf(preferences.inputConf.get()) }
+            
+            // Load config files when storage location changes
+            LaunchedEffect(mpvConfStorageLocation) {
+              if (mpvConfStorageLocation.isBlank()) return@LaunchedEffect
+              withContext(Dispatchers.IO) {
+                val tempFile = kotlin.io.path.createTempFile()
+                runCatching {
+                  val tree =
+                    DocumentFile.fromTreeUri(
+                      context,
+                      mpvConfStorageLocation.toUri(),
+                    )
+                  val mpvConfFile = tree?.findFile("mpv.conf")
+                  if (mpvConfFile != null && mpvConfFile.exists()) {
+                    context.contentResolver
+                      .openInputStream(
+                        mpvConfFile.uri,
+                      )?.copyTo(tempFile.outputStream())
+                    val content = tempFile.readLines().fastJoinToString("\n")
+                    preferences.mpvConf.set(content)
+                    File(context.filesDir, "mpv.conf").writeText(content)
+                    withContext(Dispatchers.Main) {
+                      mpvConf = content
                     }
                   }
-                  tempFile.deleteIfExists()
                 }
+                tempFile.deleteIfExists()
               }
-              
-              // Load input.conf when storage location changes
-              LaunchedEffect(mpvConfStorageLocation) {
-                if (mpvConfStorageLocation.isBlank()) return@LaunchedEffect
-                withContext(Dispatchers.IO) {
-                  val tempFile = kotlin.io.path.createTempFile()
-                  runCatching {
-                    val tree =
-                      DocumentFile.fromTreeUri(
-                        context,
-                        mpvConfStorageLocation.toUri(),
-                      )
-                    val inputConfFile = tree?.findFile("input.conf")
-                    if (inputConfFile != null && inputConfFile.exists()) {
-                      context.contentResolver
-                        .openInputStream(
-                          inputConfFile.uri,
-                        )?.copyTo(tempFile.outputStream())
-                      val content = tempFile.readLines().fastJoinToString("\n")
-                      preferences.inputConf.set(content)
-                      File(context.filesDir, "input.conf").writeText(content)
-                      withContext(Dispatchers.Main) {
-                        inputConf = content
-                      }
+            }
+            
+            // Load input.conf when storage location changes
+            LaunchedEffect(mpvConfStorageLocation) {
+              if (mpvConfStorageLocation.isBlank()) return@LaunchedEffect
+              withContext(Dispatchers.IO) {
+                val tempFile = kotlin.io.path.createTempFile()
+                runCatching {
+                  val tree =
+                    DocumentFile.fromTreeUri(
+                      context,
+                      mpvConfStorageLocation.toUri(),
+                    )
+                  val inputConfFile = tree?.findFile("input.conf")
+                  if (inputConfFile != null && inputConfFile.exists()) {
+                    context.contentResolver
+                      .openInputStream(
+                        inputConfFile.uri,
+                      )?.copyTo(tempFile.outputStream())
+                    val content = tempFile.readLines().fastJoinToString("\n")
+                    preferences.inputConf.set(content)
+                    File(context.filesDir, "input.conf").writeText(content)
+                    withContext(Dispatchers.Main) {
+                      inputConf = content
                     }
                   }
-                  tempFile.deleteIfExists()
                 }
+                tempFile.deleteIfExists()
+              }
+            }
+            
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                TwoTargetIconButtonPreference(
+                  title = { Text(stringResource(R.string.pref_advanced_mpv_conf_storage_location)) },
+                  summary = {
+                    if (mpvConfStorageLocation.isNotBlank()) {
+                      Text(
+                        getSimplifiedPathFromUri(mpvConfStorageLocation),
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    }
+                  },
+                  onClick = { locationPicker.launch(null) },
+                  iconButtonIcon = { 
+                    Icon(
+                      Icons.Default.Clear, 
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.error,
+                    ) 
+                  },
+                  onIconButtonClick = { preferences.mpvConfStorageUri.delete() },
+                  iconButtonEnabled = mpvConfStorageLocation.isNotBlank(),
+                )
               }
               
-              TwoTargetIconButtonPreference(
-                title = { Text(stringResource(R.string.pref_advanced_mpv_conf_storage_location)) },
-                summary = {
-                  if (mpvConfStorageLocation.isNotBlank()) {
-                    Text(
-                      getSimplifiedPathFromUri(mpvConfStorageLocation),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  }
-                },
-                onClick = { locationPicker.launch(null) },
-                iconButtonIcon = { 
-                  Icon(
-                    Icons.Default.Clear, 
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                  ) 
-                },
-                onIconButtonClick = { preferences.mpvConfStorageUri.delete() },
-                iconButtonEnabled = mpvConfStorageLocation.isNotBlank(),
-              )
+              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                Preference(
+                  title = { Text(stringResource(R.string.pref_advanced_mpv_conf)) },
+                  summary = {
+                    val firstLine = mpvConf.lines().firstOrNull()
+                    if (firstLine != null && firstLine.isNotBlank()) {
+                      Text(
+                        firstLine,
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    } else {
+                      Text(
+                        stringResource(R.string.pref_advanced_tap_to_edit_configuration),
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    }
+                  },
+                  onClick = {
+                    backStack.add(ConfigEditorScreen(ConfigEditorScreen.ConfigType.MPV_CONF))
+                  },
+                )
+              }
               
-              PreferenceDivider()
-              
-              Preference(
-                title = { Text(stringResource(R.string.pref_advanced_mpv_conf)) },
-                summary = {
-                  val firstLine = mpvConf.lines().firstOrNull()
-                  if (firstLine != null && firstLine.isNotBlank()) {
-                    Text(
-                      firstLine,
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  } else {
-                    Text(
-                      stringResource(R.string.pref_advanced_tap_to_edit_configuration),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  }
-                },
-                onClick = {
-                  backStack.add(ConfigEditorScreen(ConfigEditorScreen.ConfigType.MPV_CONF))
-                },
-              )
-              
-              PreferenceDivider()
-              
-              Preference(
-                title = { Text(stringResource(R.string.pref_advanced_input_conf)) },
-                summary = {
-                  val firstLine = inputConf.lines().firstOrNull()
-                  if (firstLine != null && firstLine.isNotBlank()) {
-                    Text(
-                      firstLine,
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  } else {
-                    Text(
-                      stringResource(R.string.pref_advanced_tap_to_edit_configuration),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  }
-                },
-                onClick = {
-                  backStack.add(ConfigEditorScreen(ConfigEditorScreen.ConfigType.INPUT_CONF))
-                },
-              )
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Preference(
+                  title = { Text(stringResource(R.string.pref_advanced_input_conf)) },
+                  summary = {
+                    val firstLine = inputConf.lines().firstOrNull()
+                    if (firstLine != null && firstLine.isNotBlank()) {
+                      Text(
+                        firstLine,
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    } else {
+                      Text(
+                        stringResource(R.string.pref_advanced_tap_to_edit_configuration),
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    }
+                  },
+                  onClick = {
+                    backStack.add(ConfigEditorScreen(ConfigEditorScreen.ConfigType.INPUT_CONF))
+                  },
+                )
+              }
             }
           }
           
@@ -450,68 +423,69 @@ object AdvancedPreferencesScreen : Screen {
           }
           
           item {
-            PreferenceCard {
-              val selectedScripts by preferences.selectedLuaScripts.collectAsState()
-              val enableLuaScripts by preferences.enableLuaScripts.collectAsState()
+            val selectedScripts by preferences.selectedLuaScripts.collectAsState()
+            val enableLuaScripts by preferences.enableLuaScripts.collectAsState()
+            
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                SwitchPreference(
+                  value = enableLuaScripts,
+                  onValueChange = preferences.enableLuaScripts::set,
+                  title = { Text(stringResource(R.string.pref_enable_lua_scripts_title)) },
+                  summary = { 
+                    Text(
+                      stringResource(R.string.pref_enable_lua_scripts_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                )
+              }
               
-              SwitchPreference(
-                value = enableLuaScripts,
-                onValueChange = preferences.enableLuaScripts::set,
-                title = { Text(stringResource(R.string.pref_enable_lua_scripts_title)) },
-                summary = { 
-                  Text(
-                    stringResource(R.string.pref_enable_lua_scripts_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-              )
-              
-              PreferenceDivider()
-              
-              Preference(
-                title = { Text(stringResource(R.string.pref_manage_lua_scripts_title)) },
-                summary = {
-                  // TODO: "1 script enabled" / "%d scripts enabled" pluralization deferred
-                  when {
-                    mpvConfStorageLocation.isBlank() || !enableLuaScripts -> Text(
-                      stringResource(R.string.pref_advanced_lua_set_storage_first), 
-                      color = MaterialTheme.colorScheme.outline
-                    )
-                    selectedScripts.isEmpty() -> Text(
-                      stringResource(R.string.pref_advanced_no_scripts_enabled), 
-                      color = MaterialTheme.colorScheme.outline
-                    )
-                    selectedScripts.size == 1 -> Text(
-                      "1 script enabled",
-                      color = MaterialTheme.colorScheme.outline
-                    )
-                    else -> Text(
-                      "${selectedScripts.size} scripts enabled",
-                      color = MaterialTheme.colorScheme.outline
-                    )
-                  }
-                },
-                onClick = {
-                  backStack.add(LuaScriptsScreen)
-                },
-                enabled = mpvConfStorageLocation.isNotBlank() && enableLuaScripts,
-              )
+              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                Preference(
+                  title = { Text(stringResource(R.string.pref_manage_lua_scripts_title)) },
+                  summary = {
+                    when {
+                      mpvConfStorageLocation.isBlank() || !enableLuaScripts -> Text(
+                        stringResource(R.string.pref_advanced_lua_set_storage_first), 
+                        color = MaterialTheme.colorScheme.outline
+                      )
+                      selectedScripts.isEmpty() -> Text(
+                        stringResource(R.string.pref_advanced_no_scripts_enabled), 
+                        color = MaterialTheme.colorScheme.outline
+                      )
+                      selectedScripts.size == 1 -> Text(
+                        "1 script enabled",
+                        color = MaterialTheme.colorScheme.outline
+                      )
+                      else -> Text(
+                        "${selectedScripts.size} scripts enabled",
+                        color = MaterialTheme.colorScheme.outline
+                      )
+                    }
+                  },
+                  onClick = {
+                    backStack.add(LuaScriptsScreen)
+                  },
+                  enabled = mpvConfStorageLocation.isNotBlank() && enableLuaScripts,
+                )
+              }
 
-              PreferenceDivider()
-
-              Preference(
-                title = { Text(stringResource(R.string.pref_custom_lua_title)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_advanced_custom_lua_summary),
-                    color = MaterialTheme.colorScheme.outline
-                  )
-                },
-                onClick = {
-                  backStack.add(xyz.mpv.rex.ui.preferences.CustomButtonScreen)
-                },
-                enabled = enableLuaScripts,
-              )
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Preference(
+                  title = { Text(stringResource(R.string.pref_custom_lua_title)) },
+                  summary = {
+                    Text(
+                      stringResource(R.string.pref_advanced_custom_lua_summary),
+                      color = MaterialTheme.colorScheme.outline
+                    )
+                  },
+                  onClick = {
+                    backStack.add(xyz.mpv.rex.ui.preferences.CustomButtonScreen)
+                  },
+                  enabled = enableLuaScripts,
+                )
+              }
             }
           }
           
@@ -521,64 +495,68 @@ object AdvancedPreferencesScreen : Screen {
           }
           
           item {
-            PreferenceCard {
-              var isConfirmDialogShown by remember { mutableStateOf(false) }
-              val mpvexDatabase = koinInject<MpvExDatabase>()
-              val enableRecentlyPlayed by preferences.enableRecentlyPlayed.collectAsState()
-              
-              SwitchPreference(
-                value = enableRecentlyPlayed,
-                onValueChange = preferences.enableRecentlyPlayed::set,
-                title = { Text(stringResource(R.string.pref_advanced_enable_recently_played_title)) },
-                summary = { 
-                  Text(
-                    stringResource(R.string.pref_advanced_enable_recently_played_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-              )
-              
-              PreferenceDivider()
-              
-              Preference(
-                title = { Text(stringResource(R.string.pref_advanced_clear_playback_history)) },
-                onClick = { isConfirmDialogShown = true },
-              )
-              
-              if (isConfirmDialogShown) {
-                ConfirmDialog(
-                  stringResource(R.string.pref_advanced_clear_playback_history_confirm_title),
-                  stringResource(R.string.pref_advanced_clear_playback_history_confirm_subtitle),
-                  onConfirm = {
-                    scope.launch(Dispatchers.IO) {
-                      runCatching {
-                        mpvexDatabase.videoDataDao().clearAllPlaybackStates()
-                        RecentlyPlayedOps.clearAll()
-                      }.onSuccess {
-                        withContext(Dispatchers.Main) {
-                          isConfirmDialogShown = false
-                          Toast
-                            .makeText(
-                              context,
-                              context.getString(R.string.pref_advanced_cleared_playback_history),
-                              Toast.LENGTH_SHORT,
-                            ).show()
-                        }
-                      }.onFailure { error ->
-                        withContext(Dispatchers.Main) {
-                          isConfirmDialogShown = false
-                          Toast
-                            .makeText(
-                              context,
-                              context.getString(R.string.clear_failed, error.message),
-                              Toast.LENGTH_LONG,
-                            ).show()
-                        }
-                      }
-                    }
+            var isConfirmDialogShown by remember { mutableStateOf(false) }
+            val mpvexDatabase = koinInject<MpvExDatabase>()
+            val enableRecentlyPlayed by preferences.enableRecentlyPlayed.collectAsState()
+            
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                SwitchPreference(
+                  value = enableRecentlyPlayed,
+                  onValueChange = preferences.enableRecentlyPlayed::set,
+                  title = { Text(stringResource(R.string.pref_advanced_enable_recently_played_title)) },
+                  summary = { 
+                    Text(
+                      stringResource(R.string.pref_advanced_enable_recently_played_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
                   },
-                  onCancel = { isConfirmDialogShown = false },
                 )
+              }
+              
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Column {
+                  Preference(
+                    title = { Text(stringResource(R.string.pref_advanced_clear_playback_history)) },
+                    onClick = { isConfirmDialogShown = true },
+                  )
+                  
+                  if (isConfirmDialogShown) {
+                    ConfirmDialog(
+                      stringResource(R.string.pref_advanced_clear_playback_history_confirm_title),
+                      stringResource(R.string.pref_advanced_clear_playback_history_confirm_subtitle),
+                      onConfirm = {
+                        scope.launch(Dispatchers.IO) {
+                          runCatching {
+                            mpvexDatabase.videoDataDao().clearAllPlaybackStates()
+                            RecentlyPlayedOps.clearAll()
+                          }.onSuccess {
+                            withContext(Dispatchers.Main) {
+                              isConfirmDialogShown = false
+                              Toast
+                                .makeText(
+                                  context,
+                                  context.getString(R.string.pref_advanced_cleared_playback_history),
+                                  Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                          }.onFailure { error ->
+                            withContext(Dispatchers.Main) {
+                              isConfirmDialogShown = false
+                              Toast
+                                .makeText(
+                                  context,
+                                  context.getString(R.string.clear_failed, error.message),
+                                  Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                          }
+                        }
+                      },
+                      onCancel = { isConfirmDialogShown = false },
+                    )
+                  }
+                }
               }
             }
           }
@@ -589,112 +567,114 @@ object AdvancedPreferencesScreen : Screen {
           }
           
           item {
-            PreferenceCard {
-              var mpvConf by remember { mutableStateOf(preferences.mpvConf.get()) }
-              var isClearThumbsConfirmShown by remember { mutableStateOf(false) }
-              val thumbnailRepository = koinInject<ThumbnailRepository>()
-              
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_clear_config_cache_title)) },
-                summary = { 
-                  Text(
-                    text = stringResource(R.string.pref_clear_config_cache_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-                onClick = {
-                  scope.launch(Dispatchers.IO) {
-                    val mpvConfFile = File(context.filesDir, "mpv.conf")
-                    mpvConfFile.delete()
-                    // Clear preferences too
-                    preferences.mpvConf.delete()
-                    withContext(Dispatchers.Main) {
-                      mpvConf = ""
-                      Toast
-                        .makeText(
-                          context,
-                          context.getString(R.string.pref_advanced_config_cache_cleared),
-                          Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                  }
-                },
-              )
-              
-              PreferenceDivider()
-
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_clear_thumbnail_cache_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_advanced_delete_thumbnails_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                onClick = { isClearThumbsConfirmShown = true },
-              )
-
-              if (isClearThumbsConfirmShown) {
-                ConfirmDialog(
-                  title = stringResource(R.string.pref_advanced_clear_thumbnail_cache_confirm_title),
-                  subtitle = stringResource(R.string.pref_advanced_clear_thumbnail_cache_confirm_subtitle),
-                  onConfirm = {
+            var mpvConf by remember { mutableStateOf(preferences.mpvConf.get()) }
+            var isClearThumbsConfirmShown by remember { mutableStateOf(false) }
+            val thumbnailRepository = koinInject<ThumbnailRepository>()
+            
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.pref_clear_config_cache_title)) },
+                  summary = { 
+                    Text(
+                      text = stringResource(R.string.pref_clear_config_cache_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                  onClick = {
                     scope.launch(Dispatchers.IO) {
-                      runCatching {
-                        thumbnailRepository.clearThumbnailCache()
-                      }.onSuccess {
-                        withContext(Dispatchers.Main) {
-                          isClearThumbsConfirmShown = false
-                          Toast.makeText(context, context.getString(R.string.pref_advanced_thumbnail_cache_cleared), Toast.LENGTH_SHORT).show()
-                        }
-                      }.onFailure { error ->
-                        withContext(Dispatchers.Main) {
-                          isClearThumbsConfirmShown = false
-                          Toast.makeText(context, context.getString(R.string.clear_failed, error.message), Toast.LENGTH_LONG).show()
-                        }
+                      val mpvConfFile = File(context.filesDir, "mpv.conf")
+                      mpvConfFile.delete()
+                      preferences.mpvConf.delete()
+                      withContext(Dispatchers.Main) {
+                        mpvConf = ""
+                        Toast
+                          .makeText(
+                            context,
+                            context.getString(R.string.pref_advanced_config_cache_cleared),
+                            Toast.LENGTH_SHORT,
+                          ).show()
                       }
                     }
                   },
-                  onCancel = { isClearThumbsConfirmShown = false },
                 )
               }
               
-              PreferenceDivider()
+              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                Column {
+                  Preference(
+                    title = { Text(text = stringResource(R.string.pref_clear_thumbnail_cache_title)) },
+                    summary = {
+                      Text(
+                        text = stringResource(R.string.pref_advanced_delete_thumbnails_summary),
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    },
+                    onClick = { isClearThumbsConfirmShown = true },
+                  )
+
+                  if (isClearThumbsConfirmShown) {
+                    ConfirmDialog(
+                      title = stringResource(R.string.pref_advanced_clear_thumbnail_cache_confirm_title),
+                      subtitle = stringResource(R.string.pref_advanced_clear_thumbnail_cache_confirm_subtitle),
+                      onConfirm = {
+                        scope.launch(Dispatchers.IO) {
+                          runCatching {
+                            thumbnailRepository.clearThumbnailCache()
+                          }.onSuccess {
+                            withContext(Dispatchers.Main) {
+                              isClearThumbsConfirmShown = false
+                              Toast.makeText(context, context.getString(R.string.pref_advanced_thumbnail_cache_cleared), Toast.LENGTH_SHORT).show()
+                            }
+                          }.onFailure { error ->
+                            withContext(Dispatchers.Main) {
+                              isClearThumbsConfirmShown = false
+                              Toast.makeText(context, context.getString(R.string.clear_failed, error.message), Toast.LENGTH_LONG).show()
+                            }
+                          }
+                        }
+                      },
+                      onCancel = { isClearThumbsConfirmShown = false },
+                    )
+                  }
+                }
+              }
               
-              Preference(
-                title = { Text(text = stringResource(id = R.string.pref_advanced_clear_fonts_cache)) },
-                summary = { 
-                  Text(
-                    text = stringResource(R.string.pref_advanced_remove_cached_fonts_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-                onClick = {
-                  scope.launch(Dispatchers.IO) {
-                    val fontsDir = File(context.filesDir.path + "/fonts")
-                    if (fontsDir.exists()) {
-                      fontsDir.listFiles()?.forEach { file ->
-                        // Delete all font files
-                        if (file.isFile &&
-                          file.name
-                            .lowercase()
-                            .matches(".*\\.[ot]tf$".toRegex())
-                        ) {
-                          file.delete()
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Preference(
+                  title = { Text(text = stringResource(id = R.string.pref_advanced_clear_fonts_cache)) },
+                  summary = { 
+                    Text(
+                      text = stringResource(R.string.pref_advanced_remove_cached_fonts_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                  onClick = {
+                    scope.launch(Dispatchers.IO) {
+                      val fontsDir = File(context.filesDir.path + "/fonts")
+                      if (fontsDir.exists()) {
+                        fontsDir.listFiles()?.forEach { file ->
+                          if (file.isFile &&
+                            file.name
+                              .lowercase()
+                              .matches(".*\\.[ot]tf$".toRegex())
+                          ) {
+                            file.delete()
+                          }
                         }
                       }
+                      withContext(Dispatchers.Main) {
+                        Toast
+                          .makeText(
+                            context,
+                            context.getString(R.string.pref_advanced_cleared_fonts_cache),
+                            Toast.LENGTH_SHORT,
+                          ).show()
+                      }
                     }
-                    withContext(Dispatchers.Main) {
-                      Toast
-                        .makeText(
-                          context,
-                          context.getString(R.string.pref_advanced_cleared_fonts_cache),
-                          Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                  }
-                },
-              )
+                  },
+                )
+              }
             }
           }
 
@@ -704,23 +684,25 @@ object AdvancedPreferencesScreen : Screen {
           }
 
           item {
-            PreferenceCard {
-              val enableMediaInfoActivity by preferences.enableMediaInfoActivity.collectAsState()
+            val enableMediaInfoActivity by preferences.enableMediaInfoActivity.collectAsState()
 
-              SwitchPreference(
-                value = enableMediaInfoActivity,
-                onValueChange = {
-                  preferences.enableMediaInfoActivity.set(it)
-                  preferences.syncMediaInfoActivityStatus(context)
-                },
-                title = { Text(stringResource(R.string.pref_advanced_enable_media_info_title)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_advanced_enable_media_info_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                SwitchPreference(
+                  value = enableMediaInfoActivity,
+                  onValueChange = {
+                    preferences.enableMediaInfoActivity.set(it)
+                    preferences.syncMediaInfoActivityStatus(context)
+                  },
+                  title = { Text(stringResource(R.string.pref_advanced_enable_media_info_title)) },
+                  summary = {
+                    Text(
+                      stringResource(R.string.pref_advanced_enable_media_info_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
             }
           }
           
@@ -730,44 +712,46 @@ object AdvancedPreferencesScreen : Screen {
           }
           
           item {
-            PreferenceCard {
-              val activity = LocalActivity.current!!
-              @Suppress("DEPRECATION")
-              val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
-              val verboseLogging by preferences.verboseLogging.collectAsState()
+            val activity = LocalActivity.current!!
+            @Suppress("DEPRECATION")
+            val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+            val verboseLogging by preferences.verboseLogging.collectAsState()
+            
+            GroupedListColumn {
+              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                SwitchPreference(
+                  value = verboseLogging,
+                  onValueChange = preferences.verboseLogging::set,
+                  title = { Text(stringResource(R.string.pref_advanced_verbose_logging_title)) },
+                  summary = { 
+                    Text(
+                      stringResource(R.string.pref_advanced_verbose_logging_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                )
+              }
               
-              SwitchPreference(
-                value = verboseLogging,
-                onValueChange = preferences.verboseLogging::set,
-                title = { Text(stringResource(R.string.pref_advanced_verbose_logging_title)) },
-                summary = { 
-                  Text(
-                    stringResource(R.string.pref_advanced_verbose_logging_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-              )
-              
-              PreferenceDivider()
-              
-              Preference(
-                title = { Text(stringResource(R.string.pref_advanced_dump_logs_title)) },
-                summary = { 
-                  Text(
-                    stringResource(R.string.pref_advanced_dump_logs_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  ) 
-                },
-                onClick = {
-                  scope.launch(Dispatchers.IO) {
-                    val deviceInfo = CrashActivity.collectDeviceInfo()
-                    val logcat = CrashActivity.collectLogcat()
-    
-                    clipboard.setText(AnnotatedString(CrashActivity.concatLogs(deviceInfo, null, logcat)))
-                    CrashActivity.shareLogs(deviceInfo, null, logcat, activity)
-                  }
-                },
-              )
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Preference(
+                  title = { Text(stringResource(R.string.pref_advanced_dump_logs_title)) },
+                  summary = { 
+                    Text(
+                      stringResource(R.string.pref_advanced_dump_logs_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                  onClick = {
+                    scope.launch(Dispatchers.IO) {
+                      val deviceInfo = CrashActivity.collectDeviceInfo()
+                      val logcat = CrashActivity.collectLogcat()
+      
+                      clipboard.setText(AnnotatedString(CrashActivity.concatLogs(deviceInfo, null, logcat)))
+                      CrashActivity.shareLogs(deviceInfo, null, logcat, activity)
+                    }
+                  },
+                )
+              }
             }
           }
         }

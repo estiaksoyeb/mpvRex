@@ -1,11 +1,12 @@
 package xyz.mpv.rex.ui.player.controls.components.sheets
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CenterFocusStrong
-import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -60,33 +60,20 @@ fun ClipExportSheet(
         .padding(horizontal = MaterialTheme.spacing.medium, vertical = 8.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-      // Header
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-      ) {
-        Icon(
-          imageVector = Icons.Default.ContentCut,
-          contentDescription = null,
-          tint = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-          text = stringResource(R.string.clip_export_title),
-          style = MaterialTheme.typography.titleLarge,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onSurface
-        )
-      }
+      // Header (clean, no emoji/icon)
+      Text(
+        text = stringResource(R.string.clip_export_title),
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+      )
 
-      // Interval & Duration Summary Badge
+      // Interval & Duration Summary Badge (borderless)
       Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
       ) {
         Row(
           modifier = Modifier
@@ -95,21 +82,22 @@ fun ClipExportSheet(
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Column {
-            Text(
-              text = "$startFormatted → $endFormatted",
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.SemiBold,
-              color = MaterialTheme.colorScheme.onSurface
-            )
-          }
+          Text(
+            text = "$startFormatted → $endFormatted",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f, fill = false)
+          )
+
+          Spacer(modifier = Modifier.width(8.dp))
 
           Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
           ) {
             Text(
-              text = stringResource(R.string.clip_export_duration, durationSec),
+              text = durationSec,
               style = MaterialTheme.typography.labelMedium,
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -121,7 +109,7 @@ fun ClipExportSheet(
 
       Spacer(modifier = Modifier.height(2.dp))
 
-      // Option 1: Fast (Lossless Copy)
+      // Option 1: Fast (Lossless Copy) - borderless
       ExportOptionCard(
         icon = Icons.Default.Bolt,
         title = stringResource(R.string.clip_export_fast_title),
@@ -134,7 +122,7 @@ fun ClipExportSheet(
         }
       )
 
-      // Option 2: Exact Frame (Hardware Transcode)
+      // Option 2: Exact Frame (Transcode) - borderless
       ExportOptionCard(
         icon = Icons.Default.CenterFocusStrong,
         title = stringResource(R.string.clip_export_exact_title),
@@ -147,11 +135,12 @@ fun ClipExportSheet(
         }
       )
 
-      Spacer(modifier = Modifier.height(8.dp))
+      Spacer(modifier = Modifier.height(16.dp))
     }
   }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ExportOptionCard(
   icon: ImageVector,
@@ -170,19 +159,11 @@ private fun ExportOptionCard(
     shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(
       containerColor = if (isPrimary) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
       } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f)
+        MaterialTheme.colorScheme.surfaceContainerHigh
       }
     ),
-    border = BorderStroke(
-      width = 1.dp,
-      color = if (isPrimary) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-      } else {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-      }
-    )
   ) {
     Row(
       modifier = Modifier
@@ -192,7 +173,7 @@ private fun ExportOptionCard(
     ) {
       Box(
         modifier = Modifier
-          .size(42.dp)
+          .size(40.dp)
           .background(
             color = if (isPrimary) {
               MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
@@ -207,16 +188,16 @@ private fun ExportOptionCard(
           imageVector = icon,
           contentDescription = null,
           tint = if (isPrimary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-          modifier = Modifier.size(24.dp)
+          modifier = Modifier.size(22.dp)
         )
       }
 
       Spacer(modifier = Modifier.width(12.dp))
 
       Column(modifier = Modifier.weight(1f)) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.SpaceBetween,
+        FlowRow(
+          verticalArrangement = Arrangement.spacedBy(4.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
           modifier = Modifier.fillMaxWidth()
         ) {
           Text(

@@ -1115,10 +1115,10 @@
     <string name="clip_export_title">Export Clip</string>
     <string name="clip_export_fast_title">Fast (Lossless Copy)</string>
     <string name="clip_export_fast_desc">Instant stream copy with 100% original quality. Starts at nearest keyframe.</string>
-    <string name="clip_export_exact_title">Exact Frame (Hardware Transcode)</string>
-    <string name="clip_export_exact_desc">Frame-accurate export starting on the exact frame. Hardware-accelerated MP4.</string>
-    <string name="clip_export_fast_tag">Instant • Lossless</string>
-    <string name="clip_export_exact_tag">Frame-Accurate • MP4</string>
+    <string name="clip_export_exact_title">Exact Frame (Transcode)</string>
+    <string name="clip_export_exact_desc">Frame-accurate export starting on the exact timestamp.</string>
+    <string name="clip_export_fast_tag">Lossless</string>
+    <string name="clip_export_exact_tag">Frame-Accurate</string>
     <string name="clip_export_duration">Duration: %s</string>
     <string name="background_playback">Background</string>
     <string name="ambient">Ambient</string>

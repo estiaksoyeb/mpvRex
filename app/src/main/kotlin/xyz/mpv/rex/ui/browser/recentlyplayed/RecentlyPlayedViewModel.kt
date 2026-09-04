@@ -67,14 +67,25 @@ class RecentlyPlayedViewModel(application: Application) :
         
         val appearancePreferences by inject<xyz.mpv.rex.preferences.AppearancePreferences>()
         val browserPreferences by inject<xyz.mpv.rex.preferences.BrowserPreferences>()
+        val advancedPreferences by inject<xyz.mpv.rex.preferences.AdvancedPreferences>()
         val watchedThreshold = browserPreferences.watchedThreshold.get()
+        val autoRemoveDeleted = advancedPreferences.autoRemoveDeletedFromHistory.get()
 
+        val deadPaths = mutableListOf<String>()
         val videoItems = entities.mapNotNull { entity ->
           try {
-            var video = createVideoFromEntity(entity)
+            val path = entity.filePath
+            val isValidMedia = xyz.mpv.rex.utils.history.RecentlyPlayedOps.isNonFileUri(path) || 
+                               xyz.mpv.rex.utils.history.RecentlyPlayedOps.fileExists(path)
+            if (autoRemoveDeleted && !isValidMedia) {
+              deadPaths.add(path)
+              return@mapNotNull null
+            }
+
+            var video = createVideoFromEntity(entity, autoRemoveDeleted)
             if (video != null) {
               // Map saved orientation and progress info if available
-              val state = playbackStates.find { it.mediaTitle == video.displayName }
+              val state = playbackStates.find { it.mediaTitle == video.displayName || it.mediaTitle == video.path }
               
               var progress: Float? = null
               var isWatched = false
@@ -115,6 +126,14 @@ class RecentlyPlayedViewModel(application: Application) :
           } catch (e: Exception) { null }
         }
         
+        // Clean up dead file records from database if auto-remove is enabled
+        if (autoRemoveDeleted && deadPaths.isNotEmpty()) {
+          deadPaths.forEach { path ->
+            recentlyPlayedRepository.deleteByFilePath(path)
+          }
+        }
+        
+        val deadPlaylistIds = mutableListOf<Int>()
         val playlistItems = playlistInfos.mapNotNull { info ->
           val playlist = playlistRepository.getPlaylistById(info.playlistId)
           if (playlist != null) {
@@ -124,7 +143,19 @@ class RecentlyPlayedViewModel(application: Application) :
               mostRecentVideoPath = "",
               timestamp = info.timestamp
             )
-          } else null
+          } else {
+            if (autoRemoveDeleted) {
+              deadPlaylistIds.add(info.playlistId)
+            }
+            null
+          }
+        }
+
+        // Clean up dead playlist records from database if auto-remove is enabled
+        if (autoRemoveDeleted && deadPlaylistIds.isNotEmpty()) {
+          deadPlaylistIds.forEach { id ->
+            recentlyPlayedRepository.deleteByPlaylistId(id)
+          }
         }
         
         val allItems = (videoItems + playlistItems).sortedByDescending { it.timestamp }
@@ -142,9 +173,14 @@ class RecentlyPlayedViewModel(application: Application) :
     loadData()
   }
 
-  private fun createVideoFromEntity(entity: RecentlyPlayedEntity?): Video? {
+  private fun createVideoFromEntity(entity: RecentlyPlayedEntity?, autoRemoveDeleted: Boolean = true): Video? {
     if (entity == null) return null
     val filePath = entity.filePath
+    if (autoRemoveDeleted &&
+        !xyz.mpv.rex.utils.history.RecentlyPlayedOps.isNonFileUri(filePath) && 
+        !xyz.mpv.rex.utils.history.RecentlyPlayedOps.fileExists(filePath)) {
+      return null
+    }
     val file = File(filePath)
     
     val videoTitle = if (entity.videoTitle?.isNotBlank() == true) entity.videoTitle else file.nameWithoutExtension

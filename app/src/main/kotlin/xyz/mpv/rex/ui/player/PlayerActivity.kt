@@ -2032,7 +2032,7 @@ class PlayerActivity :
       
     }
 
-    // Save to recently played when video actually loads and plays
+    // Save to recently played when video actually loads and plays (only for internal launches)
     lifecycleScope.launch(Dispatchers.IO) {
       val playlist = viewModel.playlistManager.playlist.value
       val playlistIndex = viewModel.playlistManager.currentIndex.value
@@ -2043,10 +2043,23 @@ class PlayerActivity :
       }
 
       if (currentUri != null) {
+        val isInternalLaunch = intent.getBooleanExtra("internal_launch", false)
+        val isShare = intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE
+        val rawLaunchSource = intent.getStringExtra("launch_source")
+
+        val isExternalOrShare = !isInternalLaunch || isShare || rawLaunchSource == "share" || rawLaunchSource == "open_file" || rawLaunchSource == "external"
+
+        // Should NOT record or update Chronological Playback History when opened from external source or share (if preference is enabled)
+        if (isExternalOrShare && advancedPreferences.excludeExternalPlaybackFromHistory.get()) {
+          Log.d(TAG, "Skipping chronological history recording for external/share launch (isInternal=$isInternalLaunch, isShare=$isShare, source=$rawLaunchSource)")
+          return@launch
+        }
+
         val launchSource = when {
-          intent.getStringExtra("launch_source") != null -> intent.getStringExtra("launch_source")!!
+          rawLaunchSource != null -> rawLaunchSource
           playlist.isNotEmpty() -> "playlist"
-          intent.action == Intent.ACTION_SEND -> "share"
+          isShare -> "share"
+          !isInternalLaunch -> "external"
           else -> "normal"
         }
 
@@ -2301,8 +2314,14 @@ class PlayerActivity :
             MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
           }.getOrDefault(0)
 
-          // Update metadata in history
-          viewModel.historyManager.updateCurrentMediaMetadata(fileName)
+          // Update metadata in history if this session is an internal launch or if excludeExternalPlaybackFromHistory is disabled
+          val isInternalLaunch = intent.getBooleanExtra("internal_launch", false)
+          val isShare = intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE
+          val rawLaunchSource = intent.getStringExtra("launch_source")
+          val isExternalOrShare = !isInternalLaunch || isShare || rawLaunchSource == "share" || rawLaunchSource == "open_file" || rawLaunchSource == "external"
+          if (!isExternalOrShare || !advancedPreferences.excludeExternalPlaybackFromHistory.get()) {
+            viewModel.historyManager.updateCurrentMediaMetadata(fileName)
+          }
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error fetching network stream title", e)

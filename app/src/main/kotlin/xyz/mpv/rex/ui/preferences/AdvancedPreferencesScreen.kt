@@ -498,6 +498,8 @@ object AdvancedPreferencesScreen : Screen {
             var isConfirmDialogShown by remember { mutableStateOf(false) }
             val mpvexDatabase = koinInject<MpvExDatabase>()
             val enableRecentlyPlayed by preferences.enableRecentlyPlayed.collectAsState()
+            val autoRemoveDeleted by preferences.autoRemoveDeletedFromHistory.collectAsState()
+            val excludeExternal by preferences.excludeExternalPlaybackFromHistory.collectAsState()
             
             GroupedListColumn {
               GroupedPreferenceCard(position = GroupPosition.FIRST) {
@@ -508,6 +510,36 @@ object AdvancedPreferencesScreen : Screen {
                   summary = { 
                     Text(
                       stringResource(R.string.pref_advanced_enable_recently_played_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                )
+              }
+              
+              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                SwitchPreference(
+                  value = autoRemoveDeleted,
+                  onValueChange = preferences.autoRemoveDeletedFromHistory::set,
+                  enabled = enableRecentlyPlayed,
+                  title = { Text(stringResource(R.string.pref_advanced_history_auto_remove_deleted_title)) },
+                  summary = { 
+                    Text(
+                      stringResource(R.string.pref_advanced_history_auto_remove_deleted_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) 
+                  },
+                )
+              }
+
+              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                SwitchPreference(
+                  value = excludeExternal,
+                  onValueChange = preferences.excludeExternalPlaybackFromHistory::set,
+                  enabled = enableRecentlyPlayed,
+                  title = { Text(stringResource(R.string.pref_advanced_history_exclude_external_title)) },
+                  summary = { 
+                    Text(
+                      stringResource(R.string.pref_advanced_history_exclude_external_summary),
                       color = MaterialTheme.colorScheme.outline,
                     ) 
                   },

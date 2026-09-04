@@ -355,6 +355,10 @@
     <string name="pref_advanced_cleared_fonts_cache">Cleared cached fonts</string>
     <string name="pref_advanced_enable_recently_played_title">Recently Played</string>
     <string name="pref_advanced_enable_recently_played_summary">Track and display recently played videos and playlists</string>
+    <string name="pref_advanced_history_auto_remove_deleted_title">Auto-remove deleted files</string>
+    <string name="pref_advanced_history_auto_remove_deleted_summary">Automatically remove and clean up deleted media from Recently Played</string>
+    <string name="pref_advanced_history_exclude_external_title">Exclude external &amp; shared media</string>
+    <string name="pref_advanced_history_exclude_external_summary">Do not add media to Recently Played when opened from other apps or share sheet</string>
 
     <string name="pref_advanced_features_tooltip">Enable experimental or advanced features such as stats page and Anime4K upscaling</string>
     <string name="pref_anime4k_title">Anime4K upscaling (Experimental)</string>

@@ -124,6 +124,9 @@ import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.ui.player.controls.components.glassSurface
 import xyz.mpv.rex.utils.media.MediaUtils
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import xyz.mpv.rex.ui.player.HeadlessPlaybackController
+import xyz.mpv.rex.ui.player.PlayerActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -141,6 +144,8 @@ data class ShortsScreen(
     override fun Content() {
         val context = LocalContext.current
         val backstack = LocalBackStack.current
+        val miniPlayerStateManager = koinInject<MiniPlayerStateManager>()
+        val headlessPlaybackController = koinInject<HeadlessPlaybackController>()
         val viewModel: ShortsViewModel = viewModel(
             factory = ShortsViewModel.factory(context.applicationContext as android.app.Application)
         )
@@ -171,6 +176,11 @@ data class ShortsScreen(
         }
 
         LaunchedEffect(Unit) {
+            if (headlessPlaybackController.isSessionActive || headlessPlaybackController.ownsNativeSession) {
+                headlessPlaybackController.stop()
+            }
+            miniPlayerStateManager.clearState()
+            PlayerActivity.finishBackgroundInstance()
             viewModel.loadShorts(initialVideoPath, blockedOnly)
         }
 
@@ -204,9 +214,15 @@ data class ShortsScreen(
                 var isManuallyPaused by remember { mutableStateOf(false) }
                 var isFreeModeEnabled by remember { mutableStateOf(false) }
                 
-                val pagerState = rememberPagerState(pageCount = { 
-                    if (isExhausted) shorts.size + 1 else shorts.size 
-                })
+                val initialIndex = remember(shorts) {
+                    viewModel.getInitialPageIndex(initialVideoPath)
+                }
+                val pagerState = rememberPagerState(
+                    initialPage = initialIndex.coerceIn(0, (shorts.size - 1).coerceAtLeast(0)),
+                    pageCount = { 
+                        if (isExhausted) shorts.size + 1 else shorts.size 
+                    }
+                )
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val density = LocalDensity.current
                 val coroutineScope = rememberCoroutineScope()
@@ -255,7 +271,7 @@ data class ShortsScreen(
                         )
                     }
 
-                    val isTopScreen = backstack.lastOrNull() == this@ShortsScreen
+                    val isTopScreen = backstack.lastOrNull() == MainScreen || backstack.lastOrNull() == this@ShortsScreen
                     LaunchedEffect(isTopScreen) {
                         if (isTopScreen) {
                             if (!isManuallyPaused && pagerState.settledPage < shorts.size) {
@@ -271,7 +287,8 @@ data class ShortsScreen(
                             when (event) {
                                 Lifecycle.Event.ON_PAUSE -> MPVLib.setPropertyBoolean("pause", true)
                                 Lifecycle.Event.ON_RESUME -> {
-                                    if (pagerState.settledPage < shorts.size && !isManuallyPaused && backstack.lastOrNull() == this@ShortsScreen) {
+                                    val isTop = backstack.lastOrNull() == MainScreen || backstack.lastOrNull() == this@ShortsScreen
+                                    if (pagerState.settledPage < shorts.size && !isManuallyPaused && isTop) {
                                         MPVLib.setPropertyBoolean("pause", false)
                                     }
                                 }
@@ -284,20 +301,24 @@ data class ShortsScreen(
                         }
                     }
 
+                    LaunchedEffect(autoSwipe, mpvView) {
+                        if (mpvView != null) {
+                            MPVLib.setPropertyString("loop-file", if (autoSwipe) "no" else "inf")
+                        }
+                    }
+
                     val currentVideoPath = shorts.getOrNull(pagerState.settledPage)?.path
-                    LaunchedEffect(pagerState.settledPage, mpvView, autoSwipe, currentVideoPath) {
+                    LaunchedEffect(pagerState.settledPage, mpvView, currentVideoPath) {
                         if (mpvView != null && shorts.isNotEmpty()) {
                             if (pagerState.settledPage < shorts.size) {
                                 val video = shorts[pagerState.settledPage]
-                                MPVLib.command("stop") 
                                 MPVLib.command("loadfile", video.path)
                                 MPVLib.setPropertyString("loop-file", if (autoSwipe) "no" else "inf")
                                 MPVLib.setPropertyBoolean("pause", false)
                                 isManuallyPaused = false
                                 viewModel.syncPlaybackSpeed()
                                 
-                                // Phase B: Mark as seen in current session
-                                viewModel.markAsSeen(video)
+                                viewModel.onShortSettled(video)
                             } else {
                                 MPVLib.setPropertyBoolean("pause", true)
                                 isPlayerReady = false

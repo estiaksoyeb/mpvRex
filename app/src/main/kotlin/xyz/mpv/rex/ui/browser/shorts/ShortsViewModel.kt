@@ -63,11 +63,12 @@ class ShortsViewModel(
 
     private val _currentSpeed = MutableStateFlow(1.0)
     val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
-    
-    private val seenPaths = mutableSetOf<String>()
 
-    fun loadShorts(initialVideoPath: String? = null, blockedOnly: Boolean = false) {
-        _shorts.value = emptyList()
+    fun loadShorts(initialVideoPath: String? = null, blockedOnly: Boolean = false, forceRefresh: Boolean = false) {
+        if (!forceRefresh && _shorts.value.isNotEmpty() && initialVideoPath == null && !blockedOnly) {
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             
@@ -127,35 +128,41 @@ class ShortsViewModel(
                 val loved = finalShorts.filter { lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
                 val others = finalShorts.filter { !lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
                 
-                // Apply Claude's Elastic Interleaving Algorithm
+                // Apply Elastic Interleaving Algorithm
                 buildElasticFeed(loved, others)
             }
-            
-            // Apply Strict Session Filtering (No repeats)
-            // But we keep the initialVideoPath if specified, even if seen.
-            val filteredShorts = interleavedShorts.filter { it.path !in seenPaths || it.path == initialVideoPath }
-            
-            if (finalShorts.isNotEmpty() && filteredShorts.isEmpty()) {
-                _isExhausted.value = true
-            } else {
-                _isExhausted.value = false
-            }
 
-            // Move initial video to the front
+            // Move initial video to the front if explicitly specified
             val orderedShorts = if (initialVideoPath != null) {
-                val initial = filteredShorts.find { it.path == initialVideoPath }
+                val initial = interleavedShorts.find { it.path == initialVideoPath }
                 if (initial != null) {
-                    listOf(initial) + filteredShorts.filter { it.path != initialVideoPath }
+                    listOf(initial) + interleavedShorts.filter { it.path != initialVideoPath }
                 } else {
-                    filteredShorts
+                    interleavedShorts
                 }
             } else {
-                filteredShorts
+                interleavedShorts
             }
             
             _shorts.value = orderedShorts
+            _isExhausted.value = false
             _isLoading.value = false
         }
+    }
+
+    fun getInitialPageIndex(initialVideoPath: String? = null): Int {
+        val currentShorts = _shorts.value
+        if (currentShorts.isEmpty()) return 0
+        if (initialVideoPath != null) {
+            val idx = currentShorts.indexOfFirst { it.path == initialVideoPath }
+            if (idx != -1) return idx
+        }
+        val lastWatchedPath = browserPreferences.lastWatchedShortPath.get()
+        if (lastWatchedPath.isNotBlank()) {
+            val idx = currentShorts.indexOfFirst { it.path == lastWatchedPath }
+            if (idx != -1) return idx
+        }
+        return 0
     }
 
     private fun buildElasticFeed(
@@ -191,15 +198,11 @@ class ShortsViewModel(
         return interleaved
     }
     
-    fun markAsSeen(video: Video) {
-        seenPaths.add(video.path)
-        if (seenPaths.size >= _totalShortsCount.value && _totalShortsCount.value > 0) {
-            _isExhausted.value = true
-        }
+    fun onShortSettled(video: Video) {
+        browserPreferences.lastWatchedShortPath.set(video.path)
     }
     
     fun clearSessionHistory() {
-        seenPaths.clear()
         _isExhausted.value = false
     }
 

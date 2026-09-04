@@ -227,7 +227,7 @@ class MPVView(
     }
 
     advancedPreferences.enabledStatisticsPage.get().let {
-      if (it != 0) {
+      if (it in 1..5) {
         MPVLib.command("script-binding", "stats/display-stats-toggle")
         MPVLib.command("script-binding", "stats/display-page-$it")
       }

@@ -39,11 +39,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -102,6 +105,7 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import xyz.mpv.rex.R
+import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.AudioPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
@@ -130,6 +134,7 @@ import xyz.mpv.rex.ui.player.controls.components.SeekPlayerUpdate
 import xyz.mpv.rex.ui.player.controls.components.SeekbarWithTimers
 import xyz.mpv.rex.ui.player.controls.components.SlideToUnlock
 import xyz.mpv.rex.ui.player.controls.components.SpeedControlSlider
+import xyz.mpv.rex.ui.player.controls.components.SystemStatsOverlay
 import xyz.mpv.rex.ui.player.controls.components.TextPlayerUpdate
 import xyz.mpv.rex.ui.player.controls.components.VolumeSlider
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
@@ -390,6 +395,7 @@ fun PlayerControls(
         val playerPauseButton = createRef()
         val seekbar = createRef()
         val (playerUpdates, playerLockHint) = createRefs()
+        val systemStatsRef = createRef()
         val (customLeftButtonsRef, customRightButtonsRef) = createRefs()
         val customButtonsPortraitRef = createRef()
         val floatingABLoop = createRef()
@@ -404,6 +410,8 @@ fun PlayerControls(
         val mpvVolume by MPVLib.propInt["volume"].collectAsState()
         val swapVolumeAndBrightness by playerPreferences.swapVolumeAndBrightness.collectAsState()
         val reduceMotion by playerPreferences.reduceMotion.collectAsState()
+        val advancedPreferences = koinInject<AdvancedPreferences>()
+        val statisticsPage by advancedPreferences.enabledStatisticsPage.collectAsState()
 
         val activity = LocalActivity.current as PlayerActivity
         val aspect by viewModel.videoAspect.collectAsState()
@@ -762,6 +770,21 @@ fun PlayerControls(
           }
         }
       }
+
+        SystemStatsOverlay(
+          visible = statisticsPage == 6,
+          modifier = Modifier
+            .windowInsetsPadding(
+              WindowInsets.safeDrawing.only(
+                WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
+              ),
+            )
+            .padding(top = 16.dp, start = 28.dp)
+            .constrainAs(systemStatsRef) {
+              top.linkTo(parent.top)
+              start.linkTo(parent.start)
+            },
+        )
 
         AnimatedVisibility(
             visible = areButtonsVisible && !isPortrait,

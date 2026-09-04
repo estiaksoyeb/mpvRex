@@ -311,14 +311,12 @@ fun SettingsTab(
       LazyRow(
         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
       ) {
-        items(6) { page ->
+        items(7) { page ->
           FilterChip(
             label = {
               Text(
                 stringResource(
-                  if (page ==
-                    0
-                  ) {
+                  if (page == 0) {
                     R.string.player_sheets_tracks_off
                   } else {
                     R.string.player_sheets_stats_page_chip
@@ -328,8 +326,20 @@ fun SettingsTab(
               )
             },
             onClick = {
-              if ((page == 0) xor (statisticsPage == 0)) MPVLib.command("script-binding", "stats/display-stats-toggle")
-              if (page != 0) MPVLib.command("script-binding", "stats/display-page-$page")
+              if (page == 6) {
+                if (statisticsPage in 1..5) {
+                  MPVLib.command("script-binding", "stats/display-stats-toggle")
+                }
+              } else if (page in 1..5) {
+                if (statisticsPage == 0 || statisticsPage == 6) {
+                  MPVLib.command("script-binding", "stats/display-stats-toggle")
+                }
+                MPVLib.command("script-binding", "stats/display-page-$page")
+              } else {
+                if (statisticsPage in 1..5) {
+                  MPVLib.command("script-binding", "stats/display-stats-toggle")
+                }
+              }
               advancedPreferences.enabledStatisticsPage.set(page)
             },
             selected = statisticsPage == page,

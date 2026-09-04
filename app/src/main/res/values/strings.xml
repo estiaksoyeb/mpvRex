@@ -482,6 +482,16 @@
     <string name="player_sheets_stats_page_3_desc">Cache status. Buffer health, demuxer cache, seekable ranges.</string>
     <string name="player_sheets_stats_page_4_desc">Current keybindings. List of mapped keyboard shortcuts.</string>
     <string name="player_sheets_stats_page_5_desc">Track list. Details of video, audio and subtitle tracks.</string>
+    <string name="player_sheets_stats_page_6_desc">System stats. Battery level, power draw, temperature, RAM, display.</string>
+    <string name="diagnostics_playback_decoder_header">PLAYBACK &amp; DECODER</string>
+    <string name="diagnostics_power_thermals_header">POWER &amp; THERMALS</string>
+    <string name="diagnostics_session_header">SESSION</string>
+    <string name="diagnostics_app_cpu">App CPU</string>
+    <string name="diagnostics_memory_cache_header">MEMORY &amp; CACHE</string>
+    <string name="diagnostics_process_memory">Process</string>
+    <string name="diagnostics_process_memory_value">PSS %1$s | Java %2$s/%3$s | Native %4$s</string>
+    <string name="diagnostics_playback_cache">Playback</string>
+    <string name="diagnostics_playback_cache_value">Buffered %1$.1f s | Packets %2$s | File %3$s</string>
     <string name="player_speed" translatable="false">%.2fx</string>
 
     <string name="playlist_now_playing">Now Playing</string>

@@ -186,7 +186,7 @@ class PlayerViewModel(
     get() = if (_externalAudioTracks.isNotEmpty() && (_primaryVideoDuration.value ?: 0.0) > 0.0) {
       _primaryVideoDuration.value?.toInt()
     } else {
-      _preciseDuration.value.takeIf { it > 0f }?.toInt() ?: _mpvDuration
+      _preciseDuration.value.takeIf { it > 0f }?.toInt() ?: _mpvDuration.takeIf { !_isLoadingFile.value }
     }
 
   // External audio state and duration tracking
@@ -203,6 +203,16 @@ class PlayerViewModel(
   // High-precision position and duration for smooth seekbar
   private val _precisePosition = MutableStateFlow(0f)
   val precisePosition = _precisePosition.asStateFlow()
+
+  /**
+   * True between asking mpv to load a file and mpv reporting it loaded.
+   *
+   * mpv keeps answering `time-pos`/`duration` for the *outgoing* file until the new one is open,
+   * which on a network stream is seconds rather than milliseconds. Without this gate the seek bar
+   * shows the previous video's position and length while the next one buffers.
+   */
+  private val _isLoadingFile = MutableStateFlow(false)
+  val isLoadingFile: StateFlow<Boolean> = _isLoadingFile.asStateFlow()
 
   private val _preciseDuration = MutableStateFlow(0f)
   val preciseDuration = _preciseDuration.asStateFlow()
@@ -343,7 +353,19 @@ class PlayerViewModel(
   val remainingTime: StateFlow<Int> = _remainingTime.asStateFlow()
 
   // Media title for subtitle association
-  var currentMediaTitle: String = ""
+  private val _mediaTitle = MutableStateFlow("")
+  val mediaTitle: StateFlow<String> = _mediaTitle.asStateFlow()
+
+  private val _mediaIdentifier = MutableStateFlow("")
+  val mediaIdentifier: StateFlow<String> = _mediaIdentifier.asStateFlow()
+
+  fun setMediaIdentifier(identifier: String) {
+    _mediaIdentifier.value = identifier
+  }
+
+  var currentMediaTitle: String
+    get() = _mediaTitle.value
+    set(value) { _mediaTitle.value = value }
   private var lastAutoSelectedMediaTitle: String? = null
 
   // External subtitle tracking
@@ -515,7 +537,7 @@ class PlayerViewModel(
       }.collectLatest { shouldPoll ->
         if (shouldPoll) {
           while (isActive) {
-            val time = MPVLib.getPropertyDouble("time-pos")
+            val time = if (_isLoadingFile.value) null else MPVLib.getPropertyDouble("time-pos")
             if (time != null) {
               val primaryDur = _primaryVideoDuration.value
               if (_externalAudioTracks.isNotEmpty() && primaryDur != null && primaryDur > 0) {
@@ -537,7 +559,7 @@ class PlayerViewModel(
     // Update precise position whenever integer time-pos changes in MPV (e.g. seeking while paused or controls hidden)
     viewModelScope.launch {
       MPVLib.propInt["time-pos"].collect { _ ->
-        val time = MPVLib.getPropertyDouble("time-pos")
+        val time = if (_isLoadingFile.value) null else MPVLib.getPropertyDouble("time-pos")
         if (time != null) {
           val primaryDur = _primaryVideoDuration.value
           if (_externalAudioTracks.isNotEmpty() && primaryDur != null && primaryDur > 0) {
@@ -705,6 +727,7 @@ class PlayerViewModel(
   }
 
   fun prepareForFileLoad(initialDurationSec: Float? = null) {
+    _isLoadingFile.value = true
     resetExternalAudioTracks()
     _precisePosition.value = 0f
     if (initialDurationSec != null && initialDurationSec > 0f) {
@@ -726,6 +749,7 @@ class PlayerViewModel(
   }
 
   fun onFileLoaded(durationSec: Double) {
+    _isLoadingFile.value = false
     if (durationSec > 0) {
       if (_externalAudioTracks.isEmpty()) {
         _primaryVideoDuration.value = durationSec

@@ -153,6 +153,12 @@ fun SeekbarWithTimers(
   LaunchedEffect(Unit) {
     snapshotFlow { position() }.collect { currentPosVal ->
       if (!isUserInteracting && currentPosVal != animatedPosition.value) {
+        if (currentPosVal <= 0.05f) {
+          animatedPosition.snapTo(0f)
+          userPosition = 0f
+          return@collect
+        }
+
         // If we recently interacted (within 2s) and the position is significantly different from the seeked target (>10s),
         // assume it's the old position and ignore it to prevent "back and forth" glitches.
         val timeSinceInteraction = System.currentTimeMillis() - lastInteractionTime
@@ -883,11 +889,12 @@ fun StandardSeekbar(
                 }
             }
     ) {
+        val safeDuration = duration.coerceAtLeast(0.1f)
         Slider(
-            value = if (isUserInteracting) userPosition else position(),
+            value = (if (isUserInteracting) userPosition else position()).coerceIn(0f, safeDuration),
             onValueChange = { /* Handled by custom gestures */ },
             onValueChangeFinished = { /* Handled by custom gestures */ },
-            valueRange = 0f..duration.coerceAtLeast(0.1f),
+            valueRange = 0f..safeDuration,
             modifier = Modifier.fillMaxWidth(),
             interactionSource = interactionSource,
             enabled = false, // Disable built-in interaction
@@ -901,17 +908,17 @@ fun StandardSeekbar(
             val isGlassActive = enableGlassPlayerControls && enableGlassSeekbar
             val outerRadiusDp = trackHeightDp / 2
 
-            val trackModifier = if (isGlassActive) {
-                Modifier.background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(outerRadiusDp))
-            } else {
-                Modifier
-            }
+            val trackModifier = Modifier
+                .fillMaxWidth()
+                .height(trackHeightDp)
+                .background(
+                    color = if (isGlassActive) Color.White.copy(alpha = 0.15f) 
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = disabledAlpha),
+                    shape = RoundedCornerShape(outerRadiusDp)
+                )
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(trackHeightDp)
-                    .then(trackModifier)
+                modifier = trackModifier
             ) {
                 Canvas(
                     modifier = Modifier.fillMaxSize(),
@@ -943,7 +950,7 @@ fun StandardSeekbar(
                     val thumbGapStart = (thumbPx - gapHalf).coerceIn(0f, size.width)
                     val thumbGapEnd = (thumbPx + gapHalf).coerceIn(0f, size.width)
                     
-                    val chapterGaps = if (showSeekbarChapters) {
+                    val chapterGaps = if (showSeekbarChapters && duration > 0f) {
                         chapters
                             .map { (it.start / duration).coerceIn(0f, 1f) * size.width }
                             .filter { it > 0f && it < size.width }

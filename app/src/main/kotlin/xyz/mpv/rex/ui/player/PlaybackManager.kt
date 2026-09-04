@@ -2,6 +2,7 @@ package xyz.mpv.rex.ui.player
 
 import xyz.mpv.rex.preferences.PlayerPreferences
 import `is`.xyz.mpv.MPVLib
+import android.os.SystemClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -16,10 +17,12 @@ class PlaybackManager(
 ) {
     companion object {
         private const val TAG = "PlaybackManager"
+        private const val SEEK_COALESCE_MS = 150L
     }
 
     private var seekJob: Job? = null
     private var resyncJob: Job? = null
+    @Volatile private var lastSeekAt = 0L
 
     /**
      * Performs an absolute seek to the specified position.
@@ -29,6 +32,11 @@ class PlaybackManager(
     fun seekTo(scope: CoroutineScope, position: Int, abLoopA: Double?, abLoopB: Double?) {
         seekJob?.cancel()
         seekJob = scope.launch(Dispatchers.IO) {
+            val isRemote = MPVLib.getPropertyString("path")?.startsWith("http", ignoreCase = true) == true
+            if (isRemote && SystemClock.elapsedRealtime() - lastSeekAt < SEEK_COALESCE_MS) {
+                delay(SEEK_COALESCE_MS)
+            }
+            lastSeekAt = SystemClock.elapsedRealtime()
             val maxDuration = MPVLib.getPropertyInt("duration") ?: 0
 
             var clampedPosition = position

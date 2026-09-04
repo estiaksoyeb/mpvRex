@@ -1161,6 +1161,7 @@
     <!-- Network Streaming Screen -->
     <string name="network_recent_links">Recent Links</string>
     <string name="network_local_network">Local Network</string>
+    <string name="network_share_unreachable">Can\'t reach the network share.</string>
     <string name="network_empty_title">No network connections</string>
     <string name="network_empty_description">Add SMB, FTP, or WebDAV connections to browse network files</string>
     <string name="network_remove_link_action">Remove Link</string>

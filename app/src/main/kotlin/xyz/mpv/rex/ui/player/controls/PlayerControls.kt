@@ -78,6 +78,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -205,11 +206,23 @@ fun PlayerControls(
   val showSeekTime by playerPreferences.showSeekTimeWhileSeeking.collectAsState()
   val showSpeedIndicatorOverlay by playerPreferences.showSpeedIndicatorOverlay.collectAsState()
   val hideOsdText by playerPreferences.hideOsdText.collectAsState()
+  val isLoadingFile by viewModel.isLoadingFile.collectAsState()
+  val mediaTitle by viewModel.mediaTitle.collectAsState()
+  val mediaIdentifier by viewModel.mediaIdentifier.collectAsState()
+  val playlistItems by viewModel.playlistManager.playlist.collectAsState()
+  val playlistIndex by viewModel.playlistManager.currentIndex.collectAsState()
   var isSeeking by remember { mutableStateOf(false) }
   var dragStartValue by remember { mutableStateOf(-1f) }
   var isCloseToStart by remember { mutableStateOf(false) }
   var changeCount by remember { mutableStateOf(0) }
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
+
+  LaunchedEffect(playlistIndex, mediaIdentifier.ifBlank { mediaTitle }) {
+    isSeeking = false
+    dragStartValue = -1f
+    isCloseToStart = false
+    changeCount = 0
+  }
   val seekText by viewModel.seekText.collectAsState()
   val currentChapter by MPVLib.propInt["chapter"].collectAsState()
   val mpvDecoder by MPVLib.propString["hwdec-current"].collectAsState()
@@ -1022,8 +1035,10 @@ fun PlayerControls(
                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
               )
 
-              if (viewModel.hasPlaylistSupport()) {
-                androidx.compose.foundation.layout.Row(
+              if (playlistItems.isNotEmpty() && playlistIndex >= 0 && viewModel.hasPlaylistSupport()) {
+                val canGoPrevious = viewModel.hasPrevious()
+                val canGoNext = viewModel.hasNext()
+                Row(
                   horizontalArrangement = Arrangement.spacedBy(24.dp),
                   verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1033,6 +1048,7 @@ fun PlayerControls(
                         .size(48.dp)
                         .clip(CircleShape)
                         .clickable(
+                          enabled = canGoPrevious,
                           onClick = {
                             resetControlsTimestamp = System.currentTimeMillis()
                             viewModel.handleMediaPrevious()
@@ -1056,7 +1072,7 @@ fun PlayerControls(
                       imageVector = Icons.Default.SkipPrevious,
                       contentDescription = "Previous",
                       tint =
-                        if (viewModel.hasPrevious()) {
+                        if (canGoPrevious) {
                           contentColor
                         } else {
                           contentColor.copy(alpha = 0.38f)
@@ -1106,6 +1122,7 @@ fun PlayerControls(
                         .size(48.dp)
                         .clip(CircleShape)
                         .clickable(
+                          enabled = canGoNext,
                           onClick = {
                             resetControlsTimestamp = System.currentTimeMillis()
                             viewModel.handleMediaNext()
@@ -1129,7 +1146,7 @@ fun PlayerControls(
                       imageVector = Icons.Default.SkipNext,
                       contentDescription = "Next",
                       tint =
-                        if (viewModel.hasNext()) {
+                        if (canGoNext) {
                           contentColor
                         } else {
                           contentColor.copy(alpha = 0.38f)
@@ -1229,6 +1246,7 @@ fun PlayerControls(
         ) {
           val invertDuration by playerPreferences.invertDuration.collectAsState()
           val seekbarStyle by appearancePreferences.seekbarStyle.collectAsState()
+          val effectiveDuration = if (preciseDuration > 0f) preciseDuration else if (isLoadingFile) 0f else duration?.toFloat() ?: 0f
 
           // Calculate read-ahead position (current position + buffered cache time)
           // No keys for remember, derivedStateOf reactively tracks read dependencies
@@ -1236,7 +1254,7 @@ fun PlayerControls(
             derivedStateOf {
               val currentPos = position?.toFloat() ?: 0f
               val cacheDuration = demuxerCacheDuration ?: 0f
-              val totalDuration = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f
+              val totalDuration = effectiveDuration
               val isBuffering = cacheBufferingState ?: 0
 
               // If cache duration is available and valid, use it (up to 60 seconds)
@@ -1253,61 +1271,63 @@ fun PlayerControls(
             }
           }
 
-          SeekbarWithTimers(
-            position = { precisePosition },
-            duration = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f,
-            onValueChange = { newValue ->
-              if (dragStartValue == -1f) {
-                dragStartValue = precisePosition
-                changeCount = 0
-              }
-              changeCount++
-              isSeeking = true
-              resetControlsTimestamp = System.currentTimeMillis()
+          key(playlistIndex, mediaIdentifier.ifBlank { mediaTitle }) {
+            SeekbarWithTimers(
+              position = { precisePosition },
+              duration = effectiveDuration,
+              onValueChange = { newValue ->
+                if (dragStartValue == -1f) {
+                  dragStartValue = precisePosition
+                  changeCount = 0
+                }
+                changeCount++
+                isSeeking = true
+                resetControlsTimestamp = System.currentTimeMillis()
 
-              val durationFloat = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f
-              val threshold = (durationFloat * 0.08f).coerceIn(15f, 400f)
-              val close = enableReleaseToCancel && changeCount > 1 && abs(newValue - dragStartValue) < threshold
+                val durationFloat = effectiveDuration
+                val threshold = (durationFloat * 0.08f).coerceIn(15f, 400f)
+                val close = enableReleaseToCancel && changeCount > 1 && abs(newValue - dragStartValue) < threshold
 
-              if (close) {
-                isCloseToStart = true
-                viewModel.playerUpdate.value = PlayerUpdates.ShowText("Release to cancel")
-              } else {
+                if (close) {
+                  isCloseToStart = true
+                  viewModel.playerUpdate.value = PlayerUpdates.ShowText("Release to cancel")
+                } else {
+                  if (isCloseToStart) {
+                    isCloseToStart = false
+                    viewModel.playerUpdate.value = PlayerUpdates.None
+                  }
+                }
+                viewModel.seekTo(newValue.toInt())
+                viewModel.autoHideControls()
+              },
+              onValueChangeFinished = {
                 if (isCloseToStart) {
-                  isCloseToStart = false
+                  viewModel.seekTo(dragStartValue.toInt())
                   viewModel.playerUpdate.value = PlayerUpdates.None
                 }
-              }
-              viewModel.seekTo(newValue.toInt())
-              viewModel.autoHideControls()
-            },
-            onValueChangeFinished = {
-              if (isCloseToStart) {
-                viewModel.seekTo(dragStartValue.toInt())
-                viewModel.playerUpdate.value = PlayerUpdates.None
-              }
-              isSeeking = false
-              dragStartValue = -1f
-              isCloseToStart = false
-              changeCount = 0
-              resetControlsTimestamp = System.currentTimeMillis()
-              viewModel.showControls()
-            },
-            timersInverted = Pair(false, invertDuration),
-            durationTimerOnCLick = {
-              resetControlsTimestamp = System.currentTimeMillis()
-              playerPreferences.invertDuration.set(!invertDuration)
-            },
-            positionTimerOnClick = {},
-            chapters = chapters.toImmutableList(),
-            paused = paused ?: false,
-            readAheadValue = { readAheadPosition },
-            seekbarStyle = seekbarStyle,
-            loopStart = abLoopA?.toFloat(),
-            loopEnd = abLoopB?.toFloat(),
-            isGestureSeeking = isGestureSeeking,
-            isCancelActive = isCloseToStart
-          )
+                isSeeking = false
+                dragStartValue = -1f
+                isCloseToStart = false
+                changeCount = 0
+                resetControlsTimestamp = System.currentTimeMillis()
+                viewModel.showControls()
+              },
+              timersInverted = Pair(false, invertDuration),
+              durationTimerOnCLick = {
+                resetControlsTimestamp = System.currentTimeMillis()
+                playerPreferences.invertDuration.set(!invertDuration)
+              },
+              positionTimerOnClick = {},
+              chapters = chapters.toImmutableList(),
+              paused = paused ?: false,
+              readAheadValue = { readAheadPosition },
+              seekbarStyle = seekbarStyle,
+              loopStart = abLoopA?.toFloat(),
+              loopEnd = abLoopB?.toFloat(),
+              isGestureSeeking = isGestureSeeking,
+              isCancelActive = isCloseToStart
+            )
+          }
         }
 
         AnimatedVisibility(

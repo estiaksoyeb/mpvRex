@@ -1,6 +1,7 @@
 package xyz.mpv.rex.ui.browser.networkstreaming.proxy
 
 import android.util.Log
+import java.net.URI
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.ui.browser.networkstreaming.clients.NetworkClient
 import xyz.mpv.rex.ui.browser.networkstreaming.clients.NetworkClientFactory
@@ -106,6 +107,16 @@ class NetworkStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
         }
       }
     }
+  }
+
+  /**
+   * Extracts the stream ID from a local proxy URL (e.g. http://127.0.0.1:port/streamId)
+   */
+  fun extractStreamId(url: String?): String? {
+    if (url.isNullOrBlank()) return null
+    val uri = runCatching { URI(url) }.getOrNull() ?: return null
+    return uri.takeIf { it.host == "127.0.0.1" || it.host == "localhost" }
+      ?.path?.trim('/')?.substringBefore('/')?.takeIf { it.isNotEmpty() }
   }
 
   /**

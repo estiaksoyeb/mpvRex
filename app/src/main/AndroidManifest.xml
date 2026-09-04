@@ -119,6 +119,7 @@
                 <data android:scheme="mmsh" />
                 <data android:scheme="tcp" />
                 <data android:scheme="udp" />
+                <data android:scheme="smb" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

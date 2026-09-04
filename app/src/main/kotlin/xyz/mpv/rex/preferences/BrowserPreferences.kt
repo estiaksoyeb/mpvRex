@@ -18,6 +18,10 @@ class BrowserPreferences(
   val videoSortType = preferenceStore.getEnum("video_sort_type", VideoSortType.Title)
   val videoSortOrder = preferenceStore.getEnum("video_sort_order", SortOrder.Ascending)
 
+  // Network sorting preferences
+  val networkSortType = preferenceStore.getEnum("network_sort_type", FolderSortType.Title)
+  val networkSortOrder = preferenceStore.getEnum("network_sort_order", SortOrder.Ascending)
+
   val folderViewMode = preferenceStore.getEnum("folder_view_mode", FolderViewMode.AlbumView)
 
   private val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600

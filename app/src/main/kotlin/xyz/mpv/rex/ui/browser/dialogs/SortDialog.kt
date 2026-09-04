@@ -1522,3 +1522,58 @@ fun FileSystemSortDialog(
     )
   )
 }
+
+/**
+ * Sort options for a network share.
+ *
+ * Only title, date and size are offered: a folder listing over SMB carries name, timestamp and
+ * size, but not duration, and probing every remote file for it would mean opening each one.
+ */
+@Composable
+fun NetworkSortDialog(
+  isOpen: Boolean,
+  onDismiss: () -> Unit,
+) {
+  val browserPreferences = koinInject<BrowserPreferences>()
+  val sortType by browserPreferences.networkSortType.collectAsState()
+  val sortOrder by browserPreferences.networkSortOrder.collectAsState()
+
+  SortDialog(
+    isOpen = isOpen,
+    onDismiss = onDismiss,
+    title = stringResource(R.string.sort_and_view_options),
+    sortType = sortType.displayName,
+    onSortTypeChange = { typeName ->
+      FolderSortType.entries.find { it.displayName == typeName }?.let {
+        browserPreferences.networkSortType.set(it)
+      }
+    },
+    sortOrderAsc = sortOrder.isAscending,
+    onSortOrderChange = { isAsc ->
+      browserPreferences.networkSortOrder.set(
+        if (isAsc) SortOrder.Ascending else SortOrder.Descending,
+      )
+    },
+    types = listOf(
+      FolderSortType.Title.displayName,
+      FolderSortType.Date.displayName,
+      FolderSortType.Size.displayName,
+    ),
+    icons = listOf(
+      Icons.Filled.Title,
+      Icons.Filled.CalendarToday,
+      Icons.Filled.SwapVert,
+    ),
+    getLabelForType = { type, _ ->
+      when (type) {
+        FolderSortType.Title.displayName -> Pair("A-Z", "Z-A")
+        FolderSortType.Date.displayName -> Pair("Oldest", "Newest")
+        FolderSortType.Size.displayName -> Pair("Smallest", "Largest")
+        else -> Pair("Asc", "Desc")
+      }
+    },
+    showSortOptions = true,
+    enableViewModeOptions = false,
+    enableLayoutModeOptions = false,
+  )
+}

@@ -35,12 +35,14 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.runBlocking
 import xyz.mpv.rex.MainActivity
 import xyz.mpv.rex.R
 import xyz.mpv.rex.database.entities.PlaybackStateEntity
 import xyz.mpv.rex.databinding.PlayerLayoutBinding
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.DecoderPreferences
 import xyz.mpv.rex.domain.hdr.HdrToysManager
@@ -220,6 +222,8 @@ class PlayerActivity :
    */
   private var mediaIdentifier = ""
 
+  private var activeNetworkStreamId: String? = null
+
   /**
    * Helper for managing Picture-in-Picture mode.
    */
@@ -392,6 +396,10 @@ class PlayerActivity :
       }
     }
 
+    val externalPlaylist = if (intent.action == Intent.ACTION_VIEW || intent.action == null) {
+      FolderPlaylistOps.extractExternalPlaylist(intent)
+    } else null
+
     val playlistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
     val playlistIndex = intent.getIntExtra("playlist_index", 0)
 
@@ -403,15 +411,26 @@ class PlayerActivity :
       intent.getParcelableArrayListExtra("playlist") ?: emptyList()
     }
 
-    if (playlistFromIntent.isNotEmpty() || playlistId != null) {
-      val titlesFromIntent = intent.getStringArrayListExtra("playlist_titles") ?: emptyList()
-      viewModel.playlistManager.setPlaylist(
-        items = playlistFromIntent,
-        index = playlistIndex,
-        id = playlistId,
-        titles = titlesFromIntent
-      )
-      updateMiniPlayerPlaylistState()
+    when {
+      externalPlaylist != null -> {
+        viewModel.playlistManager.setPlaylist(
+          items = externalPlaylist.items,
+          index = externalPlaylist.initialIndex,
+          titles = externalPlaylist.titles
+        )
+        Log.d(TAG, "Loaded external playlist: ${externalPlaylist.items.size} items at index ${externalPlaylist.initialIndex}")
+        updateMiniPlayerPlaylistState()
+      }
+      playlistFromIntent.isNotEmpty() || playlistId != null -> {
+        val titlesFromIntent = intent.getStringArrayListExtra("playlist_titles") ?: emptyList()
+        viewModel.playlistManager.setPlaylist(
+          items = playlistFromIntent,
+          index = playlistIndex,
+          id = playlistId,
+          titles = titlesFromIntent
+        )
+        updateMiniPlayerPlaylistState()
+      }
     }
 
     // If playlist is empty but playlist_id is provided, load asynchronously from database
@@ -457,24 +476,22 @@ class PlayerActivity :
 
     // Only auto-generate playlist from folder if playlist mode is enabled and no playlist_id
     if (viewModel.playlistManager.playlist.value.isEmpty() && playlistId == null && playerPreferences.playlistMode.get()) {
-      val launchSource = intent.getStringExtra("launch_source")
-      val path = parsePathFromIntent(intent)
-      if (path != null) {
-        if (launchSource == "media_library_list") {
-          generatePlaylistFromMediaLibrary(path)
-        } else {
-          generatePlaylistFromFolder(path)
-        }
-      }
+      autoGeneratePlaylist(intent)
     }
 
     // Extract fileName early so it's available when video loads
-    fileName = getFileName(intent)
+    fileName = if (externalPlaylist != null && !externalPlaylist.titles.getOrNull(externalPlaylist.initialIndex).isNullOrBlank()) {
+      externalPlaylist.titles[externalPlaylist.initialIndex]
+    } else {
+      getFileName(intent)
+    }
     if (fileName.isBlank()) {
       val mpvTitle = runCatching { MPVLib.getPropertyString("media-title") }.getOrNull()
       fileName = if (!mpvTitle.isNullOrBlank()) mpvTitle else (intent.data?.lastPathSegment ?: "Unknown Video")
     }
     mediaIdentifier = getMediaIdentifier(intent, fileName)
+    viewModel.setMediaTitle(fileName)
+    viewModel.setMediaIdentifier(mediaIdentifier)
 
     jellyfinExternalInfo = xyz.mpv.rex.jellyfin.JellyfinExternalHelper.detect(intent)
 
@@ -489,6 +506,7 @@ class PlayerActivity :
     val isAlreadyPlayingCurrent = !hasPlayableMediaInIntent && !currentMpvPath.isNullOrBlank() && currentMpvPath != "null"
 
     if (hasPlayableMediaInIntent) {
+      activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
       if (isManualBackgroundPlayback || isInBackgroundPlayback) {
         isManualBackgroundPlayback = false
         endBackgroundPlayback()
@@ -505,6 +523,7 @@ class PlayerActivity :
       }
     } else if (isAlreadyPlayingCurrent) {
       Log.d(TAG, "MPV is already playing media: $currentMpvPath. Re-attaching to active session.")
+      activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(currentMpvPath)
       isReady = true
       enableVideoAfterBackground()
     }
@@ -751,6 +770,15 @@ class PlayerActivity :
       cleanupAudio()
       cleanupReceivers()
       releaseMediaSession()
+
+      activeNetworkStreamId?.let { streamId ->
+        activeNetworkStreamId = null
+        if (!isManualBackgroundPlayback) {
+          kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            NetworkStreamingProxy.getInstance().unregisterStream(streamId)
+          }
+        }
+      }
     }.onFailure { e ->
       Log.e(TAG, "Error during onDestroy", e)
     }
@@ -1357,7 +1385,14 @@ class PlayerActivity :
    */
   private fun parsePathFromIntent(intent: Intent): String? =
     when (intent.action) {
-      Intent.ACTION_VIEW -> intent.data?.resolveUri(this)
+      Intent.ACTION_VIEW -> {
+        val data = intent.data
+        if (data?.scheme.equals("smb", ignoreCase = true)) {
+          intent.dataString ?: data.toString()
+        } else {
+          data?.resolveUri(this)
+        }
+      }
       Intent.ACTION_SEND -> parsePathFromSendIntent(intent)
       else -> intent.getStringExtra("uri")
     }
@@ -1525,11 +1560,28 @@ class PlayerActivity :
    * @return A playable URI string, or null if unable to resolve
    */
   private fun getPlayableUri(intent: Intent): String? {
-    val uri = parsePathFromIntent(intent) ?: return null
-    return if (uri.startsWith("content://")) {
-      uri.toUri().openContentFd(this)
-    } else {
-      uri
+    val uri = parsePathFromIntent(intent)
+      ?: (if (intent.action == Intent.ACTION_VIEW || intent.action == null) {
+        FolderPlaylistOps.extractExternalPlaylist(intent)?.let { playlist ->
+          playlist.items.getOrNull(playlist.initialIndex)?.let { firstUri ->
+            if (firstUri.scheme.equals("smb", ignoreCase = true)) {
+              firstUri.toString()
+            } else {
+              firstUri.resolveUri(this) ?: firstUri.toString()
+            }
+          }
+        }
+      } else null)
+      ?: return null
+
+    return when {
+      uri.startsWith("content://") -> uri.toUri().openContentFd(this)
+      uri.startsWith("smb://", ignoreCase = true) -> {
+        runBlocking(Dispatchers.IO) {
+          FolderPlaylistOps.resolveSmbUri(uri)?.url
+        } ?: uri
+      }
+      else -> uri
     }
   }
 
@@ -1891,8 +1943,8 @@ class PlayerActivity :
 
     // Update VM and services with exact loaded duration
     val loadedDurationSec = MPVLib.getPropertyDouble("duration") ?: 0.0
+    viewModel.onFileLoaded(loadedDurationSec)
     if (loadedDurationSec > 0.0) {
-      viewModel.onFileLoaded(loadedDurationSec)
       val loadedDurationMs = (loadedDurationSec * 1000).toLong()
       miniPlayerStateManager.updateState(durationMs = loadedDurationMs)
       updateMediaSessionMetadata(title = fileName, durationMs = loadedDurationMs)
@@ -2561,25 +2613,29 @@ class PlayerActivity :
     // Update the intent first so getFileName uses the new intent data
     setIntent(intent)
 
-    val incomingUri = getPlayableUri(intent)
+    val hasIntentMedia = intent.data != null || intent.hasExtra("video_list") || parsePathFromIntent(intent) != null
     val incomingFileName = getFileName(intent).ifBlank { intent.data?.lastPathSegment ?: "" }
     val incomingMediaIdentifier = if (incomingFileName.isNotBlank()) getMediaIdentifier(intent, incomingFileName) else ""
 
-    val isSameMedia = isReady && incomingUri != null &&
+    val isSameMedia = isReady && hasIntentMedia &&
       ((incomingMediaIdentifier.isNotBlank() && incomingMediaIdentifier == mediaIdentifier) ||
        (incomingFileName.isNotBlank() && incomingFileName == fileName))
 
     // If expanding active session without intent media, or if the exact same media is already active in foreground
-    if (isReady && (incomingUri == null || (isSameMedia && !isInBackgroundPlayback && !isManualBackgroundPlayback))) {
+    if (isReady && (!hasIntentMedia || (isSameMedia && !isInBackgroundPlayback && !isManualBackgroundPlayback))) {
       Log.d(TAG, "onNewIntent: current media already playing or expanding active session, restoring player without reload")
       enableVideoAfterBackground()
       @Suppress("DEPRECATION")
       overridePendingTransition(android.R.anim.fade_in, 0)
       return
     }
+    val externalPlaylist = if (intent.action == Intent.ACTION_VIEW || intent.action == null) {
+      FolderPlaylistOps.extractExternalPlaylist(intent)
+    } else null
     // Check if this intent has playlist information
     val hasPlaylistExtras = intent.hasExtra("playlist_id") ||
-      intent.hasExtra("playlist")
+      intent.hasExtra("playlist") ||
+      externalPlaylist != null
 
     // Clean up background playback state when loading a different video
     if (isManualBackgroundPlayback || isInBackgroundPlayback) {
@@ -2605,7 +2661,15 @@ class PlayerActivity :
 
     // Only update playlist state if we have new playlist information
     // This prevents losing the playlist when coming back from notification/PiP
-    if (hasPlaylistExtras || playlistFromIntent.isNotEmpty()) {
+    if (externalPlaylist != null) {
+      viewModel.playlistManager.setPlaylist(
+        items = externalPlaylist.items,
+        index = externalPlaylist.initialIndex,
+        titles = externalPlaylist.titles
+      )
+      Log.d(TAG, "onNewIntent: Loaded external playlist: ${externalPlaylist.items.size} items at index ${externalPlaylist.initialIndex}")
+      updateMiniPlayerPlaylistState()
+    } else if (hasPlaylistExtras || playlistFromIntent.isNotEmpty()) {
       val newPlaylistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
       val newPlaylistIndex = intent.getIntExtra("playlist_index", 0)
       val titlesFromIntent = intent.getStringArrayListExtra("playlist_titles") ?: emptyList()
@@ -2653,23 +2717,21 @@ class PlayerActivity :
 
     // Auto-generate playlist from folder if playlist mode is enabled and no playlist_id
     if (viewModel.playlistManager.playlist.value.isEmpty() && viewModel.playlistManager.playlistId == null && playerPreferences.playlistMode.get()) {
-      val launchSource = intent.getStringExtra("launch_source")
-      val path = parsePathFromIntent(intent)
-      if (path != null) {
-        if (launchSource == "media_library_list") {
-          generatePlaylistFromMediaLibrary(path)
-        } else {
-          generatePlaylistFromFolder(path)
-        }
-      }
+      autoGeneratePlaylist(intent)
     }
 
     // Extract the new fileName before loading the file
-    fileName = getFileName(intent)
+    fileName = if (externalPlaylist != null && !externalPlaylist.titles.getOrNull(externalPlaylist.initialIndex).isNullOrBlank()) {
+      externalPlaylist.titles[externalPlaylist.initialIndex]
+    } else {
+      getFileName(intent)
+    }
     if (fileName.isBlank()) {
       fileName = intent.data?.lastPathSegment ?: "Unknown Video"
     }
     mediaIdentifier = getMediaIdentifier(intent, fileName)
+    viewModel.setMediaTitle(fileName)
+    viewModel.setMediaIdentifier(mediaIdentifier)
     jellyfinExternalInfo = xyz.mpv.rex.jellyfin.JellyfinExternalHelper.detect(intent)
 
     // Synchronously set orientation for the new file before displaying activity
@@ -2680,6 +2742,8 @@ class PlayerActivity :
 
     // Load the new file
     getPlayableUri(intent)?.let { uriStr ->
+      switchActiveNetworkStream(uriStr)
+
       val parsedUri = runCatching { Uri.parse(uriStr) }.getOrNull()
       val fastDurationMs = if (parsedUri != null) getFastDurationMsForUri(parsedUri) else 0L
       val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null
@@ -3613,6 +3677,12 @@ class PlayerActivity :
   }
 
   /**
+   * Bumped on every SMB playlist navigation so a resolve that finishes late, after the user has
+   * already pressed Next again, is discarded instead of loading on top of the newer one.
+   */
+  private var smbResolveToken = 0
+
+  /**
    * Internal method to load a playlist item
    */
   private fun loadPlaylistItemInternal(index: Int) {
@@ -3622,13 +3692,66 @@ class PlayerActivity :
       return
     }
 
+    val uri = playlist[index]
+    if (uri.scheme.equals("smb", ignoreCase = true)) {
+      val token = ++smbResolveToken
+      lifecycleScope.launch {
+        val stream = withContext(Dispatchers.IO) {
+          runCatching { FolderPlaylistOps.resolveSmbUri(uri.toString()) }
+            .onFailure { Log.w(TAG, "Could not resolve the next network playlist item", it) }
+            .getOrNull()
+        }
+        if (token != smbResolveToken) {
+          stream?.streamId?.takeIf { it.isNotEmpty() }?.let { streamId ->
+            lifecycleScope.launch(Dispatchers.IO) {
+              NetworkStreamingProxy.getInstance().unregisterStream(streamId)
+            }
+          }
+          return@launch
+        }
+        if (stream == null) {
+          viewModel.showToast(getString(R.string.network_share_unreachable))
+          return@launch
+        }
+        loadResolvedPlaylistItem(
+          index = index,
+          uri = uri,
+          playableUri = stream.url,
+          mediaIdentifierOverride = "network_${stream.connectionId}_${stream.filePath.hashCode()}",
+        )
+      }
+      return
+    }
+
+    loadResolvedPlaylistItem(index, uri, uri.resolveUri(this) ?: uri.toString())
+  }
+
+  private fun switchActiveNetworkStream(playableUri: String?) {
+    val newStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
+    val oldStreamId = activeNetworkStreamId
+    if (oldStreamId != null && oldStreamId != newStreamId) {
+      lifecycleScope.launch(Dispatchers.IO) {
+        NetworkStreamingProxy.getInstance().unregisterStream(oldStreamId)
+      }
+    }
+    activeNetworkStreamId = newStreamId
+  }
+
+  /**
+   * Loads a playlist item whose playable URI is already known.
+   */
+  private fun loadResolvedPlaylistItem(
+    index: Int,
+    uri: Uri,
+    playableUri: String,
+    mediaIdentifierOverride: String? = null,
+  ) {
     // Save current video's playback state before switching
     if (fileName.isNotBlank()) {
       saveVideoPlaybackState(fileName)
     }
 
-    val uri = playlist[index]
-    val playableUri = uri.resolveUri(this) ?: uri.toString()
+    switchActiveNetworkStream(playableUri)
 
     // Update index in manager
     viewModel.playlistManager.updateIndex(index)
@@ -3637,7 +3760,9 @@ class PlayerActivity :
     val customTitle = viewModel.playlistManager.getTitleAt(index)
     fileName = if (!customTitle.isNullOrBlank()) customTitle else getFileNameFromUri(uri)
     // Generate new media identifier for playback state
-    mediaIdentifier = getMediaIdentifierFromUri(uri, fileName)
+    mediaIdentifier = mediaIdentifierOverride ?: getMediaIdentifierFromUri(uri, fileName)
+    viewModel.setMediaTitle(fileName)
+    viewModel.setMediaIdentifier(mediaIdentifier)
 
     val cachedDurationMs = viewModel.playlistManager.getDurationAt(index)
     val fastDurationMs = if (cachedDurationMs > 0L) cachedDurationMs else getFastDurationMsForUri(uri)
@@ -3951,13 +4076,7 @@ class PlayerActivity :
     }
 
     val uri = extractUriFromIntent(intent)
-    return if (uri != null && (uri.scheme?.startsWith("http") == true || uri.scheme == "rtmp" || uri.scheme == "ftp" || uri.scheme == "rtsp" || uri.scheme == "mms")) {
-      // For remote protocols: hash the URI so position is per-episode or per-stream.
-      "${fileName}_${uri.toString().hashCode()}"
-    } else {
-      // For local/file uris and unknown: just use fileName.
-      fileName
-    }
+    return if (uri != null) getMediaIdentifierFromUri(uri, fileName) else fileName
   }
 
   /**
@@ -3967,7 +4086,7 @@ class PlayerActivity :
    * For network URIs (http/https/rtmp/etc.), uses a hash of the URI string to distinguish different streams.
    */
   private fun getMediaIdentifierFromUri(uri: Uri, fileName: String): String {
-    return if (uri.scheme?.startsWith("http") == true || uri.scheme == "rtmp" || uri.scheme == "ftp" || uri.scheme == "rtsp" || uri.scheme == "mms") {
+    return if (uri.scheme?.startsWith("http") == true || uri.scheme == "rtmp" || uri.scheme == "ftp" || uri.scheme == "rtsp" || uri.scheme == "mms" || uri.scheme.equals("smb", ignoreCase = true)) {
       "${fileName}_${uri.toString().hashCode()}"
     } else {
       fileName
@@ -3993,6 +4112,61 @@ class PlayerActivity :
         }
       }.onFailure { e ->
         Log.e(TAG, "Failed to auto-generate library playlist", e)
+      }
+    }
+  }
+
+  /**
+   * Picks the sibling source that matches how this file was launched.
+   *
+   * SMB is checked first because for those launches [parsePathFromIntent] yields a local proxy URL,
+   * which has no folder to scan: our own browser passes the share-relative path plus the connection
+   * it came from, and external file managers that proxy SMB themselves (MiXplorer) put the real
+   * location in a `real_path` extra. Without either, nothing changes for local/content launches.
+   */
+  private fun autoGeneratePlaylist(intent: Intent) {
+    val networkFilePath = intent.getStringExtra("network_file_path")
+    val networkConnectionId = intent.getLongExtra("network_connection_id", -1L)
+    val smbUri = intent.dataString?.takeIf { it.startsWith("smb://", ignoreCase = true) }
+      ?: intent.getStringExtra("real_path")?.takeIf { it.startsWith("smb://", ignoreCase = true) }
+
+    when {
+      networkFilePath != null && networkConnectionId != -1L ->
+        generatePlaylistFromNetworkFolder {
+          FolderPlaylistOps.generateNetworkFolderPlaylist(networkConnectionId, networkFilePath)
+        }
+
+      smbUri != null ->
+        generatePlaylistFromNetworkFolder { FolderPlaylistOps.generateNetworkFolderPlaylist(smbUri) }
+
+      else -> {
+        val path = parsePathFromIntent(intent) ?: return
+        if (intent.getStringExtra("launch_source") == "media_library_list") {
+          generatePlaylistFromMediaLibrary(path)
+        } else {
+          generatePlaylistFromFolder(path)
+        }
+      }
+    }
+  }
+
+  /**
+   * Builds a playlist by listing a remote folder. A share we cannot list means no playlist — the
+   * user asked to watch a file, not to build a playlist, so playback is left alone and it is only
+   * logged.
+   */
+  private fun generatePlaylistFromNetworkFolder(generate: suspend () -> Result<Pair<List<Uri>, Int>?>) {
+    lifecycleScope.launch(Dispatchers.IO) {
+      val (newPlaylist, newIndex) = generate()
+        .getOrElse { e ->
+          Log.w(TAG, "Could not list the remote folder for an auto-playlist", e)
+          return@launch
+        } ?: return@launch
+
+      withContext(Dispatchers.Main) {
+        viewModel.playlistManager.setPlaylist(items = newPlaylist, index = newIndex)
+        Log.d(TAG, "Auto-playlist generated from network folder: ${newPlaylist.size} items")
+        updateMiniPlayerPlaylistState()
       }
     }
   }

@@ -44,9 +44,6 @@ class ShortsViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _isExhausted = MutableStateFlow(false)
-    val isExhausted: StateFlow<Boolean> = _isExhausted.asStateFlow()
-
     private val _totalShortsCount = MutableStateFlow(0)
     val totalShortsCount: StateFlow<Int> = _totalShortsCount.asStateFlow()
 
@@ -64,13 +61,20 @@ class ShortsViewModel(
     private val _currentSpeed = MutableStateFlow(1.0)
     val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
 
+    private var currentLoadedBlockedOnly: Boolean? = null
+
     fun loadShorts(initialVideoPath: String? = null, blockedOnly: Boolean = false, forceRefresh: Boolean = false) {
-        if (!forceRefresh && _shorts.value.isNotEmpty() && initialVideoPath == null && !blockedOnly) {
+        if (!forceRefresh && _shorts.value.isNotEmpty() && currentLoadedBlockedOnly == blockedOnly && initialVideoPath == null) {
             return
         }
 
         viewModelScope.launch {
             _isLoading.value = true
+            currentLoadedBlockedOnly = blockedOnly
+
+            if (forceRefresh) {
+                browserPreferences.lastWatchedShortPath.set("")
+            }
             
             val finalShorts = if (blockedOnly) {
                 val blockedInDb = shortsMediaDao.getAllShortsMedia().filter { it.isBlocked }
@@ -145,7 +149,6 @@ class ShortsViewModel(
             }
             
             _shorts.value = orderedShorts
-            _isExhausted.value = false
             _isLoading.value = false
         }
     }
@@ -200,10 +203,6 @@ class ShortsViewModel(
     
     fun onShortSettled(video: Video) {
         browserPreferences.lastWatchedShortPath.set(video.path)
-    }
-    
-    fun clearSessionHistory() {
-        _isExhausted.value = false
     }
 
     suspend fun getThumbnail(video: Video): Bitmap? {

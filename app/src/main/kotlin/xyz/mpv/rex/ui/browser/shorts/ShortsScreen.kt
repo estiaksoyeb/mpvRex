@@ -18,6 +18,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Check
@@ -54,6 +56,8 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.draw.scale
 import androidx.compose.material3.AlertDialog
@@ -102,6 +106,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -152,7 +157,6 @@ data class ShortsScreen(
 
         val shorts by viewModel.shorts.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
-        val isExhausted by viewModel.isExhausted.collectAsState()
         val totalShortsCount by viewModel.totalShortsCount.collectAsState()
         val lovedPaths by viewModel.lovedPaths.collectAsState()
         val blockedPaths by viewModel.blockedPaths.collectAsState()
@@ -187,17 +191,6 @@ data class ShortsScreen(
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             if (isLoading && shorts.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (shorts.isEmpty() && totalShortsCount > 0) {
-                FinishedPageItem(
-                    onBack = {
-                        viewModel.clearSessionHistory()
-                        if (backstack.size > 1) {
-                            backstack.removeLastOrNull()
-                        } else {
-                            MainScreen.requestPreviousTab()
-                        }
-                    }
-                )
             } else if (shorts.isEmpty()) {
                 Text(
                     text = if (blockedOnly) stringResource(R.string.shorts_no_blocked_videos_found) else stringResource(R.string.shorts_no_vertical_videos_found),
@@ -220,7 +213,7 @@ data class ShortsScreen(
                 val pagerState = rememberPagerState(
                     initialPage = initialIndex.coerceIn(0, (shorts.size - 1).coerceAtLeast(0)),
                     pageCount = { 
-                        if (isExhausted) shorts.size + 1 else shorts.size 
+                        if (shorts.isNotEmpty()) shorts.size + 1 else 0 
                     }
                 )
                 val lifecycleOwner = LocalLifecycleOwner.current
@@ -261,7 +254,7 @@ data class ShortsScreen(
                                 currentPlaybackPaused = paused
                             },
                             onPlaybackEnd = {
-                                if (autoSwipe && pagerState.currentPage < shorts.size - 1) {
+                                if (autoSwipe && pagerState.currentPage < shorts.size) {
                                     coroutineScope.launch {
                                         delay(100)
                                         pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -332,7 +325,6 @@ data class ShortsScreen(
                         lovedPaths = lovedPaths,
                         blockedPaths = blockedPaths,
                         isPlayerReady = isPlayerReady,
-                        isExhausted = isExhausted,
                         currentSpeed = currentSpeed,
                         playingPageIndex = playingPageIndex,
                         playbackProgress = currentPlaybackProgress,
@@ -347,9 +339,6 @@ data class ShortsScreen(
                         },
                         viewModel = viewModel,
                         onBack = { 
-                            if (isExhausted && pagerState.currentPage >= shorts.size - 1) {
-                                viewModel.clearSessionHistory()
-                            }
                             if (backstack.size > 1) {
                                 backstack.removeLastOrNull()
                             } else {
@@ -357,7 +346,18 @@ data class ShortsScreen(
                             }
                         },
                         onLove = { viewModel.toggleLove(it) },
-                        onBlock = { viewModel.toggleBlock(it) }
+                        onBlock = { viewModel.toggleBlock(it) },
+                        onRestart = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(0)
+                            }
+                        },
+                        onReshuffle = {
+                            coroutineScope.launch {
+                                viewModel.loadShorts(forceRefresh = true)
+                                pagerState.scrollToPage(0)
+                            }
+                        }
                     )
 
                     // System status & navigation bar protective overlays (drawn on top of sliding pages)
@@ -399,40 +399,175 @@ private val textWithStroke = TextStyle(
 )
 
 @Composable
-private fun FinishedPageItem(onBack: () -> Unit) {
+private fun FinishedPageItem(
+    onRestart: () -> Unit,
+    onReshuffle: () -> Unit,
+    onBack: () -> Unit
+) {
+    val browserPreferences = koinInject<BrowserPreferences>()
+    val enableGlass by browserPreferences.enableGlassShortsControls.collectAsState()
+
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .size(320.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = stringResource(R.string.shorts_all_finished_title),
                 color = Color.White,
                 fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                style = textWithStroke
             )
+
             Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = stringResource(R.string.shorts_all_finished_message),
                 color = Color.White.copy(alpha = 0.7f),
-                fontSize = 16.sp
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(32.dp))
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            // 1. Restart from Beginning Button
+            Button(
+                onClick = onRestart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Replay,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.shorts_restart_from_beginning),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 2. Re-shuffle Feed Button
+            val reshuffleModifier = if (enableGlass) {
+                Modifier.glassSurface(
+                    shape = RoundedCornerShape(16.dp),
+                    backgroundColor = Color.White.copy(alpha = 0.08f),
+                    borderColor = Color.White.copy(alpha = 0.2f),
+                    borderWidth = 1.dp
+                )
+            } else {
+                Modifier.background(Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(16.dp))
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .then(reshuffleModifier)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onReshuffle() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.shorts_reshuffle_feed),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3. Go Back Button
             TextButton(
                 onClick = onBack,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(horizontal = 24.dp)
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
-                Text(stringResource(R.string.go_back), color = Color.White, fontWeight = FontWeight.Bold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.go_back),
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
@@ -445,7 +580,6 @@ private fun ShortsPager(
     lovedPaths: Set<String>,
     blockedPaths: Set<String>,
     isPlayerReady: Boolean,
-    isExhausted: Boolean,
     currentSpeed: Double,
     playingPageIndex: Int,
     playbackProgress: Float,
@@ -456,13 +590,15 @@ private fun ShortsPager(
     viewModel: ShortsViewModel,
     onBack: () -> Unit,
     onLove: (Video) -> Unit,
-    onBlock: (Video) -> Unit
+    onBlock: (Video) -> Unit,
+    onRestart: () -> Unit,
+    onReshuffle: () -> Unit
 ) {
     VerticalPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
         beyondViewportPageCount = 1,
-        key = { page -> if (page < shorts.size) shorts[page].path else "finished" }
+        key = { page -> if (page < shorts.size) shorts[page].path else "finished_end_card" }
     ) { page ->
         if (page < shorts.size) {
             val video = shorts[page]
@@ -485,8 +621,12 @@ private fun ShortsPager(
                 onLove = { onLove(video) },
                 onBlock = { onBlock(video) }
             )
-        } else if (isExhausted) {
-            FinishedPageItem(onBack = onBack)
+        } else {
+            FinishedPageItem(
+                onRestart = onRestart,
+                onReshuffle = onReshuffle,
+                onBack = onBack
+            )
         }
     }
 }

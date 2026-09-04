@@ -1307,6 +1307,8 @@
     <string name="shorts_no_vertical_videos_found">No vertical videos found</string>
     <string name="shorts_all_finished_title">All videos finished</string>
     <string name="shorts_all_finished_message">You\'ve seen all vertical videos for now.</string>
+    <string name="shorts_restart_from_beginning">Restart from Beginning</string>
+    <string name="shorts_reshuffle_feed">Re-shuffle Feed</string>
 
         <!-- Shorts Video Info Dialog -->
     <string name="shorts_video_info_title">Video Info</string>

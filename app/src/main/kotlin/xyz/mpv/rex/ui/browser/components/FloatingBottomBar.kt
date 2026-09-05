@@ -1,8 +1,16 @@
 package xyz.mpv.rex.ui.browser.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -24,18 +32,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.ui.res.stringResource
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
-import xyz.mpv.rex.ui.browser.MainScreen
 import xyz.mpv.rex.R
+import xyz.mpv.rex.ui.browser.MainScreen
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.ui.utils.LocalBackStack
 
 /**
@@ -63,6 +73,7 @@ fun BrowserBottomBar(
   val miniPlayerState by miniPlayerStateManager.state.collectAsState()
   val backstack = LocalBackStack.current
   val isMainScreen = backstack.lastOrNull() == MainScreen
+  val haptic = LocalHapticFeedback.current
 
   val navBarHeight = if (isMainScreen) 80.dp else 0.dp
   val miniPlayerOffset = if (miniPlayerState.isPlaybackActive) 75.dp else 0.dp
@@ -70,33 +81,71 @@ fun BrowserBottomBar(
 
   val animatedBottomPadding by animateDpAsState(
     targetValue = targetBottomPadding,
-    animationSpec = tween(220),
+    animationSpec = spring(
+      dampingRatio = Spring.DampingRatioLowBouncy,
+      stiffness = Spring.StiffnessMediumLow
+    ),
     label = "browserBottomBarPadding"
   )
 
   AnimatedVisibility(
     visible = isSelectionMode,
     modifier = modifier.padding(bottom = animatedBottomPadding),
-    enter = fadeIn(),
-    exit = fadeOut(),
+    enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
+      slideInVertically(
+        animationSpec = spring(
+          dampingRatio = Spring.DampingRatioMediumBouncy,
+          stiffness = Spring.StiffnessMediumLow
+        ),
+        initialOffsetY = { it / 2 }
+      ) +
+      scaleIn(
+        animationSpec = spring(
+          dampingRatio = Spring.DampingRatioMediumBouncy,
+          stiffness = Spring.StiffnessMediumLow
+        ),
+        initialScale = 0.85f
+      ),
+    exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
+      slideOutVertically(
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        targetOffsetY = { it / 2 }
+      ) +
+      scaleOut(
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        targetScale = 0.9f
+      ),
   ) {
     Surface(
       modifier = Modifier
         .windowInsetsPadding(WindowInsets.systemBars)
-        .padding(horizontal = 20.dp, vertical = 8.dp),
-      shape = RoundedCornerShape(32.dp),
-      color = MaterialTheme.colorScheme.surfaceContainerHigh,
-      tonalElevation = 3.dp,
-      shadowElevation = 8.dp
+        .padding(horizontal = 20.dp, vertical = 8.dp)
+        .border(
+          width = 1.dp,
+          color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+          shape = pillShape
+        ),
+      shape = pillShape,
+      color = MaterialTheme.colorScheme.surfaceContainerHighest,
+      tonalElevation = 6.dp,
+      shadowElevation = 10.dp
     ) {
       Row(
-        modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
       ) {
+        val buttonShape = RoundedCornerShape(14.dp)
+        val buttonSize = 44.dp
+
         FilledTonalIconButton(
-          onClick = onCopyClick,
+          onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onCopyClick()
+          },
           enabled = showCopy,
-          modifier = Modifier.size(42.dp),
+          modifier = Modifier.size(buttonSize),
+          shape = buttonShape,
           colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -110,9 +159,13 @@ fun BrowserBottomBar(
         }
 
         FilledTonalIconButton(
-          onClick = onMoveClick,
+          onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onMoveClick()
+          },
           enabled = showMove,
-          modifier = Modifier.size(42.dp),
+          modifier = Modifier.size(buttonSize),
+          shape = buttonShape,
           colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -126,9 +179,13 @@ fun BrowserBottomBar(
         }
 
         FilledTonalIconButton(
-          onClick = onRenameClick,
+          onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onRenameClick()
+          },
           enabled = showRename,
-          modifier = Modifier.size(42.dp),
+          modifier = Modifier.size(buttonSize),
+          shape = buttonShape,
           colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -142,10 +199,17 @@ fun BrowserBottomBar(
         }
 
         FilledTonalIconButton(
-          onClick = onAddToPlaylistClick,
+          onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onAddToPlaylistClick()
+          },
           enabled = showAddToPlaylist,
-          modifier = Modifier.size(42.dp),
-          colors = IconButtonDefaults.filledTonalIconButtonColors()
+          modifier = Modifier.size(buttonSize),
+          shape = buttonShape,
+          colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+          )
         ) {
           Icon(
             Icons.AutoMirrored.Filled.PlaylistAdd,
@@ -156,8 +220,12 @@ fun BrowserBottomBar(
 
         if (onMarkAsClick != null) {
           FilledTonalIconButton(
-            onClick = onMarkAsClick,
-            modifier = Modifier.size(42.dp),
+            onClick = {
+              haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+              onMarkAsClick()
+            },
+            modifier = Modifier.size(buttonSize),
+            shape = buttonShape,
             colors = IconButtonDefaults.filledTonalIconButtonColors(
               containerColor = MaterialTheme.colorScheme.secondaryContainer,
               contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -172,9 +240,13 @@ fun BrowserBottomBar(
         }
 
         FilledTonalIconButton(
-          onClick = onDeleteClick,
+          onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onDeleteClick()
+          },
           enabled = showDelete,
-          modifier = Modifier.size(42.dp),
+          modifier = Modifier.size(buttonSize),
+          shape = buttonShape,
           colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer

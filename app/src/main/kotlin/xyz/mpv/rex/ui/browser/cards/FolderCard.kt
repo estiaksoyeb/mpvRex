@@ -20,6 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +38,7 @@ import xyz.mpv.rex.utils.media.MediaFormatter
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
+import xyz.mpv.rex.ui.theme.pillShape
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.ListItemDefaults.verticalAlignment
 import org.koin.compose.koinInject
@@ -109,34 +111,37 @@ fun FolderCard(
     maxTitleLines = maxLines,
     overlayContent = {
       if (uiSettings.showUnplayedOldVideoLabel && newVideoCount > 0) {
-        Box(
+        Surface(
+          shape = pillShape,
+          color = MaterialTheme.colorScheme.errorContainer,
+          contentColor = MaterialTheme.colorScheme.onErrorContainer,
           modifier = Modifier
             .align(Alignment.TopEnd)
-            .padding(6.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(Color(0xFFD32F2F))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .padding(6.dp),
+          shadowElevation = 2.dp,
         ) {
           Text(
             text = newVideoCount.toString(),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
           )
         }
       }
       if (isGridMode && uiSettings.showTotalDurationChip && folder.totalDuration > 0) {
-        Box(
+        Surface(
+          shape = pillShape,
+          color = Color.Black.copy(alpha = 0.72f),
+          contentColor = Color.White,
           modifier = Modifier
             .align(Alignment.BottomEnd)
-            .padding(6.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(Color.Black.copy(alpha = 0.65f))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .padding(6.dp),
         ) {
           Text(
             text = MediaFormatter.formatDuration(folder.totalDuration),
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
           )
         }
       }

@@ -23,6 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +59,7 @@ import kotlin.math.roundToInt
 
 import xyz.mpv.rex.utils.media.MediaFormatter
 import xyz.mpv.rex.preferences.UiSettings
+import xyz.mpv.rex.ui.theme.pillShape
 
 @Composable
 fun VideoCard(
@@ -145,35 +147,37 @@ fun VideoCard(
     overlayContent = {
       // NEW Label
       if (uiSettings.showUnplayedOldVideoLabel && isOldAndUnplayed) {
-        Box(
+        Surface(
+          shape = pillShape,
+          color = MaterialTheme.colorScheme.errorContainer,
+          contentColor = MaterialTheme.colorScheme.onErrorContainer,
           modifier = Modifier
             .align(Alignment.TopStart)
-            .padding(6.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(Color(0xFFD32F2F))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(6.dp),
+          shadowElevation = 2.dp,
         ) {
           Text(
             text = stringResource(R.string.video_label_new),
-            color = Color.White,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
           )
         }
       }
       // Duration overlay
-      Box(
+      Surface(
+        shape = pillShape,
+        color = Color.Black.copy(alpha = 0.72f),
+        contentColor = Color.White,
         modifier = Modifier
           .align(Alignment.BottomEnd)
-          .padding(6.dp)
-          .clip(RoundedCornerShape(4.dp))
-          .background(Color.Black.copy(alpha = 0.65f))
-          .padding(horizontal = 6.dp, vertical = 2.dp),
+          .padding(6.dp),
       ) {
         Text(
           text = video.durationFormatted,
           style = MaterialTheme.typography.labelSmall,
-          color = Color.White,
+          fontWeight = FontWeight.Medium,
+          modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
         )
       }
     },
@@ -196,14 +200,11 @@ fun VideoCard(
     },
     chipsContent = {
       if (showSubtitleIndicator && video.hasEmbeddedSubtitles && video.subtitleCodec.isNotBlank()) {
-        video.subtitleCodec.split(" ").forEach { codec ->
-          Text(
+        for (codec in video.subtitleCodec.split(" ")) {
+          MediaMetadataChip(
             text = codec,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier
-              .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-              .padding(horizontal = 8.dp, vertical = 4.dp),
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
           )
         }
       }

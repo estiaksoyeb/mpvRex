@@ -1,21 +1,34 @@
 package xyz.mpv.rex.ui.browser.cards
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import xyz.mpv.rex.ui.theme.pillShape
 
 /**
  * Common Metadata Chip for media cards
@@ -30,19 +44,24 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MediaMetadataChip(
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    shape: Shape = pillShape,
 ) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerHigh,
-                RoundedCornerShape(8.dp),
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = color,
+        contentColor = contentColor,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+        )
+    }
 }
 
 /**
@@ -75,20 +94,41 @@ fun BaseMediaCard(
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
 ) {
+    val selectionScale by animateFloatAsState(
+        targetValue = if (isSelected) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "cardScale"
+    )
+    val cardBackground by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                      else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "cardBackground"
+    )
+    val cardBorderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                      else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "cardBorderColor"
+    )
+    val cardShape = RoundedCornerShape(16.dp)
+    val thumbnailShape = RoundedCornerShape(14.dp)
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (isGridMode && gridColumns > 1) Modifier else Modifier.padding(horizontal = 6.dp, vertical = 0.dp))
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                else Color.Transparent
-            )
+            .then(if (isGridMode && gridColumns > 1) Modifier else Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+            .graphicsLayer {
+                scaleX = selectionScale
+                scaleY = selectionScale
+            }
+            .clip(cardShape)
+            .background(cardBackground)
             .then(
                 if (isSelected) Modifier.border(
                     width = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(12.dp)
+                    color = cardBorderColor,
+                    shape = cardShape
                 ) else Modifier
             )
             .combinedClickable(
@@ -111,7 +151,7 @@ fun BaseMediaCard(
                         Modifier
                             .fillMaxWidth()
                             .aspectRatio(thumbnailAspectRatio)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(thumbnailShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .then(
                                 if (onThumbClick != null) {
@@ -160,12 +200,36 @@ fun BaseMediaCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(4.dp)
-                                .align(Alignment.BottomCenter),
+                                .align(Alignment.BottomCenter)
+                                .clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)),
                             color = MaterialTheme.colorScheme.primary,
-                            trackColor = Color.Black.copy(alpha = 0.3f),
+                            trackColor = Color.Black.copy(alpha = 0.35f),
                         )
                     }
                     
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isSelected,
+                        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                        exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)) + fadeOut(),
+                        modifier = Modifier.align(Alignment.TopStart),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(6.dp)
+                                .size(22.dp),
+                            shadowElevation = 3.dp,
+                        ) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(3.dp),
+                            )
+                        }
+                    }
+
                     overlayContent?.invoke(this)
                 }
 
@@ -226,7 +290,7 @@ fun BaseMediaCard(
             Modifier
               .width(thumbnailSize)
               .aspectRatio(thumbnailAspectRatio)
-              .clip(RoundedCornerShape(12.dp))
+              .clip(thumbnailShape)
               .background(MaterialTheme.colorScheme.surfaceContainerHigh)
               .then(
                   if (onThumbClick != null) {
@@ -275,12 +339,36 @@ fun BaseMediaCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(3.dp)
-                                .align(Alignment.BottomCenter),
+                                .align(Alignment.BottomCenter)
+                                .clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)),
                             color = MaterialTheme.colorScheme.primary,
-                            trackColor = Color.Black.copy(alpha = 0.3f),
+                            trackColor = Color.Black.copy(alpha = 0.35f),
                         )
                     }
-                    
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isSelected,
+                        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                        exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)) + fadeOut(),
+                        modifier = Modifier.align(Alignment.TopStart),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .size(20.dp),
+                            shadowElevation = 3.dp,
+                        ) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(2.5.dp),
+                            )
+                        }
+                    }
+
                     overlayContent?.invoke(this)
                 }
 

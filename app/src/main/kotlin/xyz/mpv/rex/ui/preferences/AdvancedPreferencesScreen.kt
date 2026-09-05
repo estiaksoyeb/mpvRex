@@ -219,6 +219,7 @@ object AdvancedPreferencesScreen : Screen {
         val mpvConfStorageLocation by preferences.mpvConfStorageUri.collectAsState()
         val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
         LazyColumn(
+          state = rememberPreferenceLazyListState(),
           modifier = Modifier
             .fillMaxSize()
             .padding(padding),
@@ -231,7 +232,10 @@ object AdvancedPreferencesScreen : Screen {
           
           item {
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = listOf(R.string.pref_advanced, R.string.pref_export_settings_title),
+              ) {
                 Preference(
                   title = { Text(text = stringResource(R.string.pref_export_settings_title)) },
                   summary = { 
@@ -253,7 +257,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_import_settings_title,
+              ) {
                 Preference(
                   title = { Text(text = stringResource(R.string.pref_import_settings_title)) },
                   summary = { 
@@ -345,7 +352,10 @@ object AdvancedPreferencesScreen : Screen {
             }
             
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = R.string.pref_advanced_mpv_conf_storage_location,
+              ) {
                 TwoTargetIconButtonPreference(
                   title = { Text(stringResource(R.string.pref_advanced_mpv_conf_storage_location)) },
                   summary = {
@@ -369,7 +379,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_advanced_mpv_conf,
+              ) {
                 Preference(
                   title = { Text(stringResource(R.string.pref_advanced_mpv_conf)) },
                   summary = {
@@ -392,7 +405,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_advanced_input_conf,
+              ) {
                 Preference(
                   title = { Text(stringResource(R.string.pref_advanced_input_conf)) },
                   summary = {
@@ -427,7 +443,10 @@ object AdvancedPreferencesScreen : Screen {
             val enableLuaScripts by preferences.enableLuaScripts.collectAsState()
             
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = R.string.pref_enable_lua_scripts_title,
+              ) {
                 SwitchPreference(
                   value = enableLuaScripts,
                   onValueChange = preferences.enableLuaScripts::set,
@@ -441,7 +460,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_manage_lua_scripts_title,
+              ) {
                 Preference(
                   title = { Text(stringResource(R.string.pref_manage_lua_scripts_title)) },
                   summary = {
@@ -471,7 +493,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_custom_lua_title,
+              ) {
                 Preference(
                   title = { Text(stringResource(R.string.pref_custom_lua_title)) },
                   summary = {
@@ -502,7 +527,10 @@ object AdvancedPreferencesScreen : Screen {
             val excludeExternal by preferences.excludeExternalPlaybackFromHistory.collectAsState()
             
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = R.string.pref_advanced_enable_recently_played_title,
+              ) {
                 SwitchPreference(
                   value = enableRecentlyPlayed,
                   onValueChange = preferences.enableRecentlyPlayed::set,
@@ -516,7 +544,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_advanced_history_auto_remove_deleted_title,
+              ) {
                 SwitchPreference(
                   value = autoRemoveDeleted,
                   onValueChange = preferences.autoRemoveDeletedFromHistory::set,
@@ -531,7 +562,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_advanced_history_exclude_external_title,
+              ) {
                 SwitchPreference(
                   value = excludeExternal,
                   onValueChange = preferences.excludeExternalPlaybackFromHistory::set,
@@ -546,7 +580,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_advanced_clear_playback_history,
+              ) {
                 Column {
                   Preference(
                     title = { Text(stringResource(R.string.pref_advanced_clear_playback_history)) },
@@ -604,7 +641,10 @@ object AdvancedPreferencesScreen : Screen {
             val thumbnailRepository = koinInject<ThumbnailRepository>()
             
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = R.string.pref_clear_config_cache_title,
+              ) {
                 Preference(
                   title = { Text(text = stringResource(R.string.pref_clear_config_cache_title)) },
                   summary = { 
@@ -632,7 +672,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_clear_thumbnail_cache_title,
+              ) {
                 Column {
                   Preference(
                     title = { Text(text = stringResource(R.string.pref_clear_thumbnail_cache_title)) },
@@ -672,7 +715,10 @@ object AdvancedPreferencesScreen : Screen {
                 }
               }
               
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_advanced_clear_fonts_cache,
+              ) {
                 Preference(
                   title = { Text(text = stringResource(id = R.string.pref_advanced_clear_fonts_cache)) },
                   summary = { 
@@ -719,7 +765,10 @@ object AdvancedPreferencesScreen : Screen {
             val enableMediaInfoActivity by preferences.enableMediaInfoActivity.collectAsState()
 
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.ONLY) {
+              GroupedPreferenceCard(
+                position = GroupPosition.ONLY,
+                highlightKey = R.string.pref_advanced_enable_media_info_title,
+              ) {
                 SwitchPreference(
                   value = enableMediaInfoActivity,
                   onValueChange = {
@@ -750,7 +799,10 @@ object AdvancedPreferencesScreen : Screen {
             val verboseLogging by preferences.verboseLogging.collectAsState()
             
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = R.string.pref_advanced_verbose_logging_title,
+              ) {
                 SwitchPreference(
                   value = verboseLogging,
                   onValueChange = preferences.verboseLogging::set,
@@ -764,7 +816,10 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_advanced_dump_logs_title,
+              ) {
                 Preference(
                   title = { Text(stringResource(R.string.pref_advanced_dump_logs_title)) },
                   summary = { 

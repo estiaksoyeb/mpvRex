@@ -89,6 +89,7 @@ object DecoderPreferencesScreen : Screen {
       val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
       ProvidePreferenceLocals {
         LazyColumn(
+          state = rememberPreferenceLazyListState(),
           modifier =
             Modifier
               .fillMaxSize()
@@ -111,7 +112,10 @@ object DecoderPreferencesScreen : Screen {
             val enableHdrToys by preferences.enableHdrToys.collectAsState()
 
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = listOf(R.string.pref_decoder, R.string.pref_decoder_profile_title),
+              ) {
                 ListPreference(
                   value = currentProfile,
                   onValueChange = { preferences.profile.set(it.value) },
@@ -126,7 +130,10 @@ object DecoderPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_decoder_try_hw_dec_title,
+              ) {
                 SwitchPreference(
                   value = tryHWDecoding,
                   onValueChange = { preferences.tryHWDecoding.set(it) },
@@ -134,7 +141,10 @@ object DecoderPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_decoder_codec_info_title,
+              ) {
                 me.zhanghai.compose.preference.Preference(
                   title = { Text(stringResource(R.string.pref_decoder_codec_info_title)) },
                   summary = {
@@ -147,7 +157,10 @@ object DecoderPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_decoder_gpu_next_title,
+              ) {
                 Column {
                   SwitchPreference(
                     value = gpuNext,
@@ -217,7 +230,10 @@ object DecoderPreferencesScreen : Screen {
                 }
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_decoder_vulkan_title,
+              ) {
                 SwitchPreference(
                   value = useVulkan,
                   onValueChange = { enabled ->
@@ -245,7 +261,10 @@ object DecoderPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_decoder_debanding_title,
+              ) {
                 ListPreference(
                   value = debanding,
                   onValueChange = { preferences.debanding.set(it) },
@@ -260,7 +279,10 @@ object DecoderPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_decoder_yuv420p_title,
+              ) {
                 SwitchPreference(
                   value = useYUV420p,
                   onValueChange = { preferences.useYUV420P.set(it) },
@@ -274,7 +296,10 @@ object DecoderPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_anime4k_title,
+              ) {
                 SwitchPreference(
                   value = enableAnime4K,
                   onValueChange = { enabled ->
@@ -308,7 +333,10 @@ object DecoderPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = "HDR-to-SDR Tone Mapping (hdr-toys)",
+              ) {
                 Column {
                   SwitchPreference(
                     value = enableHdrToys,

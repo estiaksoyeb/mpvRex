@@ -49,8 +49,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
@@ -68,19 +70,26 @@ object SettingsSearchScreen : Screen {
         val keyboardController = LocalSoftwareKeyboardController.current
         val focusRequester = remember { FocusRequester() }
 
-        var searchQuery by rememberSaveable { mutableStateOf("") }
+        var searchQuery by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+            mutableStateOf(TextFieldValue(""))
+        }
 
-        val searchResults by remember(searchQuery) {
+        val searchResults by remember(searchQuery.text) {
             derivedStateOf {
-                SearchablePreferences.search(searchQuery) { resId ->
+                SearchablePreferences.search(searchQuery.text) { resId ->
                     context.getString(resId)
                 }
             }
         }
 
-        // Auto-focus the search field
+        // Auto-focus the search field and position cursor at the end (right side) of text
         LaunchedEffect(Unit) {
             focusRequester.requestFocus()
+            if (searchQuery.text.isNotEmpty()) {
+                searchQuery = searchQuery.copy(
+                    selection = TextRange(searchQuery.text.length)
+                )
+            }
         }
 
         Scaffold(
@@ -134,11 +143,11 @@ object SettingsSearchScreen : Screen {
                     },
                     trailingIcon = {
                         AnimatedVisibility(
-                            visible = searchQuery.isNotEmpty(),
+                            visible = searchQuery.text.isNotEmpty(),
                             enter = fadeIn(),
                             exit = fadeOut(),
                         ) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                            IconButton(onClick = { searchQuery = TextFieldValue("") }) {
                                 Icon(
                                     imageVector = Icons.Outlined.Clear,
                                     contentDescription = "Clear",
@@ -164,7 +173,7 @@ object SettingsSearchScreen : Screen {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Results
-                if (searchQuery.isBlank()) {
+                if (searchQuery.text.isBlank()) {
                     // Show hint when no search query
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -220,6 +229,10 @@ object SettingsSearchScreen : Screen {
                                 preference = preference,
                                 onClick = {
                                     keyboardController?.hide()
+                                    PreferenceHighlightManager.requestHighlight(
+                                        key = preference.titleRes ?: preference.title,
+                                        targetIndex = preference.targetIndex
+                                    )
                                     backstack.add(preference.screen)
                                 }
                             )

@@ -178,6 +178,7 @@ object AppearancePreferencesScreen : Screen {
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
             ProvidePreferenceLocals {
                 LazyColumn(
+                    state = rememberPreferenceLazyListState(),
                     modifier =
                     Modifier
                         .fillMaxSize()
@@ -191,7 +192,10 @@ object AppearancePreferencesScreen : Screen {
                     item {
                         val currentLanguage = remember { LocaleHelper.getCurrentLanguage(context) }
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.ONLY,
+                                highlightKey = R.string.pref_appearance_language_title,
+                            ) {
                                 Preference(
                                     title = { Text(text = stringResource(id = R.string.pref_appearance_language_title)) },
                                     summary = {
@@ -231,7 +235,13 @@ object AppearancePreferencesScreen : Screen {
                         val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = listOf(
+                                    R.string.pref_appearance_title,
+                                    R.string.pref_appearance_amoled_mode_title,
+                                ),
+                            ) {
                                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                                     MultiChoiceSegmentedButton(
                                         choices = DarkMode.entries.map { stringResource(it.titleRes) }.toImmutableList(),
@@ -259,7 +269,10 @@ object AppearancePreferencesScreen : Screen {
                                 }
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_use_system_font_title,
+                            ) {
                                 SwitchPreference(
                                     value = useSystemFont,
                                     onValueChange = { preferences.useSystemFont.set(it) },
@@ -273,7 +286,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_match_player_controls_to_theme_title,
+                            ) {
                                 SwitchPreference(
                                     value = matchPlayerControlsToTheme,
                                     onValueChange = { preferences.matchPlayerControlsToTheme.set(it) },
@@ -282,7 +298,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_hide_player_buttons_background_title,
+                            ) {
                                 SwitchPreference(
                                     value = hidePlayerButtonsBackground,
                                     onValueChange = { preferences.hidePlayerButtonsBackground.set(it) },
@@ -291,7 +310,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_enable_glass_player_controls_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableGlassPlayerControls,
                                     onValueChange = { preferences.enableGlassPlayerControls.set(it) },
@@ -300,7 +322,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_enable_glass_seekbar_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableGlassSeekbarBackground,
                                     onValueChange = { preferences.enableGlassSeekbarBackground.set(it) },
@@ -310,7 +335,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_appearance_player_always_dark_mode_title,
+                            ) {
                                 SwitchPreference(
                                     value = if (enableGlassPlayerControls) true else playerAlwaysDarkMode,
                                     onValueChange = { preferences.playerAlwaysDarkMode.set(it) },
@@ -340,7 +368,10 @@ object AppearancePreferencesScreen : Screen {
                         val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = R.string.pref_appearance_tab_home_title,
+                            ) {
                                 SwitchPreference(
                                     value = true,
                                     onValueChange = {},
@@ -355,7 +386,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_tab_shorts_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableShorts,
                                     onValueChange = { browserPreferences.enableShorts.set(it) },
@@ -369,7 +403,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_tab_recents_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableTabRecents,
                                     onValueChange = { browserPreferences.enableTabRecents.set(it) },
@@ -383,7 +420,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_tab_playlists_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableTabPlaylists,
                                     onValueChange = { browserPreferences.enableTabPlaylists.set(it) },
@@ -397,7 +437,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_appearance_tab_network_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableTabNetwork,
                                     onValueChange = { browserPreferences.enableTabNetwork.set(it) },
@@ -428,7 +471,10 @@ object AppearancePreferencesScreen : Screen {
                         val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = R.string.pref_appearance_unlimited_name_lines_title,
+                            ) {
                                 SwitchPreference(
                                     value = unlimitedNameLines,
                                     onValueChange = { preferences.unlimitedNameLines.set(it) },
@@ -442,7 +488,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_show_unplayed_old_video_label_title,
+                            ) {
                                 SwitchPreference(
                                     value = showUnplayedOldVideoLabel,
                                     onValueChange = { preferences.showUnplayedOldVideoLabel.set(it) },
@@ -456,7 +505,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_unplayed_old_video_days_title,
+                            ) {
                                 SliderPreference(
                                     value = unplayedOldVideoDays.toFloat(),
                                     onValueChange = { preferences.unplayedOldVideoDays.set(it.roundToInt()) },
@@ -477,7 +529,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_auto_scroll_title,
+                            ) {
                                 SwitchPreference(
                                     value = autoScrollToLastPlayed,
                                     onValueChange = { browserPreferences.autoScrollToLastPlayed.set(it) },
@@ -491,7 +546,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_watched_threshold_title,
+                            ) {
                                 SliderPreference(
                                     value = watchedThreshold.toFloat(),
                                     onValueChange = { browserPreferences.watchedThreshold.set(it.roundToInt()) },
@@ -512,7 +570,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_show_audio_files_title,
+                            ) {
                                 SwitchPreference(
                                     value = showAudioFiles,
                                     onValueChange = { browserPreferences.showAudioFiles.set(it) },
@@ -526,7 +587,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_include_no_media_content_title,
+                            ) {
                                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                                     SwitchPreference(
                                         value = includeNoMediaContent,
@@ -575,7 +639,10 @@ object AppearancePreferencesScreen : Screen {
                                 }
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_show_tree_view_path_title,
+                            ) {
                                 SwitchPreference(
                                     value = showTreeViewPath,
                                     onValueChange = { browserPreferences.showTreeViewPath.set(it) },
@@ -604,7 +671,10 @@ object AppearancePreferencesScreen : Screen {
                         var draftPosition by remember(thumbnailPositionPercent) { mutableStateOf(thumbnailPositionPercent.toFloat()) }
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = R.string.pref_gesture_tap_thumbnail_to_select_title,
+                            ) {
                                 SwitchPreference(
                                     value = tapThumbnailToSelect,
                                     onValueChange = { gesturePreferences.tapThumbnailToSelect.set(it) },
@@ -618,7 +688,10 @@ object AppearancePreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_show_network_thumbnails_title,
+                            ) {
                                 Column {
                                     SwitchPreference(
                                         value = showNetworkThumbnails,

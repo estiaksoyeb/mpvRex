@@ -185,6 +185,7 @@ object SubtitlesPreferencesScreen : Screen {
 
         val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
         LazyColumn(
+          state = rememberPreferenceLazyListState(),
           modifier =
             Modifier
               .fillMaxSize()
@@ -219,7 +220,10 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = listOf(R.string.pref_subtitles, R.string.pref_preferred_languages),
+              ) {
                 TextFieldPreference(
                   value = preferredLanguages,
                   onValueChange = preferences.preferredLanguages::set,
@@ -252,7 +256,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_disable_by_default_title,
+              ) {
                 SwitchPreference(
                   value = disableByDefault,
                   onValueChange = { preferences.disableSubtitlesByDefault.set(it) },
@@ -266,7 +273,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_autoload_title,
+              ) {
                 SwitchPreference(
                   value = autoload,
                   onValueChange = { preferences.autoloadMatchingSubtitles.set(it) },
@@ -280,7 +290,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.player_sheets_sub_override_ass,
+              ) {
                 SwitchPreference(
                   value = overrideAss,
                   onValueChange = { preferences.overrideAssSubs.set(it) },
@@ -294,7 +307,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.player_sheets_sub_scale_by_window,
+              ) {
                 SwitchPreference(
                   value = scaleByWindow,
                   onValueChange = { preferences.scaleByWindow.set(it) },
@@ -308,7 +324,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_force_ltr_title,
+              ) {
                 SwitchPreference(
                   value = forceLtr,
                   onValueChange = { preferences.forceLtr.set(it) },
@@ -322,7 +341,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_open_at_video_location_title,
+              ) {
                 SwitchPreference(
                   value = openAtVideoLocation,
                   onValueChange = { preferences.openPickerAtVideoLocation.set(it) },
@@ -336,7 +358,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_custom_picker_folder_title,
+              ) {
                 Box(
                   modifier =
                     Modifier
@@ -373,7 +398,10 @@ object SubtitlesPreferencesScreen : Screen {
                 }
               }
 
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_subtitles_fonts_dir,
+              ) {
                 Box(
                   modifier =
                     Modifier
@@ -476,7 +504,10 @@ object SubtitlesPreferencesScreen : Screen {
             var showAdvanced by remember { mutableStateOf(false) }
 
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = R.string.pref_subtitles_save_location,
+              ) {
                 Box(
                   modifier = Modifier
                     .fillMaxWidth()
@@ -502,7 +533,10 @@ object SubtitlesPreferencesScreen : Screen {
                 }
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = listOf("Subtitle Sources", R.string.pref_subtitle_search_title),
+              ) {
                 MultiChoicePreference(
                   title = { Text("Subtitle Sources") },
                   summary = {
@@ -520,7 +554,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_subdl_languages,
+              ) {
                 MultiChoicePreference(
                   title = { Text(stringResource(R.string.pref_subtitles_subdl_languages)) },
                   summary = {
@@ -538,7 +575,10 @@ object SubtitlesPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = "Advanced Search Filters",
+              ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                   Row(
                     modifier = Modifier
@@ -612,7 +652,10 @@ object SubtitlesPreferencesScreen : Screen {
                 }
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_clear_downloads,
+              ) {
                 Preference(
                   title = { Text(stringResource(R.string.pref_subtitles_clear_downloads), color = MaterialTheme.colorScheme.error) },
                   summary = { Text(stringResource(R.string.pref_subtitles_clear_downloads_summary)) },
@@ -657,7 +700,10 @@ object SubtitlesPreferencesScreen : Screen {
                 }
               }
 
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_subtitles_wyzie_api_key_title,
+              ) {
                 Column {
                   TextFieldPreference(
                     value = wyzieApiKey,

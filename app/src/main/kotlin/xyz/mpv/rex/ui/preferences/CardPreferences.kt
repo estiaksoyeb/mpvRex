@@ -63,15 +63,22 @@ fun PreferenceCard(
 fun GroupedPreferenceCard(
   position: GroupPosition,
   modifier: Modifier = Modifier,
+  highlightKey: Any? = null,
   color: Color? = null,
   tonalElevation: Dp = 1.dp,
   content: @Composable () -> Unit,
 ) {
   val shape = groupedItemShape(position)
+  val highlightModifier = if (highlightKey != null) {
+    Modifier.preferenceHighlight(highlightKey, shape)
+  } else {
+    Modifier
+  }
   Surface(
     modifier = modifier
       .fillMaxWidth()
       .padding(horizontal = 16.dp)
+      .then(highlightModifier)
       .clip(shape),
     shape = shape,
     color = color ?: MaterialTheme.colorScheme.surfaceContainerHigh,

@@ -74,6 +74,7 @@ object AudioPreferencesScreen : Screen {
       val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
       ProvidePreferenceLocals {
         LazyColumn(
+          state = rememberPreferenceLazyListState(),
           modifier =
             Modifier
               .fillMaxSize()
@@ -92,7 +93,10 @@ object AudioPreferencesScreen : Screen {
             val volumeBoostCap by preferences.volumeBoostCap.collectAsState()
 
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.FIRST,
+                highlightKey = listOf(R.string.pref_audio, R.string.pref_preferred_languages),
+              ) {
                 TextFieldPreference(
                   value = preferredLanguages,
                   onValueChange = { preferences.preferredLanguages.set(it) },
@@ -124,7 +128,10 @@ object AudioPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_audio_pitch_correction_title,
+              ) {
                 SwitchPreference(
                   value = audioPitchCorrection,
                   onValueChange = { preferences.audioPitchCorrection.set(it) },
@@ -138,7 +145,10 @@ object AudioPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_audio_volume_normalization_title,
+              ) {
                 SwitchPreference(
                   value = volumeNormalization,
                   onValueChange = { preferences.volumeNormalization.set(it) },
@@ -152,7 +162,10 @@ object AudioPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_audio_channels,
+              ) {
                 ListPreference(
                   value = audioChannel,
                   onValueChange = { preferences.audioChannels.set(it) },
@@ -168,7 +181,10 @@ object AudioPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_audio_volume_boost_cap,
+              ) {
                 SliderPreference(
                   value = volumeBoostCap.toFloat(),
                   onValueChange = { preferences.volumeBoostCap.set(it.toInt()) },

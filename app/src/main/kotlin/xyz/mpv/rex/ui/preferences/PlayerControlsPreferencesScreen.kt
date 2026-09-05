@@ -146,6 +146,7 @@ object PlayerControlsPreferencesScreen : Screen {
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
             ProvidePreferenceLocals {
                 LazyColumn(
+                    state = rememberPreferenceLazyListState(),
                     modifier =
                         Modifier
                             .fillMaxSize()
@@ -158,7 +159,10 @@ object PlayerControlsPreferencesScreen : Screen {
                     }
                     item {
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = listOf(R.string.pref_layout_title, R.string.pref_layout_top_right_controls),
+                            ) {
                                 Column {
                                     PreferenceCategoryWithEditButton(
                                         title = stringResource(id = R.string.pref_layout_top_right_controls),
@@ -170,7 +174,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 }
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_layout_bottom_right_controls,
+                            ) {
                                 Column {
                                     PreferenceCategoryWithEditButton(
                                         title = stringResource(id = R.string.pref_layout_bottom_right_controls),
@@ -182,7 +189,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 }
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_layout_bottom_left_controls,
+                            ) {
                                 Column {
                                     PreferenceCategoryWithEditButton(
                                         title = stringResource(id = R.string.pref_layout_bottom_left_controls),
@@ -202,7 +212,10 @@ object PlayerControlsPreferencesScreen : Screen {
                     }
                     item {
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.ONLY,
+                                highlightKey = R.string.pref_layout_portrait_bottom_controls,
+                            ) {
                                 Column {
                                     PreferenceCategoryWithEditButton(
                                         title = stringResource(id = R.string.pref_layout_portrait_bottom_controls),
@@ -221,7 +234,10 @@ object PlayerControlsPreferencesScreen : Screen {
                     }
                     item {
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.ONLY,
+                                highlightKey = R.string.pref_layout_more_sheet_controls_title,
+                            ) {
                                 Column {
                                     PreferenceCategoryWithEditButton(
                                         title = stringResource(R.string.pref_layout_more_sheet_controls_title),
@@ -246,7 +262,10 @@ object PlayerControlsPreferencesScreen : Screen {
                         val showSeekbarReadAhead by playerPrefs.showSeekbarReadAhead.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = R.string.pref_seekbar_style_header,
+                            ) {
                                 Column {
                                     SeekbarStyle.entries.forEachIndexed { index, style ->
                                         ListItem(
@@ -272,7 +291,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 }
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_player_white_seekbar_title,
+                            ) {
                                 SwitchPreference(
                                     value = whiteSeekBar,
                                     onValueChange = { playerPrefs.whiteSeekBar.set(it) },
@@ -285,7 +307,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_player_show_seekbar_chapters_title,
+                            ) {
                                 SwitchPreference(
                                     value = showSeekbarChapters,
                                     onValueChange = { playerPrefs.showSeekbarChapters.set(it) },
@@ -298,7 +323,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_player_show_seekbar_read_ahead_title,
+                            ) {
                                 SwitchPreference(
                                     value = showSeekbarReadAhead,
                                     onValueChange = { playerPrefs.showSeekbarReadAhead.set(it) },
@@ -363,7 +391,10 @@ object PlayerControlsPreferencesScreen : Screen {
                         val playerGradientOpacity by playerPrefs.playerGradientOpacity.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = R.string.pref_appearance_enable_bounce_animation_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableBounceAnimation,
                                     onValueChange = { appearancePrefs.enableBounceAnimation.set(it) },
@@ -380,7 +411,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_hide_player_buttons_background_title,
+                            ) {
                                 SwitchPreference(
                                     value = hidePlayerButtonsBackground,
                                     onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },
@@ -397,7 +431,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_enable_glass_player_controls_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableGlassPlayerControls,
                                     onValueChange = { appearancePrefs.enableGlassPlayerControls.set(it) },
@@ -414,7 +451,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_enable_glass_seekbar_title,
+                            ) {
                                 SwitchPreference(
                                     value = enableGlassSeekbarBackground,
                                     onValueChange = { appearancePrefs.enableGlassSeekbarBackground.set(it) },
@@ -432,7 +472,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_player_always_dark_mode_title,
+                            ) {
                                 SwitchPreference(
                                     value = if (enableGlassPlayerControls) true else playerAlwaysDarkMode,
                                     onValueChange = { appearancePrefs.playerAlwaysDarkMode.set(it) },
@@ -453,7 +496,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_show_controls_on_play_title,
+                            ) {
                                 SwitchPreference(
                                     value = showControlsOnPlay,
                                     onValueChange = { playerPrefs.showControlsOnPlay.set(it) },
@@ -466,7 +512,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_player_gradient_opacity_title,
+                            ) {
                                 SliderPreference(
                                     value = playerGradientOpacity,
                                     onValueChange = { playerPrefs.playerGradientOpacity.set(it.toFixed(2)) },
@@ -487,7 +536,10 @@ object PlayerControlsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_player_display_hide_player_control_time,
+                            ) {
                                 ListPreference(
                                     value = if (isCustomTimeValue) -1 else playerTimeToDisappear,
                                     onValueChange = { newValue ->

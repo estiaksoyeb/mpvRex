@@ -46,7 +46,11 @@ fun <T> GenericTracksSheet(
   PlayerSheet(onDismissRequest, customMaxWidth = customMaxWidth) {
     Column(modifier) {
       header()
-      LazyColumn(state = listState) {
+      LazyColumn(
+        state = listState,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+      ) {
         items(tracks) {
           track(it)
         }
@@ -65,31 +69,39 @@ fun AddTrackRow(
   modifier: Modifier = Modifier,
   actions: @Composable RowScope.() -> Unit = {},
 ) {
-  Row(
-    modifier =
-      modifier
-        .fillMaxWidth()
-        .clickable(onClick = onClick)
-        .height(56.dp)
-        .padding(horizontal = MaterialTheme.spacing.medium),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+  androidx.compose.material3.Surface(
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 16.dp, vertical = 4.dp),
+    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    onClick = onClick,
   ) {
-    Icon(
-      Icons.Default.Add,
-      contentDescription = null,
-      modifier = Modifier.size(24.dp),
-    )
-    Text(
-      text = title,
-      style = MaterialTheme.typography.bodyLarge,
-      modifier = Modifier.weight(1f),
-    )
     Row(
-      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 10.dp),
       verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
     ) {
-      actions()
+      Icon(
+        Icons.Default.Add,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.size(24.dp),
+      )
+      Text(
+        text = title,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+        modifier = Modifier.weight(1f),
+      )
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        actions()
+      }
     }
   }
 }

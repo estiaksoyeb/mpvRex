@@ -1759,7 +1759,7 @@ class PlayerActivity :
   private fun handleEndOfFile(isEof: Boolean) {
     if (isEof) {
       // Save state immediately when EOF is reached
-      saveVideoPlaybackState(fileName)
+      saveVideoPlaybackState(fileName, isEof = true)
 
       // Check if we should repeat the current file
       if (viewModel.shouldRepeatCurrentFile()) {
@@ -2381,7 +2381,7 @@ class PlayerActivity :
    *
    * @param mediaTitle The title of the media being played
    */
-  private fun saveVideoPlaybackState(mediaTitle: String) {
+  private fun saveVideoPlaybackState(mediaTitle: String, isEof: Boolean = false) {
     val identifier = mediaIdentifier
     if (identifier.isBlank()) return
 
@@ -2411,26 +2411,22 @@ class PlayerActivity :
 
         val watchedThreshold = browserPreferences.watchedThreshold.get()
         val progress = if (currentDuration > 0) currentPos.toFloat() / currentDuration.toFloat() else 0f
+        val isFinished = isEof || ((currentDuration > 0) && (currentPos >= currentDuration - 1))
 
         // Calculate save position
         val savePos = if (!playerPreferences.savePositionOnQuit.get()) {
           oldState?.lastPosition ?: 0
+        } else if (isFinished) {
+          // If video finished or reached within 1 second of the end, restart from beginning next time
+          0
+        } else if (currentDuration > 0) {
+          currentPos
         } else {
-          // If we've reached the threshold or are within 1 second of the end, restart from beginning
-          // Only do this if we have a valid duration to avoid accidental "watched" status
-          if (currentDuration > 0) {
-            if (progress < (watchedThreshold / 100f) && currentPos < currentDuration - 1) {
-              currentPos
-            } else {
-              0
-            }
-          } else {
-            // If duration is not yet available, preserve old position or use current (0)
-            oldState?.lastPosition ?: currentPos
-          }
+          // If duration is not yet available, preserve old position or use current (0)
+          oldState?.lastPosition ?: currentPos
         }
 
-        val timeRemaining = if (currentDuration > savePos) currentDuration - savePos else 0
+        val timeRemaining = if (isFinished) 0 else if (currentDuration > savePos) currentDuration - savePos else 0
 
         playbackStateRepository.upsert(
           PlaybackStateEntity(
@@ -2449,8 +2445,7 @@ class PlayerActivity :
             externalSubtitles = currentExternalSubs.joinToString("|"),
             externalAudioTracks = currentExternalAudio.joinToString("|"),
             hasBeenWatched = run {
-              // Check if we are at the end (effectively watched)
-              val isFinished = (currentDuration > 0) && (currentPos >= currentDuration - 1)
+              // Check if we are at the end (effectively watched) or reached watched threshold
               val isCurrentlyWatched = progress >= (watchedThreshold / 100f)
 
               val oldProgress = if (currentDuration > 0) (oldState?.lastPosition?.toFloat() ?: 0f) / currentDuration.toFloat() else 0f

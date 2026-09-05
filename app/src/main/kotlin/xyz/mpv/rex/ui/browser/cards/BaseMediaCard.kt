@@ -2,6 +2,7 @@ package xyz.mpv.rex.ui.browser.cards
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -10,7 +11,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -95,23 +95,25 @@ fun BaseMediaCard(
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
 ) {
     val selectionScale by animateFloatAsState(
-        targetValue = if (isSelected) 0.98f else 1f,
+        targetValue = if (isSelected) 0.96f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "cardScale"
     )
     val cardBackground by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
                       else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "cardBackground"
     )
-    val cardBorderColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary
-                      else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "cardBorderColor"
+    val animatedCornerRadius by animateDpAsState(
+        targetValue = if (isSelected) 22.dp else 16.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cardCornerRadius"
     )
-    val cardShape = RoundedCornerShape(16.dp)
+    val cardShape = RoundedCornerShape(animatedCornerRadius)
     val thumbnailShape = RoundedCornerShape(14.dp)
 
     Card(
@@ -124,13 +126,6 @@ fun BaseMediaCard(
             }
             .clip(cardShape)
             .background(cardBackground)
-            .then(
-                if (isSelected) Modifier.border(
-                    width = 2.dp,
-                    color = cardBorderColor,
-                    shape = cardShape
-                ) else Modifier
-            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,

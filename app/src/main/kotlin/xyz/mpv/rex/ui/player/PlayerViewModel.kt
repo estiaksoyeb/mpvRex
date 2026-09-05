@@ -54,6 +54,7 @@ import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
+import xyz.mpv.rex.utils.storage.FileTypeUtils
 import androidx.documentfile.provider.DocumentFile
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
@@ -1781,6 +1782,13 @@ class PlayerViewModel(
       
       val watchedThreshold = browserPreferences.watchedThreshold.get().toFloat()
 
+      val pathOrName = uri.path ?: title
+      val isAudio = (isCurrentlyPlaying && activity.isCurrentMediaAudio()) ||
+        FileTypeUtils.isAudioFile(File(pathOrName)) ||
+        FileTypeUtils.isAudioFile(File(title)) ||
+        uri.toString().contains("/audio/") ||
+        (runCatching { activity.contentResolver.getType(uri)?.startsWith("audio/") == true }.getOrDefault(false))
+
       xyz.mpv.rex.ui.player.controls.components.sheets.PlaylistItem(
         uri = uri,
         title = title,
@@ -1791,6 +1799,7 @@ class PlayerViewModel(
         isWatched = isCurrentlyPlaying && currentProgress >= watchedThreshold,
         duration = durationStr,
         resolution = resolutionStr,
+        isAudio = isAudio,
       )
     }
   }

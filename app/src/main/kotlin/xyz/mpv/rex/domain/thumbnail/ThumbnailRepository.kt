@@ -419,6 +419,13 @@ class ThumbnailRepository(
   ): Bitmap? {
     val diskFile = File(diskDirFor(video), keyToFileName(diskKey(video, forceFirstFrame)))
     if (!diskFile.exists()) {
+      if (!isNetworkUrl(video.path) && video.duration > 0L) {
+        val altFile = File(diskDirFor(video), keyToFileName(diskKey(video.copy(duration = 0L), forceFirstFrame)))
+        if (altFile.exists()) {
+          android.util.Log.d("ThumbnailRepository", "Disk cache HIT (zero duration fallback): ${altFile.name} for ${video.displayName}")
+          return decodeFileSafely(altFile.absolutePath, targetDimension)
+        }
+      }
       android.util.Log.d("ThumbnailRepository", "Disk cache MISS: ${diskFile.name} for ${video.displayName}")
       return null
     }

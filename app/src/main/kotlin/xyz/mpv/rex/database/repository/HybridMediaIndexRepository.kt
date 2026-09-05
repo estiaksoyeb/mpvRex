@@ -394,6 +394,11 @@ class HybridMediaIndexRepository(
       .toList()
   }
 
+  suspend fun getVideoByLocation(path: String): Video? = withContext(Dispatchers.IO) {
+    val normalized = path.removePrefix("file://")
+    (dao.getMediaByLocation(normalized) ?: dao.getMediaByLocation(path))?.toVideo()
+  }
+
   suspend fun searchMedia(
     query: String,
     parentPath: String? = null,

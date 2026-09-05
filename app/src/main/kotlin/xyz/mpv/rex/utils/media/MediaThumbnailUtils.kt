@@ -20,6 +20,7 @@ import java.io.File
  */
 object MediaThumbnailUtils : KoinComponent {
   private val thumbnailRepository: ThumbnailRepository by inject()
+  private val hybridMediaIndexRepository: xyz.mpv.rex.database.repository.HybridMediaIndexRepository by inject()
 
   /**
    * Extracts album cover art or video frame thumbnail for a given [uri].
@@ -81,9 +82,18 @@ object MediaThumbnailUtils : KoinComponent {
       else -> uri.toString()
     }
 
+    // 1. First check if HybridMediaIndexRepository already has the indexed Video from the folder browser
+    val indexedVideo = runCatching {
+      hybridMediaIndexRepository.getVideoByLocation(path)
+    }.getOrNull()
+    if (indexedVideo != null) {
+      return@withContext indexedVideo
+    }
+
     val file = if (path.startsWith("/")) File(path) else null
     val size = file?.length() ?: 0L
-    val dateModified = file?.lastModified() ?: 0L
+    val rawModified = file?.lastModified() ?: 0L
+    val dateModified = if (rawModified > 100_000_000_000L) rawModified / 1000L else rawModified
     val isAudio = FileTypeUtils.isAudioFile(file ?: File(path))
     val name = if (uri.scheme == "file") File(path).name else (uri.lastPathSegment ?: "Media")
     val parentFolder = file?.parentFile
@@ -99,7 +109,7 @@ object MediaThumbnailUtils : KoinComponent {
       size = size,
       sizeFormatted = "",
       dateModified = dateModified,
-      dateAdded = 0L,
+      dateAdded = dateModified,
       mimeType = if (isAudio) "audio/*" else "video/*",
       bucketId = parentFolder?.absolutePath?.replace("\\", "/") ?: "",
       bucketDisplayName = parentFolder?.name ?: "",

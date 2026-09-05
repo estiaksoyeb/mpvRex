@@ -3380,7 +3380,7 @@ class PlayerActivity :
   /**
    * Checks if current loaded media is audio-only.
    */
-  private fun isCurrentMediaAudio(): Boolean {
+  internal fun isCurrentMediaAudio(): Boolean {
     val path = parsePathFromIntent(intent)
     if (path != null) {
       val file = File(path)
@@ -3410,7 +3410,8 @@ class PlayerActivity :
 
     val file = if (path.startsWith("/")) File(path) else null
     val size = file?.length() ?: 0L
-    val dateModified = file?.lastModified() ?: 0L
+    val rawModified = file?.lastModified() ?: 0L
+    val dateModified = if (rawModified > 100_000_000_000L) rawModified / 1000L else rawModified
     val isAudio = FileTypeUtils.isAudioFile(file ?: File(path))
     val name = extractFileNameFromUri(uri) ?: uri.lastPathSegment ?: "Media"
 

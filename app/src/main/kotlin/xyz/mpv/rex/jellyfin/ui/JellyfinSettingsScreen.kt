@@ -135,10 +135,10 @@ object JellyfinSettingsScreen : Screen {
                   }
                   if (serverUrl.lowercase().startsWith("http://")) {
                     status = "Warning: Using insecure HTTP — credentials transmitted in plaintext. Consider using HTTPS."
-                    return@Button
+                  } else {
+                    status = null
                   }
                   loading = true
-                  status = null
                   scope.launch {
                     val normalized = serverUrl.trim().trimEnd('/')
                     val result = api.authenticate(normalized, username.trim(), password)

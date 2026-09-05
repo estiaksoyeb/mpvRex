@@ -446,6 +446,7 @@ fun MpvexTheme(content: @Composable () -> Unit) {
 fun MpvexPlayerTheme(content: @Composable () -> Unit) {
     val preferences = koinInject<AppearancePreferences>()
     val playerAlwaysDarkMode by preferences.playerAlwaysDarkMode.collectAsState()
+    val enableGlassPlayerControls by preferences.enableGlassPlayerControls.collectAsState()
     val darkMode by preferences.darkMode.collectAsState()
     val amoledMode by preferences.amoledMode.collectAsState()
     val appTheme by preferences.appTheme.collectAsState()
@@ -453,7 +454,8 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
     val darkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
 
-    val useDarkTheme = if (playerAlwaysDarkMode) {
+    val isPlayerAlwaysDark = playerAlwaysDarkMode || enableGlassPlayerControls
+    val useDarkTheme = if (isPlayerAlwaysDark) {
         true
     } else {
         when (darkMode) {

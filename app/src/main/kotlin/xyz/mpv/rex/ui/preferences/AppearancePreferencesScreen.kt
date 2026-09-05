@@ -312,8 +312,16 @@ object AppearancePreferencesScreen : Screen {
 
                             GroupedPreferenceCard(position = GroupPosition.LAST) {
                                 SwitchPreference(
-                                    value = playerAlwaysDarkMode,
+                                    value = if (enableGlassPlayerControls) true else playerAlwaysDarkMode,
                                     onValueChange = { preferences.playerAlwaysDarkMode.set(it) },
+                                    enabled = !enableGlassPlayerControls,
+                                    onDisabledClick = {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.pref_appearance_player_always_dark_mode_disabled_toast),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
                                     title = { Text(text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_title)) },
                                     summary = { Text(text = stringResource(id = R.string.pref_appearance_player_always_dark_mode_summary)) },
                                 )

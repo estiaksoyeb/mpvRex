@@ -3,6 +3,7 @@ package xyz.mpv.rex.ui.player.controls.components.sheets
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import android.text.format.DateUtils
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -646,6 +647,7 @@ fun ControlsTab(
 
 @Composable
 fun AestheticsTab() {
+  val context = LocalContext.current
   val appearancePreferences = koinInject<AppearancePreferences>()
   val playerPreferences = koinInject<PlayerPreferences>()
 
@@ -716,8 +718,16 @@ fun AestheticsTab() {
     InteractionSwitch(
       label = stringResource(R.string.pref_appearance_player_always_dark_mode_title),
       description = stringResource(R.string.pref_appearance_player_always_dark_mode_summary),
-      checked = playerAlwaysDarkMode,
-      onCheckedChange = { appearancePreferences.playerAlwaysDarkMode.set(it) }
+      checked = if (enableGlass) true else playerAlwaysDarkMode,
+      onCheckedChange = { appearancePreferences.playerAlwaysDarkMode.set(it) },
+      enabled = !enableGlass,
+      onDisabledClick = {
+        Toast.makeText(
+          context,
+          context.getString(R.string.pref_appearance_player_always_dark_mode_disabled_toast),
+          Toast.LENGTH_SHORT
+        ).show()
+      }
     )
   }
 }
@@ -951,6 +961,7 @@ private fun InteractionSwitch(
   checked: Boolean,
   onCheckedChange: (Boolean) -> Unit,
   enabled: Boolean = true,
+  onDisabledClick: (() -> Unit)? = null,
 ) {
   val alpha = if (enabled) 1.0f else 0.5f
   Surface(
@@ -962,6 +973,7 @@ private fun InteractionSwitch(
       value = checked,
       onValueChange = onCheckedChange,
       enabled = enabled,
+      onDisabledClick = onDisabledClick,
       title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
       summary = { 
         Text(

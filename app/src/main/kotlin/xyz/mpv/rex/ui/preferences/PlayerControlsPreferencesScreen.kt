@@ -37,6 +37,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -77,6 +79,7 @@ object PlayerControlsPreferencesScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
+        val context = LocalContext.current
         val backstack = LocalBackStack.current
         val appearancePrefs = koinInject<AppearancePreferences>()
         val playerPrefs = koinInject<PlayerPreferences>()
@@ -431,8 +434,16 @@ object PlayerControlsPreferencesScreen : Screen {
 
                             GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
                                 SwitchPreference(
-                                    value = playerAlwaysDarkMode,
+                                    value = if (enableGlassPlayerControls) true else playerAlwaysDarkMode,
                                     onValueChange = { appearancePrefs.playerAlwaysDarkMode.set(it) },
+                                    enabled = !enableGlassPlayerControls,
+                                    onDisabledClick = {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.pref_appearance_player_always_dark_mode_disabled_toast),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
                                     title = {
                                         Text(text = stringResource(R.string.pref_appearance_player_always_dark_mode_title))
                                     },

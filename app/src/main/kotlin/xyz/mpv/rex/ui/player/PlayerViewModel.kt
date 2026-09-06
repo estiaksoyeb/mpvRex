@@ -345,7 +345,13 @@ class PlayerViewModel(
   val videoAspect: StateFlow<VideoAspect> = _videoAspect.asStateFlow()
 
   // Current aspect ratio value (for custom ratios and tracking)
-  private val _currentAspectRatio = MutableStateFlow(playerPreferences.defaultCustomAspectRatio.get())
+  private val _currentAspectRatio = MutableStateFlow(
+    if (playerPreferences.rememberVideoAspect.get()) {
+      playerPreferences.defaultCustomAspectRatio.get()
+    } else {
+      -1.0
+    }
+  )
   val currentAspectRatio: StateFlow<Double> = _currentAspectRatio.asStateFlow()
 
   // Timer
@@ -1187,7 +1193,11 @@ class PlayerViewModel(
     
     // 1. Apply saved aspect ratio preference without overriding active zoom and pan
     val savedAspect = playerPreferences.defaultVideoAspect.get()
-    val savedCustomRatio = playerPreferences.defaultCustomAspectRatio.get()
+    val savedCustomRatio = if (playerPreferences.rememberVideoAspect.get()) {
+      playerPreferences.defaultCustomAspectRatio.get()
+    } else {
+      -1.0
+    }
 
     if (savedCustomRatio > 0) {
       setCustomAspectRatio(savedCustomRatio, resetZoomAndPan = false)
@@ -1285,8 +1295,10 @@ class PlayerViewModel(
     // Update the state and persist to preferences
     _videoAspect.value = aspect
     _currentAspectRatio.value = -1.0 // Reset custom ratio when using standard modes
-    playerPreferences.defaultVideoAspect.set(aspect)
-    playerPreferences.defaultCustomAspectRatio.set(-1.0)
+    if (playerPreferences.rememberVideoAspect.get()) {
+      playerPreferences.defaultVideoAspect.set(aspect)
+      playerPreferences.defaultCustomAspectRatio.set(-1.0)
+    }
 
     // Notify the UI
     if (showUpdate) {
@@ -1305,7 +1317,9 @@ class PlayerViewModel(
     MPVLib.setPropertyDouble("panscan", 0.0)
     MPVLib.setPropertyDouble("video-aspect-override", ratio)
     _currentAspectRatio.value = ratio
-    playerPreferences.defaultCustomAspectRatio.set(ratio)
+    if (playerPreferences.rememberVideoAspect.get()) {
+      playerPreferences.defaultCustomAspectRatio.set(ratio)
+    }
     playerUpdate.value = PlayerUpdates.AspectRatio
   }
 

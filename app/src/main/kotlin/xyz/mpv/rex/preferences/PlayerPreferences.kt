@@ -98,7 +98,9 @@ class PlayerPreferences(
   val keepScreenOnWhenPaused = preferenceStore.getBoolean("keep_screen_on_when_paused", false)
   val resumeOnUnlock = preferenceStore.getBoolean("resume_on_unlock", false)
 
-  // Persist aspect ratio setting (default to Fit)
+  /**
+   * Baseline default aspect ratio used when opening videos (Fit, Crop, Stretch).
+   */
   val defaultVideoAspect = preferenceStore.getEnum("default_video_aspect", VideoAspect.Fit)
   val defaultCustomAspectRatio = preferenceStore.getObject(
     key = "default_custom_aspect_ratio",
@@ -106,6 +108,12 @@ class PlayerPreferences(
     serializer = { it.toString() },
     deserializer = { it.toDoubleOrNull() ?: -1.0 }
   )
+
+  /**
+   * Whether aspect ratio adjustments made during video playback should persist across videos
+   * or remain session-only.
+   */
+  val rememberVideoAspect = preferenceStore.getBoolean("remember_video_aspect", false)
 
   // Custom Buttons - JSON List
   val customButtons = preferenceStore.getString("custom_buttons_json", "[]")

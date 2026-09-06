@@ -29,6 +29,7 @@ import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.player.BackgroundPlaybackMode
 import xyz.mpv.rex.ui.player.PlayerOrientation
 import xyz.mpv.rex.ui.player.ResumePlaybackMode
+import xyz.mpv.rex.ui.player.VideoAspect
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
@@ -87,6 +88,8 @@ object PlayerPreferencesScreen : Screen {
 
           item {
             val orientation by preferences.orientation.collectAsState()
+            val defaultVideoAspect by preferences.defaultVideoAspect.collectAsState()
+            val rememberVideoAspect by preferences.rememberVideoAspect.collectAsState()
             val resumePlaybackMode by preferences.resumePlaybackMode.collectAsState()
             val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
             val closeAfterEndOfVideo by preferences.closeAfterReachingEndOfVideo.collectAsState()
@@ -113,6 +116,45 @@ object PlayerPreferencesScreen : Screen {
                       text = stringResource(id = orientation.titleRes),
                       color = MaterialTheme.colorScheme.outline,
                     ) 
+                  },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_player_default_aspect_ratio,
+              ) {
+                ListPreference(
+                  value = defaultVideoAspect,
+                  onValueChange = { aspect ->
+                    preferences.defaultVideoAspect.set(aspect)
+                    preferences.defaultCustomAspectRatio.set(-1.0)
+                  },
+                  values = VideoAspect.entries,
+                  valueToText = { AnnotatedString(context.getString(it.titleRes)) },
+                  title = { Text(text = stringResource(id = R.string.pref_player_default_aspect_ratio)) },
+                  summary = {
+                    Text(
+                      text = stringResource(id = defaultVideoAspect.titleRes),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_player_remember_aspect_ratio,
+              ) {
+                SwitchPreference(
+                  value = rememberVideoAspect,
+                  onValueChange = preferences.rememberVideoAspect::set,
+                  title = { Text(text = stringResource(R.string.pref_player_remember_aspect_ratio)) },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_player_remember_aspect_ratio_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
                   },
                 )
               }

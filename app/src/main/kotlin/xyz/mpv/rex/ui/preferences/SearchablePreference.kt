@@ -192,6 +192,21 @@ object SearchablePreferences {
                 targetIndex = 1,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_player_default_aspect_ratio,
+                keywords = listOf("aspect", "ratio", "fit", "crop", "stretch", "screen", "default", "scale"),
+                category = "Player",
+                screen = PlayerPreferencesScreen,
+                targetIndex = 1,
+            ))
+            add(SearchablePreference(
+                titleRes = R.string.pref_player_remember_aspect_ratio,
+                summaryRes = R.string.pref_player_remember_aspect_ratio_summary,
+                keywords = listOf("aspect", "ratio", "remember", "persist", "save", "session"),
+                category = "Player",
+                screen = PlayerPreferencesScreen,
+                targetIndex = 1,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_player_save_position_on_quit,
                 keywords = listOf("save", "position", "resume", "remember", "progress"),
                 category = "Player",

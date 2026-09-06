@@ -1663,7 +1663,9 @@ class PlayerActivity :
    */
   private fun handleConfigurationChange() {
     if (!isInPictureInPictureMode) {
-      // Configuration changes don't affect aspect ratio
+      if (viewModel.videoAspect.value == VideoAspect.Stretch && viewModel.currentAspectRatio.value <= 0) {
+        viewModel.changeVideoAspect(VideoAspect.Stretch, showUpdate = false, resetZoomAndPan = false)
+      }
     } else {
       viewModel.hideControls()
     }

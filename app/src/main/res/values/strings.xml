@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">REX Player</string>
     <string name="author_name" translatable="false">Sakhawat</string>
 
@@ -199,6 +199,9 @@
     <string name="pref_player_seeking_title">Seeking</string>
     <string name="pref_player_close_after_eof">Close after the end of playback</string>
     <string name="pref_player_remember_brightness">Remember display brightness</string>
+    <string name="pref_player_default_aspect_ratio" tools:ignore="MissingTranslation">Default aspect ratio</string>
+    <string name="pref_player_remember_aspect_ratio" tools:ignore="MissingTranslation">Remember aspect ratio across videos</string>
+    <string name="pref_player_remember_aspect_ratio_summary" tools:ignore="MissingTranslation">Save the aspect ratio used in the player for subsequent videos</string>
 
     <string name="pref_player_gestures">Gestures</string>
     <string name="pref_player_gestures_brightness">Brightness gestures</string>

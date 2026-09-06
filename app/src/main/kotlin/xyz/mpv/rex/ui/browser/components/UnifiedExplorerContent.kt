@@ -1,5 +1,8 @@
 package xyz.mpv.rex.ui.browser.components
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -113,6 +116,19 @@ fun <T> UnifiedExplorerContent(
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val navigationBarHeight = LocalNavigationBarHeight.current
+
+  val animatedBottomPadding by animateDpAsState(
+    targetValue = if (isInSelectionMode) {
+      navigationBarHeight + 144.dp
+    } else {
+      navigationBarHeight + 88.dp
+    },
+    animationSpec = spring(
+      dampingRatio = Spring.DampingRatioLowBouncy,
+      stiffness = Spring.StiffnessMediumLow
+    ),
+    label = "explorerBottomContentPadding"
+  )
 
   if (isLoading && items.isEmpty()) {
     Box(
@@ -268,7 +284,7 @@ fun <T> UnifiedExplorerContent(
             start = 8.dp,
             end = 8.dp,
             top = 8.dp,
-            bottom = navigationBarHeight + 16.dp
+            bottom = animatedBottomPadding
           ),
           verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
@@ -492,7 +508,7 @@ fun <T> UnifiedExplorerContent(
             start = 8.dp,
             end = 8.dp,
             top = 8.dp,
-            bottom = navigationBarHeight + 16.dp
+            bottom = animatedBottomPadding
           ),
           horizontalArrangement = Arrangement.spacedBy(4.dp),
           verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -550,7 +566,7 @@ fun <T> UnifiedExplorerContent(
             start = 8.dp,
             end = 8.dp,
             top = 8.dp,
-            bottom = navigationBarHeight + 16.dp
+            bottom = animatedBottomPadding
           ),
           verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
@@ -645,7 +661,7 @@ fun <T> UnifiedExplorerContent(
           modifier = Modifier
             .align(Alignment.CenterEnd)
             .fillMaxHeight()
-            .padding(top = 8.dp, bottom = navigationBarHeight + 16.dp),
+            .padding(top = 8.dp, bottom = animatedBottomPadding),
           thumbColor = MaterialTheme.colorScheme.primary,
         )
       }

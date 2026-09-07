@@ -58,6 +58,7 @@ import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
 import xyz.mpv.rex.ui.player.controls.PlayerControls
 import xyz.mpv.rex.ui.player.delegates.PlayerAudioController
 import xyz.mpv.rex.ui.player.delegates.PlayerKeyEventHandler
+import xyz.mpv.rex.ui.player.delegates.PlayerMediaSessionController
 import xyz.mpv.rex.ui.player.delegates.PlayerOrientationController
 import xyz.mpv.rex.ui.player.delegates.PlayerSystemUiController
 import xyz.mpv.rex.ui.theme.MpvexPlayerTheme
@@ -174,6 +175,17 @@ class PlayerActivity :
       isPlayerPaused = { viewModel.paused ?: false },
       onDuckVolume = { factor -> MPVLib.command("multiply", "volume", factor.toString()) },
       onClearKeepScreenOn = { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) },
+    )
+  }
+
+  /**
+   * Delegate for managing MediaSession integration with system media controls.
+   */
+  private val mediaSessionController by lazy {
+    PlayerMediaSessionController(
+      context = this,
+      viewModel = viewModel,
+      playerPreferences = playerPreferences,
     )
   }
 
@@ -316,22 +328,6 @@ class PlayerActivity :
    */
   private var serviceBound = false
 
-  // ==================== MediaSession ====================
-
-  /**
-   * MediaSession for integration with system media controls, Android Auto, and Wear OS.
-   */
-  private lateinit var mediaSession: MediaSession
-
-  /**
-   * Tracks whether MediaSession has been successfully initialized.
-   */
-  private var mediaSessionInitialized = false
-
-  /**
-   * Builder for MediaSession playback states.
-   */
-  private lateinit var playbackStateBuilder: PlaybackState.Builder
 
 
   @RequiresApi(Build.VERSION_CODES.P)
@@ -2857,60 +2853,7 @@ class PlayerActivity :
    * Supports Android Auto, Wear OS, Bluetooth controls, and notification controls.
    */
   private fun setupMediaSession() {
-    runCatching {
-      mediaSession =
-        MediaSession(this, TAG).apply {
-          setCallback(
-            object : MediaSession.Callback() {
-              private fun canHandle() = !playerPreferences.disableMediaButtons.get()
-
-              override fun onPlay() {
-                if (!canHandle()) return
-                viewModel.unpause()
-                updateMediaSessionPlaybackState(isPlaying = true)
-              }
-
-              override fun onPause() {
-                if (!canHandle()) return
-                viewModel.pause()
-                updateMediaSessionPlaybackState(isPlaying = false)
-              }
-
-              override fun onSkipToNext() {
-                if (!canHandle()) return
-                viewModel.handleMediaNext()
-              }
-
-              override fun onSkipToPrevious() {
-                if (!canHandle()) return
-                viewModel.handleMediaPrevious()
-              }
-
-              override fun onSeekTo(pos: Long) {
-                if (!canHandle()) return
-                viewModel.seekTo((pos / 1000).toInt())
-                updateMediaSessionPlaybackState(isPlaying = viewModel.paused == false)
-              }
-            },
-          )
-          isActive = true
-        }
-      playbackStateBuilder =
-        PlaybackState
-          .Builder()
-          .setActions(
-            PlaybackState.ACTION_PLAY or
-              PlaybackState.ACTION_PAUSE or
-              PlaybackState.ACTION_PLAY_PAUSE or
-              PlaybackState.ACTION_SEEK_TO or
-              PlaybackState.ACTION_SKIP_TO_NEXT or
-              PlaybackState.ACTION_SKIP_TO_PREVIOUS,
-          )
-      mediaSessionInitialized = true
-    }.onFailure { e ->
-      Log.e(TAG, "Failed to initialize MediaSession", e)
-      mediaSessionInitialized = false
-    }
+    mediaSessionController.setup()
   }
 
   /**
@@ -2919,16 +2862,7 @@ class PlayerActivity :
    * @param isPlaying true if currently playing, false if paused
    */
   private fun updateMediaSessionPlaybackState(isPlaying: Boolean) {
-    if (!mediaSessionInitialized) return
-    runCatching {
-      val state = if (isPlaying) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED
-      val positionMs = (viewModel.pos ?: 0) * 1000L
-      mediaSession.setPlaybackState(
-        playbackStateBuilder
-          .setState(state, positionMs, if (isPlaying) 1.0f else 0f)
-          .build(),
-      )
-    }.onFailure { e -> Log.e(TAG, "Error updating playback state", e) }
+    mediaSessionController.updatePlaybackState(isPlaying)
   }
 
   /**
@@ -2941,16 +2875,7 @@ class PlayerActivity :
     title: String,
     durationMs: Long,
   ) {
-    if (!mediaSessionInitialized) return
-    runCatching {
-      val metadata =
-        MediaMetadata
-          .Builder()
-          .putString(MediaMetadata.METADATA_KEY_TITLE, title)
-          .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs)
-          .build()
-      mediaSession.setMetadata(metadata)
-    }.onFailure { e -> Log.e(TAG, "Error updating metadata", e) }
+    mediaSessionController.updateMetadata(title, durationMs)
   }
 
   /**
@@ -2958,12 +2883,7 @@ class PlayerActivity :
    * Called during activity cleanup.
    */
   private fun releaseMediaSession() {
-    if (!mediaSessionInitialized) return
-    runCatching {
-      mediaSession.isActive = false
-      mediaSession.release()
-    }.onFailure { e -> Log.e(TAG, "Error releasing MediaSession", e) }
-    mediaSessionInitialized = false
+    mediaSessionController.release()
   }
 
   // ==================== Background Playback Service ====================

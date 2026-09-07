@@ -414,11 +414,8 @@ class PlayerViewModel(
   val shuffleEnabled: StateFlow<Boolean> = _shuffleEnabled.asStateFlow()
 
   // A-B Loop state
-  private val _abLoopA = MutableStateFlow<Double?>(null)
-  val abLoopA: StateFlow<Double?> = _abLoopA.asStateFlow()
-
-  private val _abLoopB = MutableStateFlow<Double?>(null)
-  val abLoopB: StateFlow<Double?> = _abLoopB.asStateFlow()
+  val abLoopA: StateFlow<Double?> = _playlistManager.abLoopA
+  val abLoopB: StateFlow<Double?> = _playlistManager.abLoopB
 
   private val _isABLoopExpanded = MutableStateFlow(false)
   val isABLoopExpanded: StateFlow<Boolean> = _isABLoopExpanded.asStateFlow()
@@ -905,7 +902,7 @@ class PlayerViewModel(
   }
 
   fun seekTo(position: Int) {
-    _playbackManager.seekTo(viewModelScope, position, _abLoopA.value, _abLoopB.value)
+    _playbackManager.seekTo(viewModelScope, position, abLoopA.value, abLoopB.value)
   }
 
   fun setPlaybackSpeed(speed: Float) {
@@ -2022,19 +2019,12 @@ class PlayerViewModel(
   }
 
   fun cycleRepeatMode() {
-    val hasPlaylist = _playlistManager.playlist.value.isNotEmpty()
-
-    _repeatMode.value = when (_repeatMode.value) {
-      RepeatMode.OFF -> RepeatMode.ONE
-      RepeatMode.ONE -> if (hasPlaylist) RepeatMode.ALL else RepeatMode.OFF
-      RepeatMode.ALL -> RepeatMode.OFF
-    }
-
+    val newMode = _playlistManager.cycleRepeatMode(_repeatMode.value)
+    _repeatMode.value = newMode
     // Persist the repeat mode
-    playerPreferences.repeatMode.set(_repeatMode.value)
-
+    playerPreferences.repeatMode.set(newMode)
     // Show overlay update instead of toast
-    playerUpdate.value = PlayerUpdates.RepeatMode(_repeatMode.value)
+    playerUpdate.value = PlayerUpdates.RepeatMode(newMode)
   }
 
   fun toggleShuffle() {
@@ -2050,14 +2040,11 @@ class PlayerViewModel(
     playerUpdate.value = PlayerUpdates.Shuffle(_shuffleEnabled.value)
   }
 
-  fun shouldRepeatCurrentFile(): Boolean {
-    return _repeatMode.value == RepeatMode.ONE ||
-      (_repeatMode.value == RepeatMode.ALL && _playlistManager.playlist.value.isEmpty())
-  }
+  fun shouldRepeatCurrentFile(): Boolean =
+    _playlistManager.shouldRepeatCurrentFile(_repeatMode.value)
 
-  fun shouldRepeatPlaylist(): Boolean {
-    return _repeatMode.value == RepeatMode.ALL && _playlistManager.playlist.value.isNotEmpty()
-  }
+  fun shouldRepeatPlaylist(): Boolean =
+    _playlistManager.shouldRepeatPlaylist(_repeatMode.value)
 
   // ==================== A-B Loop ====================
 
@@ -2065,43 +2052,15 @@ class PlayerViewModel(
     _isABLoopExpanded.update { !it }
   }
 
-  fun setLoopA() {
-    if (_abLoopA.value != null) {
-      // Toggle off - clear point A
-      _abLoopA.value = null
-      MPVLib.setPropertyString("ab-loop-a", "no")
-      return
-    }
+  fun setLoopA() = _playlistManager.setLoopA()
 
-    val currentPos = MPVLib.getPropertyDouble("time-pos") ?: return
-    _abLoopA.value = currentPos
-    MPVLib.setPropertyDouble("ab-loop-a", currentPos)
-  }
+  fun setLoopB() = _playlistManager.setLoopB()
 
-  fun setLoopB() {
-    if (_abLoopB.value != null) {
-      // Toggle off - clear point B
-      _abLoopB.value = null
-      MPVLib.setPropertyString("ab-loop-b", "no")
-      return
-    }
-
-    val currentPos = MPVLib.getPropertyDouble("time-pos") ?: return
-    _abLoopB.value = currentPos
-    MPVLib.setPropertyDouble("ab-loop-b", currentPos)
-  }
-
-  fun clearABLoop() {
-    val hadLoop = _abLoopA.value != null || _abLoopB.value != null
-    _abLoopA.value = null
-    _abLoopB.value = null
-    MPVLib.setPropertyString("ab-loop-a", "no")
-    MPVLib.setPropertyString("ab-loop-b", "no")
-  }
+  fun clearABLoop() = _playlistManager.clearABLoop()
 
   fun cutABLoopClip(context: Context, mode: `is`.xyz.mpv.FastClipper.ClipMode = `is`.xyz.mpv.FastClipper.ClipMode.FAST_COPY) {
-    val a = _abLoopA.value
-    val b = _abLoopB.value
+    val a = abLoopA.value
+    val b = abLoopB.value
     if (a == null || b == null) {
       Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), Toast.LENGTH_SHORT).show()
       return

@@ -62,6 +62,7 @@ import xyz.mpv.rex.ui.player.delegates.PlayerKeyEventHandler
 import xyz.mpv.rex.ui.player.delegates.PlayerMediaSessionController
 import xyz.mpv.rex.ui.player.delegates.PlayerOrientationController
 import xyz.mpv.rex.ui.player.delegates.PlayerSystemUiController
+import xyz.mpv.rex.ui.player.observers.MpvEventDispatcher
 import xyz.mpv.rex.ui.theme.MpvexPlayerTheme
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.HttpUtils
@@ -198,6 +199,79 @@ class PlayerActivity :
       activity = this,
       serviceListener = this,
     )
+  }
+
+  /**
+   * Dispatcher for MPV property changes and core playback events.
+   */
+  private val mpvEventDispatcher by lazy {
+    MpvEventDispatcher(object : MpvEventDispatcher.EventListener {
+      override fun onVideoDimensionChanged(property: String, value: Long) {
+        if (!mpvInitialized || player.isExiting || isFinishing) return
+        val aspect = player.getVideoOutAspect()
+        Log.d(TAG, "Video dimension changed: $property, aspect: $aspect")
+        pipHelper.updatePictureInPictureParams()
+        if (playerPreferences.orientation.get() == PlayerOrientation.Video && aspect != null) {
+          setOrientation()
+        }
+        player.applyAnime4KShaders()
+        viewModel.updateAmbientStretch()
+      }
+
+      override fun onVideoAspectChanged(aspect: Double) {
+        if (!mpvInitialized || player.isExiting || isFinishing) return
+        val outAspect = player.getVideoOutAspect()
+        Log.d(TAG, "video-params/aspect changed: $outAspect")
+        pipHelper.updatePictureInPictureParams()
+        val aspectOverride = MPVLib.getPropertyDouble("video-aspect-override") ?: -1.0
+        if (playerPreferences.orientation.get() == PlayerOrientation.Video && 
+            outAspect != null && 
+            aspectOverride <= 0.0) {
+          setOrientation()
+        }
+      }
+
+      override fun onPauseStateChanged(isPaused: Boolean) {
+        handlePauseStateChange(isPaused)
+        if (!isPaused && !isReady) {
+          isReady = true
+        }
+      }
+
+      override fun onEofReached(isEof: Boolean) {
+        handleEndOfFile(isEof)
+      }
+
+      override fun onLuaInvocation(property: String, value: String) {
+        viewModel.handleLuaInvocation(property, value)
+      }
+
+      override fun onStartFile() {
+        viewModel.onFileStartLoading()
+      }
+
+      override fun onFileLoaded() {
+        handleFileLoaded()
+        isReady = true
+      }
+
+      override fun onPlaybackRestart() {
+        player.isExiting = false
+        if (!isReady) {
+          isReady = true
+        }
+        if (needsAspectReapply) {
+          needsAspectReapply = false
+          runOnUiThread {
+            if (isPlaybackStateLoaded) {
+              viewModel.reapplyCurrentVisualPreferences()
+            } else {
+              viewModel.resetVisualPreferences()
+            }
+          }
+        }
+      }
+    })
   }
 
   // ==================== Dependency Injection ====================
@@ -1600,27 +1674,7 @@ class PlayerActivity :
     property: String,
     value: Long,
   ) {
-    when (property) {
-      "video-params/w",
-      "video-params/h" -> {
-        // Safety check: don't access MPV during cleanup
-        if (!mpvInitialized || player.isExiting || isFinishing) return
-
-        val aspect = player.getVideoOutAspect()
-        Log.d(TAG, "Video dimension changed: $property, aspect: $aspect")
-        pipHelper.updatePictureInPictureParams()
-        // Update orientation when video dimensions change (fixes Video orientation mode)
-        if (playerPreferences.orientation.get() == PlayerOrientation.Video && aspect != null) {
-          setOrientation()
-        }
-
-        // Re-apply Anime4K shaders (check for resolution limit)
-        player.applyAnime4KShaders()
-
-        // Re-check ambient stretch — handles portrait videos and new content
-        viewModel.updateAmbientStretch()
-      }
-    }
+    mpvEventDispatcher.dispatchProperty(property, value)
   }
 
   /**
@@ -1634,16 +1688,7 @@ class PlayerActivity :
     property: String,
     value: Boolean,
   ) {
-    when (property) {
-      "pause" -> {
-        handlePauseStateChange(value)
-        // Ensure isReady is set when playback starts
-        if (!value && !isReady) {
-          isReady = true
-        }
-      }
-      "eof-reached" -> handleEndOfFile(value)
-    }
+    mpvEventDispatcher.dispatchProperty(property, value)
   }
 
   /**
@@ -1724,9 +1769,7 @@ class PlayerActivity :
     property: String,
     value: String,
   ) {
-    when (property.substringBeforeLast("/")) {
-      "user-data/mpvex" -> viewModel.handleLuaInvocation(property, value)
-    }
+    mpvEventDispatcher.dispatchProperty(property, value)
   }
 
   /**
@@ -1743,7 +1786,7 @@ class PlayerActivity :
     property: String,
     value: MPVNode,
   ) {
-    // Currently no MPVNode properties are handled
+    mpvEventDispatcher.dispatchProperty(property, value)
   }
 
   /**
@@ -1760,26 +1803,7 @@ class PlayerActivity :
     property: String,
     value: Double,
   ) {
-    // Handle Double properties
-    when (property) {
-      "video-params/aspect" -> {
-        // Safety check: don't access MPV during cleanup
-        if (!mpvInitialized || player.isExiting || isFinishing) return
-
-        val aspect = player.getVideoOutAspect()
-        Log.d(TAG, "video-params/aspect changed: $aspect")
-        pipHelper.updatePictureInPictureParams()
-        // Update orientation when video aspect ratio changes (fixes Video orientation mode)
-        // BUT: Don't update if aspect is being overridden (stretch/custom aspect mode)
-        // to prevent infinite orientation switching loop
-        val aspectOverride = MPVLib.getPropertyDouble("video-aspect-override") ?: -1.0
-        if (playerPreferences.orientation.get() == PlayerOrientation.Video && 
-            aspect != null && 
-            aspectOverride <= 0.0) {
-          setOrientation()
-        }
-      }
-    }
+    mpvEventDispatcher.dispatchProperty(property, value)
   }
 
   /**
@@ -1789,7 +1813,7 @@ class PlayerActivity :
    * @param property The property name that changed
    */
   internal fun onObserverEvent(property: String) {
-    // Currently no properties use this signature
+    mpvEventDispatcher.dispatchProperty(property)
   }
 
   /**
@@ -1800,33 +1824,7 @@ class PlayerActivity :
    * @param eventId The MPV event ID
    */
   internal fun event(eventId: Int) {
-    when (eventId) {
-      MPVLib.MpvEvent.MPV_EVENT_START_FILE -> {
-        viewModel.onFileStartLoading()
-      }
-
-      MPVLib.MpvEvent.MPV_EVENT_FILE_LOADED -> {
-        handleFileLoaded()
-        isReady = true
-      }
-
-      MPVLib.MpvEvent.MPV_EVENT_PLAYBACK_RESTART -> {
-        player.isExiting = false
-        if (!isReady) {
-          isReady = true
-        }
-        if (needsAspectReapply) {
-          needsAspectReapply = false
-          runOnUiThread {
-            if (isPlaybackStateLoaded) {
-              viewModel.reapplyCurrentVisualPreferences()
-            } else {
-              viewModel.resetVisualPreferences()
-            }
-          }
-        }
-      }
-    }
+    mpvEventDispatcher.dispatchEvent(eventId)
   }
 
   /**

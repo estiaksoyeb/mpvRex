@@ -2,10 +2,12 @@ package xyz.mpv.rex.ui.player.managers
 
 import android.net.Uri
 import android.util.Log
+import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import xyz.mpv.rex.ui.player.RepeatMode
 
 /**
  * Manages the playback playlist, including index tracking, shuffling, 
@@ -38,6 +40,12 @@ class PlaylistManager {
 
     private val _shuffleEnabled = MutableStateFlow(false)
     val shuffleEnabled: StateFlow<Boolean> = _shuffleEnabled.asStateFlow()
+
+    private val _abLoopA = MutableStateFlow<Double?>(null)
+    val abLoopA: StateFlow<Double?> = _abLoopA.asStateFlow()
+
+    private val _abLoopB = MutableStateFlow<Double?>(null)
+    val abLoopB: StateFlow<Double?> = _abLoopB.asStateFlow()
 
     private var _playlistId: Int? = null
     val playlistId: Int? get() = _playlistId
@@ -279,5 +287,52 @@ class PlaylistManager {
         // Put current index at the beginning
         _shuffledIndices.value = listOf(currentIdx) + indices
         _shuffledPosition.value = 0
+    }
+
+    fun setLoopA() {
+        if (_abLoopA.value != null) {
+            _abLoopA.value = null
+            MPVLib.setPropertyString("ab-loop-a", "no")
+            return
+        }
+        val currentPos = MPVLib.getPropertyDouble("time-pos") ?: return
+        _abLoopA.value = currentPos
+        MPVLib.setPropertyDouble("ab-loop-a", currentPos)
+    }
+
+    fun setLoopB() {
+        if (_abLoopB.value != null) {
+            _abLoopB.value = null
+            MPVLib.setPropertyString("ab-loop-b", "no")
+            return
+        }
+        val currentPos = MPVLib.getPropertyDouble("time-pos") ?: return
+        _abLoopB.value = currentPos
+        MPVLib.setPropertyDouble("ab-loop-b", currentPos)
+    }
+
+    fun clearABLoop() {
+        _abLoopA.value = null
+        _abLoopB.value = null
+        MPVLib.setPropertyString("ab-loop-a", "no")
+        MPVLib.setPropertyString("ab-loop-b", "no")
+    }
+
+    fun cycleRepeatMode(current: RepeatMode): RepeatMode {
+        val hasPlaylist = _playlist.value.isNotEmpty()
+        return when (current) {
+            RepeatMode.OFF -> RepeatMode.ONE
+            RepeatMode.ONE -> if (hasPlaylist) RepeatMode.ALL else RepeatMode.OFF
+            RepeatMode.ALL -> RepeatMode.OFF
+        }
+    }
+
+    fun shouldRepeatCurrentFile(repeatMode: RepeatMode): Boolean {
+        return repeatMode == RepeatMode.ONE ||
+            (repeatMode == RepeatMode.ALL && _playlist.value.isEmpty())
+    }
+
+    fun shouldRepeatPlaylist(repeatMode: RepeatMode): Boolean {
+        return repeatMode == RepeatMode.ALL && _playlist.value.isNotEmpty()
     }
 }

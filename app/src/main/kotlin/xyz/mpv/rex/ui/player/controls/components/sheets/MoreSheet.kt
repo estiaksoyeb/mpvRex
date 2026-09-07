@@ -858,6 +858,8 @@ fun InteractionTab() {
   val hideOsdText by playerPreferences.hideOsdText.collectAsState()
   val keepScreenOnWhenPaused by playerPreferences.keepScreenOnWhenPaused.collectAsState()
   val savePositionOnQuit by playerPreferences.savePositionOnQuit.collectAsState()
+  val resumePlaybackMode by playerPreferences.resumePlaybackMode.collectAsState()
+  val autoResumeOnAsk by playerPreferences.autoResumeOnAsk.collectAsState()
   val autoPiPOnNavigation by playerPreferences.autoPiPOnNavigation.collectAsState()
 
   Column(
@@ -944,6 +946,21 @@ fun InteractionTab() {
     )
 
     ResumePlaybackModePreferenceItem()
+
+    if (resumePlaybackMode == ResumePlaybackMode.Ask) {
+      InteractionSwitch(
+        label = stringResource(R.string.pref_player_auto_resume_on_ask_title),
+        description = stringResource(
+          if (autoResumeOnAsk) {
+            R.string.pref_player_auto_resume_on_ask_summary_on
+          } else {
+            R.string.pref_player_auto_resume_on_ask_summary_off
+          }
+        ),
+        checked = autoResumeOnAsk,
+        onCheckedChange = { playerPreferences.autoResumeOnAsk.set(it) }
+      )
+    }
 
     InteractionSwitch(
       label = stringResource(R.string.pref_auto_pip_title),

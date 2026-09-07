@@ -91,6 +91,7 @@ object PlayerPreferencesScreen : Screen {
             val defaultVideoAspect by preferences.defaultVideoAspect.collectAsState()
             val rememberVideoAspect by preferences.rememberVideoAspect.collectAsState()
             val resumePlaybackMode by preferences.resumePlaybackMode.collectAsState()
+            val autoResumeOnAsk by preferences.autoResumeOnAsk.collectAsState()
             val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
             val closeAfterEndOfVideo by preferences.closeAfterReachingEndOfVideo.collectAsState()
             val autoplayNextVideo by preferences.autoplayNextVideo.collectAsState()
@@ -177,6 +178,31 @@ object PlayerPreferencesScreen : Screen {
                     )
                   },
                 )
+              }
+
+              if (resumePlaybackMode == ResumePlaybackMode.Ask) {
+                GroupedPreferenceCard(
+                  position = GroupPosition.MIDDLE,
+                  highlightKey = R.string.pref_player_auto_resume_on_ask_title,
+                ) {
+                  SwitchPreference(
+                    value = autoResumeOnAsk,
+                    onValueChange = preferences.autoResumeOnAsk::set,
+                    title = { Text(stringResource(R.string.pref_player_auto_resume_on_ask_title)) },
+                    summary = {
+                      Text(
+                        text = stringResource(
+                          if (autoResumeOnAsk) {
+                            R.string.pref_player_auto_resume_on_ask_summary_on
+                          } else {
+                            R.string.pref_player_auto_resume_on_ask_summary_off
+                          }
+                        ),
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    },
+                  )
+                }
               }
 
               GroupedPreferenceCard(

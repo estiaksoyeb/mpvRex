@@ -191,6 +191,10 @@
     <string name="player_resume_action_start_over">Start afresh</string>
     <string name="player_resumed_from_pill">Resumed from %1$s</string>
     <string name="player_restart_action">Restart</string>
+    <string name="pref_player_auto_resume_on_ask_title">Auto resume playback</string>
+    <string name="pref_player_auto_resume_on_ask_summary_on">Automatically resume and offer to start afresh</string>
+    <string name="pref_player_auto_resume_on_ask_summary_off">Start afresh and offer to resume playback</string>
+    <string name="player_prompt_resume_pill">Watched up to %1$s</string>
     <string name="pref_player_section_mini_player">Mini Player</string>
     <string name="pref_player_play_in_mini_player">Play audio in mini player</string>
     <string name="pref_player_play_in_mini_player_summary_on">Tapping an audio file starts playback directly in the bottom mini player bar</string>

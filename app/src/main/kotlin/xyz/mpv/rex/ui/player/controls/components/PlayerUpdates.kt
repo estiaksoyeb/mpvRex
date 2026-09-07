@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DoubleArrow
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -219,6 +220,56 @@ fun ResumedFromPlayerUpdate(
           )
           Text(
             text = stringResource(R.string.player_restart_action),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+          )
+        }
+      }
+    }
+  }
+}
+
+@Composable
+fun PromptResumePlayerUpdate(
+  position: Int,
+  onResume: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  PlayerUpdate(modifier) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      Text(
+        text = stringResource(R.string.player_prompt_resume_pill, Utils.prettyTime(position)),
+        fontSize = 13.sp,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodyMedium,
+      )
+      Surface(
+        shape = RoundedCornerShape(100.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+        modifier = Modifier
+          .clip(RoundedCornerShape(100.dp))
+          .clickable(onClick = onResume),
+      ) {
+        Row(
+          modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+          Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(13.dp),
+          )
+          Text(
+            text = stringResource(R.string.player_resume_action_resume),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,

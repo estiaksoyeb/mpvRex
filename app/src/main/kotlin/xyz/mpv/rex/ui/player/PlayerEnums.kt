@@ -183,6 +183,10 @@ sealed class PlayerUpdates {
     val position: Int,
   ) : PlayerUpdates()
 
+  data class PromptResume(
+    val position: Int,
+  ) : PlayerUpdates()
+
   data class RepeatMode(
     val mode: xyz.mpv.rex.ui.player.RepeatMode,
   ) : PlayerUpdates()

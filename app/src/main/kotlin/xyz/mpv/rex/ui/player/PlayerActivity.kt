@@ -2629,16 +2629,21 @@ class PlayerActivity :
         MPVLib.setPropertyInt("time-pos", 0)
       }
       resumeMode == ResumePlaybackMode.Ask -> {
-        MPVLib.setPropertyInt("time-pos", 0)
-        withContext(Dispatchers.Main) {
-          viewModel.showResumePrompt(state.lastPosition, (state.timeRemaining + state.lastPosition))
+        val autoResume = playerPreferences.autoResumeOnAsk.get()
+        if (autoResume) {
+          MPVLib.setPropertyInt("time-pos", state.lastPosition)
+          withContext(Dispatchers.Main) {
+            viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
+          }
+        } else {
+          MPVLib.setPropertyInt("time-pos", 0)
+          withContext(Dispatchers.Main) {
+            viewModel.playerUpdate.value = PlayerUpdates.PromptResume(state.lastPosition)
+          }
         }
       }
       resumeMode == ResumePlaybackMode.Always -> {
         MPVLib.setPropertyInt("time-pos", state.lastPosition)
-        withContext(Dispatchers.Main) {
-          viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
-        }
       }
     }
   }

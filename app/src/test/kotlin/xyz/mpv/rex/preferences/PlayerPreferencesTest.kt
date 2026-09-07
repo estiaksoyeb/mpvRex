@@ -112,4 +112,41 @@ class PlayerPreferencesTest {
     assertTrue(autoplayOnOpenEntry?.keywords?.contains("autoplay") == true)
     assertTrue(autoplayOnOpenEntry?.keywords?.contains("open") == true)
   }
+
+  @Test
+  fun resumePlaybackMode_defaultsToAlways_andPersistsChanges() {
+    val store = InMemoryPreferenceStore()
+    val preferences = PlayerPreferences(store)
+
+    assertEquals(xyz.mpv.rex.ui.player.ResumePlaybackMode.Always, preferences.resumePlaybackMode.get())
+    assertEquals("resume_playback_mode", preferences.resumePlaybackMode.key())
+
+    preferences.resumePlaybackMode.set(xyz.mpv.rex.ui.player.ResumePlaybackMode.Ask)
+    assertEquals(xyz.mpv.rex.ui.player.ResumePlaybackMode.Ask, preferences.resumePlaybackMode.get())
+
+    preferences.resumePlaybackMode.set(xyz.mpv.rex.ui.player.ResumePlaybackMode.Never)
+    assertEquals(xyz.mpv.rex.ui.player.ResumePlaybackMode.Never, preferences.resumePlaybackMode.get())
+
+    preferences.resumePlaybackMode.delete()
+    assertEquals(xyz.mpv.rex.ui.player.ResumePlaybackMode.Always, preferences.resumePlaybackMode.get())
+  }
+
+  @Test
+  fun autoResumeOnAsk_defaultsToTrue_andPersistsChanges() {
+    val store = InMemoryPreferenceStore()
+    val preferences = PlayerPreferences(store)
+
+    assertTrue(preferences.autoResumeOnAsk.get())
+    assertEquals("auto_resume_on_ask", preferences.autoResumeOnAsk.key())
+
+    preferences.autoResumeOnAsk.set(false)
+    assertFalse(preferences.autoResumeOnAsk.get())
+
+    preferences.autoResumeOnAsk.set(true)
+    assertTrue(preferences.autoResumeOnAsk.get())
+
+    preferences.autoResumeOnAsk.delete()
+    assertTrue(preferences.autoResumeOnAsk.get())
+  }
 }
+

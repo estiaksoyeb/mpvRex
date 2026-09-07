@@ -58,9 +58,11 @@ import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
 import xyz.mpv.rex.ui.player.controls.PlayerControls
 import xyz.mpv.rex.ui.player.delegates.PlayerAudioController
 import xyz.mpv.rex.ui.player.delegates.PlayerBackgroundPlaybackController
+import xyz.mpv.rex.ui.player.delegates.PlayerIntentHandler
 import xyz.mpv.rex.ui.player.delegates.PlayerKeyEventHandler
 import xyz.mpv.rex.ui.player.delegates.PlayerMediaSessionController
 import xyz.mpv.rex.ui.player.delegates.PlayerOrientationController
+import xyz.mpv.rex.ui.player.delegates.PlayerPipController
 import xyz.mpv.rex.ui.player.delegates.PlayerPlaybackStateController
 import xyz.mpv.rex.ui.player.delegates.PlayerPlaylistLoader
 import xyz.mpv.rex.ui.player.delegates.PlayerSystemUiController
@@ -124,7 +126,7 @@ class PlayerActivity :
   /**
    * Binding for the player layout.
    */
-  private val binding by lazy { PlayerLayoutBinding.inflate(layoutInflater) }
+  internal val binding by lazy { PlayerLayoutBinding.inflate(layoutInflater) }
 
   /**
    * Observer for MPV events.
@@ -157,7 +159,7 @@ class PlayerActivity :
   /**
    * Delegate for managing system UI visibility, immersive mode, and window flags.
    */
-  private val systemUiController by lazy {
+  internal val systemUiController by lazy {
     PlayerSystemUiController(
       activity = this,
       window = window,
@@ -215,6 +217,20 @@ class PlayerActivity :
    */
   internal val playlistLoader by lazy {
     PlayerPlaylistLoader(this)
+  }
+
+  /**
+   * Delegate for managing Picture-in-Picture mode and overlay transitions.
+   */
+  internal val pipController by lazy {
+    PlayerPipController(this)
+  }
+
+  /**
+   * Delegate for managing intent parsing, content URIs, and activity results.
+   */
+  internal val intentHandler by lazy {
+    PlayerIntentHandler(this)
   }
 
   /**
@@ -345,7 +361,7 @@ class PlayerActivity :
   /**
    * Repository for video metadata cache.
    */
-  private val metadataCache: VideoMetadataCacheRepository by inject()
+  internal val metadataCache: VideoMetadataCacheRepository by inject()
 
   /**
    * Preferences for decoder settings (hardware dec, gpu-next, shaders).
@@ -360,7 +376,7 @@ class PlayerActivity :
   private val headlessPlaybackController: HeadlessPlaybackController by inject()
   private val thumbnailRepository: ThumbnailRepository by inject()
   private val remoteClient: xyz.mpv.rex.jellyfin.remote.JellyfinRemoteClient by inject()
-  private var jellyfinExternalInfo: xyz.mpv.rex.jellyfin.JellyfinExternalHelper.ExternalInfo? = null
+  internal var jellyfinExternalInfo: xyz.mpv.rex.jellyfin.JellyfinExternalHelper.ExternalInfo? = null
   private val uriThumbnailCache = android.util.LruCache<String, android.graphics.Bitmap>(32)
 
   /**
@@ -399,17 +415,22 @@ class PlayerActivity :
   /**
    * Helper for managing Picture-in-Picture mode.
    */
-  private lateinit var pipHelper: MPVPipHelper
+  internal val pipHelper: MPVPipHelper
+    get() = pipController.pipHelper
 
-  private var isReady = false // Single flag: true when video loaded and ready
+  internal var isReady = false // Single flag: true when video loaded and ready
   internal var isOrientationRestored: Boolean
     get() = orientationController.isOrientationRestored
     set(value) {
       orientationController.isOrientationRestored = value
     }
   private var isUserFinishing = false
-  private var wasInPipMode = false // Track if activity was in PiP mode
-  private var isManualBackgroundPlayback: Boolean
+  internal var wasInPipMode: Boolean
+    get() = pipController.wasInPipMode
+    set(value) {
+      pipController.wasInPipMode = value
+    }
+  internal var isManualBackgroundPlayback: Boolean
     get() = backgroundPlaybackController.isManualBackgroundPlayback
     set(value) {
       backgroundPlaybackController.isManualBackgroundPlayback = value
@@ -420,13 +441,13 @@ class PlayerActivity :
     set(value) {
       playbackStateController.savePlaybackStateJob = value
     }
-  private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
+  internal var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
   private var lastVid: Int
     get() = backgroundPlaybackController.lastVid
     set(value) {
       backgroundPlaybackController.lastVid = value
     }
-  private var isInBackgroundPlayback: Boolean
+  internal var isInBackgroundPlayback: Boolean
     get() = backgroundPlaybackController.isInBackgroundPlayback
     set(value) {
       backgroundPlaybackController.isInBackgroundPlayback = value
@@ -791,7 +812,7 @@ class PlayerActivity :
    * Initializes the Picture-in-Picture helper.
    */
   private fun setupPipHelper() {
-    pipHelper = MPVPipHelper(activity = this, mpvView = player)
+    pipController.pipHelper
   }
 
   private fun setupAudio() {
@@ -1260,33 +1281,9 @@ class PlayerActivity :
    * @param extras Bundle containing subtitle URIs
    */
   private fun addSubtitlesFromExtras(extras: Bundle) {
-    if (!extras.containsKey("subs")) return
-
-    val subList = Utils.getParcelableArray<Uri>(extras, "subs")
-    val subsToEnable = Utils.getParcelableArray<Uri>(extras, "subs.enable")
-
-    lifecycleScope.launch(Dispatchers.Default) {
-      for (suburi in subList) {
-        val subfile = suburi.resolveUri(this@PlayerActivity) ?: continue
-        val flag = if (subsToEnable.any { it == suburi }) "select" else "auto"
-
-        Log.v(TAG, "Adding subtitles from intent extras: $subfile")
-        MPVLib.command("sub-add", subfile, flag)
-      }
-    }
+    intentHandler.addSubtitlesFromExtras(extras)
   }
 
-  /**
-   * Sets HTTP headers from intent extras for network playback.
-   *
-   * This method checks the intent extras for the "headers" key, which contains a list
-   * of HTTP headers to set. It sets the User-Agent header and any additional headers
-   * specified in the list.
-   *
-   * Also automatically adds Referer header based on the URL origin if not already provided.
-   *
-   * @param extras Bundle containing HTTP headers
-   */
   /**
    * Safe wrapper for MPVLib.setPropertyString to prevent native crashes (SIGSEGV).
    * Ensures that the property name and value are not null or blank before passing to JNI.
@@ -1305,50 +1302,7 @@ class PlayerActivity :
   }
 
   private fun setHttpHeadersFromExtras(extras: Bundle?) {
-    // Build header map starting with auto-detected referer
-    val headerMap = mutableMapOf<String, String>()
-
-    // Automatically extract and set referer domain from the URL
-    val uri = extractUriFromIntent(intent)
-    if (uri != null && HttpUtils.isNetworkStream(uri)) {
-      HttpUtils.extractRefererDomain(uri)?.let { referer ->
-        headerMap["Referer"] = referer
-        Log.d(TAG, "Auto-detected Referer: $referer")
-      }
-    }
-
-    // Process headers from extras (these can override the auto-detected referer)
-    extras?.getStringArray("headers")?.let { headers ->
-      if (headers.size < 2) return@let
-
-      // Handle User-Agent if it's the first pair
-      if (headers[0]?.startsWith("User-Agent", ignoreCase = true) == true) {
-        headers[1]?.let { ua ->
-          safeSetPropertyString("user-agent", ua)
-        }
-      }
-
-      // Safe iteration in pairs to avoid null/unpaired crashes
-      headers.asSequence()
-        .chunked(2)
-        .filter { it.size == 2 && !it[0].isNullOrBlank() && !it[1].isNullOrBlank() }
-        .forEach { (key, value) ->
-          headerMap[key!!] = value!!
-        }
-    }
-
-    // Set all headers in MPV
-    if (headerMap.isNotEmpty()) {
-      val headersString = headerMap
-        .map { "${it.key}: ${it.value.replace(",", "\\,")}" }
-        .joinToString(",")
-
-      safeSetPropertyString("http-header-fields", headersString)
-      Log.d(TAG, "Set HTTP headers: $headersString")
-    } else {
-      safeSetPropertyString("http-header-fields", "")
-      Log.d(TAG, "Cleared HTTP headers")
-    }
+    intentHandler.setHttpHeadersFromExtras(extras)
   }
   /**
    * Sets HTTP headers for a specific URI (used for playlist items).
@@ -1369,207 +1323,30 @@ class PlayerActivity :
    * @param intent The intent containing the file URI
    * @return The resolved file path, or null if not found
    */
-  internal fun parsePathFromIntent(intent: Intent): String? =
-    when (intent.action) {
-      Intent.ACTION_VIEW -> {
-        val data = intent.data
-        if (data?.scheme.equals("smb", ignoreCase = true)) {
-          intent.dataString ?: data.toString()
-        } else {
-          data?.resolveUri(this)
-        }
-      }
-      Intent.ACTION_SEND -> parsePathFromSendIntent(intent)
-      else -> intent.getStringExtra("uri")
-    }
+  internal fun parsePathFromIntent(intent: Intent): String? = intentHandler.parsePathFromIntent(intent)
 
-  /**
-   * Parses the file path from a SEND intent.
-   *
-   * This method checks the intent extras for the file path.
-   *
-   * @param intent The SEND intent
-   * @return The resolved file path, or null if not found
-   */
-  private fun parsePathFromSendIntent(intent: Intent): String? =
-    if (intent.hasExtra(Intent.EXTRA_STREAM)) {
-      val uri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-      } else {
-        @Suppress("DEPRECATION")
-        intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-      }
-      uri?.resolveUri(this@PlayerActivity)
-    } else {
-      intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
-        val uri = text.trim().toUri()
-        if (uri.isHierarchical && !uri.isRelative) {
-          uri.resolveUri(this)
-        } else {
-          null
-        }
-      }
-    }
+  private fun parsePathFromSendIntent(intent: Intent): String? = intentHandler.parsePathFromSendIntent(intent)
 
-  /**
-   * Extracts and resolves the file name from the intent.
-   *
-   * @param intent The intent containing the file URI
-   * @return The display name of the file, or empty string if not found
-   */
-  private fun getFileName(intent: Intent): String {
-    // First check if a custom title/filename was provided via intent extras
-    intent.getStringExtra("title")?.let { return it }
-    intent.getStringExtra("filename")?.let { return it }
+  internal fun getFileName(intent: Intent): String = intentHandler.getFileName(intent)
 
-    val uri = extractUriFromIntent(intent) ?: return ""
+  internal fun extractFileNameFromUri(uri: Uri): String = intentHandler.extractFileNameFromUri(uri)
 
-    // Try content resolver first for content:// URIs
-    getDisplayNameFromUri(uri)?.let { return it }
-
-    // Extract filename from URL/URI
-    return extractFileNameFromUri(uri)
-  }
-
-  /**
-   * Extracts filename from URI, handling URL encoding and network URLs properly.
-   * For network streams, returns a temporary name that will be updated async via HTTP headers.
-   *
-   * @param uri The URI to extract filename from
-   * @return The extracted filename
-   */
-  internal fun extractFileNameFromUri(uri: Uri): String {
-    // For HTTP/HTTPS URLs, extract from path (will be updated async via HTTP headers)
-    if (HttpUtils.isNetworkStream(uri)) {
-      // Get the last path segment and decode URL encoding
-      val path = uri.path ?: return uri.host ?: "Network Stream"
-      val lastSegment = path.substringAfterLast("/")
-
-      if (lastSegment.isNotBlank()) {
-        // Decode URL encoding (e.g., %20 -> space)
-        return try {
-          java.net.URLDecoder.decode(lastSegment, "UTF-8")
-            .substringBefore("?") // Remove query parameters
-            .substringBefore("#") // Remove fragments (only for network streams)
-            .takeIf { it.isNotBlank() } ?: uri.host ?: "Network Stream"
-        } catch (e: Exception) {
-          lastSegment
-            .substringBefore("?")
-            .substringBefore("#")
-        }
-      }
-
-      // If no filename in path, use hostname
-      return uri.host ?: "Network Stream"
-    }
-
-    // For file:// and content:// URIs - preserve # characters as they're part of the filename
-    val lastSegment = uri.lastPathSegment?.substringAfterLast("/") ?: uri.path ?: "Unknown Video"
-    
-    // For local files, only decode URL encoding but preserve # characters
-    return try {
-      java.net.URLDecoder.decode(lastSegment, "UTF-8")
-    } catch (e: Exception) {
-      lastSegment
-    }
-  }
-
-  /**
-   * Gets the display title for a playlist item URI.
-   *
-   * @param uri The URI to get the title for
-   * @return The display name/title of the file
-   */
   internal fun getPlaylistItemTitle(uri: Uri): String {
-    // Try content resolver first for content:// URIs
     getDisplayNameFromUri(uri)?.let { return it }
-
-    // Extract filename from URL/URI
     return extractFileNameFromUri(uri)
   }
 
-  /**
-   * Plays a playlist item by index.
-   *
-   * @param index The index of the playlist item to play
-   */
   internal fun playPlaylistItem(index: Int) {
     if (index >= 0 && index < viewModel.playlistManager.playlist.value.size) {
       loadPlaylistItem(index)
     }
   }
 
-  /**
-   * Extracts the URI from the intent based on intent type.
-   *
-   * @param intent The intent to extract URI from
-   * @return The extracted URI, or null if not found
-   */
-  internal fun extractUriFromIntent(intent: Intent): Uri? =
-    if (intent.type == "text/plain") {
-      intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
-    } else {
-      intent.data ?: if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-      } else {
-        @Suppress("DEPRECATION")
-        intent.getParcelableExtra(Intent.EXTRA_STREAM)
-      }
-    }
+  internal fun extractUriFromIntent(intent: Intent): Uri? = intentHandler.extractUriFromIntent(intent)
 
-  /**
-   * Queries the content resolver to get the display name for a URI.
-   *
-   * @param uri The URI to query
-   * @return The display name, or null if not found
-   */
-  internal fun getDisplayNameFromUri(uri: Uri): String? =
-    runCatching {
-      contentResolver
-        .query(
-          uri,
-          arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
-          null,
-          null,
-          null,
-        )?.use { cursor ->
-          if (cursor.moveToFirst()) cursor.getString(0) else null
-        }
-    }.onFailure { e ->
-      Log.e(TAG, "Error getting display name from URI", e)
-    }.getOrNull()
+  internal fun getDisplayNameFromUri(uri: Uri): String? = intentHandler.getDisplayNameFromUri(uri)
 
-  /**
-   * Converts the intent URI to a playable URI string for MPV.
-   *
-   * @param intent The intent containing the file URI
-   * @return A playable URI string, or null if unable to resolve
-   */
-  private fun getPlayableUri(intent: Intent): String? {
-    val uri = parsePathFromIntent(intent)
-      ?: (if (intent.action == Intent.ACTION_VIEW || intent.action == null) {
-        FolderPlaylistOps.extractExternalPlaylist(intent)?.let { playlist ->
-          playlist.items.getOrNull(playlist.initialIndex)?.let { firstUri ->
-            if (firstUri.scheme.equals("smb", ignoreCase = true)) {
-              firstUri.toString()
-            } else {
-              firstUri.resolveUri(this) ?: firstUri.toString()
-            }
-          }
-        }
-      } else null)
-      ?: return null
-
-    return when {
-      uri.startsWith("content://") -> uri.toUri().openContentFd(this)
-      uri.startsWith("smb://", ignoreCase = true) -> {
-        runBlocking(Dispatchers.IO) {
-          FolderPlaylistOps.resolveSmbUri(uri)?.url
-        } ?: uri
-      }
-      else -> uri
-    }
-  }
+  internal fun getPlayableUri(intent: Intent): String? = intentHandler.getPlayableUri(intent)
 
   /**
    * Handles device configuration changes.
@@ -1585,64 +1362,8 @@ class PlayerActivity :
     }
   }
 
-  /**
-   * Sets initial orientation synchronously from intent parameters or metadata cache
-   * to avoid orientation jumps on activity launch or intent update.
-   */
-  private fun applyInitialOrientationFromIntent(targetIntent: Intent) {
-    val orient = playerPreferences.orientation.get()
-    if (orient != PlayerOrientation.Video && orient != PlayerOrientation.Smart) {
-      setOrientation()
-      return
-    }
-
-    // 1. Try saved orientation from intent extras (for Smart mode)
-    val intentSavedOrientation = targetIntent.getIntExtra("saved_orientation", ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
-    if (orient == PlayerOrientation.Smart && intentSavedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-      requestedOrientation = intentSavedOrientation
-      isOrientationRestored = true
-      Log.d(TAG, "applyInitialOrientationFromIntent - Smart mode: using restored orientation $requestedOrientation from intent")
-      return
-    }
-
-    // 2. Try dimensions from intent extras (for Video/Smart mode)
-    val intentWidth = targetIntent.getIntExtra("width", -1)
-    val intentHeight = targetIntent.getIntExtra("height", -1)
-    val intentRotation = targetIntent.getIntExtra("rotation", 0)
-    if (intentWidth > 0 && intentHeight > 0) {
-      setOrientation(intentWidth, intentHeight, intentRotation)
-      return
-    }
-
-    // 3. Fallback: try saved orientation from DB or metadata cache asynchronously
-    val targetFileName = getFileName(targetIntent).ifBlank { targetIntent.data?.lastPathSegment ?: "Unknown Video" }
-    lifecycleScope.launch(Dispatchers.IO) {
-      if (orient == PlayerOrientation.Smart) {
-        val state = playbackStateRepository.getVideoDataByTitle(targetFileName)
-        if (state?.savedOrientation != null && state.savedOrientation != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-          withContext(Dispatchers.Main) {
-            requestedOrientation = state.savedOrientation!!
-            isOrientationRestored = true
-            Log.d(TAG, "applyInitialOrientationFromIntent - Smart mode: using restored orientation $requestedOrientation from DB")
-          }
-          return@launch
-        }
-      }
-
-      val path = parsePathFromIntent(targetIntent)
-      if (path != null) {
-        val file = File(path)
-        if (file.exists() && !xyz.mpv.rex.utils.storage.FileTypeUtils.isAudioFile(file)) {
-          val metadata = metadataCache.getOrExtractMetadata(file, targetIntent.data ?: "".toUri(), targetFileName)
-          if (metadata != null && metadata.width > 0 && metadata.height > 0) {
-            withContext(Dispatchers.Main) {
-              setOrientation(metadata.width, metadata.height, metadata.rotation)
-            }
-          }
-        }
-      }
-    }
-  }
+  private fun applyInitialOrientationFromIntent(targetIntent: Intent) =
+    intentHandler.applyInitialOrientationFromIntent(targetIntent)
 
   /**
    * Handles configuration changes by updating video aspect ratio.
@@ -2337,15 +2058,7 @@ class PlayerActivity :
    * Called when activity is finishing to return data to caller.
    */
   private fun setReturnIntent() {
-    Log.d(TAG, "Setting return intent")
-
-    val resultIntent =
-      Intent(RESULT_INTENT).apply {
-        viewModel.pos?.let { putExtra("position", it * MILLISECONDS_TO_SECONDS) }
-        viewModel.duration?.let { putExtra("duration", it * MILLISECONDS_TO_SECONDS) }
-      }
-
-    setResult(RESULT_OK, resultIntent)
+    intentHandler.setReturnIntent()
   }
 
   /**
@@ -2355,160 +2068,7 @@ class PlayerActivity :
    */
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-
-    isAutoplayNextTriggered = false
-    pendingIntentExtras = true
-    // Update the intent first so getFileName uses the new intent data
-    setIntent(intent)
-
-    val hasIntentMedia = intent.data != null || intent.hasExtra("video_list") || parsePathFromIntent(intent) != null
-    val incomingFileName = getFileName(intent).ifBlank { intent.data?.lastPathSegment ?: "" }
-    val incomingMediaIdentifier = if (incomingFileName.isNotBlank()) getMediaIdentifier(intent, incomingFileName) else ""
-
-    val isSameMedia = isReady && hasIntentMedia &&
-      ((incomingMediaIdentifier.isNotBlank() && incomingMediaIdentifier == mediaIdentifier) ||
-       (incomingFileName.isNotBlank() && incomingFileName == fileName))
-
-    // If expanding active session without intent media, or if the exact same media is already active in foreground
-    if (isReady && (!hasIntentMedia || (isSameMedia && !isInBackgroundPlayback && !isManualBackgroundPlayback))) {
-      Log.d(TAG, "onNewIntent: current media already playing or expanding active session, restoring player without reload")
-      enableVideoAfterBackground()
-      @Suppress("DEPRECATION")
-      overridePendingTransition(android.R.anim.fade_in, 0)
-      return
-    }
-    val externalPlaylist = if (intent.action == Intent.ACTION_VIEW || intent.action == null) {
-      FolderPlaylistOps.extractExternalPlaylist(intent)
-    } else null
-    // Check if this intent has playlist information
-    val hasPlaylistExtras = intent.hasExtra("playlist_id") ||
-      intent.hasExtra("playlist") ||
-      externalPlaylist != null
-
-    // Clean up background playback state when loading a different video
-    if (isManualBackgroundPlayback || isInBackgroundPlayback) {
-      // Reset flag FIRST to prevent the state collector from calling finish()
-      // when clearState() sets isPlaybackActive = false
-      isManualBackgroundPlayback = false
-      endBackgroundPlayback()
-      enableVideoAfterBackground()
-      miniPlayerStateManager.clearState()
-    }
-
-    // Clear stale playlist from previous video so auto-generate runs fresh for the new file
-    viewModel.playlistManager.setPlaylist(items = emptyList(), index = 0)
-
-    // Load playlist from intent extras first (fast path)
-    val playlistFromIntent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-      intent.getParcelableArrayListExtra("playlist", Uri::class.java) ?: emptyList()
-    } else {
-      @Suppress("DEPRECATION")
-      intent.getParcelableArrayListExtra("playlist") ?: emptyList()
-    }
-
-
-    // Only update playlist state if we have new playlist information
-    // This prevents losing the playlist when coming back from notification/PiP
-    if (externalPlaylist != null) {
-      viewModel.playlistManager.setPlaylist(
-        items = externalPlaylist.items,
-        index = externalPlaylist.initialIndex,
-        titles = externalPlaylist.titles
-      )
-      Log.d(TAG, "onNewIntent: Loaded external playlist: ${externalPlaylist.items.size} items at index ${externalPlaylist.initialIndex}")
-      updateMiniPlayerPlaylistState()
-    } else if (hasPlaylistExtras || playlistFromIntent.isNotEmpty()) {
-      val newPlaylistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
-      val newPlaylistIndex = intent.getIntExtra("playlist_index", 0)
-      val titlesFromIntent = intent.getStringArrayListExtra("playlist_titles") ?: emptyList()
-      
-      viewModel.playlistManager.setPlaylist(
-        items = playlistFromIntent,
-        index = newPlaylistIndex,
-        id = newPlaylistId,
-        titles = titlesFromIntent
-      )
-    }
-
-    // If playlist is empty but playlist_id is provided, load from database
-    if (viewModel.playlistManager.playlist.value.isEmpty() && viewModel.playlistManager.playlistId != null) {
-      lifecycleScope.launch(Dispatchers.IO) {
-        val pid = viewModel.playlistManager.playlistId ?: return@launch
-        try {
-          val playlistItems = playlistRepository.getPlaylistItems(pid)
-          val items = playlistItems.map { item ->
-            if (item.filePath.startsWith("/") || item.filePath.startsWith("file://")) {
-              val path = if (item.filePath.startsWith("file://")) item.filePath.removePrefix("file://") else item.filePath
-              Uri.fromFile(File(path))
-            } else {
-              Uri.parse(item.filePath)
-            }
-          }
-          val titles = playlistItems.map { it.fileName }
-          val totalCount = items.size
-          withContext(Dispatchers.Main) {
-            viewModel.playlistManager.setPlaylist(
-              items = items,
-              index = viewModel.playlistManager.currentIndex.value,
-              id = pid,
-              totalCount = totalCount,
-              titles = titles
-            )
-            Log.d(TAG, "onNewIntent: Loaded ${items.size} items from playlist $pid")
-            updateMiniPlayerPlaylistState()
-          }
-        } catch (e: Exception) {
-          Log.e(TAG, "onNewIntent: Failed to load playlist from database", e)
-        }
-      }
-    }
-
-    // Auto-generate playlist from folder if playlist mode is enabled and no playlist_id
-    if (viewModel.playlistManager.playlist.value.isEmpty() && viewModel.playlistManager.playlistId == null && playerPreferences.playlistMode.get()) {
-      autoGeneratePlaylist(intent)
-    }
-
-    // Extract the new fileName before loading the file
-    fileName = if (externalPlaylist != null && !externalPlaylist.titles.getOrNull(externalPlaylist.initialIndex).isNullOrBlank()) {
-      externalPlaylist.titles[externalPlaylist.initialIndex]
-    } else {
-      getFileName(intent)
-    }
-    if (fileName.isBlank()) {
-      fileName = intent.data?.lastPathSegment ?: "Unknown Video"
-    }
-    mediaIdentifier = getMediaIdentifier(intent, fileName)
-    viewModel.setMediaTitle(fileName)
-    viewModel.setMediaIdentifier(mediaIdentifier)
-    jellyfinExternalInfo = xyz.mpv.rex.jellyfin.JellyfinExternalHelper.detect(intent)
-
-    // Synchronously set orientation for the new file before displaying activity
-    applyInitialOrientationFromIntent(intent)
-
-    // Set HTTP headers (including referer) BEFORE loading the new file
-    setHttpHeadersFromExtras(intent.extras)
-
-    // Load the new file
-    getPlayableUri(intent)?.let { uriStr ->
-      switchActiveNetworkStream(uriStr)
-
-      val parsedUri = runCatching { Uri.parse(uriStr) }.getOrNull()
-      val fastDurationMs = if (parsedUri != null) getFastDurationMsForUri(parsedUri) else 0L
-      val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null
-      viewModel.prepareForFileLoad(fastDurationSec)
-
-      if (parsedUri != null && isUriM3U(parsedUri)) {
-        loadM3uPlaylistOrPlayDirectly(uriStr)
-      } else {
-        if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
-          runCatching { MPVLib.setPropertyBoolean("pause", true) }
-        }
-        // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
-        lifecycleScope.launch(Dispatchers.Default) {
-          MPVLib.command("loadfile", uriStr)
-        }
-      }
-    }
+    intentHandler.handleNewIntent(intent)
   }
 
   // ==================== Picture-in-Picture Management ====================
@@ -2526,22 +2086,7 @@ class PlayerActivity :
     newConfig: Configuration,
   ) {
     super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-
-    wasInPipMode = isInPictureInPictureMode
-    pipHelper.onPictureInPictureModeChanged(isInPictureInPictureMode)
-
-    binding.controls.alpha = if (isInPictureInPictureMode) 0f else 1f
-
-    runCatching {
-      if (isInPictureInPictureMode) {
-        miniPlayerStateManager.clearState()
-        enterPipUIMode()
-      } else {
-        exitPipUIMode()
-      }
-    }.onFailure { e ->
-      Log.e(TAG, "Error handling PiP mode change", e)
-    }
+    pipController.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
   }
 
   /**
@@ -2549,7 +2094,7 @@ class PlayerActivity :
    * Shows system UI and navigation bars.
    */
   private fun enterPipUIMode() {
-    systemUiController.enterPipUIMode()
+    pipController.enterPipUIMode()
   }
 
   /**
@@ -2557,23 +2102,14 @@ class PlayerActivity :
    * Hides system UI for immersive playback.
    */
   private fun exitPipUIMode() {
-    systemUiController.exitPipUIMode()
+    pipController.exitPipUIMode()
   }
 
   /**
    * Enters Picture-in-Picture mode and hides all overlay controls.
    */
   fun enterPipModeHidingOverlay() {
-    runCatching {
-      enterPipUIMode()
-    }.onFailure { e ->
-      Log.e(TAG, "Error entering PiP mode with hidden overlay", e)
-    }
-
-    binding.controls.alpha = 0f
-    miniPlayerStateManager.clearState()
-
-    pipHelper.enterPipMode()
+    pipController.enterPipModeHidingOverlay()
   }
 
   // ==================== Orientation Management ====================
@@ -2585,7 +2121,7 @@ class PlayerActivity :
    * @param height Optional video height from metadata to set orientation before video loads
    * @param rotation Optional video rotation from metadata to correctly determine aspect ratio
    */
-  private fun setOrientation(width: Int = -1, height: Int = -1, rotation: Int = 0) {
+  internal fun setOrientation(width: Int = -1, height: Int = -1, rotation: Int = 0) {
     orientationController.setOrientation(width, height, rotation)
   }
 
@@ -2693,7 +2229,7 @@ class PlayerActivity :
   /**
    * Stops the background playback service and unbinds from it.
    */
-  private fun endBackgroundPlayback() {
+  internal fun endBackgroundPlayback() {
     backgroundPlaybackController.endBackgroundPlayback()
   }
 
@@ -2724,7 +2260,7 @@ class PlayerActivity :
   /**
    * Restores video decoding when returning from background playback.
    */
-  private fun enableVideoAfterBackground() {
+  internal fun enableVideoAfterBackground() {
     backgroundPlaybackController.enableVideoAfterBackground(
       mpvInitialized = mpvInitialized,
       onSetPropertyString = { prop, value -> safeSetPropertyString(prop, value) },

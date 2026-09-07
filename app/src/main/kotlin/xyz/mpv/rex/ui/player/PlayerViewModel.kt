@@ -63,6 +63,8 @@ import kotlin.reflect.KProperty
 import xyz.mpv.rex.ui.player.managers.AmbientModeManager
 import xyz.mpv.rex.ui.player.managers.CustomButtonManager
 import xyz.mpv.rex.ui.player.managers.PlaybackManager
+import xyz.mpv.rex.ui.player.managers.PlayerGestureManager
+import xyz.mpv.rex.ui.player.managers.PlayerSnapshotManager
 import xyz.mpv.rex.ui.player.managers.PlaylistManager
 import xyz.mpv.rex.ui.player.managers.SubtitleManager
 import xyz.mpv.rex.ui.player.managers.TrackManager
@@ -171,6 +173,35 @@ class PlayerViewModel(
   )
   val trackManager: TrackManager get() = _trackManager
 
+  /**
+   * Manager for snapshots and screenshots.
+   */
+  private val _snapshotManager by lazy {
+    PlayerSnapshotManager(playerPreferences)
+  }
+  val snapshotManager: PlayerSnapshotManager get() = _snapshotManager
+
+  /**
+   * Manager for touch gestures, double-tap seek, and gesture action mapping.
+   */
+  private val _gestureManager by lazy {
+    PlayerGestureManager(
+      gesturePreferences = gesturePreferences,
+      playerPreferences = playerPreferences,
+      playbackManager = _playbackManager,
+      scope = viewModelScope,
+      getPosition = { pos },
+      getDuration = { duration },
+      onSeekTo = { seekTo(it) },
+      onSeekBy = { seekBy(it) },
+      onShowSeekBar = { showSeekBar() },
+      onPauseUnpause = { pauseUnpause() },
+      onPlayNext = { playNext() },
+      onPlayPrevious = { playPrevious() },
+    )
+  }
+  val gestureManager: PlayerGestureManager get() = _gestureManager
+
   // Subtitle state delegates
   val isDownloadingSub = _subtitleManager.isDownloadingSub
   val isSearchingSub = _subtitleManager.isSearchingSub
@@ -239,16 +270,15 @@ class PlayerViewModel(
   val currentVolume = MutableStateFlow(host.audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
   private val volumeBoostCap by MPVLib.propInt["volume-max"].collectAsState(viewModelScope)
   
-  // Gesture state for seekbar bouncing animation
-  private val _isGestureSeeking = MutableStateFlow(false)
-  val isGestureSeeking: StateFlow<Boolean> = _isGestureSeeking.asStateFlow()
+  // Gesture state delegates
+  val isGestureSeeking: StateFlow<Boolean> get() = _gestureManager.isGestureSeeking
 
   fun setGestureSeeking(isSeeking: Boolean) {
-    _isGestureSeeking.value = isSeeking
+    _gestureManager.setGestureSeeking(isSeeking)
   }
 
   // Gesture state for vertical bouncing animation
-  val isVerticalGestureActive = MutableStateFlow(false)
+  val isVerticalGestureActive: MutableStateFlow<Boolean> get() = _gestureManager.isVerticalGestureActive
 
   val maxVolume = host.audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
@@ -330,20 +360,11 @@ class PlayerViewModel(
   val panelShown = MutableStateFlow(Panels.None)
   val isSpeedLocked = MutableStateFlow(false)
 
-  // Seek state
-  private val _seekText = MutableStateFlow<String?>(null)
-  val seekText: StateFlow<String?> = _seekText.asStateFlow()
-
-  private val _doubleTapSeekAmount = MutableStateFlow(0)
-  val doubleTapSeekAmount: StateFlow<Int> = _doubleTapSeekAmount.asStateFlow()
-
-  // Captured position at the start of a double-tap seek sequence so the time
-  // display stays stable while MPV's time-pos asynchronously catches up.
-  private val _doubleTapSeekBasePos = MutableStateFlow<Int?>(null)
-  val doubleTapSeekBasePos: StateFlow<Int?> = _doubleTapSeekBasePos.asStateFlow()
-
-  private val _isSeekingForwards = MutableStateFlow(false)
-  val isSeekingForwards: StateFlow<Boolean> = _isSeekingForwards.asStateFlow()
+  // Seek state delegates
+  val seekText: StateFlow<String?> get() = _gestureManager.seekText
+  val doubleTapSeekAmount: StateFlow<Int> get() = _gestureManager.doubleTapSeekAmount
+  val doubleTapSeekBasePos: StateFlow<Int?> get() = _gestureManager.doubleTapSeekBasePos
+  val isSeekingForwards: StateFlow<Boolean> get() = _gestureManager.isSeekingForwards
 
   // Frame navigation
   private val _currentFrame = MutableStateFlow(0)
@@ -355,8 +376,7 @@ class PlayerViewModel(
   private val _isFrameNavigationExpanded = MutableStateFlow(false)
   val isFrameNavigationExpanded: StateFlow<Boolean> = _isFrameNavigationExpanded.asStateFlow()
 
-  private val _isSnapshotLoading = MutableStateFlow(false)
-  val isSnapshotLoading: StateFlow<Boolean> = _isSnapshotLoading.asStateFlow()
+  val isSnapshotLoading: StateFlow<Boolean> get() = _snapshotManager.isSnapshotLoading
 
   // Video zoom
   private val _videoZoom = MutableStateFlow(0f)
@@ -622,7 +642,7 @@ class PlayerViewModel(
     fun callCustomButtonLongPress(id: String) = _customButtonManager.callButtonLongPress(id)
 
   // Cached values
-  private val doubleTapToSeekDuration by lazy { gesturePreferences.doubleTapToSeekDuration.get() }
+  val doubleTapToSeekDuration: Int get() = _gestureManager.doubleTapToSeekDuration
   private val inputMethodManager by lazy {
     host.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
   }
@@ -917,91 +937,23 @@ class PlayerViewModel(
     _playbackManager.setSubSpeed(speed)
   }
 
-  fun leftSeek() {
-    if (_doubleTapSeekAmount.value == 0) _doubleTapSeekBasePos.value = pos
-    if ((pos ?: 0) > 0) {
-      _doubleTapSeekAmount.value -= doubleTapToSeekDuration
-    }
-    _isSeekingForwards.value = false
-    seekBy(-doubleTapToSeekDuration)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
+  fun leftSeek() = _gestureManager.leftSeek()
 
-  fun rightSeek() {
-    if (_doubleTapSeekAmount.value == 0) _doubleTapSeekBasePos.value = pos
-    val curDuration = duration ?: 0
-    if (curDuration <= 0 || (pos ?: 0) < curDuration) {
-      _doubleTapSeekAmount.value += doubleTapToSeekDuration
-    }
-    _isSeekingForwards.value = true
-    seekBy(doubleTapToSeekDuration)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
+  fun rightSeek() = _gestureManager.rightSeek()
 
-  fun leftSubSeek() {
-    _playbackManager.subSeek(
-      scope = viewModelScope,
-      forward = false,
-      onDiffCalculated = { diff ->
-        _isSeekingForwards.value = false
-        _doubleTapSeekAmount.value += diff.toInt()
-      },
-      onFallback = { leftSeek() }
-    )
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
+  fun leftSubSeek() = _gestureManager.leftSubSeek()
 
-  fun rightSubSeek() {
-    _playbackManager.subSeek(
-      scope = viewModelScope,
-      forward = true,
-      onDiffCalculated = { diff ->
-        _isSeekingForwards.value = true
-        _doubleTapSeekAmount.value += diff.toInt()
-      },
-      onFallback = { rightSeek() }
-    )
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
+  fun rightSubSeek() = _gestureManager.rightSubSeek()
 
-  fun updateSeekAmount(amount: Int) {
-    _doubleTapSeekAmount.value = amount
-    if (amount == 0) _doubleTapSeekBasePos.value = null
-  }
+  fun updateSeekAmount(amount: Int) = _gestureManager.updateSeekAmount(amount)
 
-  fun updateSeekText(text: String?) {
-    _seekText.value = text
-  }
+  fun updateSeekText(text: String?) = _gestureManager.updateSeekText(text)
 
-  fun updateIsSeekingForwards(isForwards: Boolean) {
-    _isSeekingForwards.value = isForwards
-  }
+  fun updateIsSeekingForwards(isForwards: Boolean) = _gestureManager.updateIsSeekingForwards(isForwards)
 
-  private fun seekToWithText(
-    seekValue: Int,
-    text: String?,
-  ) {
-    val currentPos = pos ?: return
-    _isSeekingForwards.value = seekValue > currentPos
-    _doubleTapSeekAmount.value = seekValue - currentPos
-    _seekText.value = text
-    seekTo(seekValue)
-  }
+  internal fun seekToWithText(seekValue: Int, text: String?) = _gestureManager.seekToWithText(seekValue, text)
 
-  private fun seekByWithText(
-    value: Int,
-    text: String?,
-  ) {
-    val currentPos = pos ?: return
-    val maxDuration = duration ?: 0
-
-    _doubleTapSeekAmount.update {
-      if ((value < 0 && it < 0) || (maxDuration > 0 && currentPos + value > maxDuration)) 0 else it + value
-    }
-    _seekText.value = text
-    _isSeekingForwards.value = value > 0
-    seekBy(value)
-  }
+  internal fun seekByWithText(value: Int, text: String?) = _gestureManager.seekByWithText(value, text)
 
   // ==================== Brightness & Volume ====================
 
@@ -1294,70 +1246,29 @@ class PlayerViewModel(
 
   // ==================== Gesture Handling ====================
 
-  private fun executeGestureAction(
+  fun executeGestureAction(
     action: SingleActionGesture,
     isLeft: Boolean = false,
     isRight: Boolean = false,
-  ) {
-    when (action) {
-      SingleActionGesture.Seek -> {
-        if (isLeft) leftSeek() else if (isRight) rightSeek()
-      }
-      SingleActionGesture.SubSeek -> {
-        if (isLeft) leftSubSeek() else if (isRight) rightSubSeek()
-      }
-      SingleActionGesture.PlayPause -> pauseUnpause()
-      SingleActionGesture.Custom -> {
-        viewModelScope.launch(Dispatchers.IO) {
-          val keyCode = when {
-            isLeft -> CustomKeyCodes.DoubleTapLeft.keyCode
-            isRight -> CustomKeyCodes.DoubleTapRight.keyCode
-            else -> CustomKeyCodes.DoubleTapCenter.keyCode
-          }
-          MPVLib.command("keypress", keyCode)
-        }
-      }
-      SingleActionGesture.PlaylistNext -> playNext()
-      SingleActionGesture.PlaylistPrev -> playPrevious()
-      SingleActionGesture.None -> {}
-    }
-  }
+  ) = _gestureManager.executeGestureAction(action, isLeft, isRight)
 
-  fun handleLeftDoubleTap() {
-    executeGestureAction(gesturePreferences.leftSingleActionGesture.get(), isLeft = true)
-  }
+  fun handleLeftDoubleTap() = _gestureManager.handleLeftDoubleTap()
 
-  fun handleCenterDoubleTap() {
-    executeGestureAction(gesturePreferences.centerSingleActionGesture.get())
-  }
+  fun handleCenterDoubleTap() = _gestureManager.handleCenterDoubleTap()
 
-  fun handleCenterSingleTap() {
-    executeGestureAction(gesturePreferences.centerSingleActionGesture.get())
-  }
+  fun handleCenterSingleTap() = _gestureManager.handleCenterSingleTap()
 
-  fun handleLeftSingleTap() {
-    executeGestureAction(gesturePreferences.leftSingleActionGesture.get(), isLeft = true)
-  }
+  fun handleLeftSingleTap() = _gestureManager.handleLeftSingleTap()
 
-  fun handleRightSingleTap() {
-    executeGestureAction(gesturePreferences.rightSingleActionGesture.get(), isRight = true)
-  }
+  fun handleRightSingleTap() = _gestureManager.handleRightSingleTap()
 
-  fun handleRightDoubleTap() {
-    executeGestureAction(gesturePreferences.rightSingleActionGesture.get(), isRight = true)
-  }
+  fun handleRightDoubleTap() = _gestureManager.handleRightDoubleTap()
 
-  fun handleMediaPlayPause() {
-    executeGestureAction(gesturePreferences.mediaPlayGesture.get())
-  }
+  fun handleMediaPlayPause() = _gestureManager.handleMediaPlayPause()
 
-  fun handleMediaNext() {
-    executeGestureAction(gesturePreferences.mediaNextGesture.get(), isRight = true)
-  }
+  fun handleMediaNext() = _gestureManager.handleMediaNext()
 
-  fun handleMediaPrevious() {
-    executeGestureAction(gesturePreferences.mediaPreviousGesture.get(), isLeft = true)
-  }
+  fun handleMediaPrevious() = _gestureManager.handleMediaPrevious()
 
   // ==================== Video Zoom ====================
 
@@ -1487,133 +1398,7 @@ class PlayerViewModel(
     )
   }
 
-  fun takeSnapshot(context: Context) {
-    viewModelScope.launch(Dispatchers.IO) {
-      _isSnapshotLoading.value = true
-      try {
-        val includeSubtitles = playerPreferences.includeSubtitlesInSnapshot.get()
-
-        // Generate filename with timestamp
-        val timestamp =
-          java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
-        val filename = "mpv_snapshot_$timestamp.png"
-
-        // Create a temporary file first
-        val tempFile = File(context.cacheDir, filename)
-
-        // Take screenshot using MPV to temp file, with or without subtitles
-        if (includeSubtitles) {
-          MPVLib.command("screenshot-to-file", tempFile.absolutePath, "subtitles")
-        } else {
-          MPVLib.command("screenshot-to-file", tempFile.absolutePath, "video")
-        }
-
-        // Wait a bit for MPV to finish writing the file
-        delay(200)
-
-        // Check if file was created
-        if (!tempFile.exists() || tempFile.length() == 0L) {
-          withContext(Dispatchers.Main) {
-            Toast.makeText(context, "Failed to create screenshot", Toast.LENGTH_SHORT).show()
-          }
-          return@launch
-        }
-
-        // Use different methods based on Android version
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-          // Android 10+ - Use MediaStore with RELATIVE_PATH
-          val contentValues =
-            android.content.ContentValues().apply {
-              put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, filename)
-              put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
-              put(
-                android.provider.MediaStore.Images.Media.RELATIVE_PATH,
-                "${android.os.Environment.DIRECTORY_PICTURES}/mpvSnaps",
-              )
-              put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
-            }
-
-          val resolver = context.contentResolver
-          val imageUri =
-            resolver.insert(
-              android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-              contentValues,
-            )
-
-          if (imageUri != null) {
-            // Copy temp file to MediaStore
-            resolver.openOutputStream(imageUri)?.use { outputStream ->
-              tempFile.inputStream().use { inputStream ->
-                inputStream.copyTo(outputStream)
-              }
-            }
-
-            // Mark as finished
-            contentValues.clear()
-            contentValues.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
-            resolver.update(imageUri, contentValues, null, null)
-
-            // Delete temp file
-            tempFile.delete()
-
-            // Show success toast
-            withContext(Dispatchers.Main) {
-              Toast
-                .makeText(
-                  context,
-                  context.getString(R.string.player_sheets_frame_navigation_snapshot_saved),
-                  Toast.LENGTH_SHORT,
-                ).show()
-            }
-          } else {
-            throw Exception("Failed to create MediaStore entry")
-          }
-        } else {
-          // Android 9 and below - Use legacy external storage
-          val picturesDir =
-            android.os.Environment.getExternalStoragePublicDirectory(
-              android.os.Environment.DIRECTORY_PICTURES,
-            )
-          val snapshotsDir = File(picturesDir, "mpvSnaps")
-
-          // Create directory if it doesn't exist
-          if (!snapshotsDir.exists()) {
-            val created = snapshotsDir.mkdirs()
-            if (!created && !snapshotsDir.exists()) {
-              throw Exception("Failed to create mpvSnaps directory")
-            }
-          }
-
-          val destFile = File(snapshotsDir, filename)
-          tempFile.copyTo(destFile, overwrite = true)
-          tempFile.delete()
-
-          // Notify media scanner about the new file
-          android.media.MediaScannerConnection.scanFile(
-            context,
-            arrayOf(destFile.absolutePath),
-            arrayOf("image/png"),
-            null,
-          )
-
-          withContext(Dispatchers.Main) {
-            Toast
-              .makeText(
-                context,
-                context.getString(R.string.player_sheets_frame_navigation_snapshot_saved),
-                Toast.LENGTH_SHORT,
-              ).show()
-          }
-        }
-      } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-          Toast.makeText(context, "Failed to save snapshot: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-      } finally {
-        _isSnapshotLoading.value = false
-      }
-    }
-  }
+  fun takeSnapshot(context: Context) = _snapshotManager.takeSnapshot(context, viewModelScope)
 
   // ==================== Playlist Management ====================
 

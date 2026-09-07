@@ -56,6 +56,7 @@ import xyz.mpv.rex.preferences.FolderSortType
 import xyz.mpv.rex.preferences.SortOrder
 import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
 import xyz.mpv.rex.ui.player.controls.PlayerControls
+import xyz.mpv.rex.ui.player.delegates.PlayerAudioController
 import xyz.mpv.rex.ui.player.delegates.PlayerKeyEventHandler
 import xyz.mpv.rex.ui.player.delegates.PlayerOrientationController
 import xyz.mpv.rex.ui.player.delegates.PlayerSystemUiController
@@ -158,6 +159,21 @@ class PlayerActivity :
       playerPreferences = playerPreferences,
       rootViewProvider = { binding.root },
       onUpdatePipParams = { pipHelper.updatePictureInPictureParams() },
+    )
+  }
+
+  /**
+   * Delegate for managing audio focus and becoming-noisy events.
+   */
+  private val audioController by lazy {
+    PlayerAudioController(
+      context = this,
+      audioManager = audioManager,
+      onPausePlayback = { viewModel.pause() },
+      onUnpausePlayback = { viewModel.unpause() },
+      isPlayerPaused = { viewModel.paused ?: false },
+      onDuckVolume = { factor -> MPVLib.command("multiply", "volume", factor.toString()) },
+      onClearKeepScreenOn = { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) },
     )
   }
 
@@ -277,7 +293,6 @@ class PlayerActivity :
   private var isUserFinishing = false
   private var wasInPipMode = false // Track if activity was in PiP mode
   private var isManualBackgroundPlayback = false // Track manual background playback trigger
-  private var noisyReceiverRegistered = false
   private var mpvInitialized = false // Track MPV initialization state
   private var savePlaybackStateJob: kotlinx.coroutines.Job? = null // Track ongoing save job
   private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
@@ -318,74 +333,6 @@ class PlayerActivity :
    */
   private lateinit var playbackStateBuilder: PlaybackState.Builder
 
-  // ==================== Audio Focus ====================
-
-  /**
-   * Audio focus request for API 26+.
-   */
-  private var audioFocusRequest: AudioFocusRequest? = null
-
-  /**
-   * Callback to restore audio focus after it's been lost and regained.
-   */
-  private var restoreAudioFocus: () -> Unit = {}
-
-  // ==================== Broadcast Receivers ====================
-
-  /**
-   * Receiver for handling noisy audio events.
-   */
-  private val noisyReceiver =
-    object : BroadcastReceiver() {
-      override fun onReceive(
-        context: Context?,
-        intent: Intent?,
-      ) {
-        if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-          viewModel.pause()
-          window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-      }
-    }
-
-  /**
-   * Listener for audio focus changes.
-   */
-  private val audioFocusChangeListener =
-    AudioManager.OnAudioFocusChangeListener { focusChange ->
-      when (focusChange) {
-        AudioManager.AUDIOFOCUS_LOSS,
-        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
-          -> {
-          // Save current state to restore later
-          val oldRestore = restoreAudioFocus
-          val wasPlayerPaused = viewModel.paused ?: false
-          viewModel.pause()
-          restoreAudioFocus = {
-            oldRestore()
-            if (!wasPlayerPaused) viewModel.unpause()
-          }
-        }
-
-        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-          // Lower volume temporarily
-          MPVLib.command("multiply", "volume", "0.5")
-          restoreAudioFocus = {
-            MPVLib.command("multiply", "volume", "2")
-          }
-        }
-
-        AudioManager.AUDIOFOCUS_GAIN -> {
-          // Restore previous audio state
-          restoreAudioFocus()
-          restoreAudioFocus = {}
-        }
-
-        AudioManager.AUDIOFOCUS_REQUEST_FAILED -> {
-          Log.d(TAG, "Audio focus request failed")
-        }
-      }
-    }
 
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -720,49 +667,13 @@ class PlayerActivity :
       }
     }
 
-    if (!serviceBound) {
-      audioFocusRequest =
-        AudioFocusRequest
-          .Builder(AudioManager.AUDIOFOCUS_GAIN)
-          .setAudioAttributes(
-            AudioAttributes
-              .Builder()
-              .setUsage(AudioAttributes.USAGE_MEDIA)
-              .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
-              .build(),
-          ).setOnAudioFocusChangeListener(audioFocusChangeListener)
-          .setAcceptsDelayedFocusGain(true)
-          .setWillPauseWhenDucked(true)
-          .build()
-      if (playerPreferences.autoplayOnOpen.get()) {
-        requestAudioFocus()
-      }
-    }
+    audioController.setupAudioFocus(serviceBound, playerPreferences.autoplayOnOpen.get())
   }
 
   /**
    * @return true if audio focus was granted immediately, false otherwise
    */
-  override fun requestAudioFocus(): Boolean {
-    val req = audioFocusRequest ?: return false
-    val result = audioManager.requestAudioFocus(req)
-    return when (result) {
-      AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
-        restoreAudioFocus = {}
-        true
-      }
-
-      AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
-        restoreAudioFocus = { requestAudioFocus() }
-        false
-      }
-
-      else -> {
-        restoreAudioFocus = {}
-        false
-      }
-    }
-  }
+  override fun requestAudioFocus(): Boolean = audioController.requestAudioFocus()
 
   override fun onUserLeaveHint() {
     super.onUserLeaveHint()
@@ -884,10 +795,7 @@ class PlayerActivity :
   }
 
   override fun abandonAudioFocus() {
-    if (restoreAudioFocus != {}) {
-      audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
-      restoreAudioFocus = {}
-    }
+    audioController.abandonAudioFocus()
   }
 
   private fun cleanupAudio() {
@@ -895,12 +803,7 @@ class PlayerActivity :
   }
 
   private fun cleanupReceivers() {
-    if (noisyReceiverRegistered) {
-      runCatching {
-        unregisterReceiver(noisyReceiver)
-        noisyReceiverRegistered = false
-      }
-    }
+    audioController.unregisterNoisyReceiver()
   }
 
   @RequiresApi(Build.VERSION_CODES.P)
@@ -992,10 +895,7 @@ class PlayerActivity :
       pipHelper.onStop()
       saveVideoPlaybackState(fileName)
 
-      if (noisyReceiverRegistered) {
-        unregisterReceiver(noisyReceiver)
-        noisyReceiverRegistered = false
-      }
+      audioController.unregisterNoisyReceiver()
 
       // Handle background playback based on preferences
       val isEnding = isUserFinishing || isFinishing
@@ -1038,11 +938,7 @@ class PlayerActivity :
       // Restore video if it was disabled for background playback
       enableVideoAfterBackground()
 
-      if (!noisyReceiverRegistered) {
-        val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-        registerReceiver(noisyReceiver, filter)
-        noisyReceiverRegistered = true
-      }
+      audioController.registerNoisyReceiver()
 
       if (playerPreferences.rememberBrightness.get()) {
         val brightness = playerPreferences.defaultBrightness.get()

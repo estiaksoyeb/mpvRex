@@ -431,36 +431,6 @@ class PlayerViewModel(
   // Expose ambient mode state through the manager
   val isAmbientEnabled: StateFlow<Boolean> = ambientModeManager.isAmbientEnabled
 
-  // ==================== Screen Unlock Resume ===============================
-
-  private val _screenStateManager = ScreenStateManager(
-    context = appContext,
-    playerPreferences = playerPreferences,
-    onResumePlayback = { unpause() },
-    isPaused = { paused ?: true }
-  )
-  val screenStateManager: ScreenStateManager get() = _screenStateManager
-
-  var isActivityResumed: Boolean
-    get() = _screenStateManager.isActivityResumed
-    set(value) { _screenStateManager.isActivityResumed = value }
-
-  var isActivityStarted: Boolean
-    get() = _screenStateManager.isActivityStarted
-    set(value) { _screenStateManager.isActivityStarted = value }
-
-  var wasPlayingBeforePause: Boolean
-    get() = _screenStateManager.wasPlayingBeforePause
-    set(value) { _screenStateManager.wasPlayingBeforePause = value }
-
-  fun setupScreenStateReceiver() {
-    _screenStateManager.setup()
-  }
-
-  fun handlePendingResumeOnUnlock() {
-    _screenStateManager.handlePendingResumeOnUnlock()
-  }
-
   init {
     // Track selection is now handled by TrackSelector in PlayerActivity
     
@@ -934,7 +904,6 @@ class PlayerViewModel(
         MPVLib.setPropertyBoolean("pause", false)
       } else {
         // We are about to pause
-        wasPlayingBeforePause = false
         MPVLib.setPropertyBoolean("pause", true)
         withContext(Dispatchers.Main) { host.abandonAudioFocus() }
       }
@@ -943,7 +912,6 @@ class PlayerViewModel(
 
   fun pause() {
     viewModelScope.launch(Dispatchers.IO) {
-      wasPlayingBeforePause = false
       MPVLib.setPropertyBoolean("pause", true)
       withContext(Dispatchers.Main) { host.abandonAudioFocus() }
     }
@@ -2385,7 +2353,6 @@ class PlayerViewModel(
 
   override fun onCleared() {
     super.onCleared()
-    _screenStateManager.cleanup()
     ambientModeManager.cleanup()
   }
 }

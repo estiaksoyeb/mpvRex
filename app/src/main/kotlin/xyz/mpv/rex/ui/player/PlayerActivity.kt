@@ -371,7 +371,6 @@ class PlayerActivity :
     setupPlayerControls()
     setupPipHelper()
     setupMediaSession()
-    viewModel.setupScreenStateReceiver()
 
     miniPlayerStateManager.onNextHandler = { playNext() }
     miniPlayerStateManager.onPreviousHandler = { playPrevious() }
@@ -863,7 +862,6 @@ class PlayerActivity :
 
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onPause() {
-    viewModel.isActivityResumed = false
     runCatching {
       val isInPip = isInPictureInPictureMode
       val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
@@ -877,7 +875,6 @@ class PlayerActivity :
         miniPlayerStateManager.clearState()
       } else if (!isInMultiWindow) {
         if (shouldPause) {
-          viewModel.wasPlayingBeforePause = !(viewModel.paused ?: true)
           viewModel.pause()
         } else {
           // Background playback is active - disable video decoding to save battery
@@ -948,7 +945,6 @@ class PlayerActivity :
   }
 
   override fun onStop() {
-    viewModel.isActivityStarted = false
     runCatching {
       pipHelper.onStop()
       saveVideoPlaybackState(fileName)
@@ -989,7 +985,6 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onStart() {
     super.onStart()
-    viewModel.isActivityStarted = true
 
     runCatching {
       setupWindowFlags()
@@ -1200,10 +1195,8 @@ class PlayerActivity :
 
   override fun onResume() {
     super.onResume()
-    viewModel.isActivityResumed = true
     enableVideoAfterBackground()
     updateVolume()
-    viewModel.handlePendingResumeOnUnlock()
   }
 
   /**

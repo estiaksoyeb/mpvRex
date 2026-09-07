@@ -100,7 +100,6 @@ object PlayerPreferencesScreen : Screen {
             val rememberBrightness by preferences.rememberBrightness.collectAsState()
             val autoPiPOnNavigation by preferences.autoPiPOnNavigation.collectAsState()
             val keepScreenOnWhenPaused by preferences.keepScreenOnWhenPaused.collectAsState()
-            val resumeOnUnlock by preferences.resumeOnUnlock.collectAsState()
 
             GroupedListColumn {
               GroupedPreferenceCard(
@@ -322,7 +321,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
+                position = GroupPosition.LAST,
                 highlightKey = R.string.pref_player_keep_screen_on_when_paused_title,
               ) {
                 SwitchPreference(
@@ -335,26 +334,6 @@ object PlayerPreferencesScreen : Screen {
                         stringResource(R.string.pref_player_keep_screen_on_when_paused_summary_on)
                       else
                         stringResource(R.string.pref_player_keep_screen_on_when_paused_summary_off),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_player_resume_on_unlock_title,
-              ) {
-                SwitchPreference(
-                  value = resumeOnUnlock,
-                  onValueChange = preferences.resumeOnUnlock::set,
-                  title = { Text(stringResource(R.string.pref_player_resume_on_unlock_title)) },
-                  summary = {
-                    Text(
-                      text = if (resumeOnUnlock)
-                        stringResource(R.string.pref_player_resume_on_unlock_summary_on)
-                      else
-                        stringResource(R.string.pref_player_resume_on_unlock_summary_off),
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },

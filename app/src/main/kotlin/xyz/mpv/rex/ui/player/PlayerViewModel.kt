@@ -341,7 +341,13 @@ class PlayerViewModel(
   val videoZoom: StateFlow<Float> = _videoZoom.asStateFlow()
 
  // Video aspect ratio (now persisted via preferences)
-  private val _videoAspect = MutableStateFlow(playerPreferences.defaultVideoAspect.get())
+  private val _videoAspect = MutableStateFlow(
+    if (playerPreferences.rememberVideoAspect.get()) {
+      playerPreferences.defaultVideoAspect.get()
+    } else {
+      VideoAspect.Fit
+    }
+  )
   val videoAspect: StateFlow<VideoAspect> = _videoAspect.asStateFlow()
 
   // Current aspect ratio value (for custom ratios and tracking)
@@ -1192,7 +1198,11 @@ class PlayerViewModel(
     _cachedVideoRotation = MPVLib.getPropertyInt("video-params/rotate") ?: 0
     
     // 1. Apply saved aspect ratio preference without overriding active zoom and pan
-    val savedAspect = playerPreferences.defaultVideoAspect.get()
+    val savedAspect = if (playerPreferences.rememberVideoAspect.get()) {
+      playerPreferences.defaultVideoAspect.get()
+    } else {
+      VideoAspect.Fit
+    }
     val savedCustomRatio = if (playerPreferences.rememberVideoAspect.get()) {
       playerPreferences.defaultCustomAspectRatio.get()
     } else {
@@ -1200,9 +1210,9 @@ class PlayerViewModel(
     }
 
     if (savedCustomRatio > 0) {
-      setCustomAspectRatio(savedCustomRatio, resetZoomAndPan = false)
+      setCustomAspectRatio(savedCustomRatio, resetZoomAndPan = false, showUpdate = false, persistToPreferences = false)
     } else {
-      changeVideoAspect(savedAspect, showUpdate = false, resetZoomAndPan = false)
+      changeVideoAspect(savedAspect, showUpdate = false, resetZoomAndPan = false, persistToPreferences = false)
     }
 
     // 2. Load zoom and pan preferences or sync from mpv.conf/engine defaults
@@ -1247,10 +1257,22 @@ class PlayerViewModel(
     }
   }
 
+  // Re-applies the currently active aspect ratio without resetting to defaults
+  fun reapplyCurrentVisualPreferences() {
+    _cachedVideoRotation = MPVLib.getPropertyInt("video-params/rotate") ?: 0
+    val currentRatio = _currentAspectRatio.value
+    if (currentRatio > 0) {
+      setCustomAspectRatio(currentRatio, resetZoomAndPan = false, showUpdate = false, persistToPreferences = false)
+    } else {
+      changeVideoAspect(_videoAspect.value, showUpdate = false, resetZoomAndPan = false, persistToPreferences = false)
+    }
+  }
+
   fun changeVideoAspect(
     aspect: VideoAspect,
     showUpdate: Boolean = true,
     resetZoomAndPan: Boolean = true,
+    persistToPreferences: Boolean = true,
   ) {
     if (resetZoomAndPan) {
       setVideoZoom(0f)
@@ -1295,7 +1317,7 @@ class PlayerViewModel(
     // Update the state and persist to preferences
     _videoAspect.value = aspect
     _currentAspectRatio.value = -1.0 // Reset custom ratio when using standard modes
-    if (playerPreferences.rememberVideoAspect.get()) {
+    if (persistToPreferences && playerPreferences.rememberVideoAspect.get()) {
       playerPreferences.defaultVideoAspect.set(aspect)
       playerPreferences.defaultCustomAspectRatio.set(-1.0)
     }
@@ -1309,6 +1331,8 @@ class PlayerViewModel(
   fun setCustomAspectRatio(
     ratio: Double,
     resetZoomAndPan: Boolean = true,
+    showUpdate: Boolean = true,
+    persistToPreferences: Boolean = true,
   ) {
     if (resetZoomAndPan) {
       setVideoZoom(0f)
@@ -1317,10 +1341,12 @@ class PlayerViewModel(
     MPVLib.setPropertyDouble("panscan", 0.0)
     MPVLib.setPropertyDouble("video-aspect-override", ratio)
     _currentAspectRatio.value = ratio
-    if (playerPreferences.rememberVideoAspect.get()) {
+    if (persistToPreferences && playerPreferences.rememberVideoAspect.get()) {
       playerPreferences.defaultCustomAspectRatio.set(ratio)
     }
-    playerUpdate.value = PlayerUpdates.AspectRatio
+    if (showUpdate) {
+      playerUpdate.value = PlayerUpdates.AspectRatio
+    }
   }
 
   // ==================== Screen Rotation ====================

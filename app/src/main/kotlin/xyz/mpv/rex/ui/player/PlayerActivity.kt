@@ -56,6 +56,7 @@ import xyz.mpv.rex.preferences.FolderSortType
 import xyz.mpv.rex.preferences.SortOrder
 import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
 import xyz.mpv.rex.ui.player.controls.PlayerControls
+import xyz.mpv.rex.ui.player.delegates.PlayerKeyEventHandler
 import xyz.mpv.rex.ui.theme.MpvexPlayerTheme
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.HttpUtils
@@ -121,6 +122,18 @@ class PlayerActivity :
    * Observer for MPV events.
    */
   private val playerObserver by lazy { PlayerObserver(this) }
+
+  /**
+   * Delegate for hardware and media key event handling.
+   */
+  private val keyEventHandler by lazy {
+    PlayerKeyEventHandler(
+      viewModel = viewModel,
+      playerPreferences = playerPreferences,
+      player = player,
+      onFinishTask = { finishAndRemoveTask() },
+    )
+  }
 
   // ==================== Dependency Injection ====================
 
@@ -3005,102 +3018,12 @@ class PlayerActivity :
    * @param event The key event
    * @return true if event was handled, false otherwise
    */
-  @Suppress("ReturnCount", "CyclomaticComplexMethod", "LongMethod")
   override fun onKeyDown(
     keyCode: Int,
     event: KeyEvent?,
   ): Boolean {
-    val isTrackSheetOpen =
-      viewModel.sheetShown.value == Sheets.SubtitleTracks ||
-        viewModel.sheetShown.value == Sheets.AudioTracks
-    val isNoSheetOpen = viewModel.sheetShown.value == Sheets.None
-
-    when (keyCode) {
-      KeyEvent.KEYCODE_DPAD_UP -> {
-        return super.onKeyDown(keyCode, event)
-      }
-
-      KeyEvent.KEYCODE_DPAD_DOWN,
-      KeyEvent.KEYCODE_DPAD_RIGHT,
-      KeyEvent.KEYCODE_DPAD_LEFT,
-        -> {
-        if (isTrackSheetOpen) {
-          return super.onKeyDown(keyCode, event)
-        }
-
-        if (isNoSheetOpen) {
-          when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_RIGHT -> {
-              viewModel.handleRightDoubleTap()
-              return true
-            }
-
-            KeyEvent.KEYCODE_DPAD_LEFT -> {
-              viewModel.handleLeftDoubleTap()
-              return true
-            }
-          }
-        }
-        return super.onKeyDown(keyCode, event)
-      }
-
-      KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-        if (isTrackSheetOpen) {
-          return super.onKeyDown(keyCode, event)
-        }
-        return super.onKeyDown(keyCode, event)
-      }
-
-      KeyEvent.KEYCODE_SPACE -> {
-        viewModel.pauseUnpause()
-        return true
-      }
-
-      KeyEvent.KEYCODE_VOLUME_UP -> {
-        viewModel.changeVolumeBy(1)
-        viewModel.displayVolumeSlider()
-        return true
-      }
-
-      KeyEvent.KEYCODE_VOLUME_DOWN -> {
-        viewModel.changeVolumeBy(-1)
-        viewModel.displayVolumeSlider()
-        return true
-      }
-
-      KeyEvent.KEYCODE_MEDIA_STOP -> {
-        if (playerPreferences.disableMediaButtons.get()) return true
-        finishAndRemoveTask()
-        return true
-      }
-
-      KeyEvent.KEYCODE_MEDIA_REWIND -> {
-        if (playerPreferences.disableMediaButtons.get()) return true
-        viewModel.handleLeftDoubleTap()
-        return true
-      }
-
-      KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-        if (playerPreferences.disableMediaButtons.get()) return true
-        viewModel.handleRightDoubleTap()
-        return true
-      }
-
-      KeyEvent.KEYCODE_MEDIA_PLAY,
-      KeyEvent.KEYCODE_MEDIA_PAUSE,
-      KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-      KeyEvent.KEYCODE_MEDIA_NEXT,
-      KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
-        if (playerPreferences.disableMediaButtons.get()) return true
-        
-        event?.let { player.onKey(it) }
-        return super.onKeyDown(keyCode, event)
-      }
-
-      else -> {
-        event?.let { player.onKey(it) }
-        return super.onKeyDown(keyCode, event)
-      }
+    return keyEventHandler.onKeyDown(keyCode, event) {
+      super.onKeyDown(keyCode, event)
     }
   }
 
@@ -3115,10 +3038,9 @@ class PlayerActivity :
     keyCode: Int,
     event: KeyEvent?,
   ): Boolean {
-    event?.let {
-      if (player.onKey(it)) return true
+    return keyEventHandler.onKeyUp(keyCode, event) {
+      super.onKeyUp(keyCode, event)
     }
-    return super.onKeyUp(keyCode, event)
   }
 
   // ==================== System UI Management ====================

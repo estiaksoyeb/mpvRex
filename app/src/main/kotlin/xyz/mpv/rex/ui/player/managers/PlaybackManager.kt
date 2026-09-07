@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import xyz.mpv.rex.ui.player.VideoAspect
 
 /**
  * Manages playback operations like seeking and speed control.
@@ -110,5 +112,125 @@ class PlaybackManager(
     fun setSubSpeed(speed: Double) {
         MPVLib.setPropertyDouble("sub-speed", speed)
         MPVLib.setPropertyDouble("secondary-sub-speed", speed)
+    }
+
+    fun pauseUnpause(
+        scope: CoroutineScope,
+        onRequestAudioFocus: () -> Unit,
+        onAbandonAudioFocus: () -> Unit,
+    ) {
+        scope.launch(Dispatchers.IO) {
+            val isPaused = MPVLib.getPropertyBoolean("pause") ?: false
+            if (isPaused) {
+                withContext(Dispatchers.Main) { onRequestAudioFocus() }
+                MPVLib.setPropertyBoolean("pause", false)
+            } else {
+                MPVLib.setPropertyBoolean("pause", true)
+                withContext(Dispatchers.Main) { onAbandonAudioFocus() }
+            }
+        }
+    }
+
+    fun pause(scope: CoroutineScope, onAbandonAudioFocus: () -> Unit) {
+        scope.launch(Dispatchers.IO) {
+            MPVLib.setPropertyBoolean("pause", true)
+            withContext(Dispatchers.Main) { onAbandonAudioFocus() }
+        }
+    }
+
+    fun unpause(scope: CoroutineScope, onRequestAudioFocus: () -> Unit) {
+        scope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) { onRequestAudioFocus() }
+            MPVLib.setPropertyBoolean("pause", false)
+        }
+    }
+
+    fun frameStepForward(
+        scope: CoroutineScope,
+        paused: Boolean?,
+        onPauseUnpause: () -> Unit,
+        onFrameStepped: () -> Unit,
+    ) {
+        scope.launch(Dispatchers.IO) {
+            if (paused != true) {
+                onPauseUnpause()
+                delay(50)
+            }
+            MPVLib.command("no-osd", "frame-step")
+            delay(100)
+            onFrameStepped()
+        }
+    }
+
+    fun frameStepBackward(
+        scope: CoroutineScope,
+        paused: Boolean?,
+        onPauseUnpause: () -> Unit,
+        onFrameStepped: () -> Unit,
+    ) {
+        scope.launch(Dispatchers.IO) {
+            if (paused != true) {
+                onPauseUnpause()
+                delay(50)
+            }
+            MPVLib.command("no-osd", "frame-back-step")
+            delay(100)
+            onFrameStepped()
+        }
+    }
+
+    fun subSeek(
+        scope: CoroutineScope,
+        forward: Boolean,
+        onDiffCalculated: (diff: Double) -> Unit,
+        onFallback: () -> Unit,
+    ) {
+        val sid = MPVLib.getPropertyInt("sid") ?: 0
+        if (sid != 0) {
+            val pos1 = MPVLib.getPropertyDouble("time-pos") ?: 0.0
+            MPVLib.command("sub-seek", if (forward) "1" else "-1")
+
+            scope.launch(Dispatchers.IO) {
+                delay(50)
+                val pos2 = MPVLib.getPropertyDouble("time-pos") ?: pos1
+                val diff = pos2 - pos1
+                onDiffCalculated(diff)
+            }
+        } else {
+            onFallback()
+        }
+    }
+
+    fun applyVideoAspect(
+        aspect: VideoAspect,
+        screenWidth: Int,
+        screenHeight: Int,
+        videoRotation: Int,
+    ) {
+        when (aspect) {
+            VideoAspect.Fit -> {
+                MPVLib.setPropertyDouble("panscan", 0.0)
+                MPVLib.setPropertyDouble("video-aspect-override", -1.0)
+            }
+            VideoAspect.Crop -> {
+                MPVLib.setPropertyDouble("video-aspect-override", -1.0)
+                MPVLib.setPropertyDouble("panscan", 1.0)
+            }
+            VideoAspect.Stretch -> {
+                val isVideoRotated = (videoRotation % 180 == 90)
+                val screenRatio = if (isVideoRotated) {
+                    screenHeight.toDouble() / screenWidth.toDouble()
+                } else {
+                    screenWidth.toDouble() / screenHeight.toDouble()
+                }
+                MPVLib.setPropertyDouble("video-aspect-override", screenRatio)
+                MPVLib.setPropertyDouble("panscan", 0.0)
+            }
+        }
+    }
+
+    fun applyCustomAspectRatio(ratio: Double) {
+        MPVLib.setPropertyDouble("panscan", 0.0)
+        MPVLib.setPropertyDouble("video-aspect-override", ratio)
     }
 }

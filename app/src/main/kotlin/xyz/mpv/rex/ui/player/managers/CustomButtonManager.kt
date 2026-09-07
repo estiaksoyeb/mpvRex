@@ -1,4 +1,4 @@
-package xyz.mpv.rex.ui.player
+package xyz.mpv.rex.ui.player.managers
 
 import android.content.Context
 import android.util.Log

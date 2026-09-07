@@ -31,6 +31,7 @@ import `is`.xyz.mpv.MPVNode
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.ui.player.SingleActionGesture
+import xyz.mpv.rex.ui.player.managers.PlaybackManager
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import kotlinx.coroutines.cancel
 import org.koin.core.component.KoinComponent

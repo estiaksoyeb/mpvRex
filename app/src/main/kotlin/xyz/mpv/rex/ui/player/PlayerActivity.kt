@@ -57,6 +57,7 @@ import xyz.mpv.rex.preferences.SortOrder
 import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
 import xyz.mpv.rex.ui.player.controls.PlayerControls
 import xyz.mpv.rex.ui.player.delegates.PlayerAudioController
+import xyz.mpv.rex.ui.player.delegates.PlayerBackgroundPlaybackController
 import xyz.mpv.rex.ui.player.delegates.PlayerKeyEventHandler
 import xyz.mpv.rex.ui.player.delegates.PlayerMediaSessionController
 import xyz.mpv.rex.ui.player.delegates.PlayerOrientationController
@@ -189,6 +190,16 @@ class PlayerActivity :
     )
   }
 
+  /**
+   * Delegate for managing background playback service binding and lifecycle.
+   */
+  private val backgroundPlaybackController by lazy {
+    PlayerBackgroundPlaybackController(
+      activity = this,
+      serviceListener = this,
+    )
+  }
+
   // ==================== Dependency Injection ====================
 
   /**
@@ -304,12 +315,24 @@ class PlayerActivity :
     }
   private var isUserFinishing = false
   private var wasInPipMode = false // Track if activity was in PiP mode
-  private var isManualBackgroundPlayback = false // Track manual background playback trigger
+  private var isManualBackgroundPlayback: Boolean
+    get() = backgroundPlaybackController.isManualBackgroundPlayback
+    set(value) {
+      backgroundPlaybackController.isManualBackgroundPlayback = value
+    }
   private var mpvInitialized = false // Track MPV initialization state
   private var savePlaybackStateJob: kotlinx.coroutines.Job? = null // Track ongoing save job
   private var pendingIntentExtras = false // Track if intent extras should be applied to next loaded file
-  private var lastVid = -1 // Track video track for background playback optimization
-  private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
+  private var lastVid: Int
+    get() = backgroundPlaybackController.lastVid
+    set(value) {
+      backgroundPlaybackController.lastVid = value
+    }
+  private var isInBackgroundPlayback: Boolean
+    get() = backgroundPlaybackController.isInBackgroundPlayback
+    set(value) {
+      backgroundPlaybackController.isInBackgroundPlayback = value
+    }
   private var inheritedNativeSession = false // MPV ownership came from HeadlessPlaybackController
 
   @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
@@ -321,12 +344,23 @@ class PlayerActivity :
   /**
    * Reference to the background playback service.
    */
-  private var mediaPlaybackService: MediaPlaybackService? = null
+  private var mediaPlaybackService: MediaPlaybackService?
+    get() = backgroundPlaybackController.mediaPlaybackService
+    set(value) {
+      backgroundPlaybackController.mediaPlaybackService = value
+    }
 
   /**
    * Tracks whether we're currently bound to the background playback service.
    */
-  private var serviceBound = false
+  private var serviceBound: Boolean
+    get() = backgroundPlaybackController.serviceBound
+    set(value) {
+      backgroundPlaybackController.serviceBound = value
+    }
+
+  private val serviceConnection: android.content.ServiceConnection
+    get() = backgroundPlaybackController.serviceConnection
 
 
 
@@ -2889,70 +2923,13 @@ class PlayerActivity :
   // ==================== Background Playback Service ====================
 
   /**
-   * Service connection for binding to background playback service.
-   */
-  private val serviceConnection =
-    object : ServiceConnection {
-      override fun onServiceConnected(
-        name: ComponentName?,
-        service: IBinder?,
-      ) {
-        val binder = service as? MediaPlaybackService.MediaPlaybackBinder ?: return
-        mediaPlaybackService = binder.getService()
-        mediaPlaybackService?.setListener(this@PlayerActivity)
-        serviceBound = true
-        Log.d(TAG, "Service connected")
-      }
-
-      override fun onServiceDisconnected(name: ComponentName?) {
-        Log.d(TAG, "Service disconnected")
-        mediaPlaybackService?.setListener(null)
-        mediaPlaybackService = null
-        serviceBound = false
-      }
-    }
-
-  /**
    * Starts the background playback service and binds to it.
-   *
-   * This should only be called if a video is loaded and playback is initialized.
-   * Responsible for starting and binding to the MediaPlaybackService, which
-   * handles background playback.
    */
   private fun startBackgroundPlayback() {
-    if (fileName.isBlank() || !isReady) {
-      Log.w(TAG, "Cannot start background playback: video not ready")
-      return
-    }
-
-    // Prevent starting service multiple times
-    if (serviceBound) {
-      Log.d(TAG, "Service already bound, skipping start")
-      return
-    }
-
-    Log.d(TAG, "Starting background playback for: $fileName")
-    
-    // Ensure notification channel exists
-    MediaPlaybackService.createNotificationChannel(this)
-    
-    val artist = runCatching { MPVLib.getPropertyString("metadata/artist") }.getOrNull() ?: ""
-    
-    // Pass media info via intent extras
-    val intent = Intent(this, MediaPlaybackService::class.java).apply {
-      putExtra("media_title", fileName)
-      putExtra("media_artist", artist)
-    }
-    
-    try {
-      startForegroundService(intent)
-      bindService(intent, serviceConnection, BIND_AUTO_CREATE)
-      Log.d(TAG, "Service start and bind initiated")
-    } catch (e: Exception) {
-      Log.e(TAG, "Error starting/binding service", e)
-    }
-
-    // Offload thumbnail or cover art extraction to background coroutine
+    backgroundPlaybackController.startBackgroundPlayback(
+      fileName = fileName,
+      isReady = isReady,
+    )
     lifecycleScope.launch(Dispatchers.IO) {
       val currentUri = viewModel.playlistManager.getCurrentUri() ?: extractUriFromIntent(intent)
       val thumbnail = currentUri?.let { extractThumbnailOrCoverArt(it) }
@@ -2964,105 +2941,43 @@ class PlayerActivity :
 
   /**
    * Stops the background playback service and unbinds from it.
-   *
-   * Called when the activity is destroyed to remove the notification.
    */
   private fun endBackgroundPlayback() {
-    Log.d(TAG, "Ending background playback service")
-    
-    if (serviceBound) {
-      try {
-        unbindService(serviceConnection)
-        Log.d(TAG, "Service unbound successfully")
-      } catch (e: Exception) {
-        Log.e(TAG, "Error unbinding service", e)
-      }
-      serviceBound = false
-    }
-    
-    // Stop the service which will trigger its onDestroy and cleanup
-    try {
-      stopService(Intent(this, MediaPlaybackService::class.java))
-      Log.d(TAG, "Stop service command sent")
-    } catch (e: Exception) {
-      Log.e(TAG, "Error stopping service", e)
-    }
-    
-    mediaPlaybackService = null
+    backgroundPlaybackController.endBackgroundPlayback()
   }
 
   /**
    * Manually triggers background playback when the user clicks the background playback button.
-   * This works independently of the BackgroundPlaybackMode preference.
    */
   @RequiresApi(Build.VERSION_CODES.P)
   fun triggerBackgroundPlayback() {
-    if (fileName.isBlank() || !isReady) {
-      Log.w(TAG, "Cannot trigger background playback: video not ready")
-      return
-    }
-
-    Log.d(TAG, "User triggered background playback")
-    
-    // Set flag to enable background playback (same logic as automatic)
-    isManualBackgroundPlayback = true
-    
-    // Start background playback service
-    startBackgroundPlayback()
-    
-    // Restore system UI before going to background
-    restoreSystemUI()
-    
-    // Move to background by going to home screen (same behavior as automatic)
-    val intent = Intent(Intent.ACTION_MAIN).apply {
-      addCategory(Intent.CATEGORY_HOME)
-      flags = Intent.FLAG_ACTIVITY_NEW_TASK
-    }
-    startActivity(intent)
+    backgroundPlaybackController.triggerBackgroundPlayback(
+      fileName = fileName,
+      isReady = isReady,
+      onRestoreSystemUI = { restoreSystemUI() },
+      onStartService = { startBackgroundPlayback() },
+    )
   }
 
   /**
    * Disables video decoding to save battery when moving to background playback.
    */
   private fun disableVideoForBackground() {
-    if (!isReady || fileName.isBlank()) return
-
-    if (!hasVideoTrack()) {
-      isInBackgroundPlayback = true
-      Log.d(TAG, "Audio-only playback in background")
-      return
-    }
-
-    val currentVid = MPVLib.getPropertyInt("vid") ?: -1
-    if (currentVid > 0) {
-      if (lastVid <= 0) {
-        lastVid = currentVid
-      }
-      MPVLib.setPropertyString("vid", "no")
-      isInBackgroundPlayback = true
-      Log.d(TAG, "Video disabled for background playback (saved vid: $lastVid)")
-    } else {
-      if (MPVLib.getPropertyString("vid") != "no") {
-        MPVLib.setPropertyString("vid", "no")
-      }
-      isInBackgroundPlayback = true
-    }
+    backgroundPlaybackController.disableVideoForBackground(
+      isReady = isReady,
+      fileName = fileName,
+      hasVideoTrack = { hasVideoTrack() },
+    )
   }
 
   /**
    * Restores video decoding when returning from background playback.
    */
   private fun enableVideoAfterBackground() {
-    isInBackgroundPlayback = false
-    if (lastVid > 0) {
-      Log.d(TAG, "Restoring video after background playback (vid: $lastVid)")
-      MPVLib.setPropertyInt("vid", lastVid)
-      lastVid = -1
-    } else if (mpvInitialized && MPVLib.getPropertyString("vid") == "no") {
-      Log.d(TAG, "Restoring video after background playback (setting vid to auto)")
-      safeSetPropertyString("vid", "auto")
-      lastVid = -1
-    }
+    backgroundPlaybackController.enableVideoAfterBackground(
+      mpvInitialized = mpvInitialized,
+      onSetPropertyString = { prop, value -> safeSetPropertyString(prop, value) },
+    )
   }
 
   /**

@@ -60,6 +60,11 @@ import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
+import xyz.mpv.rex.ui.player.managers.AmbientModeManager
+import xyz.mpv.rex.ui.player.managers.CustomButtonManager
+import xyz.mpv.rex.ui.player.managers.PlaybackManager
+import xyz.mpv.rex.ui.player.managers.PlaylistManager
+import xyz.mpv.rex.ui.player.managers.SubtitleManager
 
 
 enum class RepeatMode {

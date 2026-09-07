@@ -1,4 +1,4 @@
-package xyz.mpv.rex.ui.player
+package xyz.mpv.rex.ui.player.managers
 
 import android.content.Context
 import android.content.Intent
@@ -11,6 +11,8 @@ import xyz.mpv.rex.repository.wyzie.WyzieTvShowDetails
 import xyz.mpv.rex.repository.wyzie.WyzieSeason
 import xyz.mpv.rex.repository.wyzie.WyzieEpisode
 import `is`.xyz.mpv.MPVLib
+import xyz.mpv.rex.ui.player.resolveUri
+import xyz.mpv.rex.ui.player.TrackNode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

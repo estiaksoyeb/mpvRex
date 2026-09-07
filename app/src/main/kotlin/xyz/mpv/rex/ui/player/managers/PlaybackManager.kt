@@ -1,4 +1,4 @@
-package xyz.mpv.rex.ui.player
+package xyz.mpv.rex.ui.player.managers
 
 import xyz.mpv.rex.preferences.PlayerPreferences
 import `is`.xyz.mpv.MPVLib

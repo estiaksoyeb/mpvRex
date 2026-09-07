@@ -65,6 +65,8 @@ import kotlin.math.hypot
 class ThemeTransitionState {
     var isAnimating by mutableStateOf(false)
         private set
+    var isReverse by mutableStateOf(false)
+        private set
     var clickPosition by mutableStateOf(Offset.Zero)
         private set
     var screenshotBitmap by mutableStateOf<Bitmap?>(null)
@@ -83,7 +85,7 @@ class ThemeTransitionState {
      * Captures the current screen and begins the reveal animation.
      * Will NOT start a new animation if one is already in progress.
      */
-    fun startTransition(position: Offset) {
+    fun startTransition(position: Offset, isReverse: Boolean = false) {
         // Don't allow new animation while one is in progress
         if (isAnimating) return
         
@@ -93,6 +95,7 @@ class ThemeTransitionState {
                 val bitmap = view.drawToBitmap()
                 screenshotBitmap = bitmap
                 clickPosition = position
+                this.isReverse = isReverse
                 isAnimating = true
             } catch (e: Exception) {
                 // If capture fails, just skip the animation
@@ -103,12 +106,10 @@ class ThemeTransitionState {
     }
     
     fun finishTransition() {
-        val oldBitmap = screenshotBitmap
         screenshotBitmap = null
         clickPosition = Offset.Zero
+        isReverse = false
         isAnimating = false
-        // Recycle after state is cleared
-        oldBitmap?.recycle()
     }
     
     suspend fun resetProgress() {
@@ -148,18 +149,20 @@ private fun ThemeTransitionOverlay(
         content()
 
         // 2. Render the overlay of the old screen state on top if animating and we have a bitmap
-        if (isAnimating && bitmap != null) {
+        if (isAnimating && bitmap != null && !bitmap.isRecycled) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer {
                         // Use CircularRevealShape to clip the old screenshot.
-                        // The shape clips to the area OUTSIDE the circle, creating a expanding hole.
+                        // When isReverse is false, clips to area OUTSIDE circle (expanding hole / zoom out).
+                        // When isReverse is true, clips to circle area (shrinking circle / reverse).
                         clip = true
                         shape = CircularRevealShape(
                             progress = progress,
                             center = state.clickPosition,
-                            containerSize = size
+                            containerSize = size,
+                            isReverse = state.isReverse,
                         )
                     }
             ) {
@@ -191,13 +194,15 @@ private fun ThemeTransitionOverlay(
 }
 
 /**
- * Custom Shape that creates an inverse circular reveal effect.
- * The circle expands from center, and the shape clips TO THE AREA OUTSIDE the circle.
+ * Custom Shape that creates a circular reveal effect.
+ * When isReverse is false: The circle expands from center, and the shape clips TO THE AREA OUTSIDE the circle (inverse clip / zoom out).
+ * When isReverse is true: The circle shrinks towards center, and the shape clips TO THE CIRCLE (zoom in / reverse).
  */
 private class CircularRevealShape(
     private val progress: Float,
     private val center: Offset,
     private val containerSize: Size,
+    private val isReverse: Boolean = false,
 ) : androidx.compose.ui.graphics.Shape {
     override fun createOutline(
         size: Size,
@@ -212,15 +217,23 @@ private class CircularRevealShape(
         
         // Calculate the maximum radius needed to cover entire screen from center point
         val maxRadius = longestDistanceToCorner(size, actualCenter) * 1.1f
-        val currentRadius = maxRadius * progress
         
-        // Create a path that represents the area OUTSIDE the circle (inverse clip)
-        val path = android.graphics.Path().apply {
-            fillType = android.graphics.Path.FillType.EVEN_ODD
-            // Add the entire rectangle
-            addRect(0f, 0f, size.width, size.height, android.graphics.Path.Direction.CW)
-            // Subtract the circle (creates hole in the middle)
-            addCircle(actualCenter.x, actualCenter.y, currentRadius, android.graphics.Path.Direction.CCW)
+        val path = if (isReverse) {
+            // Shrinking circle: old content shrinks from maxRadius down to 0 at actualCenter (reverse reveal)
+            val currentRadius = (maxRadius * (1f - progress)).coerceAtLeast(0f)
+            android.graphics.Path().apply {
+                addCircle(actualCenter.x, actualCenter.y, currentRadius, android.graphics.Path.Direction.CW)
+            }
+        } else {
+            // Expanding hole: old content has a hole expanding from 0 to maxRadius (forward reveal)
+            val currentRadius = (maxRadius * progress).coerceAtLeast(0f)
+            android.graphics.Path().apply {
+                fillType = android.graphics.Path.FillType.EVEN_ODD
+                // Add the entire rectangle
+                addRect(0f, 0f, size.width, size.height, android.graphics.Path.Direction.CW)
+                // Subtract the circle (creates hole in the middle)
+                addCircle(actualCenter.x, actualCenter.y, currentRadius, android.graphics.Path.Direction.CCW)
+            }
         }
         
         return androidx.compose.ui.graphics.Outline.Generic(

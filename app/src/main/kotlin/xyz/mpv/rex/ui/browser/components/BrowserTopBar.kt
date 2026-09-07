@@ -54,6 +54,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -197,6 +198,13 @@ private fun NormalTopBar(
   val coroutineScope = rememberCoroutineScope()
   val haptic = LocalHapticFeedback.current
   
+  val isCurrentlyDark = when (darkMode) {
+    DarkMode.Dark -> true
+    DarkMode.Light -> false
+    DarkMode.System -> darkTheme
+  }
+  val currentIsDark by rememberUpdatedState(isCurrentlyDark)
+
   // Track title bounds for animation position
   val titleBounds = remember { mutableStateOf(Rect.Zero) }
   
@@ -245,7 +253,9 @@ private fun NormalTopBar(
                 titleBounds.value.left + localOffset.x,
                 titleBounds.value.top + localOffset.y
               )
-              themeTransition?.startTransition(windowOffset)
+              // If currently dark, next theme is light: expand outwards (zoom out).
+              // If currently light, next theme is dark: contract inwards (reverse / zoom in).
+              themeTransition?.startTransition(windowOffset, isReverse = !currentIsDark)
               // Delay theme change to allow overlay to display first
               coroutineScope.launch {
                 kotlinx.coroutines.delay(50)

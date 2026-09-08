@@ -92,7 +92,6 @@ object PlayerPreferencesScreen : Screen {
             val rememberVideoAspect by preferences.rememberVideoAspect.collectAsState()
             val resumePlaybackMode by preferences.resumePlaybackMode.collectAsState()
             val autoResumeOnAsk by preferences.autoResumeOnAsk.collectAsState()
-            val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
             val closeAfterEndOfVideo by preferences.closeAfterReachingEndOfVideo.collectAsState()
             val autoplayNextVideo by preferences.autoplayNextVideo.collectAsState()
             val autoplayOnOpen by preferences.autoplayOnOpen.collectAsState()
@@ -202,23 +201,6 @@ object PlayerPreferencesScreen : Screen {
                     },
                   )
                 }
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_save_position_on_quit,
-              ) {
-                SwitchPreference(
-                  value = savePositionOnQuit,
-                  onValueChange = preferences.savePositionOnQuit::set,
-                  title = { Text(stringResource(R.string.pref_player_save_position_on_quit)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_player_save_position_on_quit_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
               }
 
               GroupedPreferenceCard(

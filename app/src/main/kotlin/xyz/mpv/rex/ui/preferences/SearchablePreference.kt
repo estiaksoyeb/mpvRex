@@ -207,13 +207,6 @@ object SearchablePreferences {
                 targetIndex = 1,
             ))
             add(SearchablePreference(
-                titleRes = R.string.pref_player_save_position_on_quit,
-                keywords = listOf("save", "position", "resume", "remember", "progress"),
-                category = "Player",
-                screen = PlayerPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
                 titleRes = R.string.pref_player_close_after_eof,
                 keywords = listOf("close", "end", "playback", "quit", "finish"),
                 category = "Player",

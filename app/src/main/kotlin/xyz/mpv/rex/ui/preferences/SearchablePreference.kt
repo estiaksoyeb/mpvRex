@@ -229,14 +229,6 @@ object SearchablePreferences {
                 targetIndex = 1,
             ))
             add(SearchablePreference(
-                titleRes = R.string.pref_autoplay_next_video_title,
-                summaryRes = R.string.pref_autoplay_next_video_summary,
-                keywords = listOf("autoplay", "next", "video", "auto", "advance", "continuous"),
-                category = "Player",
-                screen = PlayerPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
                 titleRes = R.string.pref_autoplay_on_open_title,
                 summaryRes = R.string.pref_autoplay_on_open_summary,
                 keywords = listOf("autoplay", "open", "start", "pause", "playback"),

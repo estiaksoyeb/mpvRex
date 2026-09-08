@@ -849,7 +849,6 @@ fun InteractionTab() {
   val playerPreferences = koinInject<PlayerPreferences>()
 
   val playlistMode by playerPreferences.playlistMode.collectAsState()
-  val autoplayNextVideo by playerPreferences.autoplayNextVideo.collectAsState()
   val showSeekBarWhenSeeking by playerPreferences.showSeekBarWhenSeeking.collectAsState()
   val showDoubleTapOvals by playerPreferences.showDoubleTapOvals.collectAsState()
   val showCircularDoubleTapSeek by playerPreferences.showCircularDoubleTapSeek.collectAsState()
@@ -879,13 +878,6 @@ fun InteractionTab() {
       description = stringResource(R.string.pref_autoplay_summary),
       checked = playlistMode,
       onCheckedChange = { playerPreferences.playlistMode.set(it) }
-    )
-
-    InteractionSwitch(
-      label = stringResource(R.string.pref_player_autoplay_next_video),
-      description = stringResource(if (autoplayNextVideo) R.string.pref_player_autoplay_next_video_summary_on else R.string.pref_player_autoplay_next_video_summary_off),
-      checked = autoplayNextVideo,
-      onCheckedChange = { playerPreferences.autoplayNextVideo.set(it) }
     )
 
     InteractionSwitch(

@@ -93,7 +93,6 @@ object PlayerPreferencesScreen : Screen {
             val resumePlaybackMode by preferences.resumePlaybackMode.collectAsState()
             val autoResumeOnAsk by preferences.autoResumeOnAsk.collectAsState()
             val closeAfterEndOfVideo by preferences.closeAfterReachingEndOfVideo.collectAsState()
-            val autoplayNextVideo by preferences.autoplayNextVideo.collectAsState()
             val autoplayOnOpen by preferences.autoplayOnOpen.collectAsState()
             val playlistMode by preferences.playlistMode.collectAsState()
             val rememberBrightness by preferences.rememberBrightness.collectAsState()
@@ -211,26 +210,6 @@ object PlayerPreferencesScreen : Screen {
                   value = closeAfterEndOfVideo,
                   onValueChange = preferences.closeAfterReachingEndOfVideo::set,
                   title = { Text(stringResource(id = R.string.pref_player_close_after_eof)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = listOf(R.string.pref_player_autoplay_next_video, R.string.pref_autoplay_next_video_title),
-              ) {
-                SwitchPreference(
-                  value = autoplayNextVideo,
-                  onValueChange = preferences.autoplayNextVideo::set,
-                  title = { Text(text = stringResource(R.string.pref_player_autoplay_next_video)) },
-                  summary = {
-                    Text(
-                      text = if (autoplayNextVideo)
-                        stringResource(R.string.pref_player_autoplay_next_video_summary_on)
-                      else
-                        stringResource(R.string.pref_player_autoplay_next_video_summary_off),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
                 )
               }
 

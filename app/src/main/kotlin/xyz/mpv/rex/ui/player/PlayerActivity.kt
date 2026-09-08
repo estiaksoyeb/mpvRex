@@ -1453,10 +1453,7 @@ class PlayerActivity :
       if (playlist.isNotEmpty()) {
         val hasNextItem = viewModel.playlistManager.hasNext(viewModel.shouldRepeatPlaylist())
 
-        // Check if autoplay next video is enabled
-        val autoplayEnabled = playerPreferences.autoplayNextVideo.get()
-
-        if (hasNextItem && (autoplayEnabled || viewModel.shouldRepeatPlaylist())) {
+        if (hasNextItem) {
           // Play next item in playlist
           isAutoplayNextTriggered = true
           playNext()

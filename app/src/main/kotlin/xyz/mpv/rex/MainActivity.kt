@@ -50,6 +50,7 @@ import xyz.mpv.rex.ui.theme.MpvexTheme
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.permission.PermissionUtils
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayer
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.welcome.WelcomeScreen
@@ -214,7 +215,7 @@ class MainActivity : ComponentActivity() {
       label = "miniPlayerBottomPadding"
     )
 
-    val targetMiniPlayerHeight = if (miniPlayerState.isPlaybackActive) 67.dp else 0.dp
+    val targetMiniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
     val miniPlayerHeight by androidx.compose.animation.core.animateDpAsState(
       targetValue = targetMiniPlayerHeight,
       animationSpec = tween(220),

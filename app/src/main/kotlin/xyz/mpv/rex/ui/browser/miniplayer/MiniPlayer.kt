@@ -2,15 +2,21 @@ package xyz.mpv.rex.ui.browser.miniplayer
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,8 +51,10 @@ import androidx.compose.material.icons.filled.ShuffleOn
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -86,8 +94,16 @@ import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 import xyz.mpv.rex.ui.player.MediaPlaybackService
 import xyz.mpv.rex.ui.player.RepeatMode
+import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.utils.media.MediaFormatter
 import kotlin.math.roundToInt
+
+object MiniPlayerDefaults {
+  val CompactHeight = 80.dp
+  val ExpandedHeight = 440.dp
+  val FloatingBottomMargin = 8.dp
+  val TotalCompactOffset = 88.dp
+}
 
 @Composable
 fun MiniPlayer(
@@ -134,7 +150,8 @@ fun MiniPlayer(
     exit = slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth }) + fadeOut(),
     modifier = modifier,
   ) {
-    val animatedHeight = lerp(83.dp, 420.dp, fraction)
+    val animatedHeight = lerp(MiniPlayerDefaults.CompactHeight, MiniPlayerDefaults.ExpandedHeight, fraction)
+    val outerCorner = lerp(24.dp, 28.dp, fraction)
 
     Surface(
       modifier = Modifier
@@ -142,14 +159,18 @@ fun MiniPlayer(
         .height(animatedHeight)
         .padding(horizontal = 8.dp)
         .clip(RoundedCornerShape(
-          topStart = 20.dp,
-          topEnd = 20.dp,
-          bottomStart = lerp(16.dp, 20.dp, fraction),
-          bottomEnd = lerp(16.dp, 20.dp, fraction)
+          topStart = outerCorner,
+          topEnd = outerCorner,
+          bottomStart = lerp(20.dp, 28.dp, fraction),
+          bottomEnd = lerp(20.dp, 28.dp, fraction)
         )),
       color = MaterialTheme.colorScheme.surfaceContainerHigh,
-      tonalElevation = 8.dp,
+      tonalElevation = 6.dp,
       shadowElevation = 8.dp,
+      border = BorderStroke(
+        width = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+      ),
     ) {
       Box(
         modifier = Modifier
@@ -469,13 +490,31 @@ fun MiniPlayer(
                   )
                 }
 
-                IconButton(onClick = { stateManager.togglePlayPause() }) {
-                  Icon(
-                    imageVector = if (state.isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                    contentDescription = if (state.isPaused) "Play" else "Pause",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                  )
+                FilledTonalIconButton(
+                  onClick = { stateManager.togglePlayPause() },
+                  colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                  ),
+                  modifier = Modifier.size(40.dp),
+                ) {
+                  AnimatedContent(
+                    targetState = state.isPaused,
+                    transitionSpec = {
+                      (scaleIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn()) togetherWith
+                        (scaleOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut())
+                    },
+                    label = "compactPlayPauseMorph"
+                  ) { isPaused ->
+                    Icon(
+                      imageVector = if (isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                      contentDescription = if (isPaused) "Play" else "Pause",
+                      modifier = Modifier.size(22.dp),
+                    )
+                  }
                 }
+
+                Spacer(modifier = Modifier.width(4.dp))
 
                 IconButton(
                   onClick = {
@@ -495,12 +534,19 @@ fun MiniPlayer(
               (state.currentPositionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
             } else 0f
 
+            val animatedProgress by animateFloatAsState(
+              targetValue = progress,
+              animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+              label = "miniPlayerProgress"
+            )
+
             LinearProgressIndicator(
-              progress = { progress },
+              progress = { animatedProgress },
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 5.dp, bottom = 9.dp, start = 18.dp, end = 18.dp)
-                .height(4.dp),
+                .padding(top = 5.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
+                .height(4.dp)
+                .clip(pillShape),
               color = MaterialTheme.colorScheme.primary,
               trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             )
@@ -510,11 +556,11 @@ fun MiniPlayer(
         // ──────────────────────────────────────────────────────────────
         // Morphing Artwork Container (Glides smoothly between compact and expanded)
         // ──────────────────────────────────────────────────────────────
-        val artworkSize = lerp(44.dp, 140.dp, fraction)
-        val artworkCorner = lerp(8.dp, 16.dp, fraction)
-        val artworkTopPadding = lerp(20.dp, 64.dp, fraction)
+        val artworkSize = lerp(46.dp, 144.dp, fraction)
+        val artworkCorner = lerp(10.dp, 20.dp, fraction)
+        val artworkTopPadding = lerp(17.dp, 60.dp, fraction)
         val artworkHorizBias = lerp(-1f, 0f, fraction)
-        val artworkStartPadding = lerp(18.dp, 0.dp, fraction)
+        val artworkStartPadding = lerp(16.dp, 0.dp, fraction)
         val artworkDx = (offsetX.value * compactAlpha).roundToInt()
 
         Box(
@@ -662,7 +708,7 @@ fun MiniPlayer(
           Row(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(top = 345.dp, start = 16.dp, end = 16.dp)
+              .padding(top = 352.dp, start = 16.dp, end = 16.dp)
               .graphicsLayer {
                 alpha = expandedControlsAlpha
                 translationY = (1f - expandedControlsAlpha) * 35f
@@ -671,21 +717,33 @@ fun MiniPlayer(
             verticalAlignment = Alignment.CenterVertically,
           ) {
             val isShuffle = state.shuffleEnabled
-            IconButton(onClick = { stateManager.toggleShuffle() }) {
+            FilledTonalIconButton(
+              onClick = { stateManager.toggleShuffle() },
+              colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = if (isShuffle) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                contentColor = if (isShuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+              ),
+              modifier = Modifier.size(46.dp),
+            ) {
               Icon(
                 imageVector = if (isShuffle) Icons.Filled.ShuffleOn else Icons.Filled.Shuffle,
                 contentDescription = "Toggle Shuffle",
-                tint = if (isShuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(24.dp),
               )
             }
 
-            IconButton(onClick = { stateManager.playPrevious() }) {
+            FilledTonalIconButton(
+              onClick = { stateManager.playPrevious() },
+              colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+              ),
+              modifier = Modifier.size(48.dp),
+            ) {
               Icon(
                 imageVector = Icons.Filled.SkipPrevious,
                 contentDescription = "Previous Track",
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(28.dp),
               )
             }
 
@@ -693,28 +751,43 @@ fun MiniPlayer(
               onClick = { stateManager.togglePlayPause() },
               shape = CircleShape,
               color = MaterialTheme.colorScheme.primary,
-              shadowElevation = 4.dp,
-              modifier = Modifier.size(58.dp),
+              shadowElevation = 6.dp,
+              modifier = Modifier.size(64.dp),
             ) {
               Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
               ) {
-                Icon(
-                  imageVector = if (state.isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                  contentDescription = if (state.isPaused) "Play" else "Pause",
-                  tint = MaterialTheme.colorScheme.onPrimary,
-                  modifier = Modifier.size(34.dp),
-                )
+                AnimatedContent(
+                  targetState = state.isPaused,
+                  transitionSpec = {
+                    (scaleIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn()) togetherWith
+                      (scaleOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut())
+                  },
+                  label = "expandedPlayPauseMorph"
+                ) { isPaused ->
+                  Icon(
+                    imageVector = if (isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                    contentDescription = if (isPaused) "Play" else "Pause",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(34.dp),
+                  )
+                }
               }
             }
 
-            IconButton(onClick = { stateManager.playNext() }) {
+            FilledTonalIconButton(
+              onClick = { stateManager.playNext() },
+              colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+              ),
+              modifier = Modifier.size(48.dp),
+            ) {
               Icon(
                 imageVector = Icons.Filled.SkipNext,
                 contentDescription = "Next Track",
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(28.dp),
               )
             }
 
@@ -725,12 +798,18 @@ fun MiniPlayer(
             }
             val isRepeatActive = state.repeatMode != RepeatMode.OFF
 
-            IconButton(onClick = { stateManager.cycleRepeatMode() }) {
+            FilledTonalIconButton(
+              onClick = { stateManager.cycleRepeatMode() },
+              colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = if (isRepeatActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                contentColor = if (isRepeatActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+              ),
+              modifier = Modifier.size(46.dp),
+            ) {
               Icon(
                 imageVector = repeatIcon,
                 contentDescription = "Cycle Repeat Mode",
-                tint = if (isRepeatActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(24.dp),
               )
             }
           }

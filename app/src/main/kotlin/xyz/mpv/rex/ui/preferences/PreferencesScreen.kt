@@ -131,18 +131,11 @@ object PreferencesScreen : Screen {
             PreferenceSection(title = stringResource(R.string.pref_category_ui_appearance)) {
               GroupedListColumn {
                 PreferenceItem(
-                  position = GroupPosition.FIRST,
+                  position = GroupPosition.ONLY,
                   title = stringResource(id = R.string.pref_appearance_title),
                   summary = stringResource(id = R.string.pref_appearance_summary),
                   icon = Icons.Outlined.Palette,
                   onClick = { backstack.add(AppearancePreferencesScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = stringResource(id = R.string.pref_layout_title),
-                  summary = stringResource(id = R.string.pref_layout_summary),
-                  icon = Icons.AutoMirrored.Outlined.ViewQuilt,
-                  onClick = { backstack.add(PlayerControlsPreferencesScreen) },
                 )
               }
             }
@@ -158,6 +151,13 @@ object PreferencesScreen : Screen {
                   summary = stringResource(id = R.string.pref_player_summary),
                   icon = Icons.Outlined.PlayCircle,
                   onClick = { backstack.add(PlayerPreferencesScreen) },
+                )
+                PreferenceItem(
+                  position = GroupPosition.MIDDLE,
+                  title = stringResource(id = R.string.pref_layout_title),
+                  summary = stringResource(id = R.string.pref_layout_summary),
+                  icon = Icons.AutoMirrored.Outlined.ViewQuilt,
+                  onClick = { backstack.add(PlayerControlsPreferencesScreen) },
                 )
                 PreferenceItem(
                   position = GroupPosition.LAST,

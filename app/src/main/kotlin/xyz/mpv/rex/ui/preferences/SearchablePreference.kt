@@ -95,35 +95,35 @@ object SearchablePreferences {
                 titleRes = R.string.pref_layout_title,
                 summaryRes = R.string.pref_layout_summary,
                 keywords = listOf("layout", "controls", "buttons", "player", "customize", "arrange"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 1,
             ))
             add(SearchablePreference(
                 titleRes = R.string.pref_layout_top_right_controls,
                 keywords = listOf("controls", "top", "right", "landscape", "buttons"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 1,
             ))
             add(SearchablePreference(
                 titleRes = R.string.pref_layout_bottom_right_controls,
                 keywords = listOf("controls", "bottom", "right", "landscape", "buttons"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 1,
             ))
             add(SearchablePreference(
                 titleRes = R.string.pref_layout_bottom_left_controls,
                 keywords = listOf("controls", "bottom", "left", "landscape", "buttons"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 1,
             ))
             add(SearchablePreference(
                 titleRes = R.string.pref_layout_portrait_bottom_controls,
                 keywords = listOf("controls", "portrait", "bottom", "buttons"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 3,
             ))
@@ -131,7 +131,7 @@ object SearchablePreferences {
                 titleRes = R.string.pref_appearance_hide_player_buttons_background_title,
                 summaryRes = R.string.pref_appearance_hide_player_buttons_background_summary,
                 keywords = listOf("hide", "background", "buttons", "transparent", "player"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 11,
             ))
@@ -139,7 +139,7 @@ object SearchablePreferences {
                 titleRes = R.string.pref_appearance_enable_glass_player_controls_title,
                 summaryRes = R.string.pref_appearance_enable_glass_player_controls_summary,
                 keywords = listOf("glass", "glassmorphism", "buttons", "shadow", "inner shadow", "highlight", "player", "appearance"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 11,
             ))
@@ -147,7 +147,7 @@ object SearchablePreferences {
                 titleRes = R.string.pref_appearance_enable_glass_seekbar_title,
                 summaryRes = R.string.pref_appearance_enable_glass_seekbar_summary,
                 keywords = listOf("glass", "glassmorphism", "seekbar", "progress", "slider", "player", "appearance"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 11,
             ))
@@ -155,7 +155,7 @@ object SearchablePreferences {
                 titleRes = R.string.pref_player_show_seekbar_chapters_title,
                 summaryRes = R.string.pref_player_show_seekbar_chapters_summary,
                 keywords = listOf("chapters", "seekbar", "markers", "gaps", "progress", "player"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 7,
             ))
@@ -163,14 +163,14 @@ object SearchablePreferences {
                 titleRes = R.string.pref_player_show_seekbar_read_ahead_title,
                 summaryRes = R.string.pref_player_show_seekbar_read_ahead_summary,
                 keywords = listOf("buffer", "buffered", "cache", "read ahead", "visual hint", "seekbar", "progress", "player"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 7,
             ))
             add(SearchablePreference(
                 titleRes = R.string.pref_player_display_hide_player_control_time,
                 keywords = listOf("time", "hide", "controls", "disappear", "timeout", "ms"),
-                category = "Appearance",
+                category = "Player Layout",
                 screen = PlayerControlsPreferencesScreen,
                 targetIndex = 11,
             ))

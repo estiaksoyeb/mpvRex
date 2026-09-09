@@ -223,7 +223,7 @@ object SearchablePreferences {
             add(SearchablePreference(
                 titleRes = R.string.pref_autoplay_title,
                 summaryRes = R.string.pref_autoplay_summary,
-                keywords = listOf("autoplay", "playlist", "next", "previous", "folder", "navigation"),
+                keywords = listOf("auto-queue", "queue", "playlist", "folder", "navigation", "next", "previous"),
                 category = "Player",
                 screen = PlayerPreferencesScreen,
                 targetIndex = 1,

@@ -117,8 +117,8 @@
     <string name="settings_search_title">Search</string>
 
     <!-- Player Preferences -->
-    <string name="pref_autoplay_title">Enable next/previous navigation</string>
-    <string name="pref_autoplay_summary">Show next/previous buttons for all videos in folder</string>
+    <string name="pref_autoplay_title">Auto-queue folder videos</string>
+    <string name="pref_autoplay_summary">Automatically queue all videos in folder into a playlist</string>
     <string name="pref_autoplay_next_video_title">Autoplay next video</string>
     <string name="pref_autoplay_next_video_summary">Automatically play next video when current ends</string>
     <string name="pref_autoplay_on_open_title">Autoplay on open</string>
@@ -1238,8 +1238,8 @@
     <string name="pref_player_autoplay_on_open_summary">Automatically begin playback when media is opened</string>
     <string name="pref_player_autoplay_on_open_summary_on">Automatically begin playback when media is opened</string>
     <string name="pref_player_autoplay_on_open_summary_off">Open media in a paused state</string>
-    <string name="pref_player_playlist_mode_summary_on">Show next/previous buttons for all videos in folder</string>
-    <string name="pref_player_playlist_mode_summary_off">Play videos individually (select multiple for playlist)</string>
+    <string name="pref_player_playlist_mode_summary_on">Automatically queue all videos in folder into a playlist</string>
+    <string name="pref_player_playlist_mode_summary_off">Play videos individually (select multiple to play as a playlist)</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_on">Screen stays awake while video is paused</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_off">Screen can turn off while video is paused</string>
     <string name="pref_player_auto_pip">Auto Picture-in-Picture</string>

@@ -4767,5 +4767,365 @@
     "source_hash": "b2e18b06ad27cc447cd221f54335914547c1adaedf6c3bc9b6271452d35c0df6",
     "translated_value": "تم استيراد زر %1$d",
     "ignore_warnings": false
+  },
+  "pref_appearance_player_always_dark_mode_disabled_toast": {
+    "source_hash": "4ee4b5d0bac9c18e718114e180c97338a89662975d6e7d41cf1b5104b36440aa",
+    "translated_value": "يُشترط استخدام الوضع الداكن عند تفعيل أزرار التحكم الزجاجية"
+  },
+  "pref_autoplay_on_open_title": {
+    "source_hash": "15ea89726de133c1c039d13cc62d23bad3c449dcaf4f208c793e75d78ef0eb06",
+    "translated_value": "التشغيل تلقائيًا عند الفتح"
+  },
+  "pref_autoplay_on_open_summary": {
+    "source_hash": "3b42f84a032a0e5c71f4a500b02b152a61edce09aea03dbc30aea65aca7d1136",
+    "translated_value": "بدء التشغيل تلقائيًا عند فتح الوسائط"
+  },
+  "pref_player_auto_resume_on_ask_title": {
+    "source_hash": "d4732e4846b080167df38b33fcc396df8c7484f3b9001a09924294a109beb66f",
+    "translated_value": "استئناف التشغيل تلقائيًا"
+  },
+  "pref_player_auto_resume_on_ask_summary_on": {
+    "source_hash": "73f7f920886a9d67ba3047e9ef7570a668deefcf98c797bbb652981c777ba900",
+    "translated_value": "الاستئناف تلقائيًا وعرض البدء من جديد"
+  },
+  "pref_player_auto_resume_on_ask_summary_off": {
+    "source_hash": "875da2b90027c2cda88932cb1d1d579377fd55038547085d01ddf00b28ec42f7",
+    "translated_value": "ابدء من جديد واعرض استئناف التشغيل"
+  },
+  "player_prompt_resume_pill": {
+    "source_hash": "c08336cb0aa324476161d98ce43b880787d92ecdcf05dfde32d067df251047b8",
+    "translated_value": "شُوهد حتى %1$s"
+  },
+  "pref_player_default_aspect_ratio": {
+    "source_hash": "e6a2a15fef200b5885e21c8391af0a024b6514ebf835b6f3dda4c68da2514d23",
+    "translated_value": "نسبة الأبعاد الافتراضية"
+  },
+  "pref_player_remember_aspect_ratio": {
+    "source_hash": "135e7d192c29a9948ec4fa930757c9e0e6766dae2e431188fbe3543458f38ddf",
+    "translated_value": "تذكر نسبة الأبعاد لجميع الفيديوهات"
+  },
+  "pref_player_remember_aspect_ratio_summary": {
+    "source_hash": "d8428d48f856a9b5d565452b28716a54d1f5518c873e1eec24e47f7e155cabcd",
+    "translated_value": "حفظ نسبة الأبعاد المعتمدة في المشغل للفيديوهات التالية"
+  },
+  "pref_advanced_history_auto_remove_deleted_title": {
+    "source_hash": "fbf27355b8337fb9cc69f924f491623abaa216ca5d2b875eaa09320d50f5376c",
+    "translated_value": "الإزالة التلقائية للملفات المحذوفة"
+  },
+  "pref_advanced_history_auto_remove_deleted_summary": {
+    "source_hash": "c058f83a000047e96f9468966ce10e7dd219c77489847f7c761ef543fecf59f0",
+    "translated_value": "الحذف والتنظيف التلقائي للوسائط المحذوفة من \"المشغّلة مؤخرًا"
+  },
+  "pref_advanced_history_exclude_external_title": {
+    "source_hash": "26993a8e4c67bdd749a78c0526f3ce99616412e47415983fa617dd808c7af4d3",
+    "translated_value": "استثناء الوسائط الخارجية والمُشارَكة"
+  },
+  "pref_advanced_history_exclude_external_summary": {
+    "source_hash": "fccb53666c18c8b9e9f6df17c24e7cf454d9a7e3f8692411246dd3d64c8b7079",
+    "translated_value": "منع إضافة الوسائط لـ \"المشغّلة مؤخراً\" عند الفتح عبر التطبيقات الأخرى أو قائمة المشاركة"
+  },
+  "player_sheets_sub_primary_position": {
+    "source_hash": "ac576666b92c92f254560797ed5860419a4df1c17ec840ead51a3912cc8f52ec",
+    "translated_value": "موضع الترجمة الرئيسية"
+  },
+  "player_sheets_secondary_sub_position": {
+    "source_hash": "40e95b6f530cf95d114927b62840277c15d1e997f6cc8930a27067dce39510cf",
+    "translated_value": "موضع الترجمة الثانوية"
+  },
+  "player_sheets_secondary_sub_scale": {
+    "source_hash": "237eed33626952d871df08646c6af8c3059a3074d3d17ee3fee89ea690c0473c",
+    "translated_value": "مقياس الترجمة الثانوية"
+  },
+  "player_sheets_stats_page_6_desc": {
+    "source_hash": "18721e35a2991cafd411845aeebab326fae1a58dbcd0fb7828eac75520abc8c1",
+    "translated_value": "إحصائيات النظام. نسبة البطارية، استهلاك الطاقة، الحرارة، الذاكرة العشوائية، العرض."
+  },
+  "diagnostics_playback_decoder_header": {
+    "source_hash": "c055c291b4584dd1625ed5ba13ba0836eeab88eef7aa446fbec5f6b5442e429a",
+    "translated_value": "التشغيل وفك الترميز"
+  },
+  "diagnostics_power_thermals_header": {
+    "source_hash": "4e16dc1519219c2acf0b15e26841bc6fad47b3f3903b701d33509f1e004d0650",
+    "translated_value": "الطاقة والحرارة"
+  },
+  "diagnostics_session_header": {
+    "source_hash": "cb66ec751f958acf43b6fec80a2002e8312c2b2d458a7e42da526aa7bd647fc9",
+    "translated_value": "الجلسة"
+  },
+  "diagnostics_app_cpu": {
+    "source_hash": "faf249d914da963d836e2a653ea76db6864b610873063cecb3ec22819bae7233",
+    "translated_value": "معالج التطبيق"
+  },
+  "diagnostics_memory_cache_header": {
+    "source_hash": "85d2b773539168beba2726c6bd5cb18be926905c2214265b9501ddfbf1e2c99e",
+    "translated_value": "الذاكرة وذاكرة التخزين المؤقت"
+  },
+  "diagnostics_process_memory": {
+    "source_hash": "e083bd83e9d3e97e3b3e7dbe6cca0dcac2c1342b57cb7984792ec01beee22c28",
+    "translated_value": "العملية"
+  },
+  "diagnostics_process_memory_value": {
+    "source_hash": "dc39ca0bc05a7fc8b9391e2fa1c8ed4b50534c321c3bfee63d060a5b3719e686",
+    "translated_value": "PSS %1$s | Java %2$s/%3$s | Native %4$s"
+  },
+  "diagnostics_playback_cache": {
+    "source_hash": "2db1db07062e4a013e4662a3eab15891bd2dcaffe689d97cf99a605bf6fe5b67",
+    "translated_value": "التشغيل"
+  },
+  "diagnostics_playback_cache_value": {
+    "source_hash": "f7e3ecc958e7f803872d374c89975dfd1012e66601d47a0e47ed805629f1d7c0",
+    "translated_value": "المخزن %1$.1f s | الحزم %2$s | الملف %3$s"
+  },
+  "clip_export_title": {
+    "source_hash": "e451241a796d1a078628d746383417d8994dd62b8db95f781eae26a0712259a5",
+    "translated_value": "تصدير المقطع"
+  },
+  "clip_export_fast_title": {
+    "source_hash": "d64456a493972b23f66ea664509da8d82391b0e0c5c710038d44fee4c9101f4a",
+    "translated_value": "سريع (نسخة دون فقدان الجودة)"
+  },
+  "clip_export_fast_desc": {
+    "source_hash": "6df31d35ac20fd08ab985332c7aecd55af5b06782ba1299ec1e5ef88b90d3149",
+    "translated_value": "نسخة البث الفوري بالجودة الأصلية 100%. يبدأ عند أقرب إطار رئيسي"
+  },
+  "clip_export_exact_title": {
+    "source_hash": "ee4be3bb77a547c44fc3462fa5f8bdfd3701c95adc57c0d8f4cee7a819b63551",
+    "translated_value": "الإطار الدقيق (إعادة ترميز)"
+  },
+  "clip_export_exact_desc": {
+    "source_hash": "672b110e36461b9f71a9df32d85b370af415721c056177e20953a666d33fbeda",
+    "translated_value": "تصدير مطابق للإطار بدءاً من الموقع الزمني الدقيق"
+  },
+  "clip_export_fast_tag": {
+    "source_hash": "4b86dab6fdeaa7641e7c467cf43325ac8fa44b3711734816da763b0c9ea1a31d",
+    "translated_value": "دون فقدان الجودة"
+  },
+  "clip_export_exact_tag": {
+    "source_hash": "388bf409083301d34513ba75e3ff9a952c66643d1e2e76d9296e78f52b194a89",
+    "translated_value": "مطابق للإطار"
+  },
+  "clip_export_duration": {
+    "source_hash": "270fd8d2cd2c082852e29a6da892ce04087fcae52b38a06c4579ddc3eaa53ac7",
+    "translated_value": "المدة: %s"
+  },
+  "network_share_unreachable": {
+    "source_hash": "803271d9a81b2c5e36cd33fc32a6e309cbe2350dd367f641bc2709ba3174a126",
+    "translated_value": "تعذّر الوصول إلى مجلد المشاركة الشبكي"
+  },
+  "pref_player_autoplay_on_open": {
+    "source_hash": "15ea89726de133c1c039d13cc62d23bad3c449dcaf4f208c793e75d78ef0eb06",
+    "translated_value": "التشغيل تلقائيًا عند الفتح"
+  },
+  "pref_player_autoplay_on_open_summary": {
+    "source_hash": "3b42f84a032a0e5c71f4a500b02b152a61edce09aea03dbc30aea65aca7d1136",
+    "translated_value": "بدء التشغيل تلقائيًا عند فتح وسائط"
+  },
+  "pref_player_autoplay_on_open_summary_on": {
+    "source_hash": "3b42f84a032a0e5c71f4a500b02b152a61edce09aea03dbc30aea65aca7d1136",
+    "translated_value": "بدء التشغيل تلقائياً بمجرد فتح الملف"
+  },
+  "pref_player_autoplay_on_open_summary_off": {
+    "source_hash": "c31265ce635049e54ff10cd7117490aaaa4ac3511cd33e08950922f5ed5d1471",
+    "translated_value": "افتح الوسائط في حالة الإيقاف المؤقت"
+  },
+  "shorts_restart_from_beginning": {
+    "source_hash": "928a13ee4db186788f9f65a29f3e3805659088d647137cc332da0adee6a88546",
+    "translated_value": "إعادة تشغيل من البداية"
+  },
+  "shorts_reshuffle_feed": {
+    "source_hash": "b7e3878a92d39faf585b61e1fee84bf33b70ade12f8b04d58bc113ba92b2c823",
+    "translated_value": "إعادة خلط المحتوى"
+  },
+  "preview_chapter_chip": {
+    "source_hash": "ac6d63d52707fda1023a28c015d0a39a920fd9b252c0b9533b9d8127e600c2a5",
+    "translated_value": "1:06 • الفصل 1"
+  },
+  "sort_by": {
+    "source_hash": "c9129025bd3ff6522a7eeebc1abf1481f36e4ac9d74524a473ac1c3be1c6fc2f",
+    "translated_value": "ترتيب بحسب"
+  },
+  "cd_toggle_sort_order": {
+    "source_hash": "609855b3bfc1b3cfb6dafb6c339cfbee056303e766bcf06017ea81446da89410",
+    "translated_value": "تشغيل/إيقاف اتجاه الترتيب"
+  },
+  "cd_expand": {
+    "source_hash": "07548c2c6511d4d1780564de8a237a1966cf9c99a97cf5c8a185e6c2aeacff09",
+    "translated_value": "توسيع"
+  },
+  "cd_collapse": {
+    "source_hash": "be6eb1fc3b05bf9dceebad2eac7841d1b2f40bda9aa2da34df8ca22af02bc3ed",
+    "translated_value": "طي"
+  },
+  "sort_type_title": {
+    "source_hash": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674",
+    "translated_value": "العنوان"
+  },
+  "sort_type_duration": {
+    "source_hash": "4fc52a3c4c558b517c463b22d86d0e3b9cfd4255c98fe3510f9075b37ab419c9",
+    "translated_value": "المدة"
+  },
+  "sort_type_date": {
+    "source_hash": "99c40ab405926cb5ad1def9cff4d7ce624f8f8abfff4e85f655347fcb949d08e",
+    "translated_value": "التاريخ"
+  },
+  "sort_type_size": {
+    "source_hash": "1af851907331c0ed99e7c63b4e55df808bc5fc4c990a1cf80ca8c0f76daf1f3b",
+    "translated_value": "الحجم"
+  },
+  "sort_type_count": {
+    "source_hash": "37bac4952becf21ac5838d3c9ba82811bc421c857571e89634dcbe346681d54c",
+    "translated_value": "العدد"
+  },
+  "sort_order_ascending": {
+    "source_hash": "77184595bde3befc7f5a20efc97caea43f4858e4c97cd2ee406af2c61db3266c",
+    "translated_value": "تصاعدي"
+  },
+  "sort_order_descending": {
+    "source_hash": "79479a6c76d8416ab7839952a2f8222e350862464f4d02db13d8d8f9551dbf8e",
+    "translated_value": "تنازلي"
+  },
+  "sort_order_az": {
+    "source_hash": "11508a93417cb949377fabc7e0e72ba19fdde6716457dac9b70fe0c6b0cb520f",
+    "translated_value": "A-Z"
+  },
+  "sort_order_za": {
+    "source_hash": "e0d9d32bdacb12761e37f67bec3e7bbf518d81135fda97f82d31c3dac6d0e42f",
+    "translated_value": "Z-A"
+  },
+  "sort_order_shortest": {
+    "source_hash": "3be807632d673d43c530cad23427dfd19fa1edbca5f148738a1e8ac943f126ef",
+    "translated_value": "الأقصر"
+  },
+  "sort_order_longest": {
+    "source_hash": "802803c7888480fc3a394d9c3060e509a76ff29c9e223246060a734b88a80f41",
+    "translated_value": "الأطول"
+  },
+  "sort_order_oldest": {
+    "source_hash": "505dc450753e546ecbef6830acea257dc35d0d5303d8e76d0d605a7997a10a42",
+    "translated_value": "الأقدم"
+  },
+  "sort_order_newest": {
+    "source_hash": "d15efa178cf65ae16596a270671aa320bc9d2a5f18d78ecc5d479f73b3ffd51e",
+    "translated_value": "الأحدث"
+  },
+  "sort_order_smallest": {
+    "source_hash": "b2443d1a486e89394d77d9823d55af518353744d29b727f2fcaeaff48198d574",
+    "translated_value": "الأصغر"
+  },
+  "sort_order_largest": {
+    "source_hash": "5511a4b7d571662097f8c45c5d65b463eb6d6b872a0ddf4284ee7af8df086e5b",
+    "translated_value": "الأكبر"
+  },
+  "sort_order_asc_abbrev": {
+    "source_hash": "cddeba5cfc9a05ad4415f0d25b1c9be2d44103e5b12352a2a811f0c7ebffffe7",
+    "translated_value": "تصاعدي"
+  },
+  "sort_order_desc_abbrev": {
+    "source_hash": "5c4419a6999d2a7a29e0e1d00876b4c5992d56d1dbc9a03ecc515eaa554b7f04",
+    "translated_value": "تنازلي"
+  },
+  "view_mode": {
+    "source_hash": "955303856d4b689fdec870fb9ea0a00cf472ca1d4a050ad5a2e85d152c4f81fa",
+    "translated_value": "وضع العرض"
+  },
+  "view_mode_folder": {
+    "source_hash": "74ccd43303847f2655300641a934959cdb11689ce171aa0f00faa92917fbd340",
+    "translated_value": "مجلد"
+  },
+  "view_mode_tree": {
+    "source_hash": "b85f5fabf97d3b18eab12b1746fcff04590986982ae5f205a171880c5c21202b",
+    "translated_value": "شجرة"
+  },
+  "view_mode_library": {
+    "source_hash": "dc20b3d5d2cddf82fad332821ca5e9a4efdcede4a273aa193d2b495bdcc92825",
+    "translated_value": "مكتبة"
+  },
+  "layout": {
+    "source_hash": "a511909161e1b84fb81b52028fc2ce79525a96b40ccda823caa4a66ee64772b5",
+    "translated_value": "تخطيط"
+  },
+  "layout_mode_list": {
+    "source_hash": "6f202f54a7b2d8fe42aa804eabe48ef900cdf73a74c570a47fd1b1a4920a051d",
+    "translated_value": "قائمة"
+  },
+  "layout_mode_grid": {
+    "source_hash": "0d7d12ac624c66e687f98a68ce621c8a44531d5da1db7d0005aa215e2f1d964f",
+    "translated_value": "شبكة"
+  },
+  "grid_columns": {
+    "source_hash": "d2e509b3176a52f703f699c97a3f25f7bc2de6db9cd8590b7fdee8d3958c061d",
+    "translated_value": "أعمدة الشبكة"
+  },
+  "folder_grid": {
+    "source_hash": "88c304ca406eeb9d2a75efb307f16465071311eea8523a9e3c4906474a482d9f",
+    "translated_value": "شبكة المجلدات"
+  },
+  "video_grid": {
+    "source_hash": "e700d109000f62d2b96c700024f58ae40f51c92757b5b9be212c0ed72ba7c126",
+    "translated_value": "شبكة الفيديو"
+  },
+  "num_columns#plural#one": {
+    "source_hash": "c2d607d7696f7c1f765d969a911d921bb3d85bc85db560fed5f63be2bd1cfe07",
+    "translated_value": "%1$d عمود"
+  },
+  "num_columns#plural#other": {
+    "source_hash": "73fceb47cefbf498e5274660328de323f6ddbda37f1c34697672bea6fe73f05e",
+    "translated_value": "%1$d أعمدة"
+  },
+  "filters": {
+    "source_hash": "546ebb8eb993ea561029d9febd84c363bdb09010bb2cb915a8287762b76b9a64",
+    "translated_value": "المرشحات"
+  },
+  "filter_audio_files": {
+    "source_hash": "85b791f3241caa0d91a2d7fecc8d32d231ead7285972e3f6be4296c2793d07c8",
+    "translated_value": "الملفات الصوتية"
+  },
+  "filter_show_nomedia_folders": {
+    "source_hash": "dbf90ed1a8adb11ff46f6c219bfd248aa2dca3b77cb70d10d3c41d8693b20052",
+    "translated_value": "إظهار مجلدات .nomedia"
+  },
+  "fields": {
+    "source_hash": "616f48c1db195b6f23031e5064d19920ab9f1c394100bbad51800d1020f7702d",
+    "translated_value": "الحقول"
+  },
+  "field_video_thumbnails": {
+    "source_hash": "2a15ae206631e0b2b6b96698ece5930c08fae3992c58d3a6001f0c419424c771",
+    "translated_value": "الصور المصغرة للفيديو"
+  },
+  "field_full_name": {
+    "source_hash": "8e00cdf71fa7cc76882846b180305bb5bc1d658057630d4f87bb12c07754c30b",
+    "translated_value": "الاسم كاملا"
+  },
+  "field_total_videos": {
+    "source_hash": "8664dff1bd2f5245692b20ee8909c375e8a63951a428c62b29f20325ffca9c12",
+    "translated_value": "إجمالي الفيديوهات"
+  },
+  "field_total_duration": {
+    "source_hash": "a1a08a77edd86ec9c1919534c45d98986e5fa4f4c4de8ce7bf29703efc9edd8f",
+    "translated_value": "إجمالي المدة"
+  },
+  "field_folder_size": {
+    "source_hash": "b2fd0cd87713f82d13dc4fbbac25cb5a43a45e09f542f31d85d424f4a05dbb55",
+    "translated_value": "حجم المجلد"
+  },
+  "field_file_size": {
+    "source_hash": "cf18d7d7b624cfde1a2b3163d142488d158a0044925017b8a5a2fe8ede14be34",
+    "translated_value": "حجم الملف"
+  },
+  "field_resolution": {
+    "source_hash": "d4055fafa3794fa88b1e89e70c167d5a9575067a1442a6d94e9520d65a575378",
+    "translated_value": "الدقة"
+  },
+  "field_framerate": {
+    "source_hash": "76c739796a87afe53448db44c204e0fc5d3577fdf2dbf36c76eda731adc39456",
+    "translated_value": "معدل الإطارات"
+  },
+  "field_progress_bar": {
+    "source_hash": "a4616f1ea376a701915a487a093b4972f2b2c7234f588a0228300b9fa40abe7b",
+    "translated_value": "شريط التقدم"
+  },
+  "field_subtitle_indicator": {
+    "source_hash": "5ce5506960e14df7bbd2430efc8cfb8767737bafe1c1a707d025932596fc4f71",
+    "translated_value": "مؤشر الترجمة"
   }
 }

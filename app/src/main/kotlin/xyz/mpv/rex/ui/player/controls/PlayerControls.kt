@@ -183,6 +183,7 @@ fun PlayerControls(
   val spacing = MaterialTheme.spacing
   val appearancePreferences = koinInject<AppearancePreferences>()
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
+  val showNextPreviousButtons by appearancePreferences.showNextPreviousButtons.collectAsState()
   val playerPreferences = koinInject<PlayerPreferences>()
   val audioPreferences = koinInject<AudioPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -1071,7 +1072,7 @@ fun PlayerControls(
                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
               )
 
-              if (playlistItems.isNotEmpty() && playlistIndex >= 0 && viewModel.hasPlaylistSupport()) {
+              if (showNextPreviousButtons && playlistItems.isNotEmpty() && playlistIndex >= 0 && viewModel.hasPlaylistSupport()) {
                 val canGoPrevious = viewModel.hasPrevious()
                 val canGoNext = viewModel.hasNext()
                 Row(

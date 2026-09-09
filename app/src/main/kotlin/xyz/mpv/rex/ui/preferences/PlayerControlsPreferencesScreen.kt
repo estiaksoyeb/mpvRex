@@ -377,6 +377,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     item {
                         val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
                         val hidePlayerButtonsBackground by appearancePrefs.hidePlayerButtonsBackground.collectAsState()
+                        val showNextPreviousButtons by appearancePrefs.showNextPreviousButtons.collectAsState()
                         val enableGlassPlayerControls by appearancePrefs.enableGlassPlayerControls.collectAsState()
                         val enableGlassSeekbarBackground by appearancePrefs.enableGlassSeekbarBackground.collectAsState()
                         val playerAlwaysDarkMode by appearancePrefs.playerAlwaysDarkMode.collectAsState()
@@ -426,6 +427,26 @@ object PlayerControlsPreferencesScreen : Screen {
                                     summary = {
                                         Text(
                                             text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_summary),
+                                        )
+                                    },
+                                )
+                            }
+
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_show_next_previous_buttons_title,
+                            ) {
+                                SwitchPreference(
+                                    value = showNextPreviousButtons,
+                                    onValueChange = { appearancePrefs.showNextPreviousButtons.set(it) },
+                                    title = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_show_next_previous_buttons_title),
+                                        )
+                                    },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = R.string.pref_appearance_show_next_previous_buttons_summary),
                                         )
                                     },
                                 )

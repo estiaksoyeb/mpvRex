@@ -1403,9 +1403,7 @@ class PlayerViewModel(
   // ==================== Playlist Management ====================
 
   fun hasPlaylistSupport(): Boolean {
-    val playlistModeEnabled = playerPreferences.playlistMode.get()
-    val isM3u = _playlistManager.isM3uPlaylist
-    return (playlistModeEnabled || isM3u) && _playlistManager.playlist.value.isNotEmpty()
+    return _playlistManager.playlist.value.isNotEmpty()
   }
 
   fun getPlaylistInfo(): String? {

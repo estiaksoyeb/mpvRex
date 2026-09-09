@@ -136,6 +136,14 @@ object SearchablePreferences {
                 targetIndex = 11,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_appearance_show_next_previous_buttons_title,
+                summaryRes = R.string.pref_appearance_show_next_previous_buttons_summary,
+                keywords = listOf("next", "previous", "buttons", "controls", "skip", "overlay", "playlist"),
+                category = "Player Layout",
+                screen = PlayerControlsPreferencesScreen,
+                targetIndex = 11,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_appearance_enable_glass_player_controls_title,
                 summaryRes = R.string.pref_appearance_enable_glass_player_controls_summary,
                 keywords = listOf("glass", "glassmorphism", "buttons", "shadow", "inner shadow", "highlight", "player", "appearance"),

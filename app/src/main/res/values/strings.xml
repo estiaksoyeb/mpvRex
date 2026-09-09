@@ -41,6 +41,8 @@
     <string name="pref_appearance_enable_bounce_animation_summary">Seekbar and volume/brightness sliders animate with a bounce effect</string>
     <string name="pref_appearance_hide_player_buttons_background_title">Hide player buttons background</string>
     <string name="pref_appearance_hide_player_buttons_background_summary">Hide the background of all player control buttons</string>
+    <string name="pref_appearance_show_next_previous_buttons_title">Show next/previous buttons</string>
+    <string name="pref_appearance_show_next_previous_buttons_summary">Show next and previous skip buttons in the player controls overlay</string>
     <string name="pref_appearance_enable_glass_player_controls_title">Glass player controls</string>
     <string name="pref_appearance_enable_glass_player_controls_summary">Apply glass-morphism style to player control buttons</string>
     <string name="pref_appearance_enable_glass_seekbar_title">Glass seekbar background</string>

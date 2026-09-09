@@ -30,6 +30,7 @@ class AppearancePreferences(
   val useSystemFont = preferenceStore.getBoolean("use_system_font", false)
   val unlimitedNameLines = preferenceStore.getBoolean("unlimited_name_lines", false)
   val hidePlayerButtonsBackground = preferenceStore.getBoolean("hide_player_buttons_background", false)
+  val showNextPreviousButtons = preferenceStore.getBoolean("show_next_previous_buttons", true)
   val enableGlassPlayerControls = preferenceStore.getBoolean("enable_glass_player_controls", false)
   val enableGlassSeekbarBackground = preferenceStore.getBoolean("enable_glass_seekbar_background", false)
   val enableBounceAnimation = preferenceStore.getBoolean("enable_bounce_animation", false)

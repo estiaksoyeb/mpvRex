@@ -54,8 +54,12 @@ class PlayerPlaybackStateController(
     val currentAudioDelay = (MPVLib.getPropertyDouble("audio-delay") ?: 0.0)
     val currentSubSpeed = MPVLib.getPropertyDouble("sub-speed") ?: DEFAULT_SUB_SPEED
     val currentOrientation = activity.requestedOrientation
-    val currentExternalSubs = activity.viewModel.externalSubtitles.toList()
-    val currentExternalAudio = activity.viewModel.externalAudioTracks.toList()
+    val currentExternalSubs = activity.viewModel.externalSubtitles
+      .filter { !it.startsWith("http", ignoreCase = true) && !it.startsWith("edl", ignoreCase = true) }
+      .toList()
+    val currentExternalAudio = activity.viewModel.externalAudioTracks
+      .filter { !it.startsWith("http", ignoreCase = true) && !it.startsWith("edl", ignoreCase = true) }
+      .toList()
 
     // Cancel any previous pending save operation
     savePlaybackStateJob?.cancel()
@@ -155,33 +159,37 @@ class PlayerPlaybackStateController(
    */
   private suspend fun applyPlaybackState(state: PlaybackStateEntity?) {
     if (state == null) {
-      // Force reset position for new items in playlist
-      MPVLib.setPropertyInt("time-pos", 0)
       return
     }
 
     val subDelay = state.subDelay / DELAY_DIVISOR
     val audioDelay = state.audioDelay / DELAY_DIVISOR
 
-    // Restore external subtitles first
+    // Restore external subtitles first (local files only)
     if (state.externalSubtitles.isNotBlank()) {
       val externalSubUris = state.externalSubtitles.split("|").filter { it.isNotBlank() }
       Log.d(TAG, "Restoring ${externalSubUris.size} external subtitle(s)")
 
       val lastUri = externalSubUris.last()
       for (subUri in externalSubUris) {
-        activity.viewModel.addSubtitle(Uri.parse(subUri), select = subUri == lastUri, silent = true)
+        val uri = Uri.parse(subUri)
+        if (uri.scheme?.startsWith("http") != true && uri.scheme != "edl") {
+          activity.viewModel.addSubtitle(uri, select = subUri == lastUri, silent = true)
+        }
       }
     }
 
-    // Restore external audio tracks
+    // Restore external audio tracks (local files only)
     if (state.externalAudioTracks.isNotBlank()) {
       val externalAudioUris = state.externalAudioTracks.split("|").filter { it.isNotBlank() }
       Log.d(TAG, "Restoring ${externalAudioUris.size} external audio track(s)")
 
       val lastUri = externalAudioUris.last()
       for (audioUri in externalAudioUris) {
-        activity.viewModel.addAudio(Uri.parse(audioUri), select = audioUri == lastUri, silent = true)
+        val uri = Uri.parse(audioUri)
+        if (uri.scheme?.startsWith("http") != true && uri.scheme != "edl") {
+          activity.viewModel.addAudio(uri, select = audioUri == lastUri, silent = true)
+        }
       }
     }
 
@@ -247,9 +255,20 @@ class PlayerPlaybackStateController(
     val resumeMode = activity.playerPreferences.resumePlaybackMode.get()
     val hasValidSavedPosition = state.lastPosition > 3
 
+    if (activity.startedAtSavedPosition) {
+      Log.d(TAG, "Media was already started at position ${state.lastPosition} via load options; skipping seek")
+      activity.startedAtSavedPosition = false
+      if (resumeMode == ResumePlaybackMode.Ask && activity.playerPreferences.autoResumeOnAsk.get()) {
+        withContext(Dispatchers.Main) {
+          activity.viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
+        }
+      }
+      return
+    }
+
     when {
       !activity.playerPreferences.savePositionOnQuit.get() || resumeMode == ResumePlaybackMode.Never || !hasValidSavedPosition -> {
-        MPVLib.setPropertyInt("time-pos", 0)
+        // No seek needed, playback continues from start
       }
       resumeMode == ResumePlaybackMode.Ask -> {
         val autoResume = activity.playerPreferences.autoResumeOnAsk.get()
@@ -259,7 +278,6 @@ class PlayerPlaybackStateController(
             activity.viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
           }
         } else {
-          MPVLib.setPropertyInt("time-pos", 0)
           withContext(Dispatchers.Main) {
             activity.viewModel.playerUpdate.value = PlayerUpdates.PromptResume(state.lastPosition)
           }

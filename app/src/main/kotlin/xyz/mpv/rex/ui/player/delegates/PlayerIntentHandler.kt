@@ -92,12 +92,22 @@ class PlayerIntentHandler(
       }
       uri?.resolveUri(activity)
     } else {
-      intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
-        val uri = text.trim().toUri()
-        if (uri.isHierarchical && !uri.isRelative) {
-          uri.resolveUri(activity)
+      intent.getStringExtra(Intent.EXTRA_TEXT)?.let { rawText ->
+        val urlRegex = Regex("""https?://[^\s]+""")
+        val foundUrl = urlRegex.find(rawText)?.value
+        if (foundUrl != null) {
+          val titleCandidate = rawText.replace(foundUrl, "").trim()
+          if (titleCandidate.isNotBlank() && !intent.hasExtra("title")) {
+            intent.putExtra("title", titleCandidate)
+          }
+          foundUrl
         } else {
-          null
+          val uri = rawText.trim().toUri()
+          if (uri.isHierarchical && !uri.isRelative) {
+            uri.resolveUri(activity)
+          } else {
+            null
+          }
         }
       }
     }
@@ -172,8 +182,24 @@ class PlayerIntentHandler(
    * @return The extracted URI, or null if not found
    */
   fun extractUriFromIntent(intent: Intent): Uri? =
-    if (intent.type == "text/plain") {
-      intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri()
+    if (intent.type == "text/plain" || intent.action == Intent.ACTION_SEND) {
+      val rawText = intent.getStringExtra(Intent.EXTRA_TEXT)
+      if (!rawText.isNullOrBlank()) {
+        val urlRegex = Regex("""https?://[^\s]+""")
+        val foundUrl = urlRegex.find(rawText)?.value
+        if (foundUrl != null) {
+          foundUrl.toUri()
+        } else {
+          rawText.trim().toUri()
+        }
+      } else {
+        intent.data ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+          @Suppress("DEPRECATION")
+          intent.getParcelableExtra(Intent.EXTRA_STREAM)
+        }
+      }
     } else {
       intent.data ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
@@ -506,13 +532,7 @@ class PlayerIntentHandler(
       if (parsedUri != null && activity.isUriM3U(parsedUri)) {
         activity.loadM3uPlaylistOrPlayDirectly(uriStr)
       } else {
-        if (!activity.playerPreferences.autoplayOnOpen.get() || activity.playerPreferences.savePositionOnQuit.get() || activity.playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
-          runCatching { MPVLib.setPropertyBoolean("pause", true) }
-        }
-        // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
-        activity.lifecycleScope.launch(Dispatchers.Default) {
-          MPVLib.command("loadfile", uriStr)
-        }
+        activity.loadMediaOrResolveWebStream(uriStr)
       }
     }
   }

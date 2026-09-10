@@ -25,6 +25,16 @@ object SubtitleOps : KoinComponent {
     val p = videoFilePath.lowercase(Locale.getDefault())
     val n = videoFileName.lowercase(Locale.getDefault())
 
+    // Web streaming URLs (YouTube, Twitch, Vimeo, direct CDN URLs) should never autoload sidecar subtitles
+    if (p.startsWith("http://") || p.startsWith("https://")) {
+      if (p.contains("youtube.com") || p.contains("youtu.be") || p.contains("googlevideo.com") ||
+          p.contains("twitch.tv") || p.contains("vimeo.com") || p.contains("dailymotion.com") ||
+          p.contains("facebook.com") || p.contains("tiktok.com") || p.contains("instagram.com") ||
+          p.contains("twitter.com") || p.contains("x.com") || !HttpUtils.isDirectMediaUrl(android.net.Uri.parse(p))) {
+        return true
+      }
+    }
+
     val looksLikePlaylist =
       p.endsWith(".m3u") || p.endsWith(".m3u8") ||
         p.contains(".m3u?") || p.contains(".m3u8?") ||

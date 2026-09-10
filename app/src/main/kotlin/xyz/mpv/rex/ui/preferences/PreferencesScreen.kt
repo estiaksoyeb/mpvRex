@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ViewQuilt
 import androidx.compose.material.icons.outlined.Audiotrack
+import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Gesture
 import androidx.compose.material.icons.outlined.Info
@@ -234,11 +235,18 @@ object PreferencesScreen : Screen {
             PreferenceSection(title = "Integrations") {
               GroupedListColumn {
                 PreferenceItem(
-                  position = GroupPosition.ONLY,
+                  position = GroupPosition.FIRST,
                   title = "Jellyfin",
                   summary = "External player sync",
                   icon = Icons.Outlined.VideoLibrary,
                   onClick = { backstack.add(xyz.mpv.rex.jellyfin.ui.JellyfinSettingsScreen) },
+                )
+                PreferenceItem(
+                  position = GroupPosition.LAST,
+                  title = "Web Streaming & yt-dlp",
+                  summary = "Manage REX Stream Addon & extractor preferences",
+                  icon = Icons.Outlined.CloudDownload,
+                  onClick = { backstack.add(YtdlSettingsScreen) },
                 )
               }
             }

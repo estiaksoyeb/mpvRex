@@ -12,6 +12,7 @@ import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.SettingsManager
 import xyz.mpv.rex.preferences.SubtitlesPreferences
 import xyz.mpv.rex.preferences.UiPreferences
+import xyz.mpv.rex.preferences.YtdlPreferences
 import xyz.mpv.rex.ui.player.PlayerTutorialManager
 import xyz.mpv.rex.jellyfin.preferences.JellyfinPreferences
 import xyz.mpv.rex.preferences.preference.AndroidPreferenceStore
@@ -38,4 +39,5 @@ val PreferencesModule =
     singleOf(::SettingsManager)
     singleOf(::UiPreferences)
     singleOf(::PlayerTutorialManager)
+    singleOf(::YtdlPreferences)
   }

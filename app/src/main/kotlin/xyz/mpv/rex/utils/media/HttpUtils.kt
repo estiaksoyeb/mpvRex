@@ -109,10 +109,24 @@ object HttpUtils {
     return uri.host ?: "Network Stream"
   }
 
+  val directMediaExtensions =
+    setOf(
+      "mp4", "m4v", "mkv", "webm", "avi", "mov", "wmv", "flv", "ts", "m2ts",
+      "mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "m3u", "m3u8", "mpd"
+    )
+
   fun isNetworkStream(uri: Uri?): Boolean {
     if (uri == null) return false
     val scheme = uri.scheme?.lowercase()
     return scheme in listOf("http", "https", "rtmp", "rtmps", "rtsp", "rtsps", "mms", "mmsh", "ftp", "ftps")
+  }
+
+  fun isDirectMediaUrl(uri: Uri?): Boolean {
+    if (uri == null || !isNetworkStream(uri)) return false
+    val lastSegment = uri.lastPathSegment?.substringAfterLast('/')?.let(Uri::decode).orEmpty()
+    if (lastSegment.isBlank()) return false
+    val extension = lastSegment.substringAfterLast('.', "").lowercase()
+    return extension in directMediaExtensions
   }
 
   /**

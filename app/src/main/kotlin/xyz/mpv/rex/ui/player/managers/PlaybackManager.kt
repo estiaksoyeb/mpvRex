@@ -2,6 +2,8 @@ package xyz.mpv.rex.ui.player.managers
 
 import xyz.mpv.rex.preferences.PlayerPreferences
 import `is`.xyz.mpv.MPVLib
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,11 +22,56 @@ class PlaybackManager(
     companion object {
         private const val TAG = "PlaybackManager"
         private const val SEEK_COALESCE_MS = 150L
+        private const val SEEK_AUDIO_RESTORE_DELAY_MS = 60L
+        private const val SEEK_AUDIO_FALLBACK_RESTORE_MS = 1500L
     }
 
     private var seekJob: Job? = null
     private var resyncJob: Job? = null
     @Volatile private var lastSeekAt = 0L
+
+    private var seekAudioGuardPreviousMute: Boolean? = null
+    private var seekAudioGuardToken = 0L
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * Briefly mutes audio during seeking transitions to protect Android AudioTrack
+     * from buffer underruns, stale frames, or audio track failure.
+     */
+    private fun beginSeekAudioGuard() {
+        val isPaused = MPVLib.getPropertyBoolean("pause") ?: false
+        if (isPaused) return
+
+        if (seekAudioGuardPreviousMute == null) {
+            val wasMuted = MPVLib.getPropertyBoolean("mute") ?: false
+            seekAudioGuardPreviousMute = wasMuted
+            if (!wasMuted) {
+                runCatching { MPVLib.setPropertyBoolean("mute", true) }
+            }
+        }
+        seekAudioGuardToken++
+        scheduleSeekAudioGuardRestore(SEEK_AUDIO_FALLBACK_RESTORE_MS)
+    }
+
+    fun onPlaybackRestart() {
+        if (seekAudioGuardPreviousMute != null) {
+            scheduleSeekAudioGuardRestore(SEEK_AUDIO_RESTORE_DELAY_MS)
+        }
+    }
+
+    private fun scheduleSeekAudioGuardRestore(delayMs: Long) {
+        if (seekAudioGuardPreviousMute == null) return
+        val token = seekAudioGuardToken
+        mainHandler.postDelayed({
+            if (token != seekAudioGuardToken) return@postDelayed
+            val previousMute = seekAudioGuardPreviousMute
+            seekAudioGuardPreviousMute = null
+            seekAudioGuardToken++
+            if (previousMute != null) {
+                runCatching { MPVLib.setPropertyBoolean("mute", previousMute) }
+            }
+        }, delayMs)
+    }
 
     /**
      * Performs an absolute seek to the specified position.
@@ -57,6 +104,7 @@ class PlaybackManager(
             // Use precise seeking only if preference is explicitly enabled or for short finite videos (1..119s)
             val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (maxDuration in 1..119)
             val seekMode = if (shouldUsePreciseSeeking) "absolute+exact" else "absolute+keyframes"
+            beginSeekAudioGuard()
             MPVLib.command("seek", clampedPosition.toString(), seekMode)
         }
     }
@@ -72,6 +120,7 @@ class PlaybackManager(
             val duration = MPVLib.getPropertyInt("duration") ?: 0
             val currentPos = MPVLib.getPropertyInt("time-pos") ?: 0
 
+            beginSeekAudioGuard()
             if (duration > 0 && currentPos + offset >= duration) {
                 // Force seek to 100% to ensure EOF is triggered
                 MPVLib.command("seek", "100", "absolute-percent+exact")

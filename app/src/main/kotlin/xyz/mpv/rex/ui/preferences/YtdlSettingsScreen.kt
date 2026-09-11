@@ -86,7 +86,7 @@ import xyz.mpv.rex.ui.utils.LocalBackStack
 
 @Serializable
 object YtdlSettingsScreen : Screen {
-    private const val ADDON_GITHUB_RELEASES_URL = "https://github.com/sfsakhawat999/mpvRex/releases"
+    private const val ADDON_GITHUB_RELEASES_URL = "https://github.com/mpvRex/REX-Ytdlp/releases"
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -135,7 +135,7 @@ object YtdlSettingsScreen : Screen {
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Web Streaming & yt-dlp",
+                            text = "yt-dlp",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -169,96 +169,77 @@ object YtdlSettingsScreen : Screen {
                         .fillMaxSize()
                         .padding(padding),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
                         top = 8.dp,
                         bottom = navBarHeight + 24.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // Section 1: Addon Status Card
                     item {
-                        if (!isAddonInstalled) {
-                            AddonNotInstalledCard(
-                                onDownloadClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ADDON_GITHUB_RELEASES_URL))
-                                    context.startActivity(intent)
-                                },
-                                onRefreshClick = { refreshStatus() }
-                            )
-                        } else {
-                            AddonInstalledCard(
-                                status = ytdlpStatus,
-                                isRefreshing = isRefreshingStatus,
-                                onInstall = {
-                                    showUpdateDialog = true
-                                    isUpdating = true
-                                    updateLogs = "Installing yt-dlp into companion add-on...\n"
-                                    updateSuccess = null
-                                    scope.launch {
-                                        val success = ytDlClient.runInstall { logMsg ->
-                                            updateLogs += logMsg
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                            if (!isAddonInstalled) {
+                                AddonNotInstalledCard(
+                                    onDownloadClick = {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ADDON_GITHUB_RELEASES_URL))
+                                        context.startActivity(intent)
+                                    },
+                                    onRefreshClick = { refreshStatus() }
+                                )
+                            } else {
+                                AddonInstalledCard(
+                                    status = ytdlpStatus,
+                                    isRefreshing = isRefreshingStatus,
+                                    onInstall = {
+                                        showUpdateDialog = true
+                                        isUpdating = true
+                                        updateLogs = "Installing yt-dlp into companion add-on...\n"
+                                        updateSuccess = null
+                                        scope.launch {
+                                            val success = ytDlClient.runInstall { logMsg ->
+                                                updateLogs += logMsg
+                                            }
+                                            isUpdating = false
+                                            updateSuccess = success
+                                            refreshStatus()
                                         }
-                                        isUpdating = false
-                                        updateSuccess = success
-                                        refreshStatus()
-                                    }
-                                },
-                                onCheckUpdate = { nightly ->
-                                    showUpdateDialog = true
-                                    isUpdating = true
-                                    updateLogs = if (nightly) "Updating yt-dlp to nightly channel...\n" else "Checking for yt-dlp updates...\n"
-                                    updateSuccess = null
-                                    scope.launch {
-                                        val success = ytDlClient.runUpdate(nightly) { logMsg ->
-                                            updateLogs += logMsg
+                                    },
+                                    onCheckUpdate = { nightly ->
+                                        showUpdateDialog = true
+                                        isUpdating = true
+                                        updateLogs = if (nightly) "Updating yt-dlp to nightly channel...\n" else "Checking for yt-dlp updates...\n"
+                                        updateSuccess = null
+                                        scope.launch {
+                                            val success = ytDlClient.runUpdate(nightly) { logMsg ->
+                                                updateLogs += logMsg
+                                            }
+                                            isUpdating = false
+                                            updateSuccess = success
+                                            refreshStatus()
                                         }
-                                        isUpdating = false
-                                        updateSuccess = success
-                                        refreshStatus()
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
 
                     // Section 2: Quality & Codec Preferences
                     item {
-                        Column {
-                            Text(
-                                text = "Stream Quality",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
-                            )
+                        PreferenceSectionHeader(title = "Stream Quality")
+                    }
 
-                            val quality by preferences.qualityPreference.collectAsState()
-                            val geoBypass by preferences.geoBypass.collectAsState()
-                            val preferNightly by preferences.preferNightly.collectAsState()
+                    item {
+                        val quality by preferences.qualityPreference.collectAsState()
+                        val geoBypass by preferences.geoBypass.collectAsState()
+                        val preferNightly by preferences.preferNightly.collectAsState()
 
-                            GroupedListColumn {
-                                GroupedPreferenceCard(position = GroupPosition.FIRST) {
-                                    ListPreference(
-                                        value = quality,
-                                        onValueChange = { preferences.qualityPreference.set(it) },
-                                        values = listOf("auto", "2160", "1440", "1080", "720", "480", "audio_only"),
-                                        valueToText = {
-                                            AnnotatedString(
-                                                when (it) {
-                                                    "2160" -> "4K (2160p)"
-                                                    "1440" -> "2K (1440p)"
-                                                    "1080" -> "Full HD (1080p)"
-                                                    "720" -> "HD (720p)"
-                                                    "480" -> "SD (480p)"
-                                                    "audio_only" -> "Audio Only"
-                                                    else -> "Auto / Best"
-                                                }
-                                            )
-                                        },
-                                        title = { Text("Resolution Preference") },
-                                        summary = {
-                                            val label = when (quality) {
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                ListPreference(
+                                    value = quality,
+                                    onValueChange = { preferences.qualityPreference.set(it) },
+                                    values = listOf("auto", "2160", "1440", "1080", "720", "480", "audio_only"),
+                                    valueToText = {
+                                        AnnotatedString(
+                                            when (it) {
                                                 "2160" -> "4K (2160p)"
                                                 "1440" -> "2K (1440p)"
                                                 "1080" -> "Full HD (1080p)"
@@ -267,133 +248,135 @@ object YtdlSettingsScreen : Screen {
                                                 "audio_only" -> "Audio Only"
                                                 else -> "Auto / Best"
                                             }
-                                            Text(label, color = MaterialTheme.colorScheme.outline)
-                                        },
-                                    )
-                                }
+                                        )
+                                    },
+                                    title = { Text("Resolution Preference") },
+                                    summary = {
+                                        val label = when (quality) {
+                                            "2160" -> "4K (2160p)"
+                                            "1440" -> "2K (1440p)"
+                                            "1080" -> "Full HD (1080p)"
+                                            "720" -> "HD (720p)"
+                                            "480" -> "SD (480p)"
+                                            "audio_only" -> "Audio Only"
+                                            else -> "Auto / Best"
+                                        }
+                                        Text(label, color = MaterialTheme.colorScheme.outline)
+                                    },
+                                )
+                            }
 
-                                GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
-                                    SwitchPreference(
-                                        value = geoBypass,
-                                        onValueChange = { preferences.geoBypass.set(it) },
-                                        title = { Text("Geo-Bypass") },
-                                        summary = { Text("Bypass geographic video restrictions where possible", color = MaterialTheme.colorScheme.outline) },
-                                    )
-                                }
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                SwitchPreference(
+                                    value = geoBypass,
+                                    onValueChange = { preferences.geoBypass.set(it) },
+                                    title = { Text("Geo-Bypass") },
+                                    summary = { Text("Bypass geographic video restrictions where possible", color = MaterialTheme.colorScheme.outline) },
+                                )
+                            }
 
-                                GroupedPreferenceCard(position = GroupPosition.LAST) {
-                                    SwitchPreference(
-                                        value = preferNightly,
-                                        onValueChange = { preferences.preferNightly.set(it) },
-                                        title = { Text("Prefer Nightly Channel") },
-                                        summary = { Text("Receive cutting-edge yt-dlp nightly extractor fixes", color = MaterialTheme.colorScheme.outline) },
-                                    )
-                                }
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                SwitchPreference(
+                                    value = preferNightly,
+                                    onValueChange = { preferences.preferNightly.set(it) },
+                                    title = { Text("Prefer Nightly Channel") },
+                                    summary = { Text("Receive cutting-edge yt-dlp nightly extractor fixes", color = MaterialTheme.colorScheme.outline) },
+                                )
                             }
                         }
                     }
 
                     // Section 3: Network & Custom Format
                     item {
-                        Column {
-                            Text(
-                                text = "Network & Advanced",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
-                            )
+                        PreferenceSectionHeader(title = "Network & Advanced")
+                    }
 
-                            val customFormat by preferences.customFormat.collectAsState()
-                            val customUserAgent by preferences.customUserAgent.collectAsState()
-                            val proxy by preferences.proxy.collectAsState()
+                    item {
+                        val customFormat by preferences.customFormat.collectAsState()
+                        val customUserAgent by preferences.customUserAgent.collectAsState()
+                        val proxy by preferences.proxy.collectAsState()
 
-                            GroupedListColumn {
-                                GroupedPreferenceCard(position = GroupPosition.FIRST) {
-                                    TextFieldPreference(
-                                        value = customFormat,
-                                        onValueChange = { preferences.customFormat.set(it) },
-                                        textToValue = { it },
-                                        title = { Text("Custom Format Selector") },
-                                        summary = {
-                                            Text(
-                                                customFormat.ifBlank { "Default (uses resolution preference)" },
-                                                color = MaterialTheme.colorScheme.outline,
-                                            )
-                                        },
-                                        textField = { value, onValueChange, _ ->
-                                            OutlinedTextField(
-                                                value = value,
-                                                onValueChange = onValueChange,
-                                                label = { Text("yt-dlp format selector") },
-                                                placeholder = { Text("e.g. bestvideo+bestaudio/best") },
-                                                modifier = Modifier.fillMaxWidth(),
-                                            )
-                                        }
-                                    )
-                                }
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                TextFieldPreference(
+                                    value = customFormat,
+                                    onValueChange = { preferences.customFormat.set(it) },
+                                    textToValue = { it },
+                                    title = { Text("Custom Format Selector") },
+                                    summary = {
+                                        Text(
+                                            customFormat.ifBlank { "Default (uses resolution preference)" },
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    textField = { value, onValueChange, _ ->
+                                        OutlinedTextField(
+                                            value = value,
+                                            onValueChange = onValueChange,
+                                            label = { Text("yt-dlp format selector") },
+                                            placeholder = { Text("e.g. bestvideo+bestaudio/best") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                )
+                            }
 
-                                GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
-                                    TextFieldPreference(
-                                        value = proxy,
-                                        onValueChange = { preferences.proxy.set(it) },
-                                        textToValue = { it },
-                                        title = { Text("Proxy") },
-                                        summary = {
-                                            Text(
-                                                proxy.ifBlank { "None (direct connection)" },
-                                                color = MaterialTheme.colorScheme.outline,
-                                            )
-                                        },
-                                        textField = { value, onValueChange, _ ->
-                                            OutlinedTextField(
-                                                value = value,
-                                                onValueChange = onValueChange,
-                                                label = { Text("Proxy URL") },
-                                                placeholder = { Text("http://user:pass@host:port or socks5://...") },
-                                                modifier = Modifier.fillMaxWidth(),
-                                            )
-                                        }
-                                    )
-                                }
+                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                                TextFieldPreference(
+                                    value = proxy,
+                                    onValueChange = { preferences.proxy.set(it) },
+                                    textToValue = { it },
+                                    title = { Text("Proxy") },
+                                    summary = {
+                                        Text(
+                                            proxy.ifBlank { "None (direct connection)" },
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    textField = { value, onValueChange, _ ->
+                                        OutlinedTextField(
+                                            value = value,
+                                            onValueChange = onValueChange,
+                                            label = { Text("Proxy URL") },
+                                            placeholder = { Text("http://user:pass@host:port or socks5://...") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                )
+                            }
 
-                                GroupedPreferenceCard(position = GroupPosition.LAST) {
-                                    TextFieldPreference(
-                                        value = customUserAgent,
-                                        onValueChange = { preferences.customUserAgent.set(it) },
-                                        textToValue = { it },
-                                        title = { Text("Custom User-Agent") },
-                                        summary = {
-                                            Text(
-                                                customUserAgent.ifBlank { "Default" },
-                                                color = MaterialTheme.colorScheme.outline,
-                                            )
-                                        },
-                                        textField = { value, onValueChange, _ ->
-                                            OutlinedTextField(
-                                                value = value,
-                                                onValueChange = onValueChange,
-                                                label = { Text("User-Agent Header") },
-                                                modifier = Modifier.fillMaxWidth(),
-                                            )
-                                        }
-                                    )
-                                }
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                TextFieldPreference(
+                                    value = customUserAgent,
+                                    onValueChange = { preferences.customUserAgent.set(it) },
+                                    textToValue = { it },
+                                    title = { Text("Custom User-Agent") },
+                                    summary = {
+                                        Text(
+                                            customUserAgent.ifBlank { "Default" },
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    textField = { value, onValueChange, _ ->
+                                        OutlinedTextField(
+                                            value = value,
+                                            onValueChange = onValueChange,
+                                            label = { Text("User-Agent Header") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                )
                             }
                         }
                     }
 
                     // Section 4: Live Extraction Tester
                     item {
-                        Column {
-                            Text(
-                                text = "Extractor Diagnostic Tool",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
-                            )
+                        PreferenceSectionHeader(title = "Extractor Diagnostic Tool")
+                    }
 
+                    item {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
@@ -680,7 +663,7 @@ object YtdlSettingsScreen : Screen {
                             Column {
                                 Text("yt-dlp Core", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                                 Text(
-                                    text = status?.version ?: "Checking...",
+                                    text = status.version.takeIf { !it.isNullOrBlank() } ?: "Checking...",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -688,7 +671,7 @@ object YtdlSettingsScreen : Screen {
                             Column {
                                 Text("Channel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                                 Text(
-                                    text = status?.channel ?: "STABLE",
+                                    text = status.channel.takeIf { !it.isNullOrBlank() } ?: "STABLE",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -696,7 +679,7 @@ object YtdlSettingsScreen : Screen {
                             Column {
                                 Text("Git Commit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                                 Text(
-                                    text = status?.shortCommitHash ?: "Release",
+                                    text = status.shortCommitHash.takeIf { !it.isNullOrBlank() } ?: "Release",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -706,31 +689,40 @@ object YtdlSettingsScreen : Screen {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Button(
                             onClick = { onCheckUpdate(false) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Check Update")
+                            Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Check for Updates")
                         }
 
-                        OutlinedButton(
-                            onClick = { onCheckUpdate(true) },
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Icon(Icons.Outlined.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Nightly")
-                        }
+                            OutlinedButton(
+                                onClick = { onCheckUpdate(true) },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Icon(Icons.Outlined.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Nightly")
+                            }
 
-                        OutlinedButton(
-                            onClick = onInstall,
-                        ) {
-                            Text("Repair")
+                            OutlinedButton(
+                                onClick = onInstall,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Reinstall")
+                            }
                         }
                     }
                 } else {

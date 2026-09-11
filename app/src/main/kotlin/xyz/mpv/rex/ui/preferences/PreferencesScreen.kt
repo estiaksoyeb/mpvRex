@@ -243,7 +243,7 @@ object PreferencesScreen : Screen {
                 )
                 PreferenceItem(
                   position = GroupPosition.LAST,
-                  title = "Web Streaming & yt-dlp",
+                  title = "yt-dlp",
                   summary = "Manage REX Ytdlp & extractor preferences",
                   icon = Icons.Outlined.CloudDownload,
                   onClick = { backstack.add(YtdlSettingsScreen) },

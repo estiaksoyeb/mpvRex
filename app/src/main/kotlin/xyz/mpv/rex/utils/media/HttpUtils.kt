@@ -67,6 +67,31 @@ object HttpUtils {
     }
   }
 
+  /**
+   * Fast HEAD probe to determine if an unknown URL points to an HTML web page
+   * (which needs an extractor like yt-dlp) vs a direct media stream (which MPV plays natively).
+   */
+  suspend fun probeIsHtmlWebPage(url: String): Boolean = withContext(Dispatchers.IO) {
+    var connection: HttpURLConnection? = null
+    try {
+      connection = URL(url).openConnection() as HttpURLConnection
+      connection.requestMethod = "HEAD"
+      connection.connectTimeout = 1500
+      connection.readTimeout = 1500
+      connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36")
+      connection.instanceFollowRedirects = true
+      connection.connect()
+
+      val contentType = connection.contentType?.lowercase() ?: return@withContext false
+      contentType.contains("text/html") || contentType.contains("application/xhtml+xml")
+    } catch (e: Exception) {
+      Log.d(TAG, "probeIsHtmlWebPage probe failed for $url: ${e.message}")
+      false
+    } finally {
+      connection?.disconnect()
+    }
+  }
+
   private fun parseContentDisposition(contentDisposition: String): String? {
     try {
       val filenameStarPattern = Regex("""filename\*=(?:UTF-8|utf-8)?''?"?([^";\r\n]+)"?""", RegexOption.IGNORE_CASE)
@@ -112,7 +137,9 @@ object HttpUtils {
   val directMediaExtensions =
     setOf(
       "mp4", "m4v", "mkv", "webm", "avi", "mov", "wmv", "flv", "ts", "m2ts",
-      "mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "m3u", "m3u8", "mpd"
+      "mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "m3u", "m3u8", "mpd",
+      "3gp", "3g2", "ogv", "f4v", "vob", "rmvb", "rm", "asf", "divx", "m2v",
+      "mpg", "mpeg", "m4b", "m4p", "oga", "spx", "wma", "wv", "ape"
     )
 
   fun isNetworkStream(uri: Uri?): Boolean {
@@ -123,10 +150,30 @@ object HttpUtils {
 
   fun isDirectMediaUrl(uri: Uri?): Boolean {
     if (uri == null || !isNetworkStream(uri)) return false
-    val lastSegment = uri.lastPathSegment?.substringAfterLast('/')?.let(Uri::decode).orEmpty()
-    if (lastSegment.isBlank()) return false
-    val extension = lastSegment.substringAfterLast('.', "").lowercase()
-    return extension in directMediaExtensions
+
+    val scheme = uri.scheme?.lowercase()
+    if (scheme in listOf("rtmp", "rtmps", "rtsp", "rtsps", "mms", "mmsh", "ftp", "ftps")) {
+      return true
+    }
+
+    val host = uri.host?.lowercase().orEmpty()
+    if (host.endsWith(".googlevideo.com") || host == "googlevideo.com") {
+      return true
+    }
+
+    val path = uri.path?.lowercase().orEmpty()
+    val lastSegment = uri.lastPathSegment?.substringAfterLast('/')?.let(Uri::decode)?.lowercase().orEmpty()
+    val fullUrl = uri.toString().lowercase()
+
+    val extension = lastSegment.substringAfterLast('.', "")
+    if (extension in directMediaExtensions) return true
+
+    for (mediaExt in directMediaExtensions) {
+      if (path.contains(".$mediaExt") || fullUrl.contains(".$mediaExt?") || fullUrl.contains(".$mediaExt#") || fullUrl.endsWith(".$mediaExt")) {
+        return true
+      }
+    }
+    return false
   }
 
   /**

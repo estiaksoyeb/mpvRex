@@ -28,7 +28,7 @@ val domainModule = module {
     single { HeadlessPlaybackController(androidContext()) }
     single { xyz.mpv.rex.jellyfin.api.JellyfinApi(get(), get(), get()) }
     single { xyz.mpv.rex.jellyfin.remote.JellyfinRemoteClient(get(), get(), get(), androidContext()) }
-    single { xyz.mpv.rex.domain.ytdl.YtDlClient(androidContext()) }
+    single { xyz.mpv.rex.domain.ytdl.YtDlClient(androidContext(), get()) }
 }
 
 

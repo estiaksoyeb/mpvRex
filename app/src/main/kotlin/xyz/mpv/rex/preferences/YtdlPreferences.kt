@@ -13,6 +13,16 @@ class YtdlPreferences(
     val cookiesFile = preferenceStore.getString("ytdl_cookies_file", "")
     val geoBypass = preferenceStore.getBoolean("ytdl_geo_bypass", true)
     val preferNightly = preferenceStore.getBoolean("ytdl_prefer_nightly", false)
+    val autoDetectWebPages = preferenceStore.getBoolean("ytdl_auto_detect_web_pages", true)
+    val customDomains = preferenceStore.getString("ytdl_custom_domains", "")
+
+    fun getParsedCustomDomains(): Set<String> {
+        return customDomains.get()
+            .split(",", "\n", " ", ";")
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+            .toSet()
+    }
 
     fun buildExtractionOptions(): StreamExtractionOptions {
         val format = when (qualityPreference.get()) {

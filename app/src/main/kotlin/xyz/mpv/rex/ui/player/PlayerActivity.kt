@@ -765,26 +765,52 @@ class PlayerActivity :
     )
   }
 
-  internal fun loadMediaOrResolveWebStream(playableUri: String) {
-    if (!ytDlClient.requiresYtdl(playableUri)) {
-      if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
-        runCatching { MPVLib.setPropertyBoolean("pause", true) }
+  internal fun playDirectMedia(playableUri: String) {
+    if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
+      runCatching { MPVLib.setPropertyBoolean("pause", true) }
+    }
+    if (mpvInitialized && player.holder.surface.isValid) {
+      lifecycleScope.launch(Dispatchers.Default) {
+        MPVLib.command("loadfile", playableUri)
       }
-      if (mpvInitialized && player.holder.surface.isValid) {
-        lifecycleScope.launch(Dispatchers.Default) {
-          MPVLib.command("loadfile", playableUri)
+    } else {
+      player.playFile(playableUri)
+    }
+  }
+
+  internal fun loadMediaOrResolveWebStream(playableUri: String) {
+    if (ytDlClient.requiresYtdl(playableUri)) {
+      resolveWebStream(playableUri)
+      return
+    }
+
+    val uri = runCatching { Uri.parse(playableUri) }.getOrNull()
+    val isDirectMedia = uri != null && HttpUtils.isDirectMediaUrl(uri)
+
+    // For unknown URLs when addon is installed: probe Content-Type if auto-detection is enabled
+    if (!isDirectMedia && ytDlClient.isAddonInstalled() && ytdlPreferences.autoDetectWebPages.get()) {
+      lifecycleScope.launch {
+        val isWebPage = HttpUtils.probeIsHtmlWebPage(playableUri)
+        if (isWebPage) {
+          Log.d(TAG, "Auto-detected HTML web page for unknown URL: $playableUri. Resolving via yt-dlp.")
+          resolveWebStream(playableUri)
+        } else {
+          Log.d(TAG, "Probed URL is direct media/stream: $playableUri. Playing directly via MPV.")
+          playDirectMedia(playableUri)
         }
-      } else {
-        player.playFile(playableUri)
       }
       return
     }
 
+    playDirectMedia(playableUri)
+  }
+
+  private fun resolveWebStream(playableUri: String) {
     if (!ytDlClient.isAddonInstalled()) {
       Log.w(TAG, "Web stream URL requires REX Ytdlp, but addon is not installed: $playableUri")
       android.widget.Toast.makeText(
         this,
-        "REX Ytdlp required to play this web link",
+        "REX Ytdlp required to play YouTube and web video links",
         android.widget.Toast.LENGTH_LONG
       ).show()
       return
@@ -876,13 +902,8 @@ class PlayerActivity :
           player.playFile(streamToPlay)
         }
       } else {
-        Log.e(TAG, "Failed to resolve stream: ${resolved.errorMessage}")
-        viewModel.onFileLoaded(0.0)
-        android.widget.Toast.makeText(
-          this@PlayerActivity,
-          "Stream resolution failed: ${resolved.errorMessage ?: "Unknown error"}",
-          android.widget.Toast.LENGTH_LONG
-        ).show()
+        Log.w(TAG, "Failed to resolve stream via yt-dlp: ${resolved.errorMessage}. Attempting direct MPV playback as fallback.")
+        playDirectMedia(playableUri)
       }
     }
   }

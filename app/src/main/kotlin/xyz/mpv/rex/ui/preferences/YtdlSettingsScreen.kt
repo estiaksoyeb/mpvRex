@@ -286,7 +286,57 @@ object YtdlSettingsScreen : Screen {
                         }
                     }
 
-                    // Section 3: Network & Custom Format
+                    // Section 3: Web Platform & URL Routing
+                    item {
+                        PreferenceSectionHeader(title = "URL & Platform Routing")
+                    }
+
+                    item {
+                        val autoDetectWebPages by preferences.autoDetectWebPages.collectAsState()
+                        val customDomains by preferences.customDomains.collectAsState()
+
+                        GroupedListColumn {
+                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                                SwitchPreference(
+                                    value = autoDetectWebPages,
+                                    onValueChange = { preferences.autoDetectWebPages.set(it) },
+                                    title = { Text("Auto-detect Web Pages") },
+                                    summary = {
+                                        Text(
+                                            "Proactively probe unknown URLs to route HTML web pages through yt-dlp",
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                )
+                            }
+
+                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                                TextFieldPreference(
+                                    value = customDomains,
+                                    onValueChange = { preferences.customDomains.set(it) },
+                                    textToValue = { it },
+                                    title = { Text("Custom Supported Domains") },
+                                    summary = {
+                                        Text(
+                                            customDomains.ifBlank { "None (uses default web video platforms)" },
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    textField = { value, onValueChange, _ ->
+                                        OutlinedTextField(
+                                            value = value,
+                                            onValueChange = onValueChange,
+                                            label = { Text("Domains (comma or space separated)") },
+                                            placeholder = { Text("e.g. example.com, archive.org, peertube.su") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Section 4: Network & Custom Format
                     item {
                         PreferenceSectionHeader(title = "Network & Advanced")
                     }

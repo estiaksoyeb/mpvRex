@@ -21,9 +21,13 @@ import xyz.mpv.rex.domain.ytdl.model.ResolvedPlaylist
 import xyz.mpv.rex.domain.ytdl.model.ResolvedStream
 import xyz.mpv.rex.domain.ytdl.model.StreamExtractionOptions
 import xyz.mpv.rex.domain.ytdl.model.YtdlpStatus
+import xyz.mpv.rex.preferences.YtdlPreferences
 import xyz.mpv.rex.utils.media.HttpUtils
 
-class YtDlClient(private val context: Context) {
+class YtDlClient(
+    private val context: Context,
+    private val preferences: YtdlPreferences? = null,
+) {
     private val mutex = Mutex()
     private var boundService: IYtDlService? = null
     private var serviceConnection: ServiceConnection? = null
@@ -59,9 +63,35 @@ class YtDlClient(private val context: Context) {
         return false
     }
 
+    fun isKnownWebPlatform(url: String): Boolean {
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
+        val host = uri.host?.lowercase() ?: return false
+
+        // 1. Built-in known web platforms
+        if (KNOWN_WEB_PLATFORMS.any { platform ->
+            host == platform || host.endsWith(".$platform")
+        }) {
+            return true
+        }
+
+        // 2. User-configured custom domains from settings
+        val custom = preferences?.getParsedCustomDomains().orEmpty()
+        if (custom.any { domain ->
+            host == domain || host.endsWith(".$domain")
+        }) {
+            return true
+        }
+
+        return false
+    }
+
     /**
      * Checks if a URL is a web streaming URL (e.g. YouTube, Vimeo, Twitch)
-     * and NOT a direct media file (.mp4, .m3u8, etc.) or local network stream.
+     * that requires the yt-dlp extractor add-on.
+     *
+     * Direct media files (.mp4, .mkv, .m3u8, etc.), local network streams,
+     * and generic streaming URLs (IPTV, Icecast, raw HTTP streams) do NOT require yt-dlp
+     * and can be played directly by MPV.
      */
     fun requiresYtdl(url: String): Boolean {
         val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
@@ -79,7 +109,8 @@ class YtDlClient(private val context: Context) {
             return false
         }
 
-        return true
+        // Only known web video platforms require yt-dlp extraction
+        return isKnownWebPlatform(url)
     }
 
     private suspend fun getService(): IYtDlService? = mutex.withLock {
@@ -257,5 +288,32 @@ class YtDlClient(private val context: Context) {
         const val ADDON_PACKAGE = "xyz.mpv.rex.addon.ytdl"
         const val ACTION_BIND = "xyz.mpv.rex.addon.ytdl.BIND_SERVICE"
         private const val BIND_TIMEOUT_MS = 10_000L
+
+        val KNOWN_WEB_PLATFORMS = setOf(
+            "youtube.com",
+            "youtu.be",
+            "yt.be",
+            "youtube-nocookie.com",
+            "vimeo.com",
+            "twitch.tv",
+            "dailymotion.com",
+            "dai.ly",
+            "tiktok.com",
+            "twitter.com",
+            "x.com",
+            "facebook.com",
+            "fb.watch",
+            "instagram.com",
+            "bilibili.com",
+            "b23.tv",
+            "soundcloud.com",
+            "odysee.com",
+            "rumble.com",
+            "streamable.com",
+            "reddit.com",
+            "v.redd.it",
+            "nicovideo.jp",
+            "kick.com",
+        )
     }
 }

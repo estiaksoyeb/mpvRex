@@ -713,6 +713,7 @@ class PlayerViewModel(
   }
 
   fun onFileStartLoading() {
+    _isLoadingFile.value = true
     if (externalAudioTracks.isEmpty()) {
       _precisePosition.value = 0f
       if (primaryVideoDuration.value == null) {

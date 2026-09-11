@@ -10,6 +10,8 @@
     <string name="generic_ok">OK</string>
     <string name="generic_unit_ms">ms</string>
     <string name="generic_disabled">Disabled</string>
+    <string name="ui_loading">Loading…</string>
+    <string name="ui_loading_percent">Loading %d%%</string>
 
     <string name="pref_preferences">Preferences</string>
 

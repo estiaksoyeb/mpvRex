@@ -679,6 +679,7 @@ class PlayerActivity :
     val isAlreadyPlayingCurrent = !hasPlayableMediaInIntent && !currentMpvPath.isNullOrBlank() && currentMpvPath != "null"
 
     if (hasPlayableMediaInIntent) {
+      viewModel.onFileStartLoading()
       activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
       if (isManualBackgroundPlayback || isInBackgroundPlayback) {
         isManualBackgroundPlayback = false
@@ -787,6 +788,7 @@ class PlayerActivity :
   }
 
   internal fun loadMediaOrResolveWebStream(playableUri: String) {
+    viewModel.onFileStartLoading()
     if (ytDlClient.requiresYtdl(playableUri)) {
       resolveWebStream(playableUri)
       return
@@ -827,7 +829,6 @@ class PlayerActivity :
     isReady = false
     viewModel.onFileStartLoading()
     runCatching { MPVLib.setPropertyString("idle", "yes") }
-    android.widget.Toast.makeText(this, "Resolving video stream...", android.widget.Toast.LENGTH_SHORT).show()
 
     lifecycleScope.launch {
       Log.d(TAG, "Resolving web stream URL via REX Ytdlp: $playableUri")

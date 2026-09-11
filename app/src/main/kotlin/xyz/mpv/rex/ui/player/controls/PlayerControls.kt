@@ -132,6 +132,8 @@ import xyz.mpv.rex.ui.player.controls.components.PromptResumePlayerUpdate
 import xyz.mpv.rex.ui.player.controls.components.ResumePlaybackPromptDialog
 import xyz.mpv.rex.ui.player.controls.components.ResumedFromPlayerUpdate
 import xyz.mpv.rex.ui.player.controls.components.SeekPlayerUpdate
+import xyz.mpv.rex.ui.player.controls.components.PlayerLoadingIndicator
+import xyz.mpv.rex.ui.player.controls.components.rememberPlayerLoadingState
 import xyz.mpv.rex.ui.player.controls.components.SeekbarWithTimers
 import xyz.mpv.rex.ui.player.controls.components.SlideToUnlock
 import xyz.mpv.rex.ui.player.controls.components.SpeedControlSlider
@@ -214,6 +216,11 @@ fun PlayerControls(
   val showSpeedIndicatorOverlay by playerPreferences.showSpeedIndicatorOverlay.collectAsState()
   val hideOsdText by playerPreferences.hideOsdText.collectAsState()
   val isLoadingFile by viewModel.isLoadingFile.collectAsState()
+  val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
+  val loadingState = rememberPlayerLoadingState(
+    isLoadingFile = isLoadingFile,
+    enabled = showLoadingCircle,
+  )
   val mediaTitle by viewModel.mediaTitle.collectAsState()
   val mediaIdentifier by viewModel.mediaIdentifier.collectAsState()
   val playlistItems by viewModel.playlistManager.playlist.collectAsState()
@@ -395,6 +402,7 @@ fun PlayerControls(
         val unlockControlsButton = createRef()
         val (bottomRightControls, bottomLeftControls) = createRefs()
         val playerPauseButton = createRef()
+        val playerLoadingRef = createRef()
         val seekbar = createRef()
         val (playerUpdates, playerLockHint) = createRefs()
         val systemStatsRef = createRef()
@@ -1015,9 +1023,26 @@ fun PlayerControls(
           )
         }
 
+        PlayerLoadingIndicator(
+          loadingState = loadingState,
+          modifier =
+            Modifier.constrainAs(playerLoadingRef) {
+              end.linkTo(parent.absoluteRight)
+              start.linkTo(parent.absoluteLeft)
+              if (isPortrait) {
+                top.linkTo(parent.top)
+                bottom.linkTo(parent.bottom)
+                verticalBias = 0.5f
+              } else {
+                top.linkTo(parent.top)
+                bottom.linkTo(parent.bottom)
+              }
+            },
+        )
+
         AnimatedVisibility(
           visible =
-            ((controlsShown && !areSlidersShown) && !areControlsLocked) || pausedForCache == true,
+            ((controlsShown && !areSlidersShown) && !areControlsLocked) && !loadingState.visible,
           enter = fadeIn(playerControlsEnterAnimationSpec()),
           exit = fadeOut(playerControlsExitAnimationSpec()),
           modifier =
@@ -1034,19 +1059,10 @@ fun PlayerControls(
               }
             },
         ) {
-          val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
           val icon = AnimatedImageVector.animatedVectorResource(R.drawable.anim_play_to_pause)
           val interaction = remember { MutableInteractionSource() }
 
-          when {
-            pausedForCache == true && showLoadingCircle -> {
-              LoadingIndicator(
-                modifier = Modifier.size(96.dp),
-              )
-            }
-
-            controlsShown && !areControlsLocked -> {
-              val buttonShadow =
+          val buttonShadow =
                 Brush.radialGradient(
                   0.0f to Color.Black.copy(alpha = 0.3f),
                   0.7f to Color.Transparent,
@@ -1228,8 +1244,6 @@ fun PlayerControls(
                   )
                 }
               }
-            }
-          }
         }
 
         AnimatedVisibility(

@@ -527,7 +527,8 @@ class PlayerIntentHandler(
       val parsedUri = runCatching { Uri.parse(uriStr) }.getOrNull()
       val fastDurationMs = if (parsedUri != null) activity.getFastDurationMsForUri(parsedUri) else 0L
       val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null
-      activity.viewModel.prepareForFileLoad(fastDurationSec)
+      val isNetwork = parsedUri != null && HttpUtils.isNetworkStream(parsedUri)
+      activity.viewModel.prepareForFileLoad(fastDurationSec, isNetwork = isNetwork)
 
       if (parsedUri != null && activity.isUriM3U(parsedUri)) {
         activity.loadM3uPlaylistOrPlayDirectly(uriStr)

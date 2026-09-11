@@ -199,6 +199,7 @@ fun PlayerControls(
   val areControlsLocked by viewModel.areControlsLocked.collectAsState()
   val seekBarShown by viewModel.seekBarShown.collectAsState()
   val pausedForCache by MPVLib.propBoolean["paused-for-cache"].collectAsState()
+  val seeking by MPVLib.propBoolean["seeking"].collectAsState()
   val paused by MPVLib.propBoolean["pause"].collectAsState()
   val duration by MPVLib.propInt["duration"].collectAsState()
   val position by MPVLib.propInt["time-pos"].collectAsState()
@@ -216,9 +217,12 @@ fun PlayerControls(
   val showSpeedIndicatorOverlay by playerPreferences.showSpeedIndicatorOverlay.collectAsState()
   val hideOsdText by playerPreferences.hideOsdText.collectAsState()
   val isLoadingFile by viewModel.isLoadingFile.collectAsState()
+  val isLoadingUrl by viewModel.isLoadingUrl.collectAsState()
+  val isNetworkStream by viewModel.isNetworkStream.collectAsState()
   val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
   val loadingState = rememberPlayerLoadingState(
-    isLoadingFile = isLoadingFile,
+    isNetworkStream = isNetworkStream,
+    isLoadingUrl = isLoadingUrl,
     enabled = showLoadingCircle,
   )
   val mediaTitle by viewModel.mediaTitle.collectAsState()
@@ -1308,16 +1312,16 @@ fun PlayerControls(
               val totalDuration = effectiveDuration
               val isBuffering = cacheBufferingState ?: 0
 
-              // If cache duration is available and valid, use it (up to 60 seconds)
-              if (cacheDuration > 0.1f) {
+              // While seeking or file loading, reset read-ahead to current position to avoid showing stale buffer
+              if (seeking == true || isLoadingFile || isSeeking) {
+                currentPos
+              } else if (cacheDuration > 0.1f) {
                 (currentPos + cacheDuration).coerceAtMost(totalDuration)
-              } else if (isBuffering > 0 && isBuffering < 100) {
-                // Show estimated buffer when actively buffering (up to 60 seconds)
+              } else if (isBuffering in 1..99) {
                 val estimatedBuffer = (isBuffering / 100f) * 60f
                 (currentPos + estimatedBuffer).coerceAtMost(totalDuration)
               } else {
-                // When not actively buffering and cache is full, show 1 minute buffer
-                (currentPos + 60f).coerceAtMost(totalDuration)
+                currentPos
               }
             }
           }

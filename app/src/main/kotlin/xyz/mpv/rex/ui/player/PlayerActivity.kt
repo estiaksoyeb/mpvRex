@@ -291,7 +291,11 @@ class PlayerActivity :
       override fun onStartFile() {
         webSubtitlesJob?.cancel()
         webSubtitlesJob = null
-        viewModel.onFileStartLoading()
+        val currentPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
+        val isNetwork = currentPath?.let { path ->
+          HttpUtils.isNetworkStream(runCatching { Uri.parse(path) }.getOrNull())
+        } ?: false
+        viewModel.onFileStartLoading(isNetwork = isNetwork)
       }
 
       override fun onFileLoaded() {
@@ -679,7 +683,8 @@ class PlayerActivity :
     val isAlreadyPlayingCurrent = !hasPlayableMediaInIntent && !currentMpvPath.isNullOrBlank() && currentMpvPath != "null"
 
     if (hasPlayableMediaInIntent) {
-      viewModel.onFileStartLoading()
+      val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull()) || ytDlClient.requiresYtdl(playableUri)
+      viewModel.onFileStartLoading(isNetwork = isNetwork)
       activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
       if (isManualBackgroundPlayback || isInBackgroundPlayback) {
         isManualBackgroundPlayback = false
@@ -788,7 +793,8 @@ class PlayerActivity :
   }
 
   internal fun loadMediaOrResolveWebStream(playableUri: String) {
-    viewModel.onFileStartLoading()
+    val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull()) || ytDlClient.requiresYtdl(playableUri)
+    viewModel.onFileStartLoading(isNetwork = isNetwork)
     if (ytDlClient.requiresYtdl(playableUri)) {
       resolveWebStream(playableUri)
       return
@@ -823,11 +829,12 @@ class PlayerActivity :
         "REX Ytdlp required to play YouTube and web video links",
         android.widget.Toast.LENGTH_LONG
       ).show()
+      viewModel.onFileLoaded(0.0)
       return
     }
 
     isReady = false
-    viewModel.onFileStartLoading()
+    viewModel.onFileStartLoading(isNetwork = true)
     runCatching { MPVLib.setPropertyString("idle", "yes") }
 
     lifecycleScope.launch {

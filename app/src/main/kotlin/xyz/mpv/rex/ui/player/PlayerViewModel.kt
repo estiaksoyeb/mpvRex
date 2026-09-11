@@ -263,6 +263,17 @@ class PlayerViewModel(
   private val _isLoadingFile = MutableStateFlow(false)
   val isLoadingFile: StateFlow<Boolean> = _isLoadingFile.asStateFlow()
 
+  /**
+   * True while resolving or connecting to a network/web URL before playback starts.
+   * Unlike [isLoadingFile], this is false for offline local files so that local video
+   * playback does not display a loading indicator.
+   */
+  private val _isLoadingUrl = MutableStateFlow(false)
+  val isLoadingUrl: StateFlow<Boolean> = _isLoadingUrl.asStateFlow()
+
+  private val _isNetworkStream = MutableStateFlow(false)
+  val isNetworkStream: StateFlow<Boolean> = _isNetworkStream.asStateFlow()
+
   private val _preciseDuration = MutableStateFlow(0f)
   val preciseDuration = _preciseDuration.asStateFlow()
 
@@ -699,8 +710,10 @@ class PlayerViewModel(
     _trackManager.resetExternalAudioTracks()
   }
 
-  fun prepareForFileLoad(initialDurationSec: Float? = null) {
+  fun prepareForFileLoad(initialDurationSec: Float? = null, isNetwork: Boolean = false) {
     _isLoadingFile.value = true
+    _isLoadingUrl.value = isNetwork
+    _isNetworkStream.value = isNetwork
     resetExternalAudioTracks()
     _precisePosition.value = 0f
     if (initialDurationSec != null && initialDurationSec > 0f) {
@@ -712,8 +725,10 @@ class PlayerViewModel(
     }
   }
 
-  fun onFileStartLoading() {
+  fun onFileStartLoading(isNetwork: Boolean = false) {
     _isLoadingFile.value = true
+    _isLoadingUrl.value = isNetwork
+    _isNetworkStream.value = isNetwork
     if (externalAudioTracks.isEmpty()) {
       _precisePosition.value = 0f
       if (primaryVideoDuration.value == null) {
@@ -724,6 +739,7 @@ class PlayerViewModel(
 
   fun onFileLoaded(durationSec: Double) {
     _isLoadingFile.value = false
+    _isLoadingUrl.value = false
     if (durationSec > 0) {
       if (externalAudioTracks.isEmpty()) {
         _trackManager.setPrimaryVideoDuration(durationSec)

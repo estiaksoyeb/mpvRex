@@ -54,25 +54,44 @@ internal data class PlayerLoadingState(
 
 @Composable
 internal fun rememberPlayerLoadingState(
-  isLoadingFile: Boolean,
+  isNetworkStream: Boolean = false,
+  isLoadingUrl: Boolean = false,
   enabled: Boolean = true,
 ): PlayerLoadingState {
+  val path by MPVLib.propString["path"].collectAsState()
   val paused by MPVLib.propBoolean["pause"].collectAsState()
   val pausedForCache by MPVLib.propBoolean["paused-for-cache"].collectAsState()
+  val seeking by MPVLib.propBoolean["seeking"].collectAsState()
+  val coreIdle by MPVLib.propBoolean["core-idle"].collectAsState()
   val eofReached by MPVLib.propBoolean["eof-reached"].collectAsState()
   val cacheBufferingState by MPVLib.propInt["cache-buffering-state"].collectAsState()
 
-  val isCacheStall = pausedForCache == true
-  val stalled = enabled && (
-    isLoadingFile ||
-      (paused != true && eofReached != true && isCacheStall)
+  val isPathNetwork = path?.let {
+    it.startsWith("http://", true) ||
+      it.startsWith("https://", true) ||
+      it.startsWith("rtmp://", true) ||
+      it.startsWith("rtsp://", true) ||
+      it.startsWith("edl:", true) ||
+      it.startsWith("ftp://", true) ||
+      it.startsWith("sftp://", true)
+  } ?: false
+
+  val isNetwork = isNetworkStream || isPathNetwork || isLoadingUrl
+
+  val isCacheStall = isNetwork && pausedForCache == true
+  val isSeeking = isNetwork && seeking == true
+  val isBuffering = isCacheStall || isSeeking || (coreIdle == true && isCacheStall)
+
+  val stalled = enabled && isNetwork && (
+    isLoadingUrl ||
+      (eofReached != true && isBuffering)
   )
 
-  var visible by remember { mutableStateOf(stalled) }
-  LaunchedEffect(stalled, isLoadingFile) {
+  var visible by remember { mutableStateOf(stalled && isLoadingUrl) }
+  LaunchedEffect(stalled, isLoadingUrl) {
     if (visible == stalled) return@LaunchedEffect
     if (stalled) {
-      if (!isLoadingFile) {
+      if (!isLoadingUrl) {
         delay(LOADING_SHOW_DELAY_MS)
       }
       visible = true
@@ -82,7 +101,7 @@ internal fun rememberPlayerLoadingState(
     }
   }
 
-  val percent = if (isCacheStall) cacheBufferingState?.takeIf { it in 1..100 } else null
+  val percent = if (isCacheStall) cacheBufferingState?.takeIf { it in 1..99 } else null
 
   return PlayerLoadingState(
     visible = visible,
@@ -114,7 +133,7 @@ internal fun PlayerLoadingIndicator(
 
       val percent = loadingState.percent
       val displayText = when {
-        loadingState.isCacheStall && percent != null && percent in 1..100 ->
+        percent != null && percent in 1..99 ->
           stringResource(R.string.ui_loading_percent, percent)
         else ->
           stringResource(R.string.ui_loading)

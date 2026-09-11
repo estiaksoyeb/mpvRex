@@ -220,7 +220,8 @@ class PlayerPlaylistLoader(
     val cachedDurationMs = activity.viewModel.playlistManager.getDurationAt(index)
     val fastDurationMs = if (cachedDurationMs > 0L) cachedDurationMs else getFastDurationMsForUri(uri)
     val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null
-    activity.viewModel.prepareForFileLoad(fastDurationSec)
+    val isNetwork = HttpUtils.isNetworkStream(uri)
+    activity.viewModel.prepareForFileLoad(fastDurationSec, isNetwork = isNetwork)
 
     val targetUri = uri
     activity.lifecycleScope.launch(Dispatchers.IO) {

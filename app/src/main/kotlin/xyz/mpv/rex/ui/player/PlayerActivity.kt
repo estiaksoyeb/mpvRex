@@ -87,11 +87,14 @@ import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
 import `is`.xyz.mpv.Utils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import java.io.File
+import java.util.Locale
 
 /**
  * Main player activity that handles video playback using the MPV library.
@@ -244,7 +247,8 @@ class PlayerActivity :
         val aspect = player.getVideoOutAspect()
         Log.d(TAG, "Video dimension changed: $property, aspect: $aspect")
         pipHelper.updatePictureInPictureParams()
-        if (playerPreferences.orientation.get() == PlayerOrientation.Video && aspect != null) {
+        val currentOrientation = playerPreferences.orientation.get()
+        if ((currentOrientation == PlayerOrientation.Video || currentOrientation == PlayerOrientation.Smart) && aspect != null) {
           setOrientation()
         }
         player.applyAnime4KShaders()
@@ -257,7 +261,8 @@ class PlayerActivity :
         Log.d(TAG, "video-params/aspect changed: $outAspect")
         pipHelper.updatePictureInPictureParams()
         val aspectOverride = MPVLib.getPropertyDouble("video-aspect-override") ?: -1.0
-        if (playerPreferences.orientation.get() == PlayerOrientation.Video && 
+        val currentOrientation = playerPreferences.orientation.get()
+        if ((currentOrientation == PlayerOrientation.Video || currentOrientation == PlayerOrientation.Smart) && 
             outAspect != null && 
             aspectOverride <= 0.0) {
           setOrientation()
@@ -284,19 +289,21 @@ class PlayerActivity :
       }
 
       override fun onStartFile() {
+        webSubtitlesJob?.cancel()
+        webSubtitlesJob = null
         viewModel.onFileStartLoading()
       }
 
       override fun onFileLoaded() {
         Log.d(TAG, "onFileLoaded called")
-        pendingWebSubtitles?.let { subs ->
-          subs.forEach { (lang, subUrl) ->
-            runCatching { MPVLib.command("sub-add", subUrl, "auto", lang) }
-          }
-          pendingWebSubtitles = null
-        }
         handleFileLoaded()
         isReady = true
+
+        val subs = pendingWebSubtitles
+        pendingWebSubtitles = null
+        if (!subs.isNullOrEmpty()) {
+          loadWebSubtitlesAsync(subs)
+        }
       }
 
       override fun onPlaybackRestart() {
@@ -436,6 +443,7 @@ class PlayerActivity :
   internal var isReady = false // Single flag: true when video loaded and ready
   internal var startedAtSavedPosition = false
   private var pendingWebSubtitles: Map<String, String>? = null
+  private var webSubtitlesJob: kotlinx.coroutines.Job? = null
   internal var isOrientationRestored: Boolean
     get() = orientationController.isOrientationRestored
     set(value) {
@@ -1024,6 +1032,9 @@ class PlayerActivity :
       // Wait for any pending save operation to complete before destroying MPV with a 200ms bounded timeout
       // This prevents the main thread from blocking infinitely during activity destruction (ANR prevention)
       playbackStateController.waitForPendingSave(200)
+
+      webSubtitlesJob?.cancel()
+      webSubtitlesJob = null
 
       cleanupMPV()
       cleanupAudio()
@@ -1885,12 +1896,17 @@ class PlayerActivity :
       }
     }
 
-    // Only set orientation if NOT in Video or Smart mode, or if orientation has not been determined yet
+    // Apply orientation when file is loaded
     val orientation = playerPreferences.orientation.get()
     if (orientation != PlayerOrientation.Video && orientation != PlayerOrientation.Smart) {
       setOrientation()
-    } else if (requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
-      applyInitialOrientationFromIntent(intent)
+    } else {
+      val aspect = player.getVideoOutAspect()
+      if (aspect != null && aspect > 0.0) {
+        setOrientation()
+      } else if (requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+        applyInitialOrientationFromIntent(intent)
+      }
     }
 
     applySubtitlePreferences()
@@ -2180,6 +2196,49 @@ class PlayerActivity :
     MPVLib.setPropertyInt("secondary-sub-pos", subtitlesPreferences.secondarySubPos.get())
 
     Log.d(TAG, "Applied subtitle preferences")
+  }
+
+  /**
+   * Asynchronously loads web subtitles extracted by yt-dlp on a background IO thread.
+   * Prioritizes preferred language and system locale, and paces requests to prevent
+   * blocking libmpv's command queue or overwhelming network resources.
+   */
+  private fun loadWebSubtitlesAsync(subs: Map<String, String>) {
+    webSubtitlesJob?.cancel()
+    webSubtitlesJob = lifecycleScope.launch(Dispatchers.IO) {
+      val preferredLanguages = subtitlesPreferences.preferredLanguages.get()
+        .split(",")
+        .map { it.trim().lowercase() }
+        .filter { it.isNotEmpty() }
+      val systemLang = Locale.getDefault().language.lowercase()
+
+      // Sort subtitles so preferred languages appear first
+      val sortedSubs = subs.entries.sortedByDescending { (lang, _) ->
+        val cleanLang = lang.lowercase()
+        when {
+          preferredLanguages.any { pref -> cleanLang == pref || cleanLang.startsWith("$pref-") || cleanLang.startsWith("${pref}_") } -> 2
+          cleanLang == systemLang || cleanLang.startsWith("$systemLang-") || cleanLang.startsWith("${systemLang}_") -> 1
+          else -> 0
+        }
+      }
+
+      for ((lang, subUrl) in sortedSubs) {
+        if (!isActive || !mpvInitialized || player.isExiting || isFinishing) break
+
+        val locale = runCatching { Locale.forLanguageTag(lang) }.getOrNull()
+        val friendlyTitle = locale?.getDisplayName(Locale.getDefault())
+          ?.takeIf { it.isNotBlank() && !it.equals(lang, ignoreCase = true) }
+          ?: locale?.displayLanguage?.takeIf { it.isNotBlank() }
+          ?: lang
+
+        runCatching {
+          MPVLib.command("sub-add", subUrl, "auto", friendlyTitle, lang)
+        }.onFailure { e ->
+          Log.w(TAG, "Failed to add web subtitle for $lang: ${e.message}")
+        }
+        delay(40)
+      }
+    }
   }
 
   /**

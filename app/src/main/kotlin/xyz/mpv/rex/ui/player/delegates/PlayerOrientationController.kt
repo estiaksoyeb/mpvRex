@@ -98,7 +98,7 @@ class PlayerOrientationController(
             if (aspect == null || aspect <= 0.0) {
               // Aspect not available yet or audio-only file - do not force orientation change
               Log.d(TAG, "setOrientation - Aspect not available or audio-only file")
-              ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+              activity.requestedOrientation
             } else {
               // Aspect available - set correct orientation now
               val orientation = if (aspect > 1.0) {

@@ -280,6 +280,88 @@ class HybridMediaIndexRepositoryTest {
     }
   }
 
+  @Test
+  fun getFoldersInDirectory_flattensSingleChildIntermediateFolders() = runTest {
+    val opClip1 = media(
+      identity = "file:/storage/emulated/0/Downloads/Anime/OnePiece/S01/ep1.mp4",
+      location = "/storage/emulated/0/Downloads/Anime/OnePiece/S01/ep1.mp4",
+      parent = "/storage/emulated/0/Downloads/Anime/OnePiece/S01",
+    )
+    val opClip2 = media(
+      identity = "file:/storage/emulated/0/Downloads/Anime/OnePiece/S02/ep1.mp4",
+      location = "/storage/emulated/0/Downloads/Anime/OnePiece/S02/ep1.mp4",
+      parent = "/storage/emulated/0/Downloads/Anime/OnePiece/S02",
+    )
+    val narutoClip1 = media(
+      identity = "file:/storage/emulated/0/Downloads/Anime/Naruto/S01/ep1.mp4",
+      location = "/storage/emulated/0/Downloads/Anime/Naruto/S01/ep1.mp4",
+      parent = "/storage/emulated/0/Downloads/Anime/Naruto/S01",
+    )
+    val narutoClip2 = media(
+      identity = "file:/storage/emulated/0/Downloads/Anime/Naruto/S02/ep1.mp4",
+      location = "/storage/emulated/0/Downloads/Anime/Naruto/S02/ep1.mp4",
+      parent = "/storage/emulated/0/Downloads/Anime/Naruto/S02",
+    )
+
+    coEvery { dao.getAvailableMedia(true) } returns listOf(opClip1, opClip2, narutoClip1, narutoClip2)
+
+    val rootFolders = repository.getFoldersInDirectory(
+      parentPath = "/storage/emulated/0",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    // Downloads has only 1 child branch with media (Anime), so Downloads is flattened and Anime is brought forward to root
+    assertEquals(1, rootFolders.size)
+    assertEquals("Anime", rootFolders[0].name)
+    assertEquals("/storage/emulated/0/Downloads/Anime", rootFolders[0].path)
+    assertEquals(4, rootFolders[0].videoCount)
+
+    // Inside Anime, it branches into OnePiece and Naruto (2 branches), so both are preserved
+    val animeFolders = repository.getFoldersInDirectory(
+      parentPath = "/storage/emulated/0/Downloads/Anime",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+    assertEquals(2, animeFolders.size)
+    assertEquals("Naruto", animeFolders[0].name)
+    assertEquals("OnePiece", animeFolders[1].name)
+  }
+
+  @Test
+  fun getFoldersInDirectory_doesNotFlattenFolderWithDirectMedia() = runTest {
+    val downloadClip = media(
+      identity = "file:/storage/emulated/0/Downloads/movie.mp4",
+      location = "/storage/emulated/0/Downloads/movie.mp4",
+      parent = "/storage/emulated/0/Downloads",
+    )
+    val animeClip = media(
+      identity = "file:/storage/emulated/0/Downloads/Anime/OnePiece/ep1.mp4",
+      location = "/storage/emulated/0/Downloads/Anime/OnePiece/ep1.mp4",
+      parent = "/storage/emulated/0/Downloads/Anime/OnePiece",
+    )
+
+    coEvery { dao.getAvailableMedia(true) } returns listOf(downloadClip, animeClip)
+
+    val rootFolders = repository.getFoldersInDirectory(
+      parentPath = "/storage/emulated/0",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    // Downloads contains direct media (movie.mp4), so it must NOT be flattened
+    assertEquals(1, rootFolders.size)
+    assertEquals("Downloads", rootFolders[0].name)
+    assertEquals("/storage/emulated/0/Downloads", rootFolders[0].path)
+    assertEquals(2, rootFolders[0].videoCount)
+  }
+
   private fun media(
     identity: String,
     location: String,

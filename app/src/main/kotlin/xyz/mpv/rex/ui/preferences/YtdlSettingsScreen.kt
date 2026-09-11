@@ -579,7 +579,7 @@ object YtdlSettingsScreen : Screen {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "The REX Stream Addon provides the native Python runtime and yt-dlp scraper in a headless companion package. It has no launcher icon and runs safely in the background.",
+                    text = "The REX Ytdlp add-on provides the native Python runtime and yt-dlp scraper in a headless companion package. It has no launcher icon and runs safely in the background.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
@@ -645,7 +645,7 @@ object YtdlSettingsScreen : Screen {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "REX Stream Addon",
+                                text = "REX Ytdlp",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )

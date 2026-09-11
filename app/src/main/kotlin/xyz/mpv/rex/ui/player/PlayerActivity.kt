@@ -781,10 +781,10 @@ class PlayerActivity :
     }
 
     if (!ytDlClient.isAddonInstalled()) {
-      Log.w(TAG, "Web stream URL requires REX Stream Addon, but addon is not installed: $playableUri")
+      Log.w(TAG, "Web stream URL requires REX Ytdlp, but addon is not installed: $playableUri")
       android.widget.Toast.makeText(
         this,
-        "REX Stream Addon required to play this web link",
+        "REX Ytdlp required to play this web link",
         android.widget.Toast.LENGTH_LONG
       ).show()
       return
@@ -796,7 +796,7 @@ class PlayerActivity :
     android.widget.Toast.makeText(this, "Resolving video stream...", android.widget.Toast.LENGTH_SHORT).show()
 
     lifecycleScope.launch {
-      Log.d(TAG, "Resolving web stream URL via REX Stream Addon: $playableUri")
+      Log.d(TAG, "Resolving web stream URL via REX Ytdlp: $playableUri")
       val resolved = ytDlClient.resolveStream(playableUri, ytdlPreferences.buildExtractionOptions())
       if (resolved.isSuccess && !resolved.videoUrl.isNullOrBlank()) {
         Log.d(TAG, "Stream resolved successfully: ${resolved.title}, isDASH=${resolved.isDASH}")

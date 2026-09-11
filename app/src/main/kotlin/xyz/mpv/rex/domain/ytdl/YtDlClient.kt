@@ -46,6 +46,20 @@ class YtDlClient(private val context: Context) {
     }
 
     /**
+     * Cryptographically verifies that the installed add-on package is signed by
+     * the exact same developer certificate as REX Player.
+     */
+    fun isAddonAuthentic(): Boolean {
+        if (!isAddonInstalled()) return false
+        val match = context.packageManager.checkSignatures(context.packageName, ADDON_PACKAGE)
+        if (match == PackageManager.SIGNATURE_MATCH) {
+            return true
+        }
+        Log.e(TAG, "Add-on signature verification failed (result: $match). Refusing to trust $ADDON_PACKAGE.")
+        return false
+    }
+
+    /**
      * Checks if a URL is a web streaming URL (e.g. YouTube, Vimeo, Twitch)
      * and NOT a direct media file (.mp4, .m3u8, etc.) or local network stream.
      */
@@ -73,6 +87,11 @@ class YtDlClient(private val context: Context) {
 
         if (!isAddonInstalled()) {
             Log.w(TAG, "Addon $ADDON_PACKAGE is not installed")
+            return null
+        }
+
+        if (!isAddonAuthentic()) {
+            Log.e(TAG, "Refusing to connect: $ADDON_PACKAGE is not authentic (signature mismatch)")
             return null
         }
 
@@ -137,10 +156,10 @@ class YtDlClient(private val context: Context) {
         options: StreamExtractionOptions = StreamExtractionOptions(),
     ): ResolvedStream = withContext(Dispatchers.IO) {
         if (!isAddonInstalled()) {
-            return@withContext ResolvedStream.failure("REX Stream Addon is not installed")
+            return@withContext ResolvedStream.failure("REX Ytdlp is not installed")
         }
         val service = getService()
-            ?: return@withContext ResolvedStream.failure("Could not connect to REX Stream Addon")
+            ?: return@withContext ResolvedStream.failure("Could not connect to REX Ytdlp")
 
         try {
             val optionsBundle = YtdlIpcConverter.toOptionsBundle(options)
@@ -157,10 +176,10 @@ class YtDlClient(private val context: Context) {
         options: StreamExtractionOptions = StreamExtractionOptions(),
     ): ResolvedPlaylist = withContext(Dispatchers.IO) {
         if (!isAddonInstalled()) {
-            return@withContext ResolvedPlaylist.failure(url, "REX Stream Addon is not installed")
+            return@withContext ResolvedPlaylist.failure(url, "REX Ytdlp is not installed")
         }
         val service = getService()
-            ?: return@withContext ResolvedPlaylist.failure(url, "Could not connect to REX Stream Addon")
+            ?: return@withContext ResolvedPlaylist.failure(url, "Could not connect to REX Ytdlp")
 
         try {
             val optionsBundle = YtdlIpcConverter.toOptionsBundle(options)

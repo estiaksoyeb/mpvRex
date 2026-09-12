@@ -1,20 +1,27 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest a new feature or improvement for REX Player
 title: ''
-labels: ''
+labels: 'enhancement'
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+### Feature description
+A clear and concise description of the feature or enhancement you would like to see in REX Player.
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+### Problem or use case
+Explain the problem this feature solves, or describe your intended use case. (e.g., "Currently, I have to...")
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+### Proposed solution or workflow
+Describe how you envision this working from a user perspective. (e.g., gestures, settings toggle, UI placement)
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+### Additional context or mockups
+Add any screenshots, design mockups, reference behaviors from other players, or other relevant details.
+
+### Acknowledgements
+- [ ] I have searched existing issues (both open and closed) and confirmed this is not a duplicate.
+- [ ] I have written a clear and descriptive issue title.
+- [ ] I verified that this feature is not already available in the latest release ([5.1.0](https://github.com/mpvRex/REX-Player/releases/latest)) or preview build.
+- [ ] I have provided sufficient detail explaining how the feature should work.
+

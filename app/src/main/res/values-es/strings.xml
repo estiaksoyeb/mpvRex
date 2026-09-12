@@ -223,21 +223,16 @@
     <string name="pref_gesture_use_relative_seeking_title">Usar búsqueda relativa</string>
     <string name="pref_gesture_use_relative_seeking_summary">Buscar en relación con la posición inicial del arrastre en lugar de la posición absoluta del dedo.</string>
 
-    <string name="pref_gesture_double_tap_custom_info">You can bind custom actions to these gestures in input.conf using the following key codes:
-
-Left: MBTN_LEFT_DBL
-Center: MBTN_MID_DBL
-Right: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">Puedes vincular acciones personalizadas a estos gestos en input.conf usando los siguientes códigos de tecla:</string>
+    <string name="pref_gesture_double_tap_left">Izquierda</string>
+    <string name="pref_gesture_double_tap_center">Centro</string>
+    <string name="pref_gesture_double_tap_right">Derecha</string>
 
     <string name="pref_gesture_media_title">Controles multimedia</string>
     <string name="pref_gesture_media_previous">Anterior</string>
     <string name="pref_gesture_media_play">Reproducir/Pausar</string>
     <string name="pref_gesture_media_next">Siguiente</string>
-    <string name="pref_gesture_media_custom_info">You can bind custom actions to media controls in input.conf using the following key codes:
-
-Previous: PREV
-Play/Pause: PLAYPAUSE
-Next: NEXT</string>
+    <string name="pref_gesture_media_custom_info">Puedes vincular acciones personalizadas a los controles multimedia en input.conf usando los siguientes códigos de tecla:</string>
 
     <string name="pref_gesture_view_title">Vista</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">Tocar miniatura para seleccionar</string>

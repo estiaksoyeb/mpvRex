@@ -205,13 +205,16 @@
     <string name="pref_gesture_use_relative_seeking_title">使用相對搜尋</string>
     <string name="pref_gesture_use_relative_seeking_summary">相對於開始拖動的位置進行搜尋，而非手指的絕對位置。</string>
 
-    <string name="pref_gesture_double_tap_custom_info">您可以在 input.conf 中使用以下鍵碼將自訂動作綁定到這些手勢：\n\n左側：MBTN_LEFT_DBL\n中間：MBTN_MID_DBL\n右側：MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">您可以在 input.conf 中使用以下鍵碼將自訂動作綁定到這些手勢：</string>
+    <string name="pref_gesture_double_tap_left">左側</string>
+    <string name="pref_gesture_double_tap_center">中間</string>
+    <string name="pref_gesture_double_tap_right">右側</string>
 
     <string name="pref_gesture_media_title">媒體控制</string>
     <string name="pref_gesture_media_previous">上一個</string>
     <string name="pref_gesture_media_play">播放/暫停</string>
     <string name="pref_gesture_media_next">下一個</string>
-    <string name="pref_gesture_media_custom_info">您可以在 input.conf 中使用以下鍵碼將自訂動作綁定到媒體控制：\n\n上一個：PREV\n播放/暫停：PLAYPAUSE\n下一個：NEXT</string>
+    <string name="pref_gesture_media_custom_info">您可以在 input.conf 中使用以下鍵碼將自訂動作綁定到媒體控制：</string>
 
     <string name="pref_gesture_view_title">檢視</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">點擊縮圖進行選擇</string>

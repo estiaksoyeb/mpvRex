@@ -233,12 +233,16 @@
     <string name="pref_gesture_use_relative_seeking_summary">Suchen Sie relativ zur Zieh-Startposition anstelle der absoluten Fingerposition.</string>
     <string name="pref_gesture_enable_release_to_cancel_title">Aktivieren Sie „Zum Abbrechen freigeben“</string>
     <string name="pref_gesture_enable_release_to_cancel_summary">Suchposition beim Loslassen in der Nähe der Drag-Start-Position rückgängig machen</string>
-    <string name="pref_gesture_double_tap_custom_info">Für kannst benutzerdefinierte Aktionen an diese Gesten in input.conf binden, indem du die folgenden Tastencodes verwenden:\n\nLinks: MBTN_LEFT_DBL\nMitte: MBTN_MID_DBL\nRechts: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">Du kannst benutzerdefinierte Aktionen an diese Gesten in input.conf binden, indem du die folgenden Tastencodes verwendest:</string>
+    <string name="pref_gesture_double_tap_left">Links</string>
+    <string name="pref_gesture_double_tap_center">Mitte</string>
+    <string name="pref_gesture_double_tap_right">Rechts</string>
+
     <string name="pref_gesture_media_title">Mediensteuerung</string>
     <string name="pref_gesture_media_previous">Vorherige</string>
     <string name="pref_gesture_media_play">Wiedergabe/Pause</string>
     <string name="pref_gesture_media_next">Nächste</string>
-    <string name="pref_gesture_media_custom_info">Du kannst benutzerdefinierte Aktionen mit den folgenden Schlüsselcodes an Mediensteuerelemente in input.conf binden:\n\nZurück: PREV\nWiedergabe/Pause: SPIELPAUSE\nWeiter: WEITER</string>
+    <string name="pref_gesture_media_custom_info">Du kannst benutzerdefinierte Aktionen mit den folgenden Schlüsselcodes an Mediensteuerelemente in input.conf binden:</string>
     <string name="pref_gesture_view_title">Ansicht</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">Tippen Sie zur Auswahl auf die Miniaturansicht</string>
     <string name="pref_gesture_tap_thumbnail_to_select_summary">Wenn diese Option aktiviert ist, wechselt das Tippen auf Miniaturansichten in den Auswahlmodus. Wenn diese Option deaktiviert ist, wird das Video durch Tippen auf Miniaturansichten wiedergegeben. Hat keine Auswirkung im Rastermodus.</string>

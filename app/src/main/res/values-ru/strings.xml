@@ -236,13 +236,16 @@
 	<string name="pref_gesture_enable_release_to_cancel_title">Включить "Отпустить для отмены"</string>
 	<string name="pref_gesture_enable_release_to_cancel_summary">Возвращать позицию воспроизведения при отпускании рядом с начальным местом перетаскивания</string>
 
-	<string name="pref_gesture_double_tap_custom_info">Вы можете привязать пользовательские действия к этим жестам в файле input.conf, используя следующие коды клавиш:\n\nВлево: MBTN_LEFT_DBL\nПо центру: MBTN_MID_DBL\nВправо: MBTN_RIGHT_DBL</string>
+	<string name="pref_gesture_double_tap_custom_info">Вы можете привязать пользовательские действия к этим жестам в файле input.conf, используя следующие коды клавиш:</string>
+	<string name="pref_gesture_double_tap_left">Влево</string>
+	<string name="pref_gesture_double_tap_center">По центру</string>
+	<string name="pref_gesture_double_tap_right">Вправо</string>
 
 	<string name="pref_gesture_media_title">Управление медиа</string>
 	<string name="pref_gesture_media_previous">Предыдущее</string>
 	<string name="pref_gesture_media_play">Воспроизведение/Пауза</string>
 	<string name="pref_gesture_media_next">Следующее</string>
-	<string name="pref_gesture_media_custom_info">Вы можете привязать пользовательские действия к управлению медиа в файле input.conf, используя следующие коды клавиш:\n\nПредыдущее: PREV\nВоспроизведение/Пауза: PLAYPAUSE\nСледующее: NEXT</string>
+	<string name="pref_gesture_media_custom_info">Вы можете привязать пользовательские действия к управлению медиа в файле input.conf, используя следующие коды клавиш:</string>
 
 	<string name="pref_gesture_view_title">Вид</string>
 	<string name="pref_gesture_tap_thumbnail_to_select_title">Нажатие на миниатюру для выбора</string>

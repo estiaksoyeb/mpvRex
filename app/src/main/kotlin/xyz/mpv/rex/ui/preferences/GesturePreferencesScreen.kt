@@ -32,6 +32,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.withStyle
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
@@ -41,7 +42,6 @@ import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.player.CustomKeyCodes
 import xyz.mpv.rex.ui.player.SingleActionGesture
 import xyz.mpv.rex.ui.utils.LocalBackStack
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.FooterPreference
 import me.zhanghai.compose.preference.ListPreference
@@ -366,27 +366,22 @@ object GesturePreferencesScreen : Screen {
                       CustomKeyCodes.DoubleTapLeft,
                       CustomKeyCodes.DoubleTapCenter,
                       CustomKeyCodes.DoubleTapRight,
-                    ).map { it.keyCode }.toImmutableList()
+                    )
                   FooterPreference(
                     summary = {
-                      var annotatedString =
+                      val intro = stringResource(R.string.pref_gesture_double_tap_custom_info).substringBefore("\n\n")
+                      val annotatedString =
                         buildAnnotatedString {
-                          append(stringResource(R.string.pref_gesture_double_tap_custom_info))
-                        }
-
-                      doubleTapKeyCodes.forEach { keyCode ->
-                        annotatedString =
-                          buildAnnotatedString {
-                            val startIndex = annotatedString.indexOf(keyCode)
-                            val endIndex = startIndex + keyCode.length
-                            append(annotatedString)
-                            addStyle(
-                              style = SpanStyle(fontWeight = FontWeight.Bold),
-                              start = startIndex,
-                              end = endIndex,
-                            )
+                          append(intro)
+                          append("\n\n")
+                          doubleTapKeyCodes.forEachIndexed { index, item ->
+                            if (index > 0) append("\n")
+                            append("${stringResource(item.titleRes)}: ")
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                              append(item.keyCode)
+                            }
                           }
-                      }
+                        }
 
                       Text(
                         text = annotatedString,
@@ -511,27 +506,22 @@ object GesturePreferencesScreen : Screen {
                       CustomKeyCodes.MediaPrevious,
                       CustomKeyCodes.MediaPlay,
                       CustomKeyCodes.MediaNext,
-                    ).map { it.keyCode }.toImmutableList()
+                    )
                   FooterPreference(
                     summary = {
-                      var annotatedString =
+                      val intro = stringResource(R.string.pref_gesture_media_custom_info).substringBefore("\n\n")
+                      val annotatedString =
                         buildAnnotatedString {
-                          append(stringResource(R.string.pref_gesture_media_custom_info))
-                        }
-
-                      mediaKeyCodes.forEach { keyCode ->
-                        annotatedString =
-                          buildAnnotatedString {
-                            val startIndex = annotatedString.indexOf(keyCode)
-                            val endIndex = startIndex + keyCode.length
-                            append(annotatedString)
-                            addStyle(
-                              style = SpanStyle(fontWeight = FontWeight.Bold),
-                              start = startIndex,
-                              end = endIndex,
-                            )
+                          append(intro)
+                          append("\n\n")
+                          mediaKeyCodes.forEachIndexed { index, item ->
+                            if (index > 0) append("\n")
+                            append("${stringResource(item.titleRes)}: ")
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                              append(item.keyCode)
+                            }
                           }
-                      }
+                        }
 
                       Text(
                         text = annotatedString,

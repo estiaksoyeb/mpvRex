@@ -265,13 +265,16 @@
     <string name="pref_gesture_enable_release_to_cancel_title">\"Bırakınca iptal et\" özelliğini etkinleştir</string>
     <string name="pref_gesture_enable_release_to_cancel_summary">Sürüklemenin başlangıç noktasına yakın bırakıldığında arama konumunu geri al</string>
 
-    <string name="pref_gesture_double_tap_custom_info">Aşağıdaki tuş kodlarını kullanarak input.conf dosyasında bu hareketlere özel eylemler atayabilirsin:\n\nSol: MBTN_LEFT_DBL\nOrta: MBTN_MID_DBL\nSağ: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">Aşağıdaki tuş kodlarını kullanarak input.conf dosyasında bu hareketlere özel eylemler atayabilirsin:</string>
+    <string name="pref_gesture_double_tap_left">Sol</string>
+    <string name="pref_gesture_double_tap_center">Orta</string>
+    <string name="pref_gesture_double_tap_right">Sağ</string>
 
     <string name="pref_gesture_media_title">Medya kontrolleri</string>
     <string name="pref_gesture_media_previous">Önceki</string>
     <string name="pref_gesture_media_play">Oynat/Duraklat</string>
     <string name="pref_gesture_media_next">Sonraki</string>
-    <string name="pref_gesture_media_custom_info">Aşağıdaki tuş kodlarını kullanarak input.conf dosyasında medya kontrollerine özel eylemler atayabilirsin:\n\nÖnceki: PREV\nOynat/Duraklat: PLAYPAUSE\nSonraki: NEXT</string>
+    <string name="pref_gesture_media_custom_info">Aşağıdaki tuş kodlarını kullanarak input.conf dosyasında medya kontrollerine özel eylemler atayabilirsin:</string>
 
     <string name="pref_gesture_view_title">Görünüm</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">Seçmek için küçük resme dokun</string>

@@ -229,12 +229,16 @@
     <string name="pref_gesture_use_relative_seeking_summary">Procure a posição inicial relativa ao arrasto em vez da posição absoluta do dedo.</string>
     <string name="pref_gesture_enable_release_to_cancel_title">Ative \"Liberar para cancelar\"</string>
     <string name="pref_gesture_enable_release_to_cancel_summary">Reverter a posição de busca ao soltar perto do local de início do arrasto</string>
-    <string name="pref_gesture_double_tap_custom_info">Você pode vincular ações personalizadas a esses gestos em input.conf usando os seguintes códigos-chave:\n\nEsquerda: MBTN_LEFT_DBL\nCentro: MBTN_MID_DBL\nDireita: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">Você pode vincular ações personalizadas a esses gestos em input.conf usando os seguintes códigos-chave:</string>
+    <string name="pref_gesture_double_tap_left">Esquerda</string>
+    <string name="pref_gesture_double_tap_center">Centro</string>
+    <string name="pref_gesture_double_tap_right">Direita</string>
+
     <string name="pref_gesture_media_title">Controles de mídia</string>
     <string name="pref_gesture_media_previous">Anterior</string>
     <string name="pref_gesture_media_play">Reproduzir/Pausar</string>
     <string name="pref_gesture_media_next">Próximo</string>
-    <string name="pref_gesture_media_custom_info">Você pode vincular ações personalizadas a controles de mídia em input.conf usando os seguintes códigos-chave:\n\nAnterior: PREV\nReproduzir/Pausar: PLAYPAUSE\nPróximo: PRÓXIMO</string>
+    <string name="pref_gesture_media_custom_info">Você pode vincular ações personalizadas a controles de mídia em input.conf usando os seguintes códigos-chave:</string>
     <string name="pref_gesture_view_title">Visualizar</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">Toque na miniatura para selecionar</string>
     <string name="pref_gesture_tap_thumbnail_to_select_summary">Quando ativado, tocar nas miniaturas entra no modo de seleção. Quando desativado, tocar nas miniaturas reproduz o vídeo. Não tem efeito no modo grade.</string>

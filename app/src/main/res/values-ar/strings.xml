@@ -224,13 +224,16 @@
     <string name="pref_gesture_use_relative_seeking_title">استخدام التقديم النسبي</string>
     <string name="pref_gesture_use_relative_seeking_summary">التقديم بالنسبة لموضع بدء السحب بدلاً من الموضع المطلق للإصبع.</string>
 
-    <string name="pref_gesture_double_tap_custom_info">يمكنك ربط إجراءات مخصصة بهذه الإيماءات في input.conf باستخدام رموز المفاتيح التالية:\n\nيسار: MBTN_LEFT_DBL\nوسط: MBTN_MID_DBL\nيمين: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">يمكنك ربط إجراءات مخصصة بهذه الإيماءات في input.conf باستخدام رموز المفاتيح التالية:</string>
+    <string name="pref_gesture_double_tap_left">يسار</string>
+    <string name="pref_gesture_double_tap_center">وسط</string>
+    <string name="pref_gesture_double_tap_right">يمين</string>
 
     <string name="pref_gesture_media_title">عناصر التحكم في الوسائط</string>
     <string name="pref_gesture_media_previous">السابق</string>
     <string name="pref_gesture_media_play">تشغيل/إيقاف مؤقت</string>
     <string name="pref_gesture_media_next">التالي</string>
-    <string name="pref_gesture_media_custom_info">يمكنك ربط إجراءات مخصصة بعناصر التحكم في الوسائط في input.conf باستخدام رموز المفاتيح التالية:\n\nالسابق: PREV\nتشغيل/إيقاف مؤقت: PLAYPAUSE\nالتالي: NEXT</string>
+    <string name="pref_gesture_media_custom_info">يمكنك ربط إجراءات مخصصة بعناصر التحكم في الوسائط في input.conf باستخدام رموز المفاتيح التالية:</string>
 
     <string name="pref_gesture_view_title">عرض</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">نقر على الصورة المصغَّرة للتحديد</string>

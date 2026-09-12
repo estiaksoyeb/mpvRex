@@ -73,13 +73,14 @@ enum class SingleActionGesture(
 
 enum class CustomKeyCodes(
   val keyCode: String,
+  @StringRes val titleRes: Int,
 ) {
-  DoubleTapLeft("MBTN_LEFT_DBL"),
-  DoubleTapCenter("MBTN_MID_DBL"),
-  DoubleTapRight("MBTN_RIGHT_DBL"),
-  MediaPrevious("PREV"),
-  MediaPlay("PLAYPAUSE"),
-  MediaNext("NEXT"),
+  DoubleTapLeft("MBTN_LEFT_DBL", R.string.pref_gesture_double_tap_left),
+  DoubleTapCenter("MBTN_MID_DBL", R.string.pref_gesture_double_tap_center),
+  DoubleTapRight("MBTN_RIGHT_DBL", R.string.pref_gesture_double_tap_right),
+  MediaPrevious("PREV", R.string.pref_gesture_media_previous),
+  MediaPlay("PLAYPAUSE", R.string.pref_gesture_media_play),
+  MediaNext("NEXT", R.string.pref_gesture_media_next),
 }
 
 enum class Decoder(

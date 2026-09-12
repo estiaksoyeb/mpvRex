@@ -205,12 +205,16 @@
     <string name="pref_gesture_prevent_seekbar_tap_summary">ভিডিও শুধুমাত্র সিকবারটি টেনে নিয়ে সীক করবে, ট্যাপ করে নয়।</string>
     <string name="pref_gesture_use_relative_seeking_title">রিলেটিভ সীকিং ব্যবহার করুন</string>
     <string name="pref_gesture_use_relative_seeking_summary">পরম ফিঙ্গার পজিশনের পরিবর্তে ড্র্যাগ স্টার্ট পজিশনের আপেক্ষিক সীক করুন ।</string>
-    <string name="pref_gesture_double_tap_custom_info">আপনি নিম্নলিখিত কী কোডগুলি ব্যবহার করে input.conf-এ এই জেসচারে কাস্টম অ্যাকশনগুলি আবদ্ধ করতে পারেন:\n\nবাম: MBTN_LEFT_DBL\nকেন্দ্র: MBTN_MID_DBL\nডান: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">আপনি নিম্নলিখিত কী কোডগুলি ব্যবহার করে input.conf-এ এই জেসচারে কাস্টম অ্যাকশনগুলি আবদ্ধ করতে পারেন:</string>
+    <string name="pref_gesture_double_tap_left">বাম</string>
+    <string name="pref_gesture_double_tap_center">কেন্দ্র</string>
+    <string name="pref_gesture_double_tap_right">ডান</string>
+
     <string name="pref_gesture_media_title">মিডিয়া নিয়ন্ত্রণ</string>
     <string name="pref_gesture_media_previous">আগের</string>
     <string name="pref_gesture_media_play">প্লে/পজ</string>
     <string name="pref_gesture_media_next">পরের</string>
-    <string name="pref_gesture_media_custom_info">আপনি নিম্নলিখিত কী কোডগুলি ব্যবহার করে input.conf-এ মিডিয়া নিয়ন্ত্রণে কাস্টম অ্যাকশনগুলিকে আবদ্ধ করতে পারেন:\n\nপূর্ববর্তী: PREV\nপ্লে/পজ: PLAYPAUSE\nপরবর্তী: NEXT</string>
+    <string name="pref_gesture_media_custom_info">আপনি নিম্নলিখিত কী কোডগুলি ব্যবহার করে input.conf-এ মিডিয়া নিয়ন্ত্রণে কাস্টম অ্যাকশনগুলিকে আবদ্ধ করতে পারেন:</string>
     <string name="pref_gesture_view_title">দেখুন</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">সিলেক্ট করতে থাম্বনেল আলতো চাপুন</string>
     <string name="pref_gesture_tap_thumbnail_to_select_summary">সক্রিয় করা হলে, থাম্বনেইলে আলতো চাপলে নির্বাচন মোডে প্রবেশ করে। অক্ষম হলে, থাম্বনেল ট্যাপ করলে ভিডিওটি চলে। গ্রিড মোডে কোন প্রভাব নেই।</string>

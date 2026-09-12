@@ -229,13 +229,16 @@
     <string name="pref_gesture_use_relative_seeking_title">相对进度拖动</string>
     <string name="pref_gesture_use_relative_seeking_summary">以拖动起始位置计算偏移，而非直接跳转到手指坐标</string>
 
-    <string name="pref_gesture_double_tap_custom_info">你可以在 input.conf 中使用下列按键代码绑定自定义动作：\n\n左侧: MBTN_LEFT_DBL\n中间: MBTN_MID_DBL\n右侧: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">你可以在 input.conf 中使用下列按键代码绑定自定义动作：</string>
+    <string name="pref_gesture_double_tap_left">左侧</string>
+    <string name="pref_gesture_double_tap_center">中间</string>
+    <string name="pref_gesture_double_tap_right">右侧</string>
 
     <string name="pref_gesture_media_title">媒体控制</string>
     <string name="pref_gesture_media_previous">上一个</string>
     <string name="pref_gesture_media_play">播放/暂停</string>
     <string name="pref_gesture_media_next">下一个</string>
-    <string name="pref_gesture_media_custom_info">你可以在 input.conf 中使用下列按键代码绑定媒体控制自定义动作：\n\n上一个: PREV\n播放/暂停: PLAYPAUSE\n下一个: NEXT</string>
+    <string name="pref_gesture_media_custom_info">你可以在 input.conf 中使用下列按键代码绑定媒体控制自定义动作：</string>
 
     <string name="pref_gesture_view_title">浏览视图</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">点击缩略图进入多选模式</string>

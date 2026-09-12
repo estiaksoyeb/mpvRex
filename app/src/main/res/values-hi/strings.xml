@@ -233,12 +233,16 @@
     <string name="pref_gesture_use_relative_seeking_summary">निरपेक्ष उंगली की स्थिति के बजाय प्रारंभ स्थिति को खींचने के लिए रिश्तेदार की तलाश करें।</string>
     <string name="pref_gesture_enable_release_to_cancel_title">\"रद्द करने के लिए रिलीज़\" सक्षम करें</string>
     <string name="pref_gesture_enable_release_to_cancel_summary">ड्रैग स्टार्ट लोकेशन के पास रिलीज़ करते समय तलाश की स्थिति को वापस करें</string>
-    <string name="pref_gesture_double_tap_custom_info">आप निम्नलिखित कुंजी कोड का उपयोग करके input.conf में इन इशारों के लिए कस्टम क्रियाओं को बांध सकते हैं:\n\nबाएं: MBTN_LEFT_DBL\nकेंद्र: MBTN_MID_DBL\nदाएं: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">आप निम्नलिखित कुंजी कोड का उपयोग करके input.conf में इन इशारों के लिए कस्टम क्रियाओं को बांध सकते हैं:</string>
+    <string name="pref_gesture_double_tap_left">बाएं</string>
+    <string name="pref_gesture_double_tap_center">केंद्र</string>
+    <string name="pref_gesture_double_tap_right">दाएं</string>
+
     <string name="pref_gesture_media_title">मीडिया कंट्रोल</string>
     <string name="pref_gesture_media_previous">पिछला</string>
     <string name="pref_gesture_media_play">प्ले /पॉज </string>
     <string name="pref_gesture_media_next">अगला</string>
-    <string name="pref_gesture_media_custom_info">आप निम्नलिखित कुंजी कोड का उपयोग करके input.conf में मीडिया नियंत्रणों के लिए कस्टम क्रियाओं को बांध सकते हैं:\n\nपिछला: पिछला\nप्ले/पॉज़: PLAYPAUSE\nअगला: अगला</string>
+    <string name="pref_gesture_media_custom_info">आप निम्नलिखित कुंजी कोड का उपयोग करके input.conf में मीडिया नियंत्रणों के लिए कस्टम क्रियाओं को बांध सकते हैं:</string>
     <string name="pref_gesture_view_title">देखें</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">चुनने के लिए थंबनेल पर टैप करें</string>
     <string name="pref_gesture_tap_thumbnail_to_select_summary">सक्षम होने पर, थंबनेल पर टैप करने से चयन मोड में प्रवेश होता है। अक्षम होने पर, थंबनेल टैप करने से वीडियो चलता है। ग्रिड मोड में इसका कोई प्रभाव नहीं है।</string>

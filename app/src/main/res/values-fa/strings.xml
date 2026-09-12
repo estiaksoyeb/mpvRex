@@ -233,12 +233,16 @@
     <string name="pref_gesture_use_relative_seeking_summary">به جای موقعیت مطلق انگشت، به دنبال کشیدن موقعیت شروع نسبتاً باشید.</string>
     <string name="pref_gesture_enable_release_to_cancel_title">فعال کردن \"رها برای لغو\"</string>
     <string name="pref_gesture_enable_release_to_cancel_summary">هنگام رها کردن نزدیک محل شروع کشیدن، موقعیت جستجو را برگردانید</string>
-    <string name="pref_gesture_double_tap_custom_info">می‌توانید با استفاده از کدهای کلیدی زیر، اقدامات سفارشی را به این ژست‌ها در input.conf متصل کنید:\n\nسمت چپ: MBTN_LEFT_DBL\nمرکز: MBTN_MID_DBL\nسمت راست: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">می‌توانید با استفاده از کدهای کلیدی زیر، اقدامات سفارشی را به این ژست‌ها در input.conf متصل کنید:</string>
+    <string name="pref_gesture_double_tap_left">سمت چپ</string>
+    <string name="pref_gesture_double_tap_center">مرکز</string>
+    <string name="pref_gesture_double_tap_right">سمت راست</string>
+
     <string name="pref_gesture_media_title">کنترل های رسانه ای</string>
     <string name="pref_gesture_media_previous">قبلی</string>
     <string name="pref_gesture_media_play">پخش/مکث</string>
     <string name="pref_gesture_media_next">بعدی</string>
-    <string name="pref_gesture_media_custom_info">می‌توانید با استفاده از کدهای کلیدی زیر، اقدامات سفارشی را به کنترل‌های رسانه در input.conf متصل کنید:\n\nقبلی: PREV\nپخش/مکث: PLAYPAUSE\nبعدی: بعدی</string>
+    <string name="pref_gesture_media_custom_info">می‌توانید با استفاده از کدهای کلیدی زیر، اقدامات سفارشی را به کنترل‌های رسانه در input.conf متصل کنید:</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">برای انتخاب روی تصویر کوچک ضربه بزنید</string>
     <string name="pref_gesture_tap_thumbnail_to_select_summary">وقتی فعال است، ضربه زدن روی ریز عکسها وارد حالت انتخاب می شود. وقتی غیرفعال است، ضربه زدن روی ریز عکسها ویدیو را پخش می کند. در حالت گرید هیچ تاثیری ندارد.</string>
     <string name="pref_decoder">رمزگشا</string>

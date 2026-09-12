@@ -264,13 +264,16 @@
     <string name="pref_gesture_enable_release_to_cancel_title">\"Ləğv etmək üçün burax\" funksiyasını aktivləşdir</string>
     <string name="pref_gesture_enable_release_to_cancel_summary">Dartmanın başlanğıc yerinə yaxın buraxdıqda sarma mövqeyini geri qaytar</string>
 
-    <string name="pref_gesture_double_tap_custom_info">input.conf faylında aşağıdakı düymə kodlarından istifadə edərək bu jestlərə fərdi əməliyyatlar təyin edə bilərsiniz:\n\nSol: MBTN_LEFT_DBL\nMərkəz: MBTN_MID_DBL\nSağ: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">input.conf faylında aşağıdakı düymə kodlarından istifadə edərək bu jestlərə fərdi əməliyyatlar təyin edə bilərsiniz:</string>
+    <string name="pref_gesture_double_tap_left">Sol</string>
+    <string name="pref_gesture_double_tap_center">Mərkəz</string>
+    <string name="pref_gesture_double_tap_right">Sağ</string>
 
     <string name="pref_gesture_media_title">Media idarəetməsi</string>
     <string name="pref_gesture_media_previous">Əvvəlki</string>
     <string name="pref_gesture_media_play">Oynat/fasilə ver</string>
     <string name="pref_gesture_media_next">Növbəti</string>
-    <string name="pref_gesture_media_custom_info">input.conf faylında aşağıdakı düymə kodlarından istifadə edərək media idarəetmə elementlərinə fərdi əməliyyatlar təyin edə bilərsiniz:\n\nƏvvəlki: PREV\nOynat/fasilə ver: PLAYPAUSE\nNövbəti: NEXT</string>
+    <string name="pref_gesture_media_custom_info">input.conf faylında aşağıdakı düymə kodlarından istifadə edərək media idarəetmə elementlərinə fərdi əməliyyatlar təyin edə bilərsiniz:</string>
 
     <string name="pref_gesture_view_title">Görünüş</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">Seçmək üçün kiçik şəklə toxun</string>

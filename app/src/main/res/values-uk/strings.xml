@@ -254,13 +254,16 @@
 	<string name="pref_gesture_enable_release_to_cancel_title">Увімкнути \"Відпустити для скасування\"</string>
 	<string name="pref_gesture_enable_release_to_cancel_summary">Повернути позицію відтворення при відпусканні поруч із початковим місцем перетягування</string>
 
-	<string name="pref_gesture_double_tap_custom_info">Ви можете прив\'язати користувацькі дії до цих жестів у файлі input.conf, використовуючи наступні коди клавіш:\n\nВліво: MBTN_LEFT_DBL\nПо центру: MBTN_MID_DBL\nВправо: MBTN_RIGHT_DBL</string>
+	<string name="pref_gesture_double_tap_custom_info">Ви можете прив\'язати користувацькі дії до цих жестів у файлі input.conf, використовуючи наступні коди клавіш:</string>
+	<string name="pref_gesture_double_tap_left">Вліво</string>
+	<string name="pref_gesture_double_tap_center">По центру</string>
+	<string name="pref_gesture_double_tap_right">Вправо</string>
 
 	<string name="pref_gesture_media_title">Керування медіа</string>
 	<string name="pref_gesture_media_previous">Назад</string>
 	<string name="pref_gesture_media_play">Відтворення/Пауза</string>
 	<string name="pref_gesture_media_next">Уперед</string>
-	<string name="pref_gesture_media_custom_info">Ви можете прив\'язати користувацькі дії до керування медіа у файлі input.conf, використовуючи наступні коди клавіш:\n\nПопереднє: PREV\nВідтворення/Пауза: PLAYPAUSE\nНаступне: NEXT</string>
+	<string name="pref_gesture_media_custom_info">Ви можете прив\'язати користувацькі дії до керування медіа у файлі input.conf, використовуючи наступні коди клавіш:</string>
 
 	<string name="pref_gesture_view_title">Вигляд</string>
 	<string name="pref_gesture_tap_thumbnail_to_select_title">Торкання мініатюри для вибору</string>

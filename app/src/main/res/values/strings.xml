@@ -270,13 +270,16 @@
     <string name="pref_gesture_enable_release_to_cancel_title">Enable "Release to cancel"</string>
     <string name="pref_gesture_enable_release_to_cancel_summary">Revert seek position when releasing near the drag start location</string>
 
-    <string name="pref_gesture_double_tap_custom_info">You can bind custom actions to these gestures in input.conf using the following key codes:\n\nLeft: MBTN_LEFT_DBL\nCenter: MBTN_MID_DBL\nRight: MBTN_RIGHT_DBL</string>
+    <string name="pref_gesture_double_tap_custom_info">You can bind custom actions to these gestures in input.conf using the following key codes:</string>
+    <string name="pref_gesture_double_tap_left">Left</string>
+    <string name="pref_gesture_double_tap_center">Center</string>
+    <string name="pref_gesture_double_tap_right">Right</string>
 
     <string name="pref_gesture_media_title">Media controls</string>
     <string name="pref_gesture_media_previous">Previous</string>
     <string name="pref_gesture_media_play">Play/Pause</string>
     <string name="pref_gesture_media_next">Next</string>
-    <string name="pref_gesture_media_custom_info">You can bind custom actions to media controls in input.conf using the following key codes:\n\nPrevious: PREV\nPlay/Pause: PLAYPAUSE\nNext: NEXT</string>
+    <string name="pref_gesture_media_custom_info">You can bind custom actions to media controls in input.conf using the following key codes:</string>
 
     <string name="pref_gesture_view_title">View</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">Tap thumbnail to select</string>

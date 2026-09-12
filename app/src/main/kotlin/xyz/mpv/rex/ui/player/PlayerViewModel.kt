@@ -976,10 +976,12 @@ class PlayerViewModel(
 
   fun changeBrightnessTo(brightness: Float) {
     val coercedBrightness = brightness.coerceIn(0f, 1f)
-    host.hostWindow.attributes =
-      host.hostWindow.attributes.apply {
-        screenBrightness = coercedBrightness
-      }
+    if (!host.isInPictureInPictureMode) {
+      host.hostWindow.attributes =
+        host.hostWindow.attributes.apply {
+          screenBrightness = coercedBrightness
+        }
+    }
     currentBrightness.value = coercedBrightness
 
     // Save brightness to preferences if enabled

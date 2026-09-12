@@ -3,6 +3,7 @@ package xyz.mpv.rex.ui.player.delegates
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
+import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import xyz.mpv.rex.ui.player.MPVPipHelper
 import xyz.mpv.rex.ui.player.PlayerActivity
@@ -19,7 +20,9 @@ class PlayerPipController(
     MPVPipHelper(activity = activity, mpvView = activity.player)
   }
 
+  var isEnteringPip: Boolean = false
   var wasInPipMode: Boolean = false
+  private var savedBrightnessOverride: Float? = null
 
   /**
    * Configures window for Picture-in-Picture mode.
@@ -41,6 +44,7 @@ class PlayerPipController(
    * Enters Picture-in-Picture mode.
    */
   fun enterPipMode() {
+    isEnteringPip = true
     pipHelper.enterPipMode()
   }
 
@@ -62,8 +66,10 @@ class PlayerPipController(
    * Enters Picture-in-Picture mode and hides all overlay controls.
    */
   fun enterPipModeHidingOverlay() {
+    isEnteringPip = true
     runCatching {
       enterPipUIMode()
+      handlePipBrightness(true)
     }.onFailure { e ->
       Log.e(TAG, "Error entering PiP mode with hidden overlay", e)
     }
@@ -82,6 +88,7 @@ class PlayerPipController(
     isInPictureInPictureMode: Boolean,
     newConfig: Configuration,
   ) {
+    isEnteringPip = false
     wasInPipMode = isInPictureInPictureMode
     pipHelper.onPictureInPictureModeChanged(isInPictureInPictureMode)
 
@@ -91,11 +98,34 @@ class PlayerPipController(
       if (isInPictureInPictureMode) {
         activity.miniPlayerStateManager.clearState()
         enterPipUIMode()
+        handlePipBrightness(true)
       } else {
         exitPipUIMode()
+        handlePipBrightness(false)
       }
     }.onFailure { e ->
       Log.e(TAG, "Error handling PiP mode change", e)
+    }
+  }
+
+  private fun handlePipBrightness(enteringPip: Boolean) {
+    if (enteringPip) {
+      val currentBrightness = activity.window.attributes.screenBrightness
+      if (currentBrightness >= 0f) {
+        savedBrightnessOverride = currentBrightness
+        activity.window.attributes =
+          activity.window.attributes.apply {
+            screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+          }
+      }
+    } else {
+      savedBrightnessOverride?.let { saved ->
+        activity.window.attributes =
+          activity.window.attributes.apply {
+            screenBrightness = saved
+          }
+        savedBrightnessOverride = null
+      }
     }
   }
 }

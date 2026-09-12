@@ -1009,6 +1009,7 @@ class PlayerActivity :
     super.onUserLeaveHint()
     // Enter PIP mode when user presses home button if auto PIP is enabled
     if (playerPreferences.autoPiPOnNavigation.get() && isReady && !isFinishing) {
+      pipController.isEnteringPip = true
       miniPlayerStateManager.clearState()
       pipHelper.enterPipMode()
     } else if (isReady && !isFinishing) {
@@ -1132,7 +1133,7 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onPause() {
     runCatching {
-      val isInPip = isInPictureInPictureMode
+      val isInPip = isInPictureInPictureMode || pipController.isEnteringPip || pipController.wasInPipMode
       val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
       val isEnding = isUserFinishing || isFinishing
       val isAutoPipEnabled = playerPreferences.autoPiPOnNavigation.get()
@@ -1265,7 +1266,7 @@ class PlayerActivity :
 
       audioController.registerNoisyReceiver()
 
-      if (playerPreferences.rememberBrightness.get()) {
+      if (!isInPictureInPictureMode && playerPreferences.rememberBrightness.get()) {
         val brightness = playerPreferences.defaultBrightness.get()
         if (brightness != BRIGHTNESS_NOT_SET) {
           viewModel.changeBrightnessTo(brightness)

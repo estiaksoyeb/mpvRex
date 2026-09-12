@@ -7,6 +7,8 @@ import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.database.repository.HybridMediaIndexRepository
+import xyz.mpv.rex.utils.storage.FileFilterUtils
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
@@ -37,6 +39,7 @@ object MediaMetadataOps {
                 
                 val hybridIndex = koin.get<HybridMediaIndexRepository>()
                 hybridIndex.ensureFreshIfEmpty()
+                val includeNoMedia = browserPreferences.includeNoMediaContent.get()
                 val folders = hybridIndex.getFlatFolders(
                     playbackStates = playbackStates,
                     thresholdDays = thresholdDays,
@@ -44,7 +47,9 @@ object MediaMetadataOps {
                 )
                 folders
                     .filter { folder -> 
-                        (isAudioEnabled || folder.videoCount > 0) && folder.path !in blacklistedFolders
+                        (isAudioEnabled || folder.videoCount > 0) &&
+                        folder.path !in blacklistedFolders &&
+                        (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
                     }
                     .map { folder ->
                         VideoFolder(

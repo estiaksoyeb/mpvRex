@@ -27,6 +27,7 @@ object CoreMediaScanner {
     private var cachedMediaData: Map<String, FolderNode>? = null
     private var cacheTimestamp: Long = 0
     private var cachedShowAudioFiles: Boolean? = null
+    private var cachedIncludeNoMediaContent: Boolean? = null
     private const val CACHE_TTL_MS = 180_000L // 3 minutes for standard refreshes
     
     /**
@@ -37,6 +38,7 @@ object CoreMediaScanner {
         cachedMediaData = null
         cacheTimestamp = 0
         cachedShowAudioFiles = null
+        cachedIncludeNoMediaContent = null
     }
     
     /**
@@ -122,6 +124,9 @@ object CoreMediaScanner {
         val allNodes = getOrBuildMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
 
         val foldersByPath = getEffectiveChildren(parentPath, allNodes)
+            .filter { node ->
+                policy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(node.path))
+            }
             .associate { node ->
                 node.path to MediaFolder(
                     id = node.path,
@@ -275,17 +280,22 @@ object CoreMediaScanner {
     ): Map<String, FolderNode> {
         val browserPreferences = org.koin.core.context.GlobalContext.get().get<BrowserPreferences>()
         val showAudioFiles = browserPreferences.showAudioFiles.get()
+        val includeNoMediaContent = browserPreferences.includeNoMediaContent.get()
         val now = System.currentTimeMillis()
         cachedMediaData?.let { cached ->
-            if (now - cacheTimestamp < CACHE_TTL_MS && cachedShowAudioFiles == showAudioFiles) {
+            if (now - cacheTimestamp < CACHE_TTL_MS &&
+                cachedShowAudioFiles == showAudioFiles &&
+                cachedIncludeNoMediaContent == includeNoMediaContent
+            ) {
                 return cached
             }
         }
         
-        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders, browserPreferences, showAudioFiles)
+        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders, browserPreferences, showAudioFiles, includeNoMediaContent)
         cachedMediaData = tree
         cacheTimestamp = now
         cachedShowAudioFiles = showAudioFiles
+        cachedIncludeNoMediaContent = includeNoMediaContent
         return tree
     }
 
@@ -299,6 +309,7 @@ object CoreMediaScanner {
         blacklistedFolders: Set<String>,
         browserPreferences: BrowserPreferences,
         showAudioFiles: Boolean,
+        includeNoMediaContent: Boolean,
     ): Map<String, FolderNode> {
         val allNodes = mutableMapOf<String, FolderNode>()
         val rawMediaByFolder = mutableMapOf<String, MutableList<ScannedItem>>()
@@ -315,11 +326,17 @@ object CoreMediaScanner {
         // Get watched threshold from preferences
         val watchedThreshold = browserPreferences.watchedThreshold.get()
 
+        val noMediaCache = mutableMapOf<String, Boolean>()
+        fun isFolderWithinNoMedia(dir: File): Boolean =
+            noMediaCache.getOrPut(dir.absolutePath) { FileFilterUtils.isWithinNoMediaBoundary(dir) }
+
         // Step 3: Build Nodes for folders with direct media
         for ((folderPath, items) in rawMediaByFolder) {
-            val isBlacklisted = blacklistedFolders.contains(folderPath)
-
             val file = File(folderPath)
+            if (!includeNoMediaContent && isFolderWithinNoMedia(file)) {
+                continue
+            }
+            val isBlacklisted = blacklistedFolders.contains(folderPath)
             var videoCount = 0
             var audioCount = 0
             var newCount = 0

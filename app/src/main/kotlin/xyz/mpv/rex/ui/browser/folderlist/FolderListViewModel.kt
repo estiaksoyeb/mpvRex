@@ -15,6 +15,7 @@ import xyz.mpv.rex.preferences.FoldersPreferences
 import xyz.mpv.rex.ui.browser.base.BaseBrowserViewModel
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import xyz.mpv.rex.utils.media.MetadataRetrieval
+import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -115,10 +116,13 @@ class FolderListViewModel(
       combine(
         _allVideoFolders, 
         foldersPreferences.blacklistedFolders.changes(),
-        browserPreferences.showAudioFiles.changes()
-      ) { folders, blacklist, showAudio ->
+        browserPreferences.showAudioFiles.changes(),
+        browserPreferences.includeNoMediaContent.changes(),
+      ) { folders, blacklist, showAudio, includeNoMedia ->
         folders.filter { folder -> 
-          folder.path !in blacklist && (showAudio || folder.videoCount > 0)
+          folder.path !in blacklist &&
+          (showAudio || folder.videoCount > 0) &&
+          (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }
       }.collectLatest { filteredFolders ->
         // Check if folders became empty after having folders
@@ -257,8 +261,11 @@ class FolderListViewModel(
 
         val blacklist = foldersPreferences.blacklistedFolders.get()
         val showAudio = browserPreferences.showAudioFiles.get()
+        val includeNoMedia = browserPreferences.includeNoMediaContent.get()
         val filteredFolders = folders.filter { folder -> 
-          folder.path !in blacklist && (showAudio || folder.videoCount > 0)
+          folder.path !in blacklist &&
+          (showAudio || folder.videoCount > 0) &&
+          (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }
         _videoFolders.value = filteredFolders
         _foldersWithNewCount.value = filteredFolders.map { 

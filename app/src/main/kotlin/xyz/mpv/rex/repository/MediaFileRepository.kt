@@ -6,6 +6,7 @@ import xyz.mpv.rex.domain.browser.PathComponent
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.domain.media.model.VideoFolder
 import xyz.mpv.rex.utils.storage.CoreMediaScanner
+import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.utils.storage.VideoScanUtils
 import xyz.mpv.rex.utils.storage.FileSystemOps
 import xyz.mpv.rex.utils.storage.MediaScanPolicy
@@ -131,7 +132,8 @@ object MediaFileRepository {
         }
         folders
           .filter { data ->
-            isAudioEnabled || data.videoCount > 0
+            (isAudioEnabled || data.videoCount > 0) &&
+            (scanPolicy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(data.path)))
           }
           .forEach { folderData ->
             items.add(

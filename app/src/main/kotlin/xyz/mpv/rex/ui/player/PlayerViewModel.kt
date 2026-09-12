@@ -68,6 +68,7 @@ import xyz.mpv.rex.ui.player.managers.PlayerSnapshotManager
 import xyz.mpv.rex.ui.player.managers.PlaylistManager
 import xyz.mpv.rex.ui.player.managers.SubtitleManager
 import xyz.mpv.rex.ui.player.managers.TrackManager
+import xyz.mpv.rex.ui.player.managers.VideoFlipFilterManager
 
 
 enum class RepeatMode {
@@ -459,6 +460,8 @@ class PlayerViewModel(
   private val _isVerticalFlipped = MutableStateFlow(false)
   val isVerticalFlipped: StateFlow<Boolean> = _isVerticalFlipped.asStateFlow()
 
+  private val videoFlipFilterManager = VideoFlipFilterManager()
+
   // ==================== Ambience Mode ======================================
   // Ambient mode manager handles all ambient mode functionality
   private val ambientModeManager = AmbientModeManager(
@@ -722,6 +725,9 @@ class PlayerViewModel(
     } else {
       _trackManager.setPrimaryVideoDuration(null)
       _preciseDuration.value = 0f
+    }
+    if (!_isMirrored.value && !_isVerticalFlipped.value) {
+      videoFlipFilterManager.reset()
     }
   }
 
@@ -1934,35 +1940,7 @@ class PlayerViewModel(
   }
 
   private fun updateVideoFlipFilters() {
-    val isMirrored = _isMirrored.value
-    val isFlipped = _isVerticalFlipped.value
-
-    if (isMirrored || isFlipped) {
-      // Software video filters (vf) require hwdec copy mode when hardware decoding is active
-      val currentHwDec = MPVLib.getPropertyString("hwdec-current") ?: ""
-      if (currentHwDec == "mediacodec") {
-        MPVLib.setPropertyString("hwdec", "mediacodec-copy")
-      }
-
-      if (isMirrored) {
-        MPVLib.command("vf", "add", "@mpvex_hflip:hflip")
-      } else {
-        MPVLib.command("vf", "remove", "@mpvex_hflip")
-      }
-
-      if (isFlipped) {
-        MPVLib.command("vf", "add", "@mpvex_vflip:vflip")
-      } else {
-        MPVLib.command("vf", "remove", "@mpvex_vflip")
-      }
-    } else {
-      // Remove filters and restore preferred hwdec mode
-      MPVLib.command("vf", "remove", "@mpvex_hflip")
-      MPVLib.command("vf", "remove", "@mpvex_vflip")
-
-      val preferredHwDec = if (decoderPreferences.tryHWDecoding.get()) "mediacodec" else "no"
-      MPVLib.setPropertyString("hwdec", preferredHwDec)
-    }
+    videoFlipFilterManager.updateFilters(_isMirrored.value, _isVerticalFlipped.value)
   }
 
   // ==================== Ambient Mode Integration ====================
@@ -1986,6 +1964,7 @@ class PlayerViewModel(
   override fun onCleared() {
     super.onCleared()
     ambientModeManager.cleanup()
+    videoFlipFilterManager.reset()
   }
 }
 
@@ -2012,3 +1991,4 @@ fun <T> Flow<T>.collectAsState(
     property: KProperty<*>,
   ) = value
 }
+

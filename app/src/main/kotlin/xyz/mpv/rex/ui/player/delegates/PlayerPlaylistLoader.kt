@@ -199,6 +199,7 @@ class PlayerPlaylistLoader(
     playableUri: String,
     mediaIdentifierOverride: String? = null,
   ) {
+    activity.isReady = false
     // Save current video's playback state before switching
     if (activity.fileName.isNotBlank()) {
       activity.saveVideoPlaybackState(activity.fileName)

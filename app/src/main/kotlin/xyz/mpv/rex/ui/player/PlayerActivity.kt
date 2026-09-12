@@ -18,6 +18,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.SystemClock
 import android.provider.MediaStore
 import android.util.Log
 import android.view.KeyEvent
@@ -271,14 +272,17 @@ class PlayerActivity :
 
       override fun onPauseStateChanged(isPaused: Boolean) {
         handlePauseStateChange(isPaused)
-        if (!isPaused && !isReady) {
+        if (!isPaused && !isReady && !viewModel.isLoadingFile.value && !isAutoAdvancing) {
           isReady = true
         }
       }
 
       override fun onEofReached(isEof: Boolean) {
-        if (isEof && !isReady) {
-          Log.w(TAG, "onEofReached: ignoring EOF because player is not ready yet")
+        if (isEof && (!isReady || isAutoAdvancing || viewModel.isLoadingFile.value)) {
+          Log.w(
+            TAG,
+            "onEofReached: ignoring EOF because player is not ready or file is loading (isReady=$isReady, isAutoAdvancing=$isAutoAdvancing, isLoadingFile=${viewModel.isLoadingFile.value})"
+          )
           return
         }
         handleEndOfFile(isEof)
@@ -289,6 +293,7 @@ class PlayerActivity :
       }
 
       override fun onStartFile() {
+        isReady = false
         webSubtitlesJob?.cancel()
         webSubtitlesJob = null
         val currentPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
@@ -300,6 +305,8 @@ class PlayerActivity :
 
       override fun onFileLoaded() {
         Log.d(TAG, "onFileLoaded called")
+        lastFileLoadedTimeMs = SystemClock.elapsedRealtime()
+        isAutoAdvancing = false
         handleFileLoaded()
         isReady = true
 
@@ -312,7 +319,7 @@ class PlayerActivity :
 
       override fun onPlaybackRestart() {
         player.isExiting = false
-        if (!isReady) {
+        if (!isReady && !viewModel.isLoadingFile.value && !isAutoAdvancing) {
           isReady = true
         }
         viewModel.playbackManager.onPlaybackRestart()
@@ -445,6 +452,8 @@ class PlayerActivity :
     get() = pipController.pipHelper
 
   internal var isReady = false // Single flag: true when video loaded and ready
+  private var isAutoAdvancing = false
+  private var lastFileLoadedTimeMs = 0L
   internal var startedAtSavedPosition = false
   private var pendingWebSubtitles: Map<String, String>? = null
   private var webSubtitlesJob: kotlinx.coroutines.Job? = null
@@ -780,6 +789,7 @@ class PlayerActivity :
   }
 
   internal fun playDirectMedia(playableUri: String) {
+    isReady = false
     if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
     }
@@ -1072,6 +1082,7 @@ class PlayerActivity :
   }
 
   private fun cleanupMPV() {
+    isAutoAdvancing = false
     if (!mpvInitialized) return
 
     // Don't cleanup MPV if we're doing background playback
@@ -1619,10 +1630,32 @@ class PlayerActivity :
    */
   private fun handleEndOfFile(isEof: Boolean) {
     if (isEof) {
-      if (!isReady) {
-        Log.w(TAG, "handleEndOfFile: ignoring EOF because player is not ready yet")
+      if (!isReady || isAutoAdvancing || viewModel.isLoadingFile.value) {
+        Log.w(
+          TAG,
+          "handleEndOfFile: ignoring EOF because player is not ready or file is loading (isReady=$isReady, isAutoAdvancing=$isAutoAdvancing, isLoadingFile=${viewModel.isLoadingFile.value})"
+        )
         return
       }
+
+      // Ignore spurious EOF if the file was loaded less than 1 second ago
+      val timeSinceLoad = SystemClock.elapsedRealtime() - lastFileLoadedTimeMs
+      if (lastFileLoadedTimeMs > 0L && timeSinceLoad < 1000L) {
+        Log.w(TAG, "handleEndOfFile: ignoring spurious EOF within 1000ms of file load (${timeSinceLoad}ms)")
+        return
+      }
+
+      // Position sanity check: if duration is known and positive, EOF should only be accepted if we are near the end of video
+      val currentPos = viewModel.pos ?: runCatching { MPVLib.getPropertyInt("time-pos") }.getOrNull() ?: 0
+      val currentDuration = viewModel.duration ?: runCatching { MPVLib.getPropertyInt("duration") }.getOrNull() ?: 0
+      if (currentDuration > 2 && currentPos < (currentDuration - 3)) {
+        Log.w(
+          TAG,
+          "handleEndOfFile: ignoring spurious EOF because playback is not near end (pos=$currentPos, duration=$currentDuration)"
+        )
+        return
+      }
+
       // Save state immediately when EOF is reached
       saveVideoPlaybackState(fileName, isEof = true)
 
@@ -1640,9 +1673,12 @@ class PlayerActivity :
 
         if (hasNextItem) {
           // Play next item in playlist
+          isAutoAdvancing = true
           isAutoplayNextTriggered = true
+          isReady = false
           playNext()
         } else {
+          isAutoAdvancing = false
           miniPlayerStateManager.clearState()
           if (playerPreferences.closeAfterReachingEndOfVideo.get()) {
             finish()
@@ -1650,6 +1686,7 @@ class PlayerActivity :
         }
       } else {
         // Single video playback (no playlist)
+        isAutoAdvancing = false
         miniPlayerStateManager.clearState()
         if (playerPreferences.closeAfterReachingEndOfVideo.get()) {
           finish()
@@ -1792,6 +1829,7 @@ class PlayerActivity :
 
     val shouldAutoplay = playerPreferences.autoplayOnOpen.get() || isAutoplayNextTriggered
     isAutoplayNextTriggered = false
+    isAutoAdvancing = false
 
     lifecycleScope.launch(Dispatchers.IO) {
       val externalPosMs = jellyfinExternalInfo?.positionMs

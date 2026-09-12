@@ -83,12 +83,11 @@ object VideoScanUtils {
         scanVideosFromMediaStore(context, normalizedFolderPath, videosMap)
         scanAudioFromMediaStore(context, normalizedFolderPath, videosMap)
 
-        // When enabled, always reconcile per file instead of discarding a partially
-        // indexed folder. Keep the old fallback for normal unindexed folders.
-        if (policy.includeNoMediaContent || videosMap.isEmpty()) {
-            if (!scanMediaFromFileSystem(folder, videosMap)) {
-                return@withContext FolderScanResult(emptyList(), FolderAccess.INACCESSIBLE)
-            }
+        // Reconcile with direct filesystem to pick up newly added or unindexed files
+        // (e.g. fresh torrent downloads from Flud, browser downloads, or external transfers).
+        val fsSuccess = scanMediaFromFileSystem(folder, videosMap)
+        if (!fsSuccess && videosMap.isEmpty()) {
+            return@withContext FolderScanResult(emptyList(), FolderAccess.INACCESSIBLE)
         }
 
         // Fast DB cache enrichment for any files that don't have duration yet

@@ -140,7 +140,7 @@ fun VideoCard(
     isWatched = isWatched,
     isGridMode = isGridMode,
     gridColumns = gridColumns,
-    progressPercentage = if (uiSettings.showProgressBar) progressPercentage else null,
+    progressPercentage = if (uiSettings.showProgressBar && !isWatched) progressPercentage else null,
     maxTitleLines = maxLines,
     thumbnailSize = thumbWidthDp,
     overlayContent = {

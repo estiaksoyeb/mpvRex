@@ -232,19 +232,20 @@ class SearchViewModel(
       val video = item.video
       val state = playbackStates.find { it.mediaTitle == video.path || it.mediaTitle == video.displayName }
       if (state != null) {
-        if (state.hasBeenWatched) {
-          watchedIds.add(video.id)
-        }
+        var isWatched = state.hasBeenWatched
         if (video.duration > 0 && state.timeRemaining != -1) {
           val durationSeconds = video.duration / 1000
           val watched = durationSeconds - state.timeRemaining.toLong()
           val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
           if (progressValue >= (watchedThreshold / 100f)) {
-            watchedIds.add(video.id)
+            isWatched = true
           }
-          if (progressValue in 0.01f..0.99f) {
+          if (progressValue >= 0.01f && !isWatched) {
             playbackMap[video.id] = progressValue
           }
+        }
+        if (isWatched) {
+          watchedIds.add(video.id)
         }
         if (state.timeRemaining == -1) {
           newIds.add(video.id)

@@ -110,7 +110,7 @@ class RecentlyPlayedViewModel(application: Application) :
                     isWatched = true
                   }
                   
-                  if (progressValue in 0.01f..0.99f && !isWatched) {
+                  if (progressValue >= 0.01f && !isWatched) {
                     progress = progressValue
                   }
                 }

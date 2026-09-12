@@ -188,7 +188,7 @@ fun BaseMediaCard(
                     }
                     
                     // Progress Bar
-                    if (progressPercentage != null) {
+                    if (progressPercentage != null && !isWatched) {
                         LinearProgressIndicator(
                             progress = { progressPercentage },
                             modifier = Modifier
@@ -327,7 +327,7 @@ fun BaseMediaCard(
                     }
 
                     // Progress Bar
-                    if (progressPercentage != null) {
+                    if (progressPercentage != null && !isWatched) {
                         LinearProgressIndicator(
                             progress = { progressPercentage },
                             modifier = Modifier

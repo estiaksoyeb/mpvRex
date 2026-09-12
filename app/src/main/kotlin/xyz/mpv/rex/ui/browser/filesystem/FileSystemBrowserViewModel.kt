@@ -334,21 +334,22 @@ class FileSystemBrowserViewModel(
                     if (state.savedOrientation != null) {
                       updatedVideo = updatedVideo.copy(savedOrientation = state.savedOrientation)
                     }
-                    if (state.hasBeenWatched) {
-                      basicWatchedIds.add(video.id)
-                    }
+                    var isWatched = state.hasBeenWatched
                     if (video.duration > 0 && state.timeRemaining != -1) {
                       val durationSeconds = video.duration / 1000
                       val watched = durationSeconds - state.timeRemaining.toLong()
                       val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
                       
                       if (progressValue >= (basicWatchedThreshold / 100f)) {
-                        basicWatchedIds.add(video.id)
+                        isWatched = true
                       }
                       
-                      if (progressValue in 0.01f..0.99f) {
+                      if (progressValue >= 0.01f && !isWatched) {
                         basicPlaybackMap[video.id] = progressValue
                       }
+                    }
+                    if (isWatched) {
+                      basicWatchedIds.add(video.id)
                     }
                     if (state.timeRemaining == -1) {
                       basicNewIds.add(video.id)
@@ -413,21 +414,22 @@ class FileSystemBrowserViewModel(
                           if (state.savedOrientation != null) {
                             video = video.copy(savedOrientation = state.savedOrientation)
                           }
-                          if (state.hasBeenWatched) {
-                            finalWatchedIds.add(video.id)
-                          }
+                          var isWatched = state.hasBeenWatched
                           if (video.duration > 0 && state.timeRemaining != -1) {
                             val durationSeconds = video.duration / 1000
                             val watched = durationSeconds - state.timeRemaining.toLong()
                             val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
                             
                             if (progressValue >= (finalWatchedThreshold / 100f)) {
-                              finalWatchedIds.add(video.id)
+                              isWatched = true
                             }
                             
-                            if (progressValue in 0.01f..0.99f) {
+                            if (progressValue >= 0.01f && !isWatched) {
                               finalPlaybackMap[video.id] = progressValue
                             }
+                          }
+                          if (isWatched) {
+                            finalWatchedIds.add(video.id)
                           }
                           if (state.timeRemaining == -1) {
                             finalNewIds.add(video.id)

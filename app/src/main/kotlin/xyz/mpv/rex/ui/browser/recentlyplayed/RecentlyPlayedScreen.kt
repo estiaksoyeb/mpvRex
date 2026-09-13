@@ -130,10 +130,14 @@ object RecentlyPlayedScreen : Screen {
         onOperationComplete = { },
       )
 
-    // Handle back button during selection mode
-    BackHandler(enabled = selectionManager.isInSelectionMode) {
+    val canNavigateBack = remember { backStack.size > 1 }
+
+    // Handle back button during selection mode or when navigated from another screen
+    BackHandler(enabled = selectionManager.isInSelectionMode || canNavigateBack) {
       if (selectionManager.isInSelectionMode) {
         selectionManager.clear()
+      } else {
+        backStack.removeLastOrNull()
       }
     }
 
@@ -171,7 +175,15 @@ object RecentlyPlayedScreen : Screen {
             isInSelectionMode = selectionManager.isInSelectionMode,
             selectedCount = selectionManager.selectedCount,
             totalCount = recentItems.size,
-            onBackClick = null, // No back button for recently played screen
+            onBackClick = if (canNavigateBack) {
+              {
+                if (selectionManager.isInSelectionMode) {
+                  selectionManager.clear()
+                } else {
+                  backStack.removeLastOrNull()
+                }
+              }
+            } else null,
             onCancelSelection = { selectionManager.clear() },
             onSortClick = null, // No sorting in recently played
             onSettingsClick = {

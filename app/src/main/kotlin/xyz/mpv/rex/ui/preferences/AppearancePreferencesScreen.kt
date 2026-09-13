@@ -332,6 +332,7 @@ object AppearancePreferencesScreen : Screen {
 
                     item {
                         val enableShorts by browserPreferences.enableShorts.collectAsState()
+                        val enableTabYou by browserPreferences.enableTabYou.collectAsState()
                         val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
                         val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
                         val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
@@ -374,36 +375,55 @@ object AppearancePreferencesScreen : Screen {
 
                             GroupedPreferenceCard(
                                 position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_tab_recents_title,
+                                highlightKey = R.string.pref_appearance_tab_you_title,
                             ) {
                                 SwitchPreference(
-                                    value = enableTabRecents,
-                                    onValueChange = { browserPreferences.enableTabRecents.set(it) },
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_recents_title)) },
+                                    value = enableTabYou,
+                                    onValueChange = { browserPreferences.enableTabYou.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_you_title)) },
                                     summary = {
                                         Text(
-                                            text = stringResource(id = R.string.pref_appearance_tab_recents_summary),
+                                            text = stringResource(id = R.string.pref_appearance_tab_you_summary),
                                             color = MaterialTheme.colorScheme.outline,
                                         )
                                     }
                                 )
                             }
 
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_tab_playlists_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableTabPlaylists,
-                                    onValueChange = { browserPreferences.enableTabPlaylists.set(it) },
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_playlists_title)) },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_tab_playlists_summary),
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    }
-                                )
+                            if (!enableTabYou) {
+                                GroupedPreferenceCard(
+                                    position = GroupPosition.MIDDLE,
+                                    highlightKey = R.string.pref_appearance_tab_recents_title,
+                                ) {
+                                    SwitchPreference(
+                                        value = enableTabRecents,
+                                        onValueChange = { browserPreferences.enableTabRecents.set(it) },
+                                        title = { Text(text = stringResource(id = R.string.pref_appearance_tab_recents_title)) },
+                                        summary = {
+                                            Text(
+                                                text = stringResource(id = R.string.pref_appearance_tab_recents_summary),
+                                                color = MaterialTheme.colorScheme.outline,
+                                            )
+                                        }
+                                    )
+                                }
+
+                                GroupedPreferenceCard(
+                                    position = GroupPosition.MIDDLE,
+                                    highlightKey = R.string.pref_appearance_tab_playlists_title,
+                                ) {
+                                    SwitchPreference(
+                                        value = enableTabPlaylists,
+                                        onValueChange = { browserPreferences.enableTabPlaylists.set(it) },
+                                        title = { Text(text = stringResource(id = R.string.pref_appearance_tab_playlists_title)) },
+                                        summary = {
+                                            Text(
+                                                text = stringResource(id = R.string.pref_appearance_tab_playlists_summary),
+                                                color = MaterialTheme.colorScheme.outline,
+                                            )
+                                        }
+                                    )
+                                }
                             }
 
                             GroupedPreferenceCard(

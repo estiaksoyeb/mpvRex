@@ -174,9 +174,10 @@ object PlaylistScreen : Screen {
 
     // FAB visibility for scroll-based hiding
     val isFabVisible = remember { mutableStateOf(true) }
+    val canNavigateBack = remember { backStack.size > 1 }
 
-    // Predictive back: Intercept when in selection mode or searching
-    BackHandler(enabled = selectionManager.isInSelectionMode || isSearching) {
+    // Predictive back: Intercept when in selection mode, searching, or when navigated from another screen
+    BackHandler(enabled = selectionManager.isInSelectionMode || isSearching || canNavigateBack) {
       when {
         isSearching -> {
           isSearching = false
@@ -184,6 +185,7 @@ object PlaylistScreen : Screen {
         }
 
         selectionManager.isInSelectionMode -> selectionManager.clear()
+        else -> backStack.removeLastOrNull()
       }
     }
 
@@ -247,7 +249,18 @@ object PlaylistScreen : Screen {
               isInSelectionMode = selectionManager.isInSelectionMode,
               selectedCount = selectionManager.selectedCount,
               totalCount = playlistsWithCount.size,
-              onBackClick = null,
+              onBackClick = if (canNavigateBack) {
+                {
+                  when {
+                    isSearching -> {
+                      isSearching = false
+                      searchQuery = ""
+                    }
+                    selectionManager.isInSelectionMode -> selectionManager.clear()
+                    else -> backStack.removeLastOrNull()
+                  }
+                }
+              } else null,
               onCancelSelection = { selectionManager.clear() },
               isSingleSelection = selectionManager.isSingleSelection,
               onSearchClick = { isSearching = true },

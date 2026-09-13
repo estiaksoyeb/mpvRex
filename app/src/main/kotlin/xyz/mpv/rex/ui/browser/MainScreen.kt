@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -56,6 +57,7 @@ import xyz.mpv.rex.ui.browser.networkstreaming.NetworkStreamingScreen
 import xyz.mpv.rex.ui.browser.playlist.PlaylistScreen
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedScreen
 import xyz.mpv.rex.ui.browser.shorts.ShortsScreen
+import xyz.mpv.rex.ui.browser.you.YouScreen
 import xyz.mpv.rex.ui.browser.selection.SelectionManager
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayer
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
@@ -166,19 +168,21 @@ object MainScreen : Screen {
     val miniPlayerStateManager = koinInject<MiniPlayerStateManager>()
     val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val isShortsEnabled by browserPreferences.enableShorts.collectAsState()
+    val enableTabYou by browserPreferences.enableTabYou.collectAsState()
     val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
     val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
     val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
 
     val homeLabel = stringResource(R.string.home)
     val shortsLabel = stringResource(R.string.shorts)
+    val youLabel = stringResource(R.string.you)
     val recentsLabel = stringResource(R.string.recents)
     val playlistsLabel = stringResource(R.string.playlists)
     val networkLabel = stringResource(R.string.network)
 
     val visibleTabs = remember(
-      isShortsEnabled, enableTabRecents, enableTabPlaylists, enableTabNetwork,
-      homeLabel, shortsLabel, recentsLabel, playlistsLabel, networkLabel
+      isShortsEnabled, enableTabYou, enableTabRecents, enableTabPlaylists, enableTabNetwork,
+      homeLabel, shortsLabel, youLabel, recentsLabel, playlistsLabel, networkLabel
     ) {
       buildList {
         add(
@@ -193,19 +197,27 @@ object MainScreen : Screen {
             }
           )
         }
-        if (enableTabRecents) {
+        if (enableTabYou) {
           add(
-            VisibleTab("recents", recentsLabel, Icons.Filled.History) {
-              RecentlyPlayedScreen.Content()
+            VisibleTab("you", youLabel, Icons.Filled.AccountCircle) {
+              YouScreen.Content()
             }
           )
-        }
-        if (enableTabPlaylists) {
-          add(
-            VisibleTab("playlists", playlistsLabel, Icons.AutoMirrored.Filled.PlaylistPlay) {
-              PlaylistScreen.Content()
-            }
-          )
+        } else {
+          if (enableTabRecents) {
+            add(
+              VisibleTab("recents", recentsLabel, Icons.Filled.History) {
+                RecentlyPlayedScreen.Content()
+              }
+            )
+          }
+          if (enableTabPlaylists) {
+            add(
+              VisibleTab("playlists", playlistsLabel, Icons.AutoMirrored.Filled.PlaylistPlay) {
+                PlaylistScreen.Content()
+              }
+            )
+          }
         }
         if (enableTabNetwork) {
           add(

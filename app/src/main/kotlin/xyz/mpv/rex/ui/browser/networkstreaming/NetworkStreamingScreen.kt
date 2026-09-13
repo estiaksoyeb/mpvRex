@@ -131,6 +131,12 @@ object NetworkStreamingScreen : Screen {
       }
     }
 
+    val canNavigateBack = remember { backstack.size > 1 }
+
+    androidx.activity.compose.BackHandler(enabled = canNavigateBack) {
+      backstack.removeLastOrNull()
+    }
+
     Scaffold(
         topBar = {
           BrowserTopBar(
@@ -138,7 +144,7 @@ object NetworkStreamingScreen : Screen {
             isInSelectionMode = false,
             selectedCount = 0,
             totalCount = 0,
-            onBackClick = null, // No back button for network screen (root tab)
+            onBackClick = if (canNavigateBack) { { backstack.removeLastOrNull() } } else null,
             onCancelSelection = { },
           onSortClick = null,
           // Search functionality disabled for production

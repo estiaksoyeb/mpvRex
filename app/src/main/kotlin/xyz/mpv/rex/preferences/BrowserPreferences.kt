@@ -73,6 +73,7 @@ class BrowserPreferences(
   val lastWatchedShortPath = preferenceStore.getString("shorts_last_watched_path", "")
 
   // Bottom navigation visibility preferences
+  val enableTabYou = preferenceStore.getBoolean("enable_tab_you", true)
   val enableTabRecents = preferenceStore.getBoolean("enable_tab_recents", true)
   val enableTabPlaylists = preferenceStore.getBoolean("enable_tab_playlists", true)
   val enableTabNetwork = preferenceStore.getBoolean("enable_tab_network", true)

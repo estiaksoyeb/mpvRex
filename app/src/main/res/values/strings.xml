@@ -21,6 +21,8 @@
     <string name="pref_appearance_tab_home_summary">Show local folders &amp; file explorer</string>
     <string name="pref_appearance_tab_shorts_title">RexShorts</string>
     <string name="pref_appearance_tab_shorts_summary">Toggle high-tempo vertical video feeds</string>
+    <string name="pref_appearance_tab_you_title">\'You\' Tab</string>
+    <string name="pref_appearance_tab_you_summary">Combine Recently Played and Playlists into a single tab</string>
     <string name="pref_appearance_tab_recents_title">Recently Played</string>
     <string name="pref_appearance_tab_recents_summary">Quickly resume previous video sessions</string>
     <string name="pref_appearance_tab_playlists_title">Playlists</string>
@@ -727,9 +729,12 @@
     <string name="add_from_url">Add from URL</string>
     <string name="home">Home</string>
     <string name="shorts">Shorts</string>
+    <string name="you">You</string>
     <string name="recents">Recents</string>
     <string name="playlists">Playlists</string>
     <string name="network">Network</string>
+    <string name="view_all">View all</string>
+    <string name="watched">Watched</string>
     <string name="unit_seconds">Seconds</string>
     <string name="milliseconds">Milliseconds</string>
     <string name="name">Name</string>

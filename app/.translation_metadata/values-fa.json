@@ -4826,5 +4826,17 @@
   "codec_info_max_res": {
     "source_hash": "e958f655480bc1d27d6206524f03d5ae9414d9770ae2a82f47988ce5a47ea0ab",
     "translated_value": "حداکثر: %s"
+  },
+  "pref_gesture_double_tap_left": {
+    "source_hash": "58eb9032e3bb83f0e39d644ebc87ca254117b95bf458483bec7379bea0b419d0",
+    "translated_value": "سمت چپ"
+  },
+  "pref_gesture_double_tap_center": {
+    "source_hash": "d946067427e930a14aed20312fbd850cff72428d4d602ed04a2ed164ba7d63f4",
+    "translated_value": "مرکز"
+  },
+  "pref_gesture_double_tap_right": {
+    "source_hash": "883361d5d682a1574410961ce51450b6e036a779c9f098dec71e28aec832bfa6",
+    "translated_value": "سمت راست"
   }
 }

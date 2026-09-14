@@ -4747,5 +4747,17 @@
     "source_hash": "804612730cf2f722e87ebf6949f7b64140ac66bd5b2e177ce1985f7d8f80ce22",
     "translated_value": "Изменить язык интерфейса приложения",
     "ignore_warnings": false
+  },
+  "pref_gesture_double_tap_left": {
+    "source_hash": "58eb9032e3bb83f0e39d644ebc87ca254117b95bf458483bec7379bea0b419d0",
+    "translated_value": "Влево"
+  },
+  "pref_gesture_double_tap_center": {
+    "source_hash": "d946067427e930a14aed20312fbd850cff72428d4d602ed04a2ed164ba7d63f4",
+    "translated_value": "По центру"
+  },
+  "pref_gesture_double_tap_right": {
+    "source_hash": "883361d5d682a1574410961ce51450b6e036a779c9f098dec71e28aec832bfa6",
+    "translated_value": "Вправо"
   }
 }

@@ -5708,5 +5708,17 @@
     "source_hash": "d0fbffa5a5b3e122ad39ee9a12740f7c6c51127f6471c4213a70624da7c88d92",
     "translated_value": "Falha ao renomear",
     "ignore_warnings": false
+  },
+  "pref_gesture_double_tap_left": {
+    "source_hash": "58eb9032e3bb83f0e39d644ebc87ca254117b95bf458483bec7379bea0b419d0",
+    "translated_value": "Esquerda"
+  },
+  "pref_gesture_double_tap_center": {
+    "source_hash": "d946067427e930a14aed20312fbd850cff72428d4d602ed04a2ed164ba7d63f4",
+    "translated_value": "Centro"
+  },
+  "pref_gesture_double_tap_right": {
+    "source_hash": "883361d5d682a1574410961ce51450b6e036a779c9f098dec71e28aec832bfa6",
+    "translated_value": "Direita"
   }
 }

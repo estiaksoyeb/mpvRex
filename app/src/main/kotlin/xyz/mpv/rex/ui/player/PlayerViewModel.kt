@@ -56,6 +56,7 @@ import org.koin.core.component.inject
 import java.io.File
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import androidx.documentfile.provider.DocumentFile
+import xyz.mpv.rex.domain.ytdl.model.VideoQuality
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import kotlin.properties.ReadOnlyProperty
@@ -371,6 +372,23 @@ class PlayerViewModel(
   val lastMoreSheetTab = MutableStateFlow(0) // Default to Controls tab (index 0)
   val panelShown = MutableStateFlow(Panels.None)
   val isSpeedLocked = MutableStateFlow(false)
+
+  // Web stream video qualities
+  val availableVideoQualities = MutableStateFlow<List<VideoQuality>>(emptyList())
+  val currentVideoQuality = MutableStateFlow<VideoQuality?>(null)
+
+  fun setAvailableVideoQualities(
+    qualities: List<VideoQuality>,
+    current: VideoQuality? = null,
+  ) {
+    availableVideoQualities.value = qualities
+    currentVideoQuality.value = current
+  }
+
+  fun clearVideoQualities() {
+    availableVideoQualities.value = emptyList()
+    currentVideoQuality.value = null
+  }
 
   // Seek state delegates
   val seekText: StateFlow<String?> get() = _gestureManager.seekText
@@ -741,6 +759,21 @@ class PlayerViewModel(
         _preciseDuration.value = 0f
       }
     }
+  }
+
+  fun onQualitySwitchStarted(targetPosition: Double) {
+    _isLoadingFile.value = true
+    _isLoadingUrl.value = true
+    _isNetworkStream.value = true
+    if (targetPosition > 0) {
+      _precisePosition.value = targetPosition.toFloat()
+    }
+  }
+
+  fun onQualitySwitchLoading() {
+    _isLoadingFile.value = true
+    _isLoadingUrl.value = true
+    _isNetworkStream.value = true
   }
 
   fun onFileLoaded(durationSec: Double) {

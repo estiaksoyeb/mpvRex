@@ -16,6 +16,30 @@ data class YtdlpStatus(
     }
 }
 
+data class VideoQuality(
+    val id: String,
+    val label: String,
+    val height: Int = 0,
+    val width: Int = 0,
+    val fps: Int = 0,
+    val codec: String? = null,
+    val bitrate: Long = 0L,
+    val videoUrl: String? = null,
+    val audioUrl: String? = null,
+    val isDASH: Boolean = false,
+    val isAudioOnly: Boolean = false,
+) {
+    val shortLabel: String
+        get() = when {
+            height > 0 -> "${height}p"
+            label.contains("p", ignoreCase = true) -> {
+                val pIndex = label.indexOfAny(charArrayOf('p', 'P'))
+                if (pIndex != -1) label.substring(0, pIndex + 1) else label
+            }
+            else -> label
+        }
+}
+
 data class ResolvedStream(
     val isSuccess: Boolean,
     val videoUrl: String? = null,
@@ -26,6 +50,7 @@ data class ResolvedStream(
     val uploader: String? = null,
     val httpHeaders: Map<String, String> = emptyMap(),
     val subtitles: Map<String, String> = emptyMap(),
+    val availableQualities: List<VideoQuality> = emptyList(),
     val errorMessage: String? = null,
 ) {
     val isDASH: Boolean

@@ -142,6 +142,7 @@ enum class Sheets {
   CustomSkipDuration,
   SleepTimer,
   ClipExport,
+  VideoQuality,
 }
 
 enum class Panels {

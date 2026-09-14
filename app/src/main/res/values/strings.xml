@@ -1051,7 +1051,15 @@
     <string name="btn_label_background_playback">Background Playback</string>
     <string name="btn_label_ambient_mode">Ambience Mode</string>
     <string name="btn_label_sleep_timer">Sleep Timer</string>
+    <string name="btn_label_quality">Video Quality</string>
     <string name="btn_label_none">None</string>
+
+    <string name="video_quality">Video Quality</string>
+    <string name="video_quality_auto">Auto</string>
+    <string name="video_quality_not_available">No stream qualities available for this media</string>
+    <string name="video_quality_addon_outdated">Update REX Ytdlp companion app to enable quality switching</string>
+    <string name="video_quality_set_as_default">Make \"%1$s\" Default</string>
+    <string name="video_quality_default_saved">Default quality set to %1$s</string>
 
 
     <string name="timer_start">Start Timer</string>

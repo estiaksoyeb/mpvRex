@@ -474,7 +474,9 @@ fun ControlsTab(
   // Data needed for visibility checks
   val chapters by viewModel.chapters.collectAsState(persistentListOf())
   val playlist by viewModel.playlistManager.playlist.collectAsState(emptyList())
+  val availableVideoQualities by viewModel.availableVideoQualities.collectAsState()
   val hasPlaylistSupport = playlist.size > 1
+  val hasMultipleQualities = availableVideoQualities.size > 1
 
   // 1. Determine what's on screen (to hide from sheet)
   val visibleOnScreen = remember(
@@ -484,7 +486,8 @@ fun ControlsTab(
       bottomLeftControlsPref,
       portraitBottomControlsPref,
       chapters,
-      hasPlaylistSupport
+      hasPlaylistSupport,
+      hasMultipleQualities,
   ) {
       val visible = mutableSetOf<PlayerButton>()
       if (isPortrait) {
@@ -494,15 +497,28 @@ fun ControlsTab(
                   PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
                   PlayerButton.SHUFFLE -> hasPlaylistSupport
                   PlayerButton.CURRENT_CHAPTER -> false
+                  PlayerButton.VIDEO_QUALITY -> hasMultipleQualities
                   PlayerButton.NONE -> false
                   else -> true
               }
           }
           visible.addAll(visibleInRow)
       } else {
-          visible.addAll(appearancePreferences.parseButtons(topRightControlsPref, mutableSetOf()))
-          visible.addAll(appearancePreferences.parseButtons(bottomRightControlsPref, mutableSetOf()))
-          visible.addAll(appearancePreferences.parseButtons(bottomLeftControlsPref, mutableSetOf()))
+          val allLandscape = mutableSetOf<PlayerButton>()
+          allLandscape.addAll(appearancePreferences.parseButtons(topRightControlsPref, mutableSetOf()))
+          allLandscape.addAll(appearancePreferences.parseButtons(bottomRightControlsPref, mutableSetOf()))
+          allLandscape.addAll(appearancePreferences.parseButtons(bottomLeftControlsPref, mutableSetOf()))
+          val visibleInLandscape = allLandscape.filter { button ->
+              when (button) {
+                  PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
+                  PlayerButton.SHUFFLE -> hasPlaylistSupport
+                  PlayerButton.CURRENT_CHAPTER -> chapters.isNotEmpty()
+                  PlayerButton.VIDEO_QUALITY -> hasMultipleQualities
+                  PlayerButton.NONE -> false
+                  else -> true
+              }
+          }
+          visible.addAll(visibleInLandscape)
       }
       // Always exclude these from the dynamic sheet calculations as they are static or special
       visible.add(PlayerButton.BACK_ARROW)
@@ -512,7 +528,7 @@ fun ControlsTab(
   }
 
   // 2. Calculate the dynamic list of buttons for the sheet
-  val buttons = remember(moreSheetControlsPref, visibleOnScreen, chapters, hasPlaylistSupport) {
+  val buttons = remember(moreSheetControlsPref, visibleOnScreen, chapters, hasPlaylistSupport, hasMultipleQualities) {
       // Start with buttons the user explicitly wants in the More Sheet (respect order)
       val userOrderedMoreButtons = appearancePreferences.parseButtons(moreSheetControlsPref, mutableSetOf())
 
@@ -531,6 +547,7 @@ fun ControlsTab(
               PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
               PlayerButton.CURRENT_CHAPTER -> chapters.isNotEmpty()
               PlayerButton.AB_LOOP -> true // Always show in more sheet if missing from UI
+              PlayerButton.VIDEO_QUALITY -> hasMultipleQualities
               else -> true
           }
       }

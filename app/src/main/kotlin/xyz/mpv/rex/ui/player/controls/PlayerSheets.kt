@@ -28,6 +28,7 @@ import xyz.mpv.rex.ui.player.controls.components.sheets.PlaylistSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.SubtitlesSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.OnlineSubtitleSearchSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.ClipExportSheet
+import xyz.mpv.rex.ui.player.controls.components.sheets.VideoQualitySheet
 import xyz.mpv.rex.utils.media.MediaInfoParser
 import dev.vivvvek.seeker.Segment
 import kotlinx.collections.immutable.ImmutableList
@@ -504,6 +505,22 @@ fun PlayerSheets(
         endSec = endSec,
         onExport = { mode ->
           viewModel.cutABLoopClip(context, mode)
+        },
+        onDismissRequest = onDismissRequest,
+      )
+    }
+
+    Sheets.VideoQuality -> {
+      val availableQualities by viewModel.availableVideoQualities.composeCollectAsState()
+      val currentQuality by viewModel.currentVideoQuality.composeCollectAsState()
+      val context = androidx.compose.ui.platform.LocalContext.current
+      val activity = context as? xyz.mpv.rex.ui.player.PlayerActivity
+
+      VideoQualitySheet(
+        qualities = availableQualities,
+        currentQuality = currentQuality,
+        onSelectQuality = { quality ->
+          activity?.switchVideoQuality(quality)
         },
         onDismissRequest = onDismissRequest,
       )

@@ -79,6 +79,8 @@ import xyz.mpv.rex.utils.media.M3UParseResult
 import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.domain.thumbnail.isMostlySolidThumbnail
 import xyz.mpv.rex.domain.media.model.Video
+import xyz.mpv.rex.domain.ytdl.model.ResolvedStream
+import xyz.mpv.rex.domain.ytdl.model.VideoQuality
 import xyz.mpv.rex.utils.media.MediaFormatter
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.FileFilterUtils
@@ -254,6 +256,20 @@ class PlayerActivity :
         }
         player.applyAnime4KShaders()
         viewModel.updateAmbientStretch()
+
+        if (property == "video-params/h" && value > 0) {
+          val qualities = viewModel.availableVideoQualities.value
+          if (qualities.isNotEmpty()) {
+            val current = viewModel.currentVideoQuality.value
+            if (current == null || current.height != value.toInt()) {
+              val matched = qualities.firstOrNull { !it.isAudioOnly && it.height == value.toInt() }
+              if (matched != null) {
+                Log.d(TAG, "Matched current playing quality from video-params/h ($value) to ${matched.label}")
+                viewModel.currentVideoQuality.value = matched
+              }
+            }
+          }
+        }
       }
 
       override fun onVideoAspectChanged(aspect: Double) {
@@ -296,11 +312,15 @@ class PlayerActivity :
         isReady = false
         webSubtitlesJob?.cancel()
         webSubtitlesJob = null
-        val currentPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
-        val isNetwork = currentPath?.let { path ->
-          HttpUtils.isNetworkStream(runCatching { Uri.parse(path) }.getOrNull())
-        } ?: false
-        viewModel.onFileStartLoading(isNetwork = isNetwork)
+        if (!isQualitySwitching) {
+          val currentPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
+          val isNetwork = currentPath?.let { path ->
+            HttpUtils.isNetworkStream(runCatching { Uri.parse(path) }.getOrNull())
+          } ?: false
+          viewModel.onFileStartLoading(isNetwork = isNetwork)
+        } else {
+          viewModel.onQualitySwitchLoading()
+        }
       }
 
       override fun onFileLoaded() {
@@ -456,6 +476,9 @@ class PlayerActivity :
   private var lastFileLoadedTimeMs = 0L
   internal var startedAtSavedPosition = false
   private var pendingWebSubtitles: Map<String, String>? = null
+  private var currentActiveWebSubtitles: Map<String, String>? = null
+  private var currentResolvedStream: ResolvedStream? = null
+  private var isQualitySwitching = false
   private var webSubtitlesJob: kotlinx.coroutines.Job? = null
   internal var isOrientationRestored: Boolean
     get() = orientationController.isOrientationRestored
@@ -790,6 +813,9 @@ class PlayerActivity :
 
   internal fun playDirectMedia(playableUri: String) {
     isReady = false
+    currentResolvedStream = null
+    currentActiveWebSubtitles = null
+    viewModel.clearVideoQualities()
     if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
     }
@@ -886,7 +912,16 @@ class PlayerActivity :
           resolved.videoUrl
         }
 
-        pendingWebSubtitles = resolved.subtitles.takeIf { it.isNotEmpty() }
+        currentResolvedStream = resolved
+        currentActiveWebSubtitles = resolved.subtitles.takeIf { it.isNotEmpty() }
+        pendingWebSubtitles = currentActiveWebSubtitles
+        val ytdlPref = ytdlPreferences.qualityPreference.get()
+        val matchedQuality = resolved.availableQualities.firstOrNull { it.videoUrl == resolved.videoUrl }
+          ?: resolved.availableQualities.firstOrNull { it.videoUrl?.substringBefore("?") == resolved.videoUrl?.substringBefore("?") }
+          ?: (if (ytdlPref == "audio_only") resolved.availableQualities.firstOrNull { it.isAudioOnly } else null)
+          ?: (if (ytdlPref.toIntOrNull() != null) resolved.availableQualities.firstOrNull { it.height == ytdlPref.toInt() } else null)
+          ?: resolved.availableQualities.firstOrNull()
+        viewModel.setAvailableVideoQualities(resolved.availableQualities, matchedQuality)
 
         Log.d(TAG, "Starting playback of streamToPlay: $streamToPlay (isDASH=${resolved.isDASH})")
 
@@ -932,6 +967,68 @@ class PlayerActivity :
         playDirectMedia(playableUri)
       }
     }
+  }
+
+  internal fun switchVideoQuality(quality: VideoQuality?) {
+    val resolved = currentResolvedStream ?: return
+    val targetStreamUrl: String
+    val isDASH: Boolean
+
+    if (quality == null) {
+      // Revert to "Auto" (original resolved stream)
+      val defaultQuality = resolved.availableQualities.firstOrNull { it.videoUrl == resolved.videoUrl }
+      viewModel.currentVideoQuality.value = defaultQuality
+      val vUrl = resolved.videoUrl ?: return
+      val aUrl = resolved.audioUrl
+      isDASH = resolved.isDASH && !aUrl.isNullOrBlank()
+      targetStreamUrl = if (isDASH && !aUrl.isNullOrBlank()) {
+        val vBytes = vUrl.toByteArray(Charsets.UTF_8).size
+        val aBytes = aUrl.toByteArray(Charsets.UTF_8).size
+        "edl://!new_stream;!no_clip;!no_chapters;%$vBytes%$vUrl;!new_stream;!no_clip;!no_chapters;%$aBytes%$aUrl"
+      } else {
+        vUrl
+      }
+    } else {
+      viewModel.currentVideoQuality.value = quality
+      val vUrl = quality.videoUrl ?: return
+      val aUrl = quality.audioUrl
+      isDASH = quality.isDASH && !aUrl.isNullOrBlank()
+      targetStreamUrl = if (isDASH && !aUrl.isNullOrBlank()) {
+        val vBytes = vUrl.toByteArray(Charsets.UTF_8).size
+        val aBytes = aUrl.toByteArray(Charsets.UTF_8).size
+        "edl://!new_stream;!no_clip;!no_chapters;%$vBytes%$vUrl;!new_stream;!no_clip;!no_chapters;%$aBytes%$aUrl"
+      } else {
+        vUrl
+      }
+    }
+
+    val currentPos = runCatching { MPVLib.getPropertyDouble("time-pos") }.getOrNull()
+      ?: ((viewModel.pos ?: 0).toDouble())
+    val isPaused = runCatching { MPVLib.getPropertyBoolean("pause") }.getOrNull() ?: false
+
+    isQualitySwitching = true
+    viewModel.onQualitySwitchStarted(currentPos)
+
+    // Preserve pending subtitles so they reload once the new stream is loaded
+    pendingWebSubtitles = currentActiveWebSubtitles
+
+    val loadOptions = buildList {
+      add(if (isPaused) "pause=yes" else "pause=no")
+      if (currentPos > 0) add("start=$currentPos")
+      if (isDASH) add("flatten-editions=yes")
+    }.joinToString(",")
+
+    lifecycleScope.launch(Dispatchers.Default) {
+      Log.d(TAG, "Switching video quality to ${quality?.label ?: "Auto"} with options: $loadOptions")
+      MPVLib.command("loadfile", targetStreamUrl, "replace", "-1", loadOptions)
+    }
+
+    val displayLabel = quality?.label ?: getString(R.string.video_quality_auto)
+    android.widget.Toast.makeText(
+      this,
+      "${getString(R.string.video_quality)}: $displayLabel",
+      android.widget.Toast.LENGTH_SHORT
+    ).show()
   }
 
   @RequiresApi(Build.VERSION_CODES.P)
@@ -1770,6 +1867,13 @@ class PlayerActivity :
    * applies user preferences, and sets up metadata and media session.
    */
   private fun handleFileLoaded() {
+    if (isQualitySwitching) {
+      isQualitySwitching = false
+      val loadedDurationSec = MPVLib.getPropertyDouble("duration") ?: 0.0
+      viewModel.onFileLoaded(loadedDurationSec)
+      return
+    }
+
     // Extract fileName from intent only if not already set
     // This preserves fileName set in onNewIntent or onCreate
     if (fileName.isBlank()) {

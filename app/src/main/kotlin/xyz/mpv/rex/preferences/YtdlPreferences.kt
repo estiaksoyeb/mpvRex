@@ -25,14 +25,26 @@ class YtdlPreferences(
     }
 
     fun buildExtractionOptions(): StreamExtractionOptions {
-        val format = when (qualityPreference.get()) {
+        val pref = qualityPreference.get()
+        val format = when (pref) {
             "2160" -> "bestvideo[height<=2160][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=2160][vcodec^=vp9]+bestaudio/bestvideo[height<=2160]+bestaudio/best[height<=2160]"
             "1440" -> "bestvideo[height<=1440][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1440][vcodec^=vp9]+bestaudio/bestvideo[height<=1440]+bestaudio/best[height<=1440]"
             "1080" -> "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1080][vcodec^=vp9]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]"
             "720" -> "bestvideo[height<=720][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=720][vcodec^=vp9]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]"
             "480" -> "bestvideo[height<=480][vcodec^=avc1]+bestaudio/bestvideo[height<=480]+bestaudio/best[height<=480]"
+            "360" -> "bestvideo[height<=360][vcodec^=avc1]+bestaudio/bestvideo[height<=360]+bestaudio/best[height<=360]"
+            "240" -> "bestvideo[height<=240][vcodec^=avc1]+bestaudio/bestvideo[height<=240]+bestaudio/best[height<=240]"
+            "144" -> "bestvideo[height<=144][vcodec^=avc1]+bestaudio/bestvideo[height<=144]+bestaudio/best[height<=144]"
             "audio_only" -> "bestaudio/best"
-            else -> customFormat.get().takeIf { it.isNotBlank() } ?: "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1080][vcodec^=vp9]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+            "auto" -> customFormat.get().takeIf { it.isNotBlank() } ?: "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1080][vcodec^=vp9]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+            else -> {
+                val h = pref.toIntOrNull()
+                if (h != null && h > 0) {
+                    "bestvideo[height<=$h][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=$h][vcodec^=vp9]+bestaudio/bestvideo[height<=$h]+bestaudio/best[height<=$h]"
+                } else {
+                    customFormat.get().takeIf { it.isNotBlank() } ?: "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1080][vcodec^=vp9]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+                }
+            }
         }
 
         return StreamExtractionOptions(

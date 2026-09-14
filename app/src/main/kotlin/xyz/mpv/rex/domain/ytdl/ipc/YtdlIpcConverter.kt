@@ -6,6 +6,7 @@ import xyz.mpv.rex.domain.ytdl.model.ResolvedPlaylist
 import xyz.mpv.rex.domain.ytdl.model.ResolvedPlaylistEntry
 import xyz.mpv.rex.domain.ytdl.model.ResolvedStream
 import xyz.mpv.rex.domain.ytdl.model.StreamExtractionOptions
+import xyz.mpv.rex.domain.ytdl.model.VideoQuality
 import xyz.mpv.rex.domain.ytdl.model.YtdlpStatus
 
 object YtdlIpcConverter {
@@ -36,6 +37,7 @@ object YtdlIpcConverter {
     private const val KEY_UPLOADER = "uploader"
     private const val KEY_HTTP_HEADERS = "http_headers"
     private const val KEY_SUBTITLES = "subtitles"
+    private const val KEY_VIDEO_QUALITIES_JSON = "video_qualities_json"
     private const val KEY_ERROR_MESSAGE = "error_message"
 
     // Playlist Result Keys
@@ -81,6 +83,32 @@ object YtdlIpcConverter {
             }
         }
 
+        val qualities = mutableListOf<VideoQuality>()
+        val qualitiesJsonStr = bundle.getString(KEY_VIDEO_QUALITIES_JSON)
+        if (!qualitiesJsonStr.isNullOrBlank()) {
+            runCatching {
+                val array = JSONArray(qualitiesJsonStr)
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    qualities.add(
+                        VideoQuality(
+                            id = obj.getString("id"),
+                            label = obj.getString("label"),
+                            height = obj.optInt("height", 0),
+                            width = obj.optInt("width", 0),
+                            fps = obj.optInt("fps", 0),
+                            codec = obj.optString("codec").takeIf { it.isNotBlank() && it != "null" },
+                            bitrate = obj.optLong("bitrate", 0L),
+                            videoUrl = obj.optString("video_url").takeIf { it.isNotBlank() && it != "null" },
+                            audioUrl = obj.optString("audio_url").takeIf { it.isNotBlank() && it != "null" },
+                            isDASH = obj.optBoolean("is_dash", false),
+                            isAudioOnly = obj.optBoolean("is_audio_only", false),
+                        )
+                    )
+                }
+            }
+        }
+
         return ResolvedStream(
             isSuccess = bundle.getBoolean(KEY_IS_SUCCESS, false),
             videoUrl = bundle.getString(KEY_VIDEO_URL),
@@ -91,6 +119,7 @@ object YtdlIpcConverter {
             uploader = bundle.getString(KEY_UPLOADER),
             httpHeaders = headersMap,
             subtitles = subsMap,
+            availableQualities = qualities,
             errorMessage = bundle.getString(KEY_ERROR_MESSAGE),
         )
     }

@@ -1,6 +1,5 @@
 name: 🐞 Bug report
 description: Report a bug or unexpected behavior in REX Player
-title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
@@ -8,10 +7,8 @@ body:
       value: |
         > [!IMPORTANT]
         > **Quality guidelines for bug reports:**
-        > * **Provide a clear, specific title** (e.g. `[Bug]: Audio out of sync when playing 10-bit HEVC over SMB`).
+        > * **Provide a clear, specific title** (e.g. `Audio out of sync when playing 10-bit HEVC over SMB`).
         > * Issues with vague titles (*"bug"*, *"please fix"*, *"not working"*, *"help"*) will be closed immediately.
-        > * Search [Existing Issues](https://github.com/mpvRex/REX-Player/issues) first to verify this is not a duplicate.
-        > * General questions and discussions belong on [Telegram](https://t.me/mpvRex_chat), not the issue tracker.
 
   - type: textarea
     id: reproduce-steps

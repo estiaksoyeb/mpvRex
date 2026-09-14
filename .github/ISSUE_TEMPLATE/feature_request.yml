@@ -1,6 +1,5 @@
 name: ⭐ Feature request
 description: Suggest a new feature or improvement for REX Player
-title: "[Feature Request]: "
 labels: ["enhancement"]
 body:
   - type: markdown
@@ -8,7 +7,7 @@ body:
       value: |
         > [!TIP]
         > **Thank you for contributing ideas to REX Player!**
-        > * **Provide a clear, descriptive title** (e.g. `[Feature Request]: Add AB-repeat toggle in player controls`).
+        > * **Provide a clear, descriptive title** (e.g. `Add AB-repeat toggle in player controls`).
         > * Make sure the feature does not already exist in **[5.2.0](https://github.com/mpvRex/REX-Player/releases/latest)** or [Preview Builds](https://mpvrex.github.io/REX-Player).
         > * Search [Existing Issues](https://github.com/mpvRex/REX-Player/issues) first to ensure it hasn't been suggested already.
 

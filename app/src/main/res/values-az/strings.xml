@@ -30,9 +30,6 @@
     <string name="pref_appearance_darkmode_dark">Qaranlıq</string>
     <string name="pref_appearance_amoled_mode_title">AMOLED qara rejimi</string>
     <string name="pref_appearance_amoled_mode_summary">Qaranlıq temalar üçün tam qara fon istifadə et</string>
-    <string name="pref_appearance_material_you_title">Material You</string>
-    <string name="pref_appearance_material_you_summary">Dinamik rəngləri aktivləşdir</string>
-    <string name="pref_appearance_material_you_summary_disabled">Yalnız Android 12 və daha yeni versiyalarda mövcuddur</string>
     <string name="pref_appearance_unlimited_name_lines_title">Tam adları göstər</string>
     <string name="pref_appearance_unlimited_name_lines_summary">Qovluq və video adlarını qısaltmadan tam göstər</string>
     <string name="pref_appearance_enable_bounce_animation_title">Sıçrayış animasiyalarını aktivləşdir</string>
@@ -53,8 +50,6 @@
     <string name="pref_appearance_use_system_font_title">Sistem şriftindən istifadə et</string>
     <string name="pref_appearance_use_system_font_summary">Tətbiqin şrifti əvəzinə cihazın standart şriftindən istifadə et</string>
     <string name="pref_appearance_category_file_browser">Fayl brauzeri</string>
-    <string name="pref_appearance_show_hidden_files_title">Gizli faylları göstər</string>
-    <string name="pref_appearance_show_hidden_files_summary">Nöqtə (.) ilə başlayan gizli qovluqları, o cümlədən Android, məlumat və sistem qovluqlarını və .nomedia fayllarını göstər</string>
     <string name="pref_appearance_show_unplayed_old_video_label_title">Yeni oynadılmamış videolar üçün etiket göstər</string>
     <string name="pref_appearance_show_unplayed_old_video_label_summary">Müəyyən edilmiş günlər ərzində əlavə edilmiş və heç oynadılmamış videolarda \"Yeni\" etiketi göstər</string>
     <string name="pref_appearance_unplayed_old_video_days_title">Yeni video etiketi üçün gün həddi</string>
@@ -62,15 +57,6 @@
     <string name="pref_appearance_category_thumbnails">Kiçik şəkil</string>
     <string name="pref_appearance_show_network_thumbnails_title">Şəbəkə kiçik şəkillərini göstər (sınaq)</string>
     <string name="pref_appearance_show_network_thumbnails_summary">Şəbəkə yayımları üçün kiçik şəkillər yarat (mobil şəbəkələrdə məlumat istifadəsini artıra bilər)</string>
-    <string name="pref_appearance_thumbnail_strategy_title">Kiçik şəkil yaratma üsulu</string>
-    <string name="pref_appearance_thumbnail_strategy_summary">Videolardan kiçik şəkillərin necə çıxarılacağını seç</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_title">İlk kadr</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_summary">Ən sürətli çıxarma üsulu. Videonun 10-cu saniyəsindəki kadrdan istifadə edir.</string>
-    <string name="pref_appearance_thumbnail_strategy_position_title">Müəyyən mövqedəki kadr</string>
-    <string name="pref_appearance_thumbnail_strategy_position_summary">Daha çox emal tələb edir. Boş başlıq ekranlarından qaçmaq üçün videonun daha sonrakı hissəsindən kadr çıxarır.</string>
-    <string name="pref_appearance_thumbnail_position_title">Kiçik şəkil kadrının mövqeyi</string>
-    <string name="pref_appearance_thumbnail_position_summary">Kiçik şəkli video müddətinin %d%% mövqeyindən çıxar</string>
-    <string name="pref_appearance_thumbnail_position_reset">Kiçik şəkil mövqeyini standart dəyərə sıfırla</string>
     <string name="pref_appearance_theme_picker_label">Tətbiqin teması</string>
     <string name="pref_appearance_auto_scroll_title">Son oynadılan videoya avtomatik sürüşdür</string>
     <string name="pref_appearance_auto_scroll_summary">Video siyahılarını açarkən son oynadılan videoya avtomatik sürüşdür</string>
@@ -119,15 +105,10 @@
     <!-- Player Preferences -->
     <string name="pref_autoplay_title">Qovluqdakı videoların avtomatik növbəyə əlavə edilməsi</string>
     <string name="pref_autoplay_summary">Qovluqdakı bütün videoları avtomatik olaraq pleylistə əlavə et</string>
-    <string name="pref_autoplay_next_video_title">Növbəti videonun avtomatik oynadılması</string>
-    <string name="pref_autoplay_next_video_summary">Cari video bitdikdə növbəti videonu avtomatik oynat</string>
     <string name="pref_autoplay_on_open_title">Açıldıqda avtomatik oynatma</string>
     <string name="pref_autoplay_on_open_summary">Media açıldıqda oynatmanı avtomatik başlat</string>
     <string name="pref_auto_pip_title">Avtomatik şəkil içində şəkil</string>
     <string name="pref_auto_pip_summary">Əsas səhifə və ya geri düyməsinə basdıqda avtomatik PIP rejiminə keç</string>
-    <string name="pref_player_resume_on_unlock_title">Kilid açıldıqda davam etmə</string>
-    <string name="pref_player_resume_on_unlock_summary_on">Ekran kilidlənməzdən əvvəl video oynadılırdısa, kilid açıldıqdan sonra avtomatik davam et</string>
-    <string name="pref_player_resume_on_unlock_summary_off">Ekranın kilidi açıldıqdan sonra videonu fasilədə saxla</string>
     <string name="pref_dynamic_speed_overlay_title">Dinamik sürət paneli</string>
     <string name="pref_dynamic_speed_overlay_summary">Uzun basma və sürüşdürmə zamanı sürəti idarə etmək üçün genişləndirilmiş panel göstər</string>
     <string name="pref_show_navigation_bar_title">İdarəetmə elementləri ilə birlikdə naviqasiya çubuğunu göstər</string>
@@ -152,14 +133,10 @@
 
     <string name="pref_layout_title">Oynadıcının düzülüşü</string>
     <string name="pref_layout_summary">Oynadıcı düymələrinin düzülüşünü fərdiləşdir</string>
-    <string name="pref_layout_reset_default">Standart vəziyyətə sıfırla</string>
     <string name="pref_layout_top_right_controls">Yuxarı sağdakı idarəetmə elementləri</string>
     <string name="pref_layout_bottom_right_controls">Aşağı sağdakı idarəetmə elementləri</string>
     <string name="pref_layout_bottom_left_controls">Aşağı soldakı idarəetmə elementləri</string>
     <string name="pref_layout_portrait_bottom_controls">Şaquli rejimdə aşağıdakı idarəetmə elementləri</string>
-    <string name="pref_layout_preview">Önbaxış</string>
-    <string name="pref_layout_reset_title">Düzülüş sıfırlansın?</string>
-    <string name="pref_layout_reset_summary">Oynadıcının bütün fərdiləşdirilmiş idarəetmə düzülüşləri standart mövqelərə sıfırlanacaq</string>
 
     <string name="pref_player">Oynadıcı</string>
     <string name="pref_player_summary">İstiqamət, jestlər və idarəetmə</string>
@@ -174,7 +151,6 @@
     <string name="pref_player_orientation_landscape">Üfüqi</string>
     <string name="pref_player_orientation_reverse_landscape">Tərs üfüqi</string>
     <string name="pref_player_orientation_sensor_landscape">Sensora görə üfüqi</string>
-    <string name="pref_player_save_position_on_quit">Çıxarkən mövqeyi yadda saxla</string>
     <string name="pref_player_resume_playback_title">Oynatmaya davam etmə</string>
     <string name="pref_player_resume_playback_summary">Əvvəllər baxılmış videoların necə açılacağını seç</string>
     <string name="pref_player_resume_mode_always">Həmişə davam et</string>
@@ -632,7 +608,6 @@
     <string name="pref_player_hide_osd_text_summary">İrəli geri sarma və ya altyazılar üzrə keçid zamanı standart mpv OSD mətnini gizlət</string>
     <string name="pref_player_keep_screen_on_when_paused_title">Fasilə zamanı ekranı yanılı saxla</string>
     <string name="pref_player_keep_screen_on_when_paused_summary">Fasilə zamanı ekranın avtomatik sönməsinin qarşısını alır</string>
-    <string name="pref_player_save_position_on_quit_summary">Qaldığın yeri yadda saxla</string>
     <string name="pref_player_interaction_header">Oynadıcı ilə qarşılıqlı əlaqə</string>
 
     <!-- Folders Preferences -->
@@ -704,10 +679,7 @@
     <string name="export_complete">İxrac tamamlandı</string>
     <string name="import_complete">İdxal tamamlandı</string>
     <string name="auto_picture_in_picture">Avtomatik şəkil içində şəkil</string>
-    <string name="dynamic_speed_overlay">Dinamik sürət göstəricisi</string>
     <string name="show_navigation_bar_with_controls">Naviqasiya panelini idarəetmə düymələri ilə birlikdə göstər</string>
-    <string name="enable_lua_scripts">Lua skriptlərini aktivləşdir</string>
-    <string name="manage_lua_scripts">Lua skriptlərini idarə et</string>
     <string name="rename_playlist">Pleylistin adını dəyiş</string>
     <string name="create_playlist">Pleylist yarat</string>
     <string name="add_connection">Əlaqə əlavə et</string>
@@ -742,7 +714,6 @@
     <string name="filter_presets">Hazır süzgəc dəstləri</string>
     <string name="no_storage_devices_found">Yaddaş qurğusu tapılmadı</string>
     <string name="no_folders_or_supported_files">Qovluq və ya dəstəklənən fayl yoxdur</string>
-    <string name="hello_world">Salam, dünya</string>
 
     <!-- Browser Preferences -->
     <string name="pref_show_audio_files_title">Audio faylları göstər</string>
@@ -1165,11 +1136,6 @@
     <!-- Appearance Preferences Screen -->
     <string name="pref_appearance_network_thumbnails_dialog_title">Şəbəkə üçün kiçik şəkillər aktivləşdirilsin?</string>
     <string name="pref_appearance_network_thumbnails_dialog_message">Şəbəkə yayımları (M3U/HTTP) üçün kiçik şəkillərin yaradılması arxa fonda məlumat istifadəsini və yüklənmə müddətini xeyli artıra bilər. Davam edilsin?</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_title">Kiçik şəkillərin çıxarılma üsulu dəyişdirilsin?</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_message">Çıxarılma üsulunun dəyişdirilməsi yadda saxlanmış kiçik şəkil keşini təmizləyəcək. Fayllara baxdıqca yeni kiçik şəkillər avtomatik yaradılacaq.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_title">Kiçik şəklin götürüldüyü mövqe yenilənsin?</string>
-    <string name="pref_appearance_thumbnail_position_reset_confirm">Kiçik şəkli video müddətinin %1$d%% nöqtəsinə sıfırla.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_message">Çıxarılma mövqeyinin dəyişdirilməsi yadda saxlanmış kiçik şəkil keşini təmizləyəcək. Fayllara baxdıqca yeni kiçik şəkillər avtomatik yaradılacaq.</string>
 
     <!-- Control Layout Editor Screen -->
     <string name="control_layout_edit_title_top_right">Sağ üst hissənin redaktəsi</string>
@@ -1203,9 +1169,6 @@
     <string name="tree_view">Ağac görünüşü</string>
 
     <string name="pref_player_general">Ümumi</string>
-    <string name="pref_player_autoplay_next_video">Növbəti videonu avtomatik oynat</string>
-    <string name="pref_player_autoplay_next_video_summary_on">Cari video bitəndə növbəti videonu avtomatik oynat</string>
-    <string name="pref_player_autoplay_next_video_summary_off">Cari video bitəndə həmin videoda qal</string>
     <string name="pref_player_autoplay_on_open">Açıldıqda avtomatik oynat</string>
     <string name="pref_player_autoplay_on_open_summary">Media açıldıqda oynatmanı avtomatik başlat</string>
     <string name="pref_player_autoplay_on_open_summary_on">Media açıldıqda oynatmanı avtomatik başlat</string>

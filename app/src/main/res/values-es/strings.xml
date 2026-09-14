@@ -29,9 +29,6 @@
     <string name="pref_appearance_darkmode_dark">Oscuro</string>
     <string name="pref_appearance_amoled_mode_title">Modo negro AMOLED</string>
     <string name="pref_appearance_amoled_mode_summary">Usar fondo negro puro para temas oscuros</string>
-    <string name="pref_appearance_material_you_title">Material You</string>
-    <string name="pref_appearance_material_you_summary">Activar colores dinámicos</string>
-    <string name="pref_appearance_material_you_summary_disabled">Solo disponible en Android 12 y versiones superiores</string>
     <string name="pref_appearance_unlimited_name_lines_title">Mostrar nombres completos</string>
     <string name="pref_appearance_unlimited_name_lines_summary">Mostrar nombres completos de carpetas y videos sin truncar</string>
     <string name="pref_appearance_enable_bounce_animation_title">Activar animaciones con rebote</string>
@@ -45,8 +42,6 @@
     <string name="pref_appearance_use_system_font_title">Usar fuente del sistema</string>
     <string name="pref_appearance_use_system_font_summary">Usar la fuente predeterminada de tu dispositivo en lugar de la fuente de la app</string>
     <string name="pref_appearance_category_file_browser">Explorador de archivos</string>
-    <string name="pref_appearance_show_hidden_files_title">Mostrar archivos ocultos</string>
-    <string name="pref_appearance_show_hidden_files_summary">Mostrar carpetas ocultas que comienzan con un punto (.) incluyendo carpetas de android, data, system y archivos .nomedia</string>
     <string name="pref_appearance_show_unplayed_old_video_label_title">Mostrar etiqueta para videos nuevos no reproducidos</string>
     <string name="pref_appearance_show_unplayed_old_video_label_summary">Mostrar una etiqueta "Nuevo" en los videos agregados dentro de los días especificados que nunca se han reproducido</string>
     <string name="pref_appearance_unplayed_old_video_days_title">Límite de días para la etiqueta de video nuevo</string>
@@ -54,15 +49,6 @@
     <string name="pref_appearance_category_thumbnails">Miniatura</string>
     <string name="pref_appearance_show_network_thumbnails_title">Mostrar miniaturas de red (Experimental)</string>
     <string name="pref_appearance_show_network_thumbnails_summary">Generar miniaturas para transmisiones de red (Puede aumentar el uso de datos en redes móviles)</string>
-    <string name="pref_appearance_thumbnail_strategy_title">Estrategia de generación de miniaturas</string>
-    <string name="pref_appearance_thumbnail_strategy_summary">Elegir cómo se extraen las miniaturas de los videos</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_title">Primer fotograma</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_summary">Extracción más rápida. Utiliza la marca de los 10 segundos del video.</string>
-    <string name="pref_appearance_thumbnail_strategy_position_title">Fotograma en posición</string>
-    <string name="pref_appearance_thumbnail_strategy_position_summary">Requiere más procesamiento. Extrae un fotograma más avanzado en el video para evitar portadas en blanco.</string>
-    <string name="pref_appearance_thumbnail_position_title">Posición del fotograma de miniatura</string>
-    <string name="pref_appearance_thumbnail_position_summary">Extraer miniatura al %d%% de la duración del video</string>
-    <string name="pref_appearance_thumbnail_position_reset">Restablecer posición de miniatura por defecto</string>
     <string name="pref_appearance_theme_picker_label">Tema de la app</string>
     <string name="pref_appearance_auto_scroll_title">Desplazamiento automático al último reproducido</string>
     <string name="pref_appearance_auto_scroll_summary">Desplazarse automáticamente al último video reproducido al abrir listas de videos</string>
@@ -111,13 +97,8 @@
     <!-- Player Preferences Hardcoded -->
     <string name="pref_autoplay_title">Activar navegación siguiente/anterior</string>
     <string name="pref_autoplay_summary">Mostrar botones de siguiente/anterior para todos los videos de la carpeta</string>
-    <string name="pref_autoplay_next_video_title">Reproducir automáticamente el siguiente video</string>
-    <string name="pref_autoplay_next_video_summary">Reproducir automáticamente el siguiente video cuando termine el actual</string>
     <string name="pref_auto_pip_title">Imagen en imagen automática (PIP)</string>
     <string name="pref_auto_pip_summary">Entrar automáticamente en modo PIP al presionar inicio o volver</string>
-    <string name="pref_player_resume_on_unlock_title">Reanudar al desbloquear</string>
-    <string name="pref_player_resume_on_unlock_summary_on">Reanudar el video automáticamente después de desbloquear si se estaba reproduciendo antes de bloquear la pantalla</string>
-    <string name="pref_player_resume_on_unlock_summary_off">Mantener el video pausado después de desbloquear la pantalla</string>
     <string name="pref_dynamic_speed_overlay_title">Superposición de velocidad dinámica</string>
     <string name="pref_dynamic_speed_overlay_summary">Mostrar superposición avanzada para el control de velocidad durante pulsaciones largas y deslizamientos</string>
     <string name="pref_show_navigation_bar_title">Mostrar barra de navegación con controles</string>
@@ -143,14 +124,10 @@
 
     <string name="pref_layout_title">Diseño del reproductor</string>
     <string name="pref_layout_summary">Personalizar el diseño de los botones del reproductor</string>
-    <string name="pref_layout_reset_default">Restablecer valores predeterminados</string>
     <string name="pref_layout_top_right_controls">Controles superiores derechos</string>
     <string name="pref_layout_bottom_right_controls">Controles inferiores derechos</string>
     <string name="pref_layout_bottom_left_controls">Controles inferiores izquierdos</string>
     <string name="pref_layout_portrait_bottom_controls">Controles inferiores en vertical</string>
-    <string name="pref_layout_preview">Vista previa</string>
-    <string name="pref_layout_reset_title">¿Restablecer diseño?</string>
-    <string name="pref_layout_reset_summary">Todos los diseños personalizados de los controles del reproductor se restablecerán a sus posiciones predeterminadas</string>
 
     <string name="pref_player">Reproductor</string>
     <string name="pref_player_summary">Orientación, gestos y controles</string>
@@ -165,7 +142,6 @@
     <string name="pref_player_orientation_landscape">Horizontal</string>
     <string name="pref_player_orientation_reverse_landscape">Horizontal inverso</string>
     <string name="pref_player_orientation_sensor_landscape">Horizontal por sensor</string>
-    <string name="pref_player_save_position_on_quit">Guardar posición al salir</string>
     <string name="pref_player_double_tap_seek_duration">Duración de búsqueda por doble toque</string>
     <string name="pref_player_custom_skip_duration_title">Duración de salto personalizada</string>
     <string name="pref_player_custom_skip_duration_summary">Duración para saltar hacia adelante con el botón de salto personalizado</string>
@@ -521,7 +497,6 @@
     <string name="pref_player_hide_osd_text_summary">Ocultar el texto predeterminado del OSD de mpv al buscar posiciones o subtítulos</string>
     <string name="pref_player_keep_screen_on_when_paused_title">Mantener pantalla encendida al pausar</string>
     <string name="pref_player_keep_screen_on_when_paused_summary">Evita que la pantalla se apague por inactividad durante la pausa</string>
-    <string name="pref_player_save_position_on_quit_summary">Recordar dónde te quedaste</string>
     <string name="pref_player_interaction_header">Interacción del reproductor</string>
 
     <!-- Folders Preferences -->
@@ -593,10 +568,7 @@
     <string name="export_complete">Exportación completada</string>
     <string name="import_complete">Importación completada</string>
     <string name="auto_picture_in_picture">Imagen en imagen automática</string>
-    <string name="dynamic_speed_overlay">Superposición de velocidad dinámica</string>
     <string name="show_navigation_bar_with_controls">Mostrar barra de navegación con controles</string>
-    <string name="enable_lua_scripts">Activar scripts de Lua</string>
-    <string name="manage_lua_scripts">Gestionar scripts de Lua</string>
     <string name="rename_playlist">Renombrar lista de reproducción</string>
     <string name="create_playlist">Crear lista de reproducción</string>
     <string name="add_connection">Añadir conexión</string>
@@ -630,7 +602,6 @@
     <string name="filter_presets">Filtros preestablecidos</string>
     <string name="no_storage_devices_found">No se encontraron dispositivos de almacenamiento</string>
     <string name="no_folders_or_supported_files">No hay carpetas ni archivos compatibles</string>
-    <string name="hello_world">Hola mundo</string>
 
     <!-- Browser Preferences -->
     <string name="pref_show_audio_files_title">Mostrar archivos de audio</string>
@@ -983,11 +954,6 @@
     <string name="network_remove_link_action">Eliminar enlace</string>
     <string name="pref_appearance_network_thumbnails_dialog_title">¿Habilitar miniaturas de red?</string>
     <string name="pref_appearance_network_thumbnails_dialog_message">La generación de miniaturas para flujos de red (M3U/HTTP) puede aumentar significativamente el uso de datos en segundo plano y los tiempos de carga. ¿Continuar?</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_title">¿Cambiar la estrategia de miniaturas?</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_message">Cambiar la estrategia de extracción borrará el caché de miniaturas guardado actualmente. Se generarán nuevas miniaturas automáticamente a medida que navegue.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_title">¿Actualizar la posición de la miniatura?</string>
-    <string name="pref_appearance_thumbnail_position_reset_confirm">Restablecer la miniatura en %1$d%% de la duración del vídeo.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_message">Cambiar la posición de extracción borrará el caché de miniaturas guardado actualmente. Se generarán nuevas miniaturas automáticamente a medida que navegue.</string>
     <string name="control_layout_edit_title_top_right">Editar arriba a la derecha</string>
     <string name="control_layout_edit_title_bottom_right">Editar en la esquina inferior derecha</string>
     <string name="control_layout_edit_title_bottom_left">Editar, abajo a la izquierda</string>
@@ -1014,9 +980,6 @@
     <string name="no_videos_in_folder_desc">Los vídeos que agregues a esta carpeta aparecerán aquí.</string>
     <string name="tree_view">Vista de árbol</string>
     <string name="pref_player_general">General</string>
-    <string name="pref_player_autoplay_next_video">Reproducir automáticamente el siguiente video</string>
-    <string name="pref_player_autoplay_next_video_summary_on">Reproducir automáticamente el siguiente video cuando termine el actual</string>
-    <string name="pref_player_autoplay_next_video_summary_off">Permanecer en el vídeo actual cuando termine</string>
     <string name="pref_player_playlist_mode_summary_on">Mostrar botones de siguiente/anterior para todos los videos de la carpeta</string>
     <string name="pref_player_playlist_mode_summary_off">Reproduzca videos individualmente (seleccione varios para la lista de reproducción)</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_on">La pantalla permanece activa mientras el video está en pausa</string>

@@ -34,9 +34,6 @@
     <string name="pref_appearance_darkmode_dark">Dark</string>
     <string name="pref_appearance_amoled_mode_title">AMOLED Black Mode</string>
     <string name="pref_appearance_amoled_mode_summary">Use pure black background for dark themes</string>
-    <string name="pref_appearance_material_you_title">Material You</string>
-    <string name="pref_appearance_material_you_summary">Enable dynamic colors</string>
-    <string name="pref_appearance_material_you_summary_disabled">Only available on Android 12 and above</string>
     <string name="pref_appearance_unlimited_name_lines_title">Show full names</string>
     <string name="pref_appearance_unlimited_name_lines_summary">Show full folder and video names without truncation</string>
     <string name="pref_appearance_enable_bounce_animation_title">Enable bouncy animations</string>
@@ -57,8 +54,6 @@
     <string name="pref_appearance_use_system_font_title">Use system font</string>
     <string name="pref_appearance_use_system_font_summary">Use your device\'s default font instead of the app font</string>  
     <string name="pref_appearance_category_file_browser">File Browser</string>
-    <string name="pref_appearance_show_hidden_files_title">Show Hidden Files</string>
-    <string name="pref_appearance_show_hidden_files_summary">Show hidden folders starting with a dot (.) including android, data, system folders and .nomedia files</string>
     <string name="pref_appearance_show_unplayed_old_video_label_title">Show label for new unplayed videos</string>
     <string name="pref_appearance_show_unplayed_old_video_label_summary">Display a \"New\" label on videos added within specified days that have never been played</string>
     <string name="pref_appearance_unplayed_old_video_days_title">Days threshold for new video label</string>
@@ -66,15 +61,6 @@
     <string name="pref_appearance_category_thumbnails">Thumbnail</string>
     <string name="pref_appearance_show_network_thumbnails_title">Show network thumbnails (Experimental)</string>
     <string name="pref_appearance_show_network_thumbnails_summary">Generate thumbnails for network streams (May increase data usage on mobile networks)</string>
-    <string name="pref_appearance_thumbnail_strategy_title">Thumbnail generation strategy</string>
-    <string name="pref_appearance_thumbnail_strategy_summary">Choose how thumbnails are extracted from videos</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_title">First Frame</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_summary">Quickest extraction. Uses the 10-second mark of the video.</string>
-    <string name="pref_appearance_thumbnail_strategy_position_title">Frame at Position</string>
-    <string name="pref_appearance_thumbnail_strategy_position_summary">Requires more processing. Extracts a frame from further into the video to avoid blank title cards.</string>
-    <string name="pref_appearance_thumbnail_position_title">Thumbnail frame position</string>
-    <string name="pref_appearance_thumbnail_position_summary">Extract thumbnail at %d%% of the video duration</string>
-    <string name="pref_appearance_thumbnail_position_reset">Reset thumbnail position to default</string>
     <string name="pref_appearance_theme_picker_label">App Theme</string>
     <string name="pref_appearance_auto_scroll_title">Auto-scroll to last played</string>
     <string name="pref_appearance_auto_scroll_summary">Automatically scroll to the last played video when opening video lists</string>
@@ -123,15 +109,10 @@
     <!-- Player Preferences -->
     <string name="pref_autoplay_title">Auto-queue folder videos</string>
     <string name="pref_autoplay_summary">Automatically queue all videos in folder into a playlist</string>
-    <string name="pref_autoplay_next_video_title">Autoplay next video</string>
-    <string name="pref_autoplay_next_video_summary">Automatically play next video when current ends</string>
     <string name="pref_autoplay_on_open_title">Autoplay on open</string>
     <string name="pref_autoplay_on_open_summary">Automatically begin playback when media is opened</string>
     <string name="pref_auto_pip_title">Auto Picture-in-Picture</string>
     <string name="pref_auto_pip_summary">Automatically enter PIP mode when pressing home or back</string>
-    <string name="pref_player_resume_on_unlock_title">Resume on unlock</string>
-    <string name="pref_player_resume_on_unlock_summary_on">Resume video automatically after unlocking if it was playing before the screen locked</string>
-    <string name="pref_player_resume_on_unlock_summary_off">Keep video paused after the screen is unlocked</string>
     <string name="pref_dynamic_speed_overlay_title">Dynamic Speed Overlay</string>
     <string name="pref_dynamic_speed_overlay_summary">Show advance overlay for speed control during long press and swipe</string>
     <string name="pref_show_navigation_bar_title">Show navigation bar with controls</string>
@@ -157,14 +138,10 @@
 
     <string name="pref_layout_title">Player Layout</string>
     <string name="pref_layout_summary">Customize player button layout</string>
-    <string name="pref_layout_reset_default">Reset to default</string>
     <string name="pref_layout_top_right_controls">Top Right Controls</string>
     <string name="pref_layout_bottom_right_controls">Bottom Right Controls</string>
     <string name="pref_layout_bottom_left_controls">Bottom Left Controls</string>
     <string name="pref_layout_portrait_bottom_controls">Portrait Bottom Controls</string>
-    <string name="pref_layout_preview">Preview</string>
-    <string name="pref_layout_reset_title">Reset layout?</string>
-    <string name="pref_layout_reset_summary">All customized player control layouts will be reset to default positions</string>
 
     <string name="pref_player">Player</string>
     <string name="pref_player_summary">Orientation, gestures and controls</string>
@@ -179,7 +156,6 @@
     <string name="pref_player_orientation_landscape">Landscape</string>
     <string name="pref_player_orientation_reverse_landscape">Reverse landscape</string>
     <string name="pref_player_orientation_sensor_landscape">Sensor landscape</string>
-    <string name="pref_player_save_position_on_quit">Save position on quit</string>
     <string name="pref_player_resume_playback_title">Resume playback</string>
     <string name="pref_player_resume_playback_summary">Choose how previously watched videos are opened</string>
     <string name="pref_player_resume_mode_always">Always resume</string>
@@ -666,7 +642,6 @@
     <string name="pref_player_hide_osd_text_summary">Hide the default mpv OSD text during seeking or subtitle seeking</string>
     <string name="pref_player_keep_screen_on_when_paused_title">Keep screen on when paused</string>
     <string name="pref_player_keep_screen_on_when_paused_summary">Prevents screen timeout during pause</string>
-    <string name="pref_player_save_position_on_quit_summary">Remember where you left off</string>
     <string name="pref_player_interaction_header">Player Interaction</string>
 
     <!-- Folders Preferences -->
@@ -738,10 +713,7 @@
     <string name="export_complete">Export complete</string>
     <string name="import_complete">Import complete</string>
     <string name="auto_picture_in_picture">Auto picture-in-picture</string>
-    <string name="dynamic_speed_overlay">Dynamic speed overlay</string>
     <string name="show_navigation_bar_with_controls">Show navigation bar with controls</string>
-    <string name="enable_lua_scripts">Enable Lua scripts</string>
-    <string name="manage_lua_scripts">Manage Lua scripts</string>
     <string name="rename_playlist">Rename playlist</string>
     <string name="create_playlist">Create playlist</string>
     <string name="add_connection">Add connection</string>
@@ -776,7 +748,6 @@
     <string name="filter_presets">Filter presets</string>
     <string name="no_storage_devices_found">No storage devices found</string>
     <string name="no_folders_or_supported_files">No folders or supported files</string>
-    <string name="hello_world">Hello world</string>
 
     <!-- Browser Preferences -->
     <string name="pref_show_audio_files_title">Show audio files</string>
@@ -1200,11 +1171,6 @@
     <!-- Appearance Preferences Screen -->
     <string name="pref_appearance_network_thumbnails_dialog_title">Enable Network Thumbnails?</string>
     <string name="pref_appearance_network_thumbnails_dialog_message">Generating thumbnails for network streams (M3U/HTTP) may significantly increase background data usage and loading times. Proceed?</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_title">Change Thumbnail Strategy?</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_message">Changing the extraction strategy will clear your currently saved thumbnail cache. New thumbnails will be generated automatically as you browse.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_title">Update Thumbnail Position?</string>
-    <string name="pref_appearance_thumbnail_position_reset_confirm">Reset thumbnail at %1$d%% of the video duration.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_message">Changing the extraction position will clear your currently saved thumbnail cache. New thumbnails will be generated automatically as you browse.</string>
 
     <!-- Control Layout Editor Screen -->
     <string name="control_layout_edit_title_top_right">Edit Top Right</string>
@@ -1238,9 +1204,6 @@
     <string name="tree_view">Tree View</string>
 
     <string name="pref_player_general">General</string>
-    <string name="pref_player_autoplay_next_video">Autoplay next video</string>
-    <string name="pref_player_autoplay_next_video_summary_on">Automatically play next video when current ends</string>
-    <string name="pref_player_autoplay_next_video_summary_off">Stay on current video when it ends</string>
     <string name="pref_player_autoplay_on_open">Autoplay on open</string>
     <string name="pref_player_autoplay_on_open_summary">Automatically begin playback when media is opened</string>
     <string name="pref_player_autoplay_on_open_summary_on">Automatically begin playback when media is opened</string>

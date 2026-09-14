@@ -31,9 +31,6 @@
 	<string name="pref_appearance_darkmode_dark">Темна</string>
 	<string name="pref_appearance_amoled_mode_title">Режим AMOLED Black</string>
 	<string name="pref_appearance_amoled_mode_summary">Використовувати абсолютно чорний фон для темних тем</string>
-	<string name="pref_appearance_material_you_title">Material You</string>
-	<string name="pref_appearance_material_you_summary">Увімкнути динамічні кольори</string>
-	<string name="pref_appearance_material_you_summary_disabled">Доступно лише на Android 12 та вище</string>
 	<string name="pref_appearance_unlimited_name_lines_title">Показувати повні назви</string>
 	<string name="pref_appearance_unlimited_name_lines_summary">Показувати повні назви тек та відео без обрізання</string>
 	<string name="pref_appearance_enable_bounce_animation_title">Увімкнути пружинні анімації</string>
@@ -51,8 +48,6 @@
 	<string name="pref_appearance_use_system_font_title">Використовувати системний шрифт</string>
 	<string name="pref_appearance_use_system_font_summary">Використовувати шрифт вашого пристрою за промовчання замість шрифту програми</string>  
 	<string name="pref_appearance_category_file_browser">Файловий менеджер</string>
-	<string name="pref_appearance_show_hidden_files_title">Показати приховані теки</string>
-	<string name="pref_appearance_show_hidden_files_summary">Показати приховані теки, що починаються з крапки (.), включно з android, data, системними теками та файлами .nomedia</string>
 	<string name="pref_appearance_show_unplayed_old_video_label_title">Показувати мітку для нових невідтворених відео</string>
 	<string name="pref_appearance_show_unplayed_old_video_label_summary">Відображати мітку "НОВЕ" на відео, доданих протягом зазначеної кількості днів, які ніколи не відтворювалися</string>
 	<string name="pref_appearance_unplayed_old_video_days_title">Поріг днів для мітки нового відео</string>
@@ -60,15 +55,6 @@
 	<string name="pref_appearance_category_thumbnails">Мініатюри</string>
 	<string name="pref_appearance_show_network_thumbnails_title">Показувати мережеві мініатюри (Експериментально)</string>
 	<string name="pref_appearance_show_network_thumbnails_summary">Генерувати мініатюри для мережевих потоків (може збільшити використання даних у мобільних мережах)</string>
-	<string name="pref_appearance_thumbnail_strategy_title">Стратегія генерації мініатюр</string>
-	<string name="pref_appearance_thumbnail_strategy_summary">Оберіть, як мініатюри витягуються з відео</string>
-	<string name="pref_appearance_thumbnail_strategy_first_frame_title">Перший кадр</string>
-	<string name="pref_appearance_thumbnail_strategy_first_frame_summary">Найшвидше витягування. Використовує позначку 10-ї секунди відео.</string>
-	<string name="pref_appearance_thumbnail_strategy_position_title">Кадр у позиції</string>
-	<string name="pref_appearance_thumbnail_strategy_position_summary">Потрібно більше обробки. Витягує кадр далі у відео, щоб уникнути порожніх титульних екранів.</string>
-	<string name="pref_appearance_thumbnail_position_title">Позиція кадру мініатюри</string>
-	<string name="pref_appearance_thumbnail_position_summary">Витягти мініатюру на %d%% тривалості відео</string>
-	<string name="pref_appearance_thumbnail_position_reset">Скинути позицію мініатюри до значення за промовчання</string>
 	<string name="pref_appearance_theme_picker_label">Тема програми</string>
 	<string name="pref_appearance_auto_scroll_title">Автопрокрутка до останнього відтвореного</string>
 	<string name="pref_appearance_auto_scroll_summary">Автоматично прокручувати до останнього відтвореного відео при відкритті списків відео</string>
@@ -117,13 +103,8 @@
 	<!-- Player Preferences -->
 	<string name="pref_autoplay_title">Увімкнути навігацію вперед/назад</string>
 	<string name="pref_autoplay_summary">Показувати кнопки вперед/назад для всіх відео у теці</string>
-	<string name="pref_autoplay_next_video_title">Автовідтворення наступного відео</string>
-	<string name="pref_autoplay_next_video_summary">Автоматично відтворювати наступне відео після завершення поточного</string>
 	<string name="pref_auto_pip_title">Авто-режим "Картинка в картинці"</string>
 	<string name="pref_auto_pip_summary">Автоматично переходити в режим PIP при натисканні "Домашня" або "Назад"</string>
-	<string name="pref_player_resume_on_unlock_title">Відновити при розблокуванні</string>
-	<string name="pref_player_resume_on_unlock_summary_on">Автоматично відновлювати відео після розблокування, якщо воно відтворювалося до блокування екрана</string>
-	<string name="pref_player_resume_on_unlock_summary_off">Залишати відео на паузі після розблокування екрана</string>
 	<string name="pref_dynamic_speed_overlay_title">Динамічний оверлей швидкості</string>
 	<string name="pref_dynamic_speed_overlay_summary">Показувати оверлей для керування швидкістю при довгому натисканні та свайпі</string>
 	<string name="pref_show_navigation_bar_title">Показувати панель навігації з елементами керування</string>
@@ -149,14 +130,10 @@
 
 	<string name="pref_layout_title">Розташування елементів</string>
 	<string name="pref_layout_summary">Налаштувати розташування кнопок плеєра</string>
-	<string name="pref_layout_reset_default">Скинути за промовчання</string>
 	<string name="pref_layout_top_right_controls">Елементи керування зверху справа</string>
 	<string name="pref_layout_bottom_right_controls">Елементи керування знизу справа</string>
 	<string name="pref_layout_bottom_left_controls">Елементи керування знизу зліва</string>
 	<string name="pref_layout_portrait_bottom_controls">Елементи керування знизу в портретній орієнтації</string>
-	<string name="pref_layout_preview">Попередній перегляд</string>
-	<string name="pref_layout_reset_title">Скинути розташування?</string>
-	<string name="pref_layout_reset_summary">Усі налаштовані розташування елементів керування будуть скинуті до позицій за промовчання</string>
 
 	<string name="pref_player">Плеєр</string>
 	<string name="pref_player_summary">Орієнтація, жести та керування</string>
@@ -171,7 +148,6 @@
 	<string name="pref_player_orientation_landscape">Альбомна</string>
 	<string name="pref_player_orientation_reverse_landscape">Альбомна (перевернута)</string>
 	<string name="pref_player_orientation_sensor_landscape">Альбомна (сенсор)</string>
-	<string name="pref_player_save_position_on_quit">Зберігати позицію при виході</string>
 	<string name="pref_player_resume_playback_title">Відновити відтворення</string>
 	<string name="pref_player_resume_playback_summary">Виберіть, як відкриваються раніше переглянуті відео</string>
 	<string name="pref_player_resume_mode_always">Завжди відновлювати</string>
@@ -607,7 +583,6 @@
 	<string name="pref_player_hide_osd_text_summary">Приховати стандартний OSD-текст mpv під час перемотки відео або субтитрів</string>
 	<string name="pref_player_keep_screen_on_when_paused_title">Не вимикати екран при паузі</string>
 	<string name="pref_player_keep_screen_on_when_paused_summary">Запобігає вимкненню екрана під час паузи</string>
-	<string name="pref_player_save_position_on_quit_summary">Запам\'ятовувати місце, на якому ви зупинилися</string>
 	<string name="pref_player_interaction_header">Взаємодія з плеєром</string>
 
 	<!-- Folders Preferences -->
@@ -679,10 +654,7 @@
 	<string name="export_complete">Експорт завершено</string>
 	<string name="import_complete">Імпорт завершено</string>
 	<string name="auto_picture_in_picture">Авто-режим \"Картинка в картинці\"</string>
-	<string name="dynamic_speed_overlay">Динамічний оверлей швидкості</string>
 	<string name="show_navigation_bar_with_controls">Показувати панель навігації з елементами керування</string>
-	<string name="enable_lua_scripts">Увімкнути скрипти Lua</string>
-	<string name="manage_lua_scripts">Керування скриптами Lua</string>
 	<string name="rename_playlist">Перейменувати плейлист</string>
 	<string name="create_playlist">Створити плейлист</string>
 	<string name="add_connection">Додати підключення</string>
@@ -717,7 +689,6 @@
 	<string name="filter_presets">Пресети фільтрів</string>
 	<string name="no_storage_devices_found">Пристроїв зберігання не знайдено</string>
 	<string name="no_folders_or_supported_files">Тек або підтримуваних файлів не знайдено</string>
-	<string name="hello_world">Привіт світ</string>
 
 	<!-- Browser Preferences -->
 	<string name="pref_show_audio_files_title">Показувати аудіофайли</string>
@@ -1133,11 +1104,6 @@
 	<!-- Appearance Preferences Screen -->
 	<string name="pref_appearance_network_thumbnails_dialog_title">Увімкнути мережеві мініатюри?</string>
 	<string name="pref_appearance_network_thumbnails_dialog_message">Генерація мініатюр для мережевих потоків (M3U/HTTP) може значно збільшити використання фонових даних та час завантаження. Продовжити?</string>
-	<string name="pref_appearance_thumbnail_strategy_dialog_title">Змінити стратегію мініатюр?</string>
-	<string name="pref_appearance_thumbnail_strategy_dialog_message">Зміна стратегії витягування очистить ваш поточний кеш мініатюр. Нові мініатюри будуть створені автоматично під час перегляду.</string>
-	<string name="pref_appearance_thumbnail_position_dialog_title">Оновити позицію мініатюри?</string>
-	<string name="pref_appearance_thumbnail_position_reset_confirm">Скинути мініатюру на %1$d%% тривалості відео.</string>
-	<string name="pref_appearance_thumbnail_position_dialog_message">Зміна позиції витягування очистить ваш поточний кеш мініатюр. Нові мініатюри будуть створені автоматично під час перегляду.</string>
 
 	<!-- Control Layout Editor Screen -->
 	<string name="control_layout_edit_title_top_right">Редагувати верхнє праве</string>
@@ -1171,9 +1137,6 @@
 	<string name="tree_view">Tree View</string>
 
 	<string name="pref_player_general">Загальні</string>
-	<string name="pref_player_autoplay_next_video">Автовідтворення наступного відео</string>
-	<string name="pref_player_autoplay_next_video_summary_on">Автоматично відтворювати наступне відео при завершенні поточного</string>
-	<string name="pref_player_autoplay_next_video_summary_off">Залишатися на поточному відео при його завершенні</string>
 	<string name="pref_player_playlist_mode_summary_on">Показувати кнопки наступне/попереднє для всіх відео в теці</string>
 	<string name="pref_player_playlist_mode_summary_off">Відтворювати відео окремо (оберіть кілька для плейлиста)</string>
 	<string name="pref_player_keep_screen_on_when_paused_summary_on">Екран залишається активним під час паузи відео</string>

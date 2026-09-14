@@ -28,9 +28,6 @@
     <string name="pref_appearance_darkmode_dark">داكن</string>
     <string name="pref_appearance_amoled_mode_title">وضع AMOLED الأسود</string>
     <string name="pref_appearance_amoled_mode_summary">استخدام خلفية سوداء خالصة للسمات الداكنة</string>
-    <string name="pref_appearance_material_you_title">Material You</string>
-    <string name="pref_appearance_material_you_summary">تفعيل الألوان الديناميكية</string>
-    <string name="pref_appearance_material_you_summary_disabled">متاح فقط على أندرويد 12 وما فوق</string>
     <string name="pref_appearance_unlimited_name_lines_title">عرض الأسماء كاملةً</string>
     <string name="pref_appearance_unlimited_name_lines_summary">عرض أسماء المجلدات والفيديوهات كاملةً دون اقتطاع</string>
     <string name="pref_appearance_enable_bounce_animation_title">تفعيل الحركات المرنة</string>
@@ -44,8 +41,6 @@
     <string name="pref_appearance_use_system_font_title">استخدام خط النظام</string>
     <string name="pref_appearance_use_system_font_summary">استخدام الخط الافتراضي للجهاز بدلاً من خط التطبيق</string>
     <string name="pref_appearance_category_file_browser">مستعرض الملفات</string>
-    <string name="pref_appearance_show_hidden_files_title">إظهار الملفات المخفية</string>
-    <string name="pref_appearance_show_hidden_files_summary">إظهار المجلدات المخفية التي تبدأ بنقطة (.) بما في ذلك مجلدات android وdata وsystem ومجلدات .nomedia</string>
     <string name="pref_appearance_show_unplayed_old_video_label_title">إظهار شارة للفيديوهات الجديدة غير المشغَّلة</string>
     <string name="pref_appearance_show_unplayed_old_video_label_summary">عرض شارة \"جديد\" على الفيديوهات المضافة خلال الأيام المحددة والتي لم تُشغَّل قط</string>
     <string name="pref_appearance_unplayed_old_video_days_title">مهلة الأيام لشارة فيديو جديد</string>
@@ -53,15 +48,6 @@
     <string name="pref_appearance_category_thumbnails">الصورة المصغَّرة</string>
     <string name="pref_appearance_show_network_thumbnails_title">عرض الصور المصغَّرة للشبكة (تجريبي)</string>
     <string name="pref_appearance_show_network_thumbnails_summary">توليد صور مصغَّرة للبثوث الشبكية (قد يزيد استهلاك البيانات على الشبكات المحمولة)</string>
-    <string name="pref_appearance_thumbnail_strategy_title">استراتيجية توليد الصور المصغَّرة</string>
-    <string name="pref_appearance_thumbnail_strategy_summary">اختر كيفية استخراج الصور المصغَّرة من الفيديوهات</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_title">الإطار الأول</string>
-    <string name="pref_appearance_thumbnail_strategy_first_frame_summary">أسرع استخراج. يستخدم إطارًا عند الثانية العاشرة من الفيديو.</string>
-    <string name="pref_appearance_thumbnail_strategy_position_title">إطار عند موضع محدد</string>
-    <string name="pref_appearance_thumbnail_strategy_position_summary">يتطلب معالجة أكبر. يستخرج إطاراً من موضع أبعد في الفيديو لتجنب بطاقات العنوان الفارغة.</string>
-    <string name="pref_appearance_thumbnail_position_title">موضع إطار الصورة المصغَّرة</string>
-    <string name="pref_appearance_thumbnail_position_summary">استخراج الصورة المصغَّرة عند %d%% من مدة الفيديو</string>
-    <string name="pref_appearance_thumbnail_position_reset">إعادة ضبط موضع الصورة المصغَّرة إلى الوضع الافتراضي</string>
     <string name="pref_appearance_theme_picker_label">سمة التطبيق</string>
     <string name="pref_appearance_auto_scroll_title">التمرير التلقائي إلى آخر مشغَّل</string>
     <string name="pref_appearance_auto_scroll_summary">التمرير تلقائياً إلى آخر فيديو مشغَّل عند فتح قوائم الفيديو</string>
@@ -110,13 +96,8 @@
     <!-- Player Preferences Hardcoded -->
     <string name="pref_autoplay_title">تفعيل التنقل للأمام/للخلف</string>
     <string name="pref_autoplay_summary">إظهار أزرار التالي/السابق لجميع الفيديوهات في المجلد</string>
-    <string name="pref_autoplay_next_video_title">التشغيل التلقائي للفيديو التالي</string>
-    <string name="pref_autoplay_next_video_summary">تشغيل الفيديو التالي تلقائياً عند انتهاء الحالي</string>
     <string name="pref_auto_pip_title">صورة في صورة تلقائية</string>
     <string name="pref_auto_pip_summary">الدخول تلقائياً إلى وضع ص.ف.ص عند الضغط على الرئيسية أو الرجوع</string>
-    <string name="pref_player_resume_on_unlock_title">الاستئناف عند إلغاء القفل</string>
-    <string name="pref_player_resume_on_unlock_summary_on">استئناف الفيديو تلقائياً بعد إلغاء القفل إذا كان يُشغَّل قبل قفل الشاشة</string>
-    <string name="pref_player_resume_on_unlock_summary_off">إبقاء الفيديو موقوفاً بعد إلغاء قفل الشاشة</string>
     <string name="pref_dynamic_speed_overlay_title">طبقة السرعة الديناميكية</string>
     <string name="pref_dynamic_speed_overlay_summary">إظهار طبقة متقدمة للتحكم بالسرعة أثناء الضغط المطوَّل والتمرير</string>
     <string name="pref_show_navigation_bar_title">إظهار شريط التنقل مع عناصر التحكم</string>
@@ -142,14 +123,10 @@
 
     <string name="pref_layout_title">تخطيط المشغِّل</string>
     <string name="pref_layout_summary">تخصيص تخطيط أزرار المشغِّل</string>
-    <string name="pref_layout_reset_default">إعادة الضبط إلى الافتراضي</string>
     <string name="pref_layout_top_right_controls">عناصر التحكم العلوية اليمنى</string>
     <string name="pref_layout_bottom_right_controls">عناصر التحكم السفلية اليمنى</string>
     <string name="pref_layout_bottom_left_controls">عناصر التحكم السفلية اليسرى</string>
     <string name="pref_layout_portrait_bottom_controls">عناصر التحكم السفلية في الوضع العمودي</string>
-    <string name="pref_layout_preview">معاينة</string>
-    <string name="pref_layout_reset_title">إعادة ضبط التخطيط؟</string>
-    <string name="pref_layout_reset_summary">ستُعاد جميع تخطيطات التحكم المخصصة في المشغِّل إلى مواضعها الافتراضية</string>
 
     <string name="pref_player">المشغِّل</string>
     <string name="pref_player_summary">الاتجاه والإيماءات وعناصر التحكم</string>
@@ -164,7 +141,6 @@
     <string name="pref_player_orientation_landscape">أفقي</string>
     <string name="pref_player_orientation_reverse_landscape">أفقي معكوس</string>
     <string name="pref_player_orientation_sensor_landscape">أفقي بالاستشعار</string>
-    <string name="pref_player_save_position_on_quit">حفظ الموضع عند الخروج</string>
     <string name="pref_player_double_tap_seek_duration">مدة التقديم بالنقر المزدوج</string>
     <string name="pref_player_custom_skip_duration_title">مدة التخطي المخصصة (بالثواني)</string>
     <string name="pref_player_custom_skip_duration_summary">مدة التخطي عند الضغط على زر التخطي المخصص</string>
@@ -522,7 +498,6 @@
     <string name="pref_player_hide_osd_text_summary">إخفاء نص OSD الافتراضي لـ mpv أثناء التقديم أو تقديم الترجمة</string>
     <string name="pref_player_keep_screen_on_when_paused_title">إبقاء الشاشة مضاءة عند الإيقاف المؤقت</string>
     <string name="pref_player_keep_screen_on_when_paused_summary">يمنع انتهاء مهلة الشاشة أثناء الإيقاف المؤقت</string>
-    <string name="pref_player_save_position_on_quit_summary">تذكر موضع التوقف</string>
     <string name="pref_player_interaction_header">تفاعل المشغِّل</string>
 
     <!-- Folders Preferences -->
@@ -594,10 +569,7 @@
     <string name="export_complete">اكتمل التصدير</string>
     <string name="import_complete">اكتمل الاستيراد</string>
     <string name="auto_picture_in_picture">صورة في صورة تلقائية</string>
-    <string name="dynamic_speed_overlay">طبقة السرعة الديناميكية</string>
     <string name="show_navigation_bar_with_controls">إظهار شريط التنقل مع عناصر التحكم</string>
-    <string name="enable_lua_scripts">تفعيل برمجيات Lua</string>
-    <string name="manage_lua_scripts">إدارة برمجيات Lua</string>
     <string name="rename_playlist">إعادة تسمية قائمة التشغيل</string>
     <string name="create_playlist">إنشاء قائمة تشغيل</string>
     <string name="add_connection">إضافة اتصال</string>
@@ -631,7 +603,6 @@
     <string name="filter_presets">إعدادات المرشحات المسبقة</string>
     <string name="no_storage_devices_found">لم يُعثر على أجهزة تخزين</string>
     <string name="no_folders_or_supported_files">لا توجد مجلدات أو ملفات مدعومة</string>
-    <string name="hello_world">مرحباً بالعالم</string>
 
     <!-- Browser Preferences -->
     <string name="pref_show_audio_files_title">إظهار الملفات الصوتية</string>
@@ -985,11 +956,6 @@
            <!-- شاشة تفضيلات المظهر — مفاتيح جديدة -->
     <string name="pref_appearance_network_thumbnails_dialog_title">تفعيل الصور المصغّرة للشبكة؟</string>
     <string name="pref_appearance_network_thumbnails_dialog_message">توليد الصور المصغّرة لبثوث الشبكة (M3U/HTTP) قد يزيد بشكل ملحوظ من استهلاك البيانات في الخلفية وأوقات التحميل. هل تريد المتابعة؟</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_title">تغيير استراتيجية الصور المصغّرة؟</string>
-    <string name="pref_appearance_thumbnail_strategy_dialog_message">تغيير استراتيجية الاستخراج سيمسح ذاكرة التخزين المؤقت الحالية للصور المصغّرة. ستُولَّد صور جديدة تلقائياً أثناء التصفح.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_title">تحديث موضع الصورة المصغّرة؟</string>
-    <string name="pref_appearance_thumbnail_position_reset_confirm">إعادة ضبط الصورة المصغّرة عند %1$d%% من مدة الفيديو.</string>
-    <string name="pref_appearance_thumbnail_position_dialog_message">تغيير موضع الاستخراج سيمسح ذاكرة التخزين المؤقت الحالية للصور المصغّرة. ستُولَّد صور جديدة تلقائياً أثناء التصفح.</string>
 
            <!-- شاشة تعديل تخطيط أزرار التحكم — مفاتيح جديدة -->
     <string name="control_layout_edit_title_top_right">تعديل الزاوية العلوية اليمنى</string>
@@ -1043,9 +1009,6 @@
     <string name="tree_view">العرض الشجري</string>
 
     <string name="pref_player_general">عام</string>
-    <string name="pref_player_autoplay_next_video">تشغيل الفيديو التالي تلقائياً</string>
-    <string name="pref_player_autoplay_next_video_summary_on">تشغيل الفيديو التالي تلقائياً عند انتهاء الحالي</string>
-    <string name="pref_player_autoplay_next_video_summary_off">البقاء على الفيديو الحالي عند انتهائه</string>
     <string name="pref_player_playlist_mode_summary_on">إظهار أزرار التالي/السابق لكل فيديوهات المجلد</string>
     <string name="pref_player_playlist_mode_summary_off">تشغيل الفيديوهات بشكل منفرد (اختر عدة فيديوهات لقائمة تشغيل)</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_on">تبقى الشاشة مضاءة أثناء إيقاف الفيديو مؤقتاً</string>

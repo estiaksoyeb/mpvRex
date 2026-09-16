@@ -1,7 +1,10 @@
 package xyz.mpv.rex.ui.browser.shorts
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.graphics.Bitmap
+import android.view.WindowManager
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
@@ -151,6 +154,8 @@ data class ShortsScreen(
         val backstack = LocalBackStack.current
         val miniPlayerStateManager = koinInject<MiniPlayerStateManager>()
         val headlessPlaybackController = koinInject<HeadlessPlaybackController>()
+        val playerPreferences = koinInject<PlayerPreferences>()
+        val keepScreenOnWhenPaused by playerPreferences.keepScreenOnWhenPaused.collectAsState()
         val viewModel: ShortsViewModel = viewModel(
             factory = ShortsViewModel.factory(context.applicationContext as android.app.Application)
         )
@@ -168,13 +173,15 @@ data class ShortsScreen(
         
         if (!view.isInEditMode) {
             DisposableEffect(Unit) {
-                val window = (view.context as Activity).window
-                val insetsController = WindowCompat.getInsetsController(window, view)
-                insetsController.isAppearanceLightStatusBars = false
-                insetsController.isAppearanceLightNavigationBars = false
+                val window = view.context.findActivity()?.window
+                val insetsController = window?.let { WindowCompat.getInsetsController(it, view) }
+                insetsController?.isAppearanceLightStatusBars = false
+                insetsController?.isAppearanceLightNavigationBars = false
                 onDispose {
-                    insetsController.isAppearanceLightStatusBars = !isDarkTheme
-                    insetsController.isAppearanceLightNavigationBars = !isDarkTheme
+                    insetsController?.isAppearanceLightStatusBars = !isDarkTheme
+                    insetsController?.isAppearanceLightNavigationBars = !isDarkTheme
+                    window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    view.keepScreenOn = false
                 }
             }
         }
@@ -219,6 +226,9 @@ data class ShortsScreen(
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val density = LocalDensity.current
                 val coroutineScope = rememberCoroutineScope()
+                var isLifecycleResumed by remember {
+                    mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+                }
 
                 BoxWithConstraints(modifier = Modifier.fillMaxSize().background(Color.Black)) {
                     val heightPx = with(density) { maxHeight.toPx() }
@@ -278,8 +288,12 @@ data class ShortsScreen(
                     DisposableEffect(lifecycleOwner) {
                         val observer = LifecycleEventObserver { _, event ->
                             when (event) {
-                                Lifecycle.Event.ON_PAUSE -> MPVLib.setPropertyBoolean("pause", true)
+                                Lifecycle.Event.ON_PAUSE -> {
+                                    isLifecycleResumed = false
+                                    MPVLib.setPropertyBoolean("pause", true)
+                                }
                                 Lifecycle.Event.ON_RESUME -> {
+                                    isLifecycleResumed = true
                                     val isTop = backstack.lastOrNull() == MainScreen || backstack.lastOrNull() == this@ShortsScreen
                                     if (pagerState.settledPage < shorts.size && !isManuallyPaused && isTop) {
                                         MPVLib.setPropertyBoolean("pause", false)
@@ -291,6 +305,28 @@ data class ShortsScreen(
                         lifecycleOwner.lifecycle.addObserver(observer)
                         onDispose {
                             lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
+
+                    val isPlayingEndCard = pagerState.settledPage >= shorts.size
+                    val isPlaybackPaused = currentPlaybackPaused || isManuallyPaused
+                    val shouldKeepScreenOn = isTopScreen &&
+                        isLifecycleResumed &&
+                        !isPlayingEndCard &&
+                        (!isPlaybackPaused || keepScreenOnWhenPaused)
+
+                    DisposableEffect(shouldKeepScreenOn) {
+                        val window = view.context.findActivity()?.window
+                        if (shouldKeepScreenOn) {
+                            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            view.keepScreenOn = true
+                        } else {
+                            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            view.keepScreenOn = false
+                        }
+                        onDispose {
+                            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            view.keepScreenOn = false
                         }
                     }
 
@@ -386,6 +422,12 @@ data class ShortsScreen(
 
     private fun androidx.compose.ui.graphics.Color.luminance(): Float {
         return 0.299f * red + 0.587f * green + 0.114f * blue
+    }
+
+    private tailrec fun Context.findActivity(): Activity? = when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
     }
 }
 

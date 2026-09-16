@@ -78,41 +78,45 @@ fun MediaInfoSheet(uri: Uri, onDismiss: () -> Unit) {
     val failedToLoadText = stringResource(R.string.media_info_failed_to_load)
     val unknownErrorText = stringResource(R.string.media_info_unknown_error)
     val analyzingText = stringResource(R.string.media_info_analyzing)
-    var fileName by remember { mutableStateOf(defaultFileName) }
-    var mediaInfo by remember { mutableStateOf<MediaInfoOps.MediaInfoData?>(null) }
+    val initialName = uri.lastPathSegment?.substringAfterLast('/') ?: defaultFileName
+    var fileName by remember { mutableStateOf(initialName) }
 
     LaunchedEffect(uri) {
-        fileName = try {
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                if (nameIndex >= 0 && cursor.moveToFirst()) {
-                    cursor.getString(nameIndex) ?: uri.lastPathSegment ?: unknownFileName
-                } else {
-                    uri.lastPathSegment ?: unknownFileName
-                }
-            } ?: uri.lastPathSegment ?: unknownFileName
-        } catch (e: Exception) {
-            uri.lastPathSegment ?: unknownFileName
-        }
+        withContext(Dispatchers.IO) {
+            val resolvedFileName = try {
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0 && cursor.moveToFirst()) {
+                        cursor.getString(nameIndex) ?: uri.lastPathSegment ?: unknownFileName
+                    } else {
+                        uri.lastPathSegment ?: unknownFileName
+                    }
+                } ?: uri.lastPathSegment ?: unknownFileName
+            } catch (e: Exception) {
+                uri.lastPathSegment ?: unknownFileName
+            }
 
-        scope.launch {
+            withContext(Dispatchers.Main) {
+                fileName = resolvedFileName
+            }
+
             try {
-                val result = MediaInfoOps.getMediaInfo(context, uri, fileName)
-                result.onSuccess { mediaInfoResult ->
-                    mediaInfo = mediaInfoResult
-                    val textResult = MediaInfoOps.generateTextOutput(context, uri, fileName)
+                val textResult = MediaInfoOps.generateTextOutput(context, uri, resolvedFileName)
+                withContext(Dispatchers.Main) {
                     textResult.onSuccess { text ->
                         fullMediaInfoText = text
                         textContent = text.trim()
+                        isLoading = false
+                    }.onFailure { e ->
+                        error = e.message ?: failedToLoadText
+                        isLoading = false
                     }
-                    isLoading = false
-                }.onFailure { e ->
-                    error = e.message ?: failedToLoadText
-                    isLoading = false
                 }
             } catch (e: Exception) {
-                error = e.message ?: unknownErrorText
-                isLoading = false
+                withContext(Dispatchers.Main) {
+                    error = e.message ?: unknownErrorText
+                    isLoading = false
+                }
             }
         }
     }
@@ -232,7 +236,7 @@ fun MediaInfoSheet(uri: Uri, onDismiss: () -> Unit) {
                 }
             }
             fullMediaInfoText != null -> {
-                val sections = parseMediaInfoSections(fullMediaInfoText!!)
+                val sections = remember(fullMediaInfoText) { parseMediaInfoSections(fullMediaInfoText!!) }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

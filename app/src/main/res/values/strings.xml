@@ -800,6 +800,7 @@
     <string name="media_info_share_chooser_title">Share Media Info</string>
     <string name="media_info_share_failed">Failed to share: %1$s</string>
     <string name="media_info_default_file_name">Media File</string>
+    <string name="media_info_folder_path">Folder path</string>
 
     <!-- Network Connection Card -->
     <string name="network_connection_protocol_host">%1$s • %2$s:%3$s</string>

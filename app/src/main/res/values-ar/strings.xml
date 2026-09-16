@@ -94,8 +94,8 @@
     <string name="settings_search_title">بحث</string>
 
     <!-- Player Preferences Hardcoded -->
-    <string name="pref_autoplay_title">تفعيل التنقل للأمام/للخلف</string>
-    <string name="pref_autoplay_summary">إظهار أزرار التالي/السابق لجميع الفيديوهات في المجلد</string>
+    <string name="pref_autoplay_title">الإدراج التلقائي لفيديوهات المجلد في قائمة الانتظار</string>
+    <string name="pref_autoplay_summary">الإدراج التلقائي لجميع الفيديوهات في المجلد في قائمة تشغيل</string>
     <string name="pref_auto_pip_title">صورة في صورة تلقائية</string>
     <string name="pref_auto_pip_summary">الدخول تلقائياً إلى وضع ص.ف.ص عند الضغط على الرئيسية أو الرجوع</string>
     <string name="pref_dynamic_speed_overlay_title">طبقة السرعة الديناميكية</string>
@@ -200,7 +200,7 @@
     <string name="pref_gesture_use_relative_seeking_title">استخدام التقديم النسبي</string>
     <string name="pref_gesture_use_relative_seeking_summary">التقديم بالنسبة لموضع بدء السحب بدلاً من الموضع المطلق للإصبع.</string>
 
-    <string name="pref_gesture_double_tap_custom_info">يمكنك ربط إجراءات مخصصة بهذه الإيماءات في input.conf باستخدام رموز المفاتيح التالية:</string>
+    <string name="pref_gesture_double_tap_custom_info">​يتيح لك ملف input.conf تخصيص أوامر محددة لهذه الإيماءات باستخدام رموز المفاتيح التالية:</string>
     <string name="pref_gesture_double_tap_left">يسار</string>
     <string name="pref_gesture_double_tap_center">وسط</string>
     <string name="pref_gesture_double_tap_right">يمين</string>
@@ -209,7 +209,7 @@
     <string name="pref_gesture_media_previous">السابق</string>
     <string name="pref_gesture_media_play">تشغيل/إيقاف مؤقت</string>
     <string name="pref_gesture_media_next">التالي</string>
-    <string name="pref_gesture_media_custom_info">يمكنك ربط إجراءات مخصصة بعناصر التحكم في الوسائط في input.conf باستخدام رموز المفاتيح التالية:</string>
+    <string name="pref_gesture_media_custom_info">يتيح لك ملف input.conf تخصيص أوامر محددة لأزرار التحكم بالوسائط باستخدام رموز المفاتيح التالية:</string>
 
     <string name="pref_gesture_view_title">عرض</string>
     <string name="pref_gesture_tap_thumbnail_to_select_title">نقر على الصورة المصغَّرة للتحديد</string>
@@ -240,7 +240,7 @@
     <string name="pref_custom_lua_summary">إدارة أزرار المشغِّل المخصصة باستخدام كود Lua</string>
     <string name="pref_preferred_languages">اللغات المفضلة</string>
     <string name="pref_subtitles_fonts_dir">مجلد الخطوط</string>
-    <string name="pref_subtitles_disable_by_default_title">تعطيل الترجمات بشكل افتراضي</string>
+    <string name="pref_subtitles_disable_by_default_title">تعطيل الترجمات افتراضيًا</string>
     <string name="pref_subtitles_disable_by_default_summary">لن تظهر الترجمات ما لم تُفعِّلها يدوياً أثناء التشغيل.</string>
     <string name="pref_subtitles_autoload_title">تحميل الترجمات تلقائياً</string>
     <string name="pref_subtitles_autoload_summary">تحميل الترجمات الخارجية ذات الاسم المطابق تلقائياً.</string>
@@ -410,7 +410,7 @@
     <string name="player_sheets_stats_page_chip">الصفحة %d</string>
     <string name="player_sheets_stats_page_0_desc">معطَّل. لا إحصائيات معروضة.</string>
     <string name="player_sheets_stats_page_1_desc">نظرة عامة. استخدام المعالج/معالج الرسوميات، المزامنة الصوتية/المرئية، الإطارات المفقودة، سرعة الساعة.</string>
-    <string name="player_sheets_stats_page_2_desc">توقيت الإطارات. أوقات فك الترميز والعرض، معلومات المقياس.</string>
+    <string name="player_sheets_stats_page_2_desc">توقيت الإطارات. زمن فك الترميز والعرض، معلومات المقياس.</string>
     <string name="player_sheets_stats_page_3_desc">حالة التخزين المؤقت. صحة المخزن المؤقت، ذاكرة مُفرِّق المسارات، النطاقات القابلة للتقديم.</string>
     <string name="player_sheets_stats_page_4_desc">اختصارات لوحة المفاتيح الحالية. قائمة الاختصارات المعيَّنة.</string>
     <string name="player_sheets_stats_page_5_desc">قائمة المسارات. تفاصيل مسارات الفيديو والصوت والترجمة.</string>
@@ -709,7 +709,7 @@
     <string name="blocked_videos_manager">مدير الفيديوهات المحظورة</string>
     <string name="delete_short">حذف المقطع القصير</string>
     <string name="delete_short_desc">حذف هذا الملف نهائياً من الجهاز</string>
-    <string name="long_press_speed_desc">اضغط مطوّلاً لتثبيت السرعة واضغط بشكل عادي للتغيير</string>
+    <string name="long_press_speed_desc">اضغط مطولاً لتقفل السرعة، وضغطة عادية لتغيرها</string>
     <string name="delete_short_confirm_message">أمتأكد من رغبتك في حذف هذا المقطع القصير نهائياً؟ لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="moving_to_private_space">جارٍ النقل إلى المساحة الخاصة...</string>
     <string name="moved_to_private_space">نُقل إلى المساحة الخاصة</string>
@@ -943,7 +943,7 @@
     <string name="pref_appearance_enable_glass_player_controls_summary">طبّق النمط الزجاجي على أزرار تحكّم المشغّل</string>
     <string name="pref_appearance_enable_glass_seekbar_title">خلفية شريط التقدم الزجاجية</string>
     <string name="pref_appearance_enable_glass_seekbar_summary">طبّق النمط الزجاجي على مسار شريط تقدّم الفيديو</string>
-    <string name="pref_player_show_circular_double_tap_seek_title">إظهار مؤشّر التقديم بشكل الدائري عند النقر المزدوج</string>
+    <string name="pref_player_show_circular_double_tap_seek_title">إظهار مؤشّر التقديم دائريًا عند النقر المزدوج</string>
     <string name="pref_player_show_circular_double_tap_seek_summary">إظهار طبقة تحريك دائرية مع عرض الوقت أسفلها</string>
 
             <!-- شاشة البث الشبكي — مفاتيح جديدة -->
@@ -955,7 +955,7 @@
 
            <!-- شاشة تفضيلات المظهر — مفاتيح جديدة -->
     <string name="pref_appearance_network_thumbnails_dialog_title">تفعيل الصور المصغّرة للشبكة؟</string>
-    <string name="pref_appearance_network_thumbnails_dialog_message">توليد الصور المصغّرة لبثوث الشبكة (M3U/HTTP) قد يزيد بشكل ملحوظ من استهلاك البيانات في الخلفية وأوقات التحميل. هل تريد المتابعة؟</string>
+    <string name="pref_appearance_network_thumbnails_dialog_message">توليد الصور المصغّرة لبثوث الشبكة (M3U/HTTP) قد يرفع استهلاك البيانات في الخلفية وزمن التحميل. أتريد المتابعة؟</string>
 
            <!-- شاشة تعديل تخطيط أزرار التحكم — مفاتيح جديدة -->
     <string name="control_layout_edit_title_top_right">تعديل الزاوية العلوية اليمنى</string>
@@ -981,7 +981,7 @@
 
     <string name="player_sheets_aspect_ratio_vertical_offset_value">الإزاحة العمودية: %1$.3f</string>
     <string name="player_sheets_aspect_ratio_advanced_zoom_toggle">التكبير المتقدم</string>
-    <string name="player_sheets_aspect_ratio_advanced_zoom_description">تمديد أو اقتصاص المحورين الأفقي والعمودي بشكل مستقل، مفيد لإزالة الأشرطة السوداء</string>
+    <string name="player_sheets_aspect_ratio_advanced_zoom_description">تمديد المحورين الأفقي والعمودي أو قصّهما مستقلاً، وهو مفيد لإزالة الأشرطة السوداء</string>
     <string name="player_sheets_aspect_ratio_horizontal_zoom_value">التكبير الأفقي: %1$.2fx</string>
     <string name="player_sheets_aspect_ratio_vertical_zoom_value">التكبير العمودي: %1$.2fx</string>
     <string name="player_sheets_aspect_ratio_reset_horizontal_zoom">إعادة تعيين التكبير الأفقي</string>
@@ -1009,8 +1009,8 @@
     <string name="tree_view">العرض الشجري</string>
 
     <string name="pref_player_general">عام</string>
-    <string name="pref_player_playlist_mode_summary_on">إظهار أزرار التالي/السابق لكل فيديوهات المجلد</string>
-    <string name="pref_player_playlist_mode_summary_off">تشغيل الفيديوهات بشكل منفرد (اختر عدة فيديوهات لقائمة تشغيل)</string>
+    <string name="pref_player_playlist_mode_summary_on">الإدراج التلقائي لجميع فيديوهات المجلد في قائمة التشغيل</string>
+    <string name="pref_player_playlist_mode_summary_off">تشغيل كل فيديو على حدة (حدد عدة مقاطع لإنشاء قائمة تشغيل)</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_on">تبقى الشاشة مضاءة أثناء إيقاف الفيديو مؤقتاً</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_off">يمكن للشاشة أن تُطفأ أثناء إيقاف الفيديو مؤقتاً</string>
     <string name="pref_player_auto_pip">صورة في صورة تلقائية</string>
@@ -1062,12 +1062,12 @@
     <string name="rename_failed">فشلت إعادة التسمية</string>
 
     <plurals name="delete_items_warning">
-        <item quantity="zero">لا يمكن التراجع عن هذا الإجراء. سيتم حذف العناصر المحددة نهائياً.</item>
-        <item quantity="one">لا يمكن التراجع عن هذا الإجراء. سيتم حذف العنصر المحدد نهائياً.</item>
-        <item quantity="two">لا يمكن التراجع عن هذا الإجراء. سيتم حذف العنصرين المحددين نهائياً.</item>
-        <item quantity="few">لا يمكن التراجع عن هذا الإجراء. سيتم حذف العناصر المحددة نهائياً.</item>
-        <item quantity="many">لا يمكن التراجع عن هذا الإجراء. سيتم حذف العناصر المحددة نهائياً.</item>
-        <item quantity="other">لا يمكن التراجع عن هذا الإجراء. سيتم حذف العناصر المحددة نهائياً.</item>
+        <item quantity="zero">لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.</item>
+        <item quantity="one">لا يمكن التراجع عن هذا الإجراء. سيُحذف العنصر المحدد نهائيًا.</item>
+        <item quantity="two">لا يمكن التراجع عن هذا الإجراء. سيُحذف العنصرين المحددين نهائيًا.</item>
+        <item quantity="few">لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.</item>
+        <item quantity="many">لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.</item>
+        <item quantity="other">لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.</item>
     </plurals>
 
     <string name="export_failed">فشل التصدير: %1$s</string>
@@ -1266,7 +1266,7 @@
     <string name="pref_library_roots_empty_title">لم تُضف أي مجلدات إلى المكتبة</string>
     <string name="pref_library_roots_empty_message">أضف مسارات مجلدات مخصصة أو أدلة تخزين خارجي لفهرستها في مكتبتك.</string>
     <string name="pref_library_roots_clear_all_confirm_title">إزالة جميع مجلدات المكتبة؟</string>
-    <string name="pref_library_roots_clear_all_confirm_message">هل أنت متأكد من رغبتك في إزالة جميع جذور فحص المكتبة المضافة؟ سيتم التخلي عن الأذونات الدائمة الممنوحة لها.</string>
+    <string name="pref_library_roots_clear_all_confirm_message">أراغب في إزالة جميع جذور فحص المكتبة المضافة؟ سيُتخلى عن الأذونات الدائمة الممنوحة لها.</string>
     <string name="pref_media_library_title">الوسائط والمكتبة</string>
     <string name="pref_media_library_summary">إدارة جذور الفحص وملفات .nomedia والمجلدات المحظورة والفهرسة</string>
     <string name="pref_category_content_discovery">المحتوى والاكتشاف</string>
@@ -1409,4 +1409,15 @@
         <item quantity="few">%1$d أعمدة</item>
         <item quantity="many">%1$d عمود</item>
     </plurals>
+    <string name="ui_loading">جارٍ التحميل</string>
+    <string name="ui_loading_percent">جارٍ التحميل %d%%</string>
+    <string name="pref_appearance_show_next_previous_buttons_title">إظهار زري التالي/السابق</string>
+    <string name="pref_appearance_show_next_previous_buttons_summary">إظهار زرّي التخطي للأمام والخلف في طبقة التحكم</string>
+    <string name="btn_label_quality">جودة الفيديو</string>
+    <string name="video_quality">جودة الفيديو</string>
+    <string name="video_quality_auto">تلقائي</string>
+    <string name="video_quality_not_available">لا توجد جودات بث متاحة لهذه الوسائط</string>
+    <string name="video_quality_addon_outdated">​حدّث التطبيق المساعد REX Ytdlp لتمكين تبديل الجودة</string>
+    <string name="video_quality_set_as_default">اجعل \"%1$s\" افتراضيًا</string>
+    <string name="video_quality_default_saved">ضُبطت الجودة افتراضيًا على %1$s</string>
 </resources>

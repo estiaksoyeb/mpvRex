@@ -404,12 +404,14 @@
     "translated_value": "بحث"
   },
   "pref_autoplay_title": {
-    "source_hash": "289414abd1599be93f3056a98eb2164ab269585c00c4cf97526281a6f87ac34c",
-    "translated_value": "تفعيل التنقل للأمام/للخلف"
+    "source_hash": "eb139bb5327c966eea150fd1517645795589d2092b275c2ad2d9edb8109f5a71",
+    "translated_value": "الإدراج التلقائي لفيديوهات المجلد في قائمة الانتظار",
+    "ignore_warnings": false
   },
   "pref_autoplay_summary": {
-    "source_hash": "57d7558a208d8aa82292439f82259757131b542b462e451f470ca091b35d2907",
-    "translated_value": "إظهار أزرار التالي/السابق لجميع الفيديوهات في المجلد"
+    "source_hash": "70b6e7c45facac641f50f538877c4b6b723d342c26e591a9e5a103526a90f92e",
+    "translated_value": "الإدراج التلقائي لجميع الفيديوهات في المجلد في قائمة تشغيل",
+    "ignore_warnings": false
   },
   "pref_autoplay_next_video_title": {
     "source_hash": "a4bebacb05a300f3585be5244a9ae76a079f9f0c0be653b69a4666d7fefc81fe",
@@ -820,8 +822,9 @@
     "translated_value": "التقديم بالنسبة لموضع بدء السحب بدلاً من الموضع المطلق للإصبع."
   },
   "pref_gesture_double_tap_custom_info": {
-    "source_hash": "ae38018a716be660ae4cb8fad8c13950957f31d68659e95be1db86cf3aa7fc24",
-    "translated_value": "يمكنك ربط إجراءات مخصصة بهذه الإيماءات في input.conf باستخدام رموز المفاتيح التالية:\n\nيسار: MBTN_LEFT_DBL\nوسط: MBTN_MID_DBL\nيمين: MBTN_RIGHT_DBL"
+    "source_hash": "5235624166409edeaa69e9c101c392873ea37869d1bdd9dcc0d3c1076a76de98",
+    "translated_value": "​يتيح لك ملف input.conf تخصيص أوامر محددة لهذه الإيماءات باستخدام رموز المفاتيح التالية:",
+    "ignore_warnings": false
   },
   "pref_gesture_media_title": {
     "source_hash": "d07deb8344922b975cd38c7159ac14e708774db894e8233c7022217e43cebd40",
@@ -840,8 +843,9 @@
     "translated_value": "التالي"
   },
   "pref_gesture_media_custom_info": {
-    "source_hash": "548e830844d75abb5e46b7cfc19b5a42a2a72185eb7907371aa3f07c990dd0c5",
-    "translated_value": "يمكنك ربط إجراءات مخصصة بعناصر التحكم في الوسائط في input.conf باستخدام رموز المفاتيح التالية:\n\nالسابق: PREV\nتشغيل/إيقاف مؤقت: PLAYPAUSE\nالتالي: NEXT"
+    "source_hash": "1930fd98ef113ba8c37d1a841b52ae03349dd2cbc202d8f849b2b6c443e1981a",
+    "translated_value": "يتيح لك ملف input.conf تخصيص أوامر محددة لأزرار التحكم بالوسائط باستخدام رموز المفاتيح التالية:",
+    "ignore_warnings": false
   },
   "pref_gesture_view_title": {
     "source_hash": "dcc839a4015c4b7dd9db959a8f757833b8adb92462a751b973386e453c6d58a3",
@@ -953,7 +957,8 @@
   },
   "pref_subtitles_disable_by_default_title": {
     "source_hash": "76bdd2c56d785d6a3bedd3165cf6c6721d1052c120ada7f805d68b29c01044e9",
-    "translated_value": "تعطيل الترجمات بشكل افتراضي"
+    "translated_value": "تعطيل الترجمات افتراضيًا",
+    "ignore_warnings": false
   },
   "pref_subtitles_disable_by_default_summary": {
     "source_hash": "727f175fc623730fff894503db0e23c71197cba5835865e344e2e43af49d38cc",
@@ -1581,7 +1586,8 @@
   },
   "player_sheets_stats_page_2_desc": {
     "source_hash": "2535d82820a35cfabd46daaddf022b0e5f8ddc1c088e3e3d1899fd0d2b290505",
-    "translated_value": "توقيت الإطارات. أوقات فك الترميز والعرض، معلومات المقياس."
+    "translated_value": "توقيت الإطارات. زمن فك الترميز والعرض، معلومات المقياس.",
+    "ignore_warnings": false
   },
   "player_sheets_stats_page_3_desc": {
     "source_hash": "27558283e20f2bced9c2928ae44a237b9b646dfcda31ea47972c9863f6ece383",
@@ -2666,7 +2672,8 @@
   },
   "long_press_speed_desc": {
     "source_hash": "a9669bdff97e9218ce9872f259375593e7a7fbf8fe3cd5c20f15f2043b65d1a4",
-    "translated_value": "اضغط مطوّلاً لتثبيت السرعة واضغط بشكل عادي للتغيير"
+    "translated_value": "اضغط مطولاً لتقفل السرعة، وضغطة عادية لتغيرها",
+    "ignore_warnings": false
   },
   "delete_short_confirm_message": {
     "source_hash": "57a053164ffc044f8e73ea3373b6d8622ccc7227e793419b13a5bd53c31bc077",
@@ -3494,7 +3501,8 @@
   },
   "pref_player_show_circular_double_tap_seek_title": {
     "source_hash": "748e129e21ca9ce935c95151b6140768aebf1db61ec9d14501cfa310d07a224e",
-    "translated_value": "إظهار مؤشّر التقديم بشكل الدائري عند النقر المزدوج"
+    "translated_value": "إظهار مؤشّر التقديم دائريًا عند النقر المزدوج",
+    "ignore_warnings": false
   },
   "pref_player_show_circular_double_tap_seek_summary": {
     "source_hash": "387cef4690ac5d6521546724c29ad3fb5ac3a9f979a5aa95ea7b8230fbe5f6e8",
@@ -3526,7 +3534,8 @@
   },
   "pref_appearance_network_thumbnails_dialog_message": {
     "source_hash": "45e93f0599bafca1969aee33e2c03a0db174629e020313a01a82278567def356",
-    "translated_value": "توليد الصور المصغّرة لبثوث الشبكة (M3U/HTTP) قد يزيد بشكل ملحوظ من استهلاك البيانات في الخلفية وأوقات التحميل. هل تريد المتابعة؟"
+    "translated_value": "توليد الصور المصغّرة لبثوث الشبكة (M3U/HTTP) قد يرفع استهلاك البيانات في الخلفية وزمن التحميل. أتريد المتابعة؟",
+    "ignore_warnings": false
   },
   "pref_appearance_thumbnail_strategy_dialog_title": {
     "source_hash": "f65d3ca03cd131677027aed4e1fac3d17447c7e6c1bb677a9d2b9058d8142e2c",
@@ -3626,7 +3635,8 @@
   },
   "player_sheets_aspect_ratio_advanced_zoom_description": {
     "source_hash": "683259b43318a4f7379814ebfb1eab45b48276c7bed5eccee973b1756a5ebe82",
-    "translated_value": "تمديد أو اقتصاص المحورين الأفقي والعمودي بشكل مستقل، مفيد لإزالة الأشرطة السوداء"
+    "translated_value": "تمديد المحورين الأفقي والعمودي أو قصّهما مستقلاً، وهو مفيد لإزالة الأشرطة السوداء",
+    "ignore_warnings": false
   },
   "player_sheets_aspect_ratio_horizontal_zoom_value": {
     "source_hash": "0f52563dd98586b437b2cbf9e3ebad559c61a7e87b2463cf088bb571e3857aa1",
@@ -3846,12 +3856,14 @@
     "translated_value": "البقاء على الفيديو الحالي عند انتهائه"
   },
   "pref_player_playlist_mode_summary_on": {
-    "source_hash": "57d7558a208d8aa82292439f82259757131b542b462e451f470ca091b35d2907",
-    "translated_value": "إظهار أزرار التالي/السابق لكل فيديوهات المجلد"
+    "source_hash": "70b6e7c45facac641f50f538877c4b6b723d342c26e591a9e5a103526a90f92e",
+    "translated_value": "الإدراج التلقائي لجميع فيديوهات المجلد في قائمة التشغيل",
+    "ignore_warnings": false
   },
   "pref_player_playlist_mode_summary_off": {
-    "source_hash": "4bcc67a0a26893cc27b2aab27743e2312bc359aab9b07037d841584fd3f91f57",
-    "translated_value": "تشغيل الفيديوهات بشكل منفرد (اختر عدة فيديوهات لقائمة تشغيل)"
+    "source_hash": "4eed9d6407793068440273d2b727fb5634145e80acaa73532a0ad764fd1a2f7c",
+    "translated_value": "تشغيل كل فيديو على حدة (حدد عدة مقاطع لإنشاء قائمة تشغيل)",
+    "ignore_warnings": false
   },
   "pref_player_keep_screen_on_when_paused_summary_on": {
     "source_hash": "f2412ba37ae77d99eb6734bc44638fb84875f1442e967b640cf669bf48ad3290",
@@ -3927,11 +3939,13 @@
   },
   "delete_items_warning#plural#one": {
     "source_hash": "d81acf87bed65a9c158c3d391a01add7d9f72d0635159558ac5776b52155bfba",
-    "translated_value": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف العنصر المحدد نهائياً."
+    "translated_value": "لا يمكن التراجع عن هذا الإجراء. سيُحذف العنصر المحدد نهائيًا.",
+    "ignore_warnings": false
   },
   "delete_items_warning#plural#other": {
     "source_hash": "7d0dac7b48b8fd7fac7ea5d405e0fc354bafd930b9443f6e80a83f654385cf01",
-    "translated_value": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف العناصر المحددة نهائياً."
+    "translated_value": "لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.",
+    "ignore_warnings": false
   },
   "export_failed": {
     "source_hash": "c30979e1aced66cdf27a503702dc3dfc4b4ec80e2fbc53325a4523c65e5f9146",
@@ -4527,7 +4541,8 @@
   },
   "pref_library_roots_clear_all_confirm_message": {
     "source_hash": "a06872879fbd8d4198e3a535d54e6914c8797fa398656791c4bd9214f71daa5e",
-    "translated_value": "هل أنت متأكد من رغبتك في إزالة جميع جذور فحص المكتبة المضافة؟ سيتم التخلي عن الأذونات الدائمة الممنوحة لها."
+    "translated_value": "أراغب في إزالة جميع جذور فحص المكتبة المضافة؟ سيُتخلى عن الأذونات الدائمة الممنوحة لها.",
+    "ignore_warnings": false
   },
   "pref_media_library_title": {
     "source_hash": "1beb470bcc494ea941b4512485c2d5f7e43346ae5f64086c63670ca294f78ab4",
@@ -5139,5 +5154,80 @@
   "pref_gesture_double_tap_right": {
     "source_hash": "883361d5d682a1574410961ce51450b6e036a779c9f098dec71e28aec832bfa6",
     "translated_value": "يمين"
+  },
+  "ui_loading": {
+    "source_hash": "ba3bbbe10d8bef66441c88536ce7b8e724e2829b59a3da658654f4961cd61ae5",
+    "translated_value": "جارٍ التحميل",
+    "ignore_warnings": false
+  },
+  "ui_loading_percent": {
+    "source_hash": "2956bcfd1e3a3d76b430beb1a2bb522293fba763b74b4030eec1ae9a12d9d096",
+    "translated_value": "جارٍ التحميل %d%%",
+    "ignore_warnings": false
+  },
+  "pref_appearance_show_next_previous_buttons_title": {
+    "source_hash": "38ca0e738d72e40e148dc948d9d1b3bc2fc594894699a5fd7c537bcf3d2f55ca",
+    "translated_value": "إظهار زري التالي/السابق",
+    "ignore_warnings": false
+  },
+  "pref_appearance_show_next_previous_buttons_summary": {
+    "source_hash": "a86423b7655ae3f91c713e5a1b9cc29ceb2c553faf705e80187a0138a577a24c",
+    "translated_value": "إظهار زرّي التخطي للأمام والخلف في طبقة التحكم",
+    "ignore_warnings": false
+  },
+  "btn_label_quality": {
+    "source_hash": "255da5c20861b5ef51d5ffe2a15c97d76ff1bdf8c608fcad3291e31b73677749",
+    "translated_value": "جودة الفيديو",
+    "ignore_warnings": false
+  },
+  "video_quality": {
+    "source_hash": "255da5c20861b5ef51d5ffe2a15c97d76ff1bdf8c608fcad3291e31b73677749",
+    "translated_value": "جودة الفيديو",
+    "ignore_warnings": false
+  },
+  "video_quality_auto": {
+    "source_hash": "0286249762f7c94349cdc0ba3bb2255baf9a80036e2193ead1d77696f888582f",
+    "translated_value": "تلقائي",
+    "ignore_warnings": false
+  },
+  "video_quality_not_available": {
+    "source_hash": "6097f5ef6ccd5195dd56666c442491ffa4d6fb7e12d323b3efb193eaa9daf3d3",
+    "translated_value": "لا توجد جودات بث متاحة لهذه الوسائط",
+    "ignore_warnings": false
+  },
+  "video_quality_addon_outdated": {
+    "source_hash": "3f06b56db903377fd75dcd82181bf0f8de3ecea1391be6fb58c9ebf90d444ba5",
+    "translated_value": "​حدّث التطبيق المساعد REX Ytdlp لتمكين تبديل الجودة",
+    "ignore_warnings": false
+  },
+  "video_quality_set_as_default": {
+    "source_hash": "cd9fd6617ee7296789b0770b8d12d95ecd1698d06f4454eeeccf53394786f1e8",
+    "translated_value": "اجعل \"%1$s\" افتراضيًا",
+    "ignore_warnings": false
+  },
+  "video_quality_default_saved": {
+    "source_hash": "726a779f8d716babbfaffa4a6155da8b880d902be2c4811049838d31d1005531",
+    "translated_value": "ضُبطت الجودة افتراضيًا على %1$s",
+    "ignore_warnings": false
+  },
+  "delete_items_warning#plural#zero": {
+    "source_hash": "d81acf87bed65a9c158c3d391a01add7d9f72d0635159558ac5776b52155bfba",
+    "translated_value": "لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.",
+    "ignore_warnings": false
+  },
+  "delete_items_warning#plural#two": {
+    "source_hash": "d81acf87bed65a9c158c3d391a01add7d9f72d0635159558ac5776b52155bfba",
+    "translated_value": "لا يمكن التراجع عن هذا الإجراء. سيُحذف العنصرين المحددين نهائيًا.",
+    "ignore_warnings": false
+  },
+  "delete_items_warning#plural#few": {
+    "source_hash": "d81acf87bed65a9c158c3d391a01add7d9f72d0635159558ac5776b52155bfba",
+    "translated_value": "لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.",
+    "ignore_warnings": false
+  },
+  "delete_items_warning#plural#many": {
+    "source_hash": "d81acf87bed65a9c158c3d391a01add7d9f72d0635159558ac5776b52155bfba",
+    "translated_value": "لا يمكن التراجع عن هذا الإجراء. ستُحذف العناصر المحددة نهائيًا.",
+    "ignore_warnings": false
   }
 }

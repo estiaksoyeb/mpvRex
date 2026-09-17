@@ -85,20 +85,32 @@ jobs:
           done
           ls -lah output/
 
-      - name: Upload arm64-v8a Signed APK
+      - name: Upload app-arm64-v8a Artifact
         uses: actions/upload-artifact@v4
         with:
           name: REX-Player-arm64-v8a-signed-${{ env.SHORT_SHA }}
           path: output/REX-Player-arm64-v8a-${{ env.SHORT_SHA }}.apk
 
-      - name: Upload Universal Signed APK
+      - name: Upload app-armeabi-v7a Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: REX-Player-armeabi-v7a-signed-${{ env.SHORT_SHA }}
+          path: output/REX-Player-armeabi-v7a-${{ env.SHORT_SHA }}.apk
+
+      - name: Upload app-universal Artifact
         uses: actions/upload-artifact@v4
         with:
           name: REX-Player-universal-signed-${{ env.SHORT_SHA }}
           path: output/REX-Player-universal-${{ env.SHORT_SHA }}.apk
 
-      - name: Upload All Signed APKs
+      - name: Upload app-x86 Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: REX-Player-all-signed-apks-${{ env.SHORT_SHA }}
-          path: output/*.apk
+          name: REX-Player-x86-signed-${{ env.SHORT_SHA }}
+          path: output/REX-Player-x86-${{ env.SHORT_SHA }}.apk
+
+      - name: Upload app-x86_64 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: REX-Player-x86_64-signed-${{ env.SHORT_SHA }}
+          path: output/REX-Player-x86_64-${{ env.SHORT_SHA }}.apk

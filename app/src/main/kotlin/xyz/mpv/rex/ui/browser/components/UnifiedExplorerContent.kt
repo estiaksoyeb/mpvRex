@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -154,11 +155,14 @@ fun <T> UnifiedExplorerContent(
       )
     }
   } else {
+    val safeItems = remember(items) {
+      items.distinctBy { getItemId(it) }
+    }
     val listState = listState ?: rememberLazyListState()
     val gridState = gridState ?: rememberLazyGridState()
 
-    val lastPlayedVideoPathsInFolder = remember(items, recentlyPlayedPaths, recentlyPlayedFilePaths) {
-      val pathsInItems = items.mapNotNull { item ->
+    val lastPlayedVideoPathsInFolder = remember(safeItems, recentlyPlayedPaths, recentlyPlayedFilePaths) {
+      val pathsInItems = safeItems.mapNotNull { item ->
         when (item) {
           is Video -> item.path
           is VideoWithPlaybackInfo -> item.video.path
@@ -192,9 +196,9 @@ fun <T> UnifiedExplorerContent(
     }
 
     val hasAutoScrolled = rememberSaveable(inputs = arrayOf(recentlyPlayedFilePath ?: "")) { mutableStateOf(false) }
-    LaunchedEffect(recentlyPlayedFilePath, items, autoScrollToLastPlayed) {
-      if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && items.isNotEmpty() && !hasAutoScrolled.value) {
-        val lastPlayedIndex = items.indexOfFirst { item ->
+    LaunchedEffect(recentlyPlayedFilePath, safeItems, autoScrollToLastPlayed) {
+      if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && safeItems.isNotEmpty() && !hasAutoScrolled.value) {
+        val lastPlayedIndex = safeItems.indexOfFirst { item ->
           when (item) {
             is Video -> item.path == recentlyPlayedFilePath
             is VideoWithPlaybackInfo -> item.video.path == recentlyPlayedFilePath
@@ -220,10 +224,10 @@ fun <T> UnifiedExplorerContent(
         if (lastPlayedIndex != -1) {
           hasAutoScrolled.value = true
           if (showSections) {
-            val matchedItem = items[lastPlayedIndex]
+            val matchedItem = safeItems[lastPlayedIndex]
             val isFolder = matchedItem is VideoFolder || matchedItem is FileSystemItem.Folder
-            val folderItems = items.filter { it is VideoFolder || it is FileSystemItem.Folder }
-            val videoItems = items.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+            val folderItems = safeItems.filter { it is VideoFolder || it is FileSystemItem.Folder }
+            val videoItems = safeItems.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
 
             val targetIndex = if (isFolder) {
               val folderIndex = folderItems.indexOf(matchedItem)
@@ -271,8 +275,8 @@ fun <T> UnifiedExplorerContent(
 
     val contentBlock: @Composable BoxScope.() -> Unit = {
       if (showSections) {
-        val folderItems = items.filter { it is VideoFolder || it is FileSystemItem.Folder }
-        val videoItems = items.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+        val folderItems = safeItems.filter { it is VideoFolder || it is FileSystemItem.Folder }
+        val videoItems = safeItems.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
 
         val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
         val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
@@ -296,10 +300,10 @@ fun <T> UnifiedExplorerContent(
 
             if (mediaLayoutMode == MediaLayoutMode.GRID) {
               val chunkedFolders = folderItems.chunked(folderGridColumns)
-              items(
+              itemsIndexed(
                 items = chunkedFolders,
-                key = { chunk -> "folder_row_${getItemId(chunk.first())}" }
-              ) { rowItems ->
+                key = { index, chunk -> "folder_row_${index}_${getItemId(chunk.first())}" }
+              ) { _, rowItems ->
                 Row(
                   modifier = Modifier.fillMaxWidth(),
                   horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -405,10 +409,10 @@ fun <T> UnifiedExplorerContent(
 
             if (mediaLayoutMode == MediaLayoutMode.GRID) {
               val chunkedVideos = videoItems.chunked(videoGridColumns)
-              items(
+              itemsIndexed(
                 items = chunkedVideos,
-                key = { chunk -> "video_row_${getItemId(chunk.first())}" }
-              ) { rowItems ->
+                key = { index, chunk -> "video_row_${index}_${getItemId(chunk.first())}" }
+              ) { _, rowItems ->
                 Row(
                   modifier = Modifier.fillMaxWidth(),
                   horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -514,7 +518,7 @@ fun <T> UnifiedExplorerContent(
           verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
           items(
-            items = items,
+            items = safeItems,
             key = { getItemId(it) }
           ) { item ->
             val effectiveOnClick = {
@@ -571,7 +575,7 @@ fun <T> UnifiedExplorerContent(
           verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
           items(
-            items = items,
+            items = safeItems,
             key = { getItemId(it) }
           ) { item ->
             val effectiveOnClick = {
@@ -690,16 +694,16 @@ fun <T> UnifiedExplorerContent(
 
 private fun <T> getItemId(item: T): String {
   return when (item) {
-    is VideoFolder -> item.bucketId
-    is Video -> item.path
-    is VideoWithPlaybackInfo -> item.video.path
-    is PlaylistWithCount -> item.playlist.id.toString()
-    is RecentlyPlayedItem.VideoItem -> item.video.path
-    is RecentlyPlayedItem.PlaylistItem -> item.playlist.id.toString()
-    is FileSystemItem.Folder -> item.path
-    is FileSystemItem.VideoFile -> item.path
-    is PlaylistVideoItem -> item.playlistItem.id.toString()
-    else -> item.hashCode().toString()
+    is VideoFolder -> "folder_${item.bucketId.ifBlank { item.path }}"
+    is Video -> "video_${item.path.ifBlank { item.uri.toString() }}"
+    is VideoWithPlaybackInfo -> "video_${item.video.path.ifBlank { item.video.uri.toString() }}"
+    is PlaylistWithCount -> "playlist_${item.playlist.id}"
+    is RecentlyPlayedItem.VideoItem -> "recent_video_${item.video.path.ifBlank { item.video.uri.toString() }}"
+    is RecentlyPlayedItem.PlaylistItem -> "recent_playlist_${item.playlist.id}"
+    is FileSystemItem.Folder -> "fs_folder_${item.path}"
+    is FileSystemItem.VideoFile -> "fs_video_${item.path.ifBlank { item.video.uri.toString() }}"
+    is PlaylistVideoItem -> "playlist_item_${item.playlistItem.id}"
+    else -> "item_${item.hashCode()}"
   }
 }
 

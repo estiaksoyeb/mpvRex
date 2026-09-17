@@ -180,14 +180,21 @@ class SearchViewModel(
             }
         }
 
+        val uniqueResults = results.distinctBy {
+          when (it) {
+            is FileSystemItem.VideoFile -> "video_${it.path.ifBlank { it.video.uri.toString() }}"
+            is FileSystemItem.Folder -> "folder_${it.path}"
+          }
+        }
+
         // Update playback and watched state
-        updatePlaybackStates(results)
-        _searchResults.value = results
+        updatePlaybackStates(uniqueResults)
+        _searchResults.value = uniqueResults
         _isSearchLoading.value = false
 
         // Background enrich any videos with missing durations or chips
         val isMetadataNeeded = MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)
-        val videoItems = results.filterIsInstance<FileSystemItem.VideoFile>()
+        val videoItems = uniqueResults.filterIsInstance<FileSystemItem.VideoFile>()
         val uncached = videoItems.map { it.video }.filter { it.duration <= 0L || (isMetadataNeeded && (it.fps == 0f || it.subtitleCodec.isEmpty())) }
         if (uncached.isNotEmpty()) {
           val enrichedVideos = MetadataRetrieval.enrichVideosIfNeeded(
@@ -197,7 +204,7 @@ class SearchViewModel(
             metadataCache = metadataCache,
           )
           val enrichedMap = enrichedVideos.associateBy { it.id }
-          val finalResults = results.map { item ->
+          val finalResults = uniqueResults.map { item ->
             if (item is FileSystemItem.VideoFile) {
               val enriched = enrichedMap[item.video.id] ?: item.video
               item.copy(video = enriched)

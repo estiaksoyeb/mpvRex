@@ -64,9 +64,11 @@ object MediaFileRepository {
 
   suspend fun getVideosForBuckets(context: Context, bucketIds: Set<String>): List<Video> =
     withContext(Dispatchers.IO) {
-      bucketIds.flatMap { id ->
-        getVideosInFolder(context, id)
-      }
+      bucketIds
+        .flatMap { id -> getVideosInFolder(context, id) }
+        .associateBy { it.path.ifBlank { it.uri.toString() } }
+        .values
+        .toList()
     }
 
   suspend fun getAllVideos(context: Context): List<Video> =
@@ -74,6 +76,9 @@ object MediaFileRepository {
       val folders = getAllVideoFolders(context)
       val bucketIds = folders.map { it.bucketId }.toSet()
       getVideosForBuckets(context, bucketIds)
+        .associateBy { it.path.ifBlank { it.uri.toString() } }
+        .values
+        .toList()
     }
 
   // ==================== FILE SYSTEM BROWSING ====================

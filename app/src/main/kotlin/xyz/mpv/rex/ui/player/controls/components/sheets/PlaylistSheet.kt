@@ -425,9 +425,9 @@ fun PlaylistSheet(
               .weight(1f)
               .fillMaxWidth()
           ) {
-            items(filteredPlaylist, key = { it.uri.toString() }) { item ->
+            items(filteredPlaylist, key = { "${it.index}_${it.uri}" }) { item ->
               if (isReorderMode) {
-                ReorderableItem(reorderState, key = item.uri.toString()) {
+                ReorderableItem(reorderState, key = "${item.index}_${item.uri}") {
                   Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically

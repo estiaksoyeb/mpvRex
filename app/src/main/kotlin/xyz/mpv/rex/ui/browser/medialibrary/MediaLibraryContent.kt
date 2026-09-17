@@ -127,10 +127,12 @@ fun MediaLibraryContent() {
   val videoSortType by browserPreferences.videoSortType.collectAsState()
   val videoSortOrder by browserPreferences.videoSortOrder.collectAsState()
   val sortedVideosWithInfo = remember(videosWithPlaybackInfo, videoSortType, videoSortOrder) {
-    val infoById = videosWithPlaybackInfo.associateBy { it.video.path }
-    val sortedVideos = SortUtils.sortVideos(videosWithPlaybackInfo.map { it.video }, videoSortType, videoSortOrder)
+    val infoById = videosWithPlaybackInfo.associateBy { it.video.path.ifBlank { it.video.uri.toString() } }
+    val uniqueVideos = videosWithPlaybackInfo.map { it.video }.distinctBy { it.path.ifBlank { it.uri.toString() } }
+    val sortedVideos = SortUtils.sortVideos(uniqueVideos, videoSortType, videoSortOrder)
     sortedVideos.map { video ->
-      infoById[video.path] ?: VideoWithPlaybackInfo(video)
+      val key = video.path.ifBlank { video.uri.toString() }
+      infoById[key] ?: VideoWithPlaybackInfo(video)
     }
   }
 

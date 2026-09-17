@@ -65,6 +65,7 @@ object MediaMetadataOps {
                             unwatchedVideoCount = folder.unwatchedVideoCount
                         )
                     }
+                    .distinctBy { it.bucketId }
             } catch (e: Exception) {
                 Log.e(TAG, "Error mapping media folders", e)
                 emptyList()

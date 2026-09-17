@@ -57,6 +57,8 @@ class MediaLibraryViewModel(
           videoList = videoList.filterNot { it.isAudio }
         }
 
+        videoList = videoList.distinctBy { it.path.ifBlank { it.uri.toString() } }
+
         if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences) && videoList.isNotEmpty()) {
           videoList = MetadataRetrieval.applyCachedMetadata(
             videos = videoList,
@@ -78,7 +80,7 @@ class MediaLibraryViewModel(
               videos = videoList,
               browserPreferences = browserPreferences,
               metadataCache = metadataCache
-            )
+            ).distinctBy { it.path.ifBlank { it.uri.toString() } }
             _videos.value = enrichedList
             loadPlaybackInfo(enrichedList)
           }

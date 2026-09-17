@@ -218,13 +218,13 @@ object MainScreen : Screen {
               }
             )
           }
-        }
-        if (enableTabNetwork) {
-          add(
-            VisibleTab("network", networkLabel, Icons.Filled.Language) {
-              NetworkStreamingScreen.Content()
-            }
-          )
+          if (enableTabNetwork) {
+            add(
+              VisibleTab("network", networkLabel, Icons.Filled.Language) {
+                NetworkStreamingScreen.Content()
+              }
+            )
+          }
         }
       }
     }

@@ -22,7 +22,7 @@
     <string name="pref_appearance_tab_shorts_title">RexShorts</string>
     <string name="pref_appearance_tab_shorts_summary">Toggle high-tempo vertical video feeds</string>
     <string name="pref_appearance_tab_you_title">\'You\' Tab</string>
-    <string name="pref_appearance_tab_you_summary">Combine Recently Played and Playlists into a single tab</string>
+    <string name="pref_appearance_tab_you_summary">Combine Recently Played, Playlists, and Network into a single tab</string>
     <string name="pref_appearance_tab_recents_title">Recently Played</string>
     <string name="pref_appearance_tab_recents_summary">Quickly resume previous video sessions</string>
     <string name="pref_appearance_tab_playlists_title">Playlists</string>

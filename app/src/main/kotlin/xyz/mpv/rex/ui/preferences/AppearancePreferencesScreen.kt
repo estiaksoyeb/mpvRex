@@ -374,7 +374,7 @@ object AppearancePreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
+                                position = if (!enableTabYou) GroupPosition.MIDDLE else GroupPosition.LAST,
                                 highlightKey = R.string.pref_appearance_tab_you_title,
                             ) {
                                 SwitchPreference(
@@ -424,23 +424,23 @@ object AppearancePreferencesScreen : Screen {
                                         }
                                     )
                                 }
-                            }
 
-                            GroupedPreferenceCard(
-                                position = GroupPosition.LAST,
-                                highlightKey = R.string.pref_appearance_tab_network_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableTabNetwork,
-                                    onValueChange = { browserPreferences.enableTabNetwork.set(it) },
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_network_title)) },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_tab_network_summary),
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    }
-                                )
+                                GroupedPreferenceCard(
+                                    position = GroupPosition.LAST,
+                                    highlightKey = R.string.pref_appearance_tab_network_title,
+                                ) {
+                                    SwitchPreference(
+                                        value = enableTabNetwork,
+                                        onValueChange = { browserPreferences.enableTabNetwork.set(it) },
+                                        title = { Text(text = stringResource(id = R.string.pref_appearance_tab_network_title)) },
+                                        summary = {
+                                            Text(
+                                                text = stringResource(id = R.string.pref_appearance_tab_network_summary),
+                                                color = MaterialTheme.colorScheme.outline,
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

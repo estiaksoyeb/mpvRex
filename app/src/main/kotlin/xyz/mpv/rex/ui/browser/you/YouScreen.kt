@@ -48,9 +48,9 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +61,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.res.pluralStringResource
+import xyz.mpv.rex.presentation.components.ConfirmDialog
 import xyz.mpv.rex.presentation.components.pullrefresh.PullRefreshBox
+import xyz.mpv.rex.utils.permission.PermissionUtils
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,6 +81,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.withContext
+import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,7 +111,6 @@ import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.browser.MainScreen
-import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
 import xyz.mpv.rex.ui.browser.networkstreaming.NetworkBrowserScreen
@@ -109,6 +122,7 @@ import xyz.mpv.rex.ui.browser.playlist.PlaylistViewModel
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedItem
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedScreen
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedViewModel
+import xyz.mpv.rex.ui.browser.search.SearchScreen
 import xyz.mpv.rex.ui.browser.sheets.MediaInfoSheet
 import xyz.mpv.rex.ui.preferences.PreferencesScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
@@ -180,6 +194,8 @@ object YouScreen : Screen {
     var renameText by rememberSaveable { mutableStateOf("") }
     var playlistToDelete by remember { mutableStateOf<PlaylistEntity?>(null) }
     var connectionToDelete by remember { mutableStateOf<NetworkConnection?>(null) }
+    var videoToDeleteFromRecents by remember { mutableStateOf<RecentlyPlayedItem.VideoItem?>(null) }
+    val deleteFilesCheckbox = rememberSaveable { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
 
@@ -204,30 +220,13 @@ object YouScreen : Screen {
           totalCount = 0,
           onBackClick = null,
           onCancelSelection = {},
+          onSearchClick = {
+            backStack.add(SearchScreen())
+          },
           onSettingsClick = {
             backStack.add(PreferencesScreen)
           },
         )
-      },
-      floatingActionButton = {
-        if (recentItems.isNotEmpty()) {
-          FloatingActionButton(
-            modifier = Modifier.padding(bottom = navigationBarHeight + 8.dp),
-            onClick = {
-              val firstItem = recentItems.firstOrNull()
-              when (firstItem) {
-                is RecentlyPlayedItem.VideoItem -> MediaUtils.playFile(firstItem.video, context, "you_resume_button")
-                is RecentlyPlayedItem.PlaylistItem -> backStack.add(PlaylistDetailScreen(firstItem.playlist.id))
-                null -> {}
-              }
-            },
-          ) {
-            Icon(
-              imageVector = Icons.Filled.PlayArrow,
-              contentDescription = stringResource(R.string.play_recently_played_or_first),
-            )
-          }
-        }
       },
     ) { paddingValues ->
       PullRefreshBox(
@@ -249,7 +248,7 @@ object YouScreen : Screen {
           state = listState,
           modifier = Modifier.fillMaxSize(),
           contentPadding = PaddingValues(
-            bottom = navigationBarHeight + 96.dp,
+            bottom = navigationBarHeight + 16.dp,
           ),
           verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -265,7 +264,6 @@ object YouScreen : Screen {
               onHistoryClick = { backStack.add(RecentlyPlayedScreen) },
               onPlaylistsClick = { backStack.add(PlaylistScreen) },
               onNetworkClick = { backStack.add(NetworkStreamingScreen) },
-              onSettingsClick = { backStack.add(PreferencesScreen) },
             )
           }
 
@@ -309,20 +307,18 @@ object YouScreen : Screen {
                   }) { item ->
                     when (item) {
                       is RecentlyPlayedItem.VideoItem -> {
-                        VideoCard(
+                        RecentlyPlayedVideoShelfCard(
                           video = item.video,
-                          uiSettings = recentsUiSettings,
+                          progressPercentage = item.progress,
+                          isWatched = item.isWatched,
+                          isRecentlyPlayed = true,
+                          showThumbnails = recentsUiSettings.showVideoThumbnails,
                           onClick = {
                             MediaUtils.playFile(item.video, context, "you_tab")
                           },
                           onLongClick = {
                             activeVideoItem = item
                           },
-                          isGridMode = true,
-                          gridColumns = 2,
-                          progressPercentage = item.progress,
-                          isWatched = item.isWatched,
-                          isRecentlyPlayed = true,
                           modifier = Modifier.width(160.dp),
                         )
                       }
@@ -336,7 +332,7 @@ object YouScreen : Screen {
                           onLongClick = {
                             activePlaylist = item.playlist
                           },
-                          modifier = Modifier.width(150.dp),
+                          modifier = Modifier.width(160.dp),
                         )
                       }
                     }
@@ -479,11 +475,24 @@ object YouScreen : Screen {
       ModalBottomSheet(
         onDismissRequest = { activeVideoItem = null },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = {
+          Box(
+            modifier = Modifier
+              .padding(top = 16.dp, bottom = 10.dp)
+              .size(width = 36.dp, height = 4.dp)
+              .background(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                shape = CircleShape,
+              ),
+          )
+        },
       ) {
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = navigationBarHeight + 24.dp),
+            .padding(bottom = 12.dp),
         ) {
           Row(
             modifier = Modifier
@@ -568,9 +577,8 @@ object YouScreen : Screen {
               val itemToDelete = activeVideoItem
               activeVideoItem = null
               if (itemToDelete != null) {
-                scope.launch {
-                  recentsViewModel.deleteRecentItems(listOf(itemToDelete))
-                }
+                deleteFilesCheckbox.value = false
+                videoToDeleteFromRecents = itemToDelete
               }
             },
           )
@@ -584,11 +592,24 @@ object YouScreen : Screen {
       ModalBottomSheet(
         onDismissRequest = { activePlaylist = null },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = {
+          Box(
+            modifier = Modifier
+              .padding(top = 16.dp, bottom = 10.dp)
+              .size(width = 36.dp, height = 4.dp)
+              .background(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                shape = CircleShape,
+              ),
+          )
+        },
       ) {
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = navigationBarHeight + 24.dp),
+            .padding(bottom = 12.dp),
         ) {
           Row(
             modifier = Modifier
@@ -669,11 +690,24 @@ object YouScreen : Screen {
       ModalBottomSheet(
         onDismissRequest = { activeConnection = null },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = {
+          Box(
+            modifier = Modifier
+              .padding(top = 16.dp, bottom = 10.dp)
+              .size(width = 36.dp, height = 4.dp)
+              .background(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                shape = CircleShape,
+              ),
+          )
+        },
       ) {
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = navigationBarHeight + 24.dp),
+            .padding(bottom = 12.dp),
         ) {
           Row(
             modifier = Modifier
@@ -764,11 +798,24 @@ object YouScreen : Screen {
       ModalBottomSheet(
         onDismissRequest = { activeStreamUrl = null },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = {
+          Box(
+            modifier = Modifier
+              .padding(top = 16.dp, bottom = 10.dp)
+              .size(width = 36.dp, height = 4.dp)
+              .background(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                shape = CircleShape,
+              ),
+          )
+        },
       ) {
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = navigationBarHeight + 24.dp),
+            .padding(bottom = 12.dp),
         ) {
           Row(
             modifier = Modifier
@@ -966,6 +1013,64 @@ object YouScreen : Screen {
         },
       )
     }
+
+    // Recently Played Video Delete / Remove Confirmation Dialog
+    if (videoToDeleteFromRecents != null) {
+      val target = videoToDeleteFromRecents!!
+      val itemText = pluralStringResource(R.plurals.item_type_item_plural, 1)
+      val deleteFiles = deleteFilesCheckbox.value
+
+      val title = if (deleteFiles) {
+        stringResource(R.string.delete_files_title, 1, itemText)
+      } else {
+        stringResource(R.string.remove_from_history_title, 1, itemText)
+      }
+
+      val subtitle = if (deleteFiles) {
+        stringResource(R.string.delete_files_msg)
+      } else {
+        stringResource(R.string.remove_from_history_msg, itemText)
+      }
+
+      ConfirmDialog(
+        title = title,
+        subtitle = subtitle,
+        customContent = {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Checkbox(
+              checked = deleteFilesCheckbox.value,
+              onCheckedChange = {
+                deleteFilesCheckbox.value = it
+              },
+            )
+            Text(
+              text = stringResource(R.string.also_delete_files),
+              modifier = Modifier.padding(start = 8.dp),
+              style = MaterialTheme.typography.bodyMedium,
+            )
+          }
+        },
+        onConfirm = {
+          val toDelete = target
+          val shouldDeleteFiles = deleteFilesCheckbox.value
+          videoToDeleteFromRecents = null
+          deleteFilesCheckbox.value = false
+          scope.launch {
+            if (shouldDeleteFiles) {
+              PermissionUtils.StorageOps.deleteVideos(context, listOf(toDelete.video))
+            }
+            recentsViewModel.deleteRecentItems(listOf(toDelete))
+          }
+        },
+        onCancel = {
+          videoToDeleteFromRecents = null
+          deleteFilesCheckbox.value = false
+        },
+      )
+    }
   }
 
   /**
@@ -981,13 +1086,16 @@ object YouScreen : Screen {
   ) {
     Surface(
       onClick = onClick,
+      shape = RoundedCornerShape(12.dp),
       color = Color.Transparent,
-      modifier = modifier.fillMaxWidth(),
+      modifier = modifier
+        .fillMaxWidth()
+        .padding(horizontal = 12.dp, vertical = 2.dp),
     ) {
       Row(
         modifier = Modifier
           .fillMaxWidth()
-          .padding(horizontal = 20.dp, vertical = 14.dp),
+          .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
       ) {
@@ -1000,6 +1108,7 @@ object YouScreen : Screen {
         Text(
           text = label,
           style = MaterialTheme.typography.bodyLarge,
+          fontWeight = FontWeight.Normal,
           color = tint,
         )
       }
@@ -1017,7 +1126,6 @@ object YouScreen : Screen {
     onHistoryClick: () -> Unit,
     onPlaylistsClick: () -> Unit,
     onNetworkClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
   ) {
     Column(
@@ -1089,11 +1197,6 @@ object YouScreen : Screen {
           icon = Icons.Filled.Language,
           label = stringResource(R.string.network),
           onClick = onNetworkClick,
-        )
-        QuickActionChip(
-          icon = Icons.Filled.Settings,
-          label = stringResource(R.string.settings),
-          onClick = onSettingsClick,
         )
       }
     }
@@ -1168,6 +1271,152 @@ object YouScreen : Screen {
   }
 
   /**
+   * Compact card for recently played video in horizontal shelf
+   * Guarantees fixed dimensions to prevent layout shifts during horizontal scrolling
+   */
+  @OptIn(ExperimentalFoundationApi::class)
+  @Composable
+  private fun RecentlyPlayedVideoShelfCard(
+    video: Video,
+    progressPercentage: Float?,
+    isWatched: Boolean,
+    isRecentlyPlayed: Boolean,
+    showThumbnails: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+  ) {
+    val thumbnailRepository = koinInject<ThumbnailRepository>()
+    val density = LocalDensity.current
+    val thumbWidthDp = 160.dp
+    val aspect = 16f / 9f
+    val thumbWidthPx = with(density) { thumbWidthDp.roundToPx() }
+    val thumbHeightPx = (thumbWidthPx / aspect).roundToInt()
+
+    val thumbnailKey = remember(video.id, video.dateModified, video.size, thumbWidthPx, thumbHeightPx) {
+      thumbnailRepository.thumbnailKey(video, thumbWidthPx, thumbHeightPx)
+    }
+
+    var thumbnail by remember(thumbnailKey) {
+      mutableStateOf(thumbnailRepository.getThumbnailFromMemory(video, thumbWidthPx, thumbHeightPx))
+    }
+
+    LaunchedEffect(thumbnailKey) {
+      thumbnailRepository.thumbnailReadyKeys.filter { it == thumbnailKey }.collect {
+        thumbnail = thumbnailRepository.getThumbnailFromMemory(video, thumbWidthPx, thumbHeightPx)
+      }
+    }
+
+    LaunchedEffect(thumbnailKey, showThumbnails) {
+      if (thumbnail == null && showThumbnails) {
+        thumbnail = withContext(Dispatchers.IO) {
+          thumbnailRepository.getThumbnail(video, thumbWidthPx, thumbHeightPx)
+        }
+      }
+    }
+
+    Card(
+      modifier = modifier
+        .height(148.dp)
+        .clip(RoundedCornerShape(10.dp))
+        .combinedClickable(
+          onClick = onClick,
+          onLongClick = onLongClick,
+        ),
+      shape = RoundedCornerShape(10.dp),
+      colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    ) {
+      Column(
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        // 16:9 Thumbnail Box
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+          contentAlignment = Alignment.Center,
+        ) {
+          if (showThumbnails && thumbnail != null) {
+            Image(
+              bitmap = thumbnail!!.asImageBitmap(),
+              contentDescription = null,
+              modifier = Modifier.fillMaxSize(),
+              contentScale = ContentScale.Crop,
+            )
+          } else {
+            Icon(
+              imageVector = if (video.isAudio) Icons.Filled.MusicNote else Icons.Filled.PlayArrow,
+              contentDescription = null,
+              modifier = Modifier.size(36.dp),
+              tint = MaterialTheme.colorScheme.secondary,
+            )
+          }
+
+          // Progress Bar
+          if (progressPercentage != null && !isWatched) {
+            LinearProgressIndicator(
+              progress = { progressPercentage },
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp)),
+              color = MaterialTheme.colorScheme.primary,
+              trackColor = Color.Black.copy(alpha = 0.35f),
+            )
+          }
+
+          // Duration overlay
+          if (video.durationFormatted.isNotBlank() && video.durationFormatted != "--:--" && video.durationFormatted != "00:00") {
+            Surface(
+              shape = RoundedCornerShape(4.dp),
+              color = Color.Black.copy(alpha = 0.72f),
+              contentColor = Color.White,
+              modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(4.dp),
+            ) {
+              Text(
+                text = video.durationFormatted,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+              )
+            }
+          }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Fixed height text container guarantees NO jumping effect on horizontal scroll
+        Column(
+          modifier = Modifier
+            .height(44.dp)
+            .padding(horizontal = 2.dp),
+          verticalArrangement = Arrangement.Center,
+        ) {
+          val shouldHighlight = isRecentlyPlayed && !isWatched
+          Text(
+            text = video.displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (shouldHighlight) FontWeight.Bold else FontWeight.SemiBold,
+            color = when {
+              shouldHighlight -> MaterialTheme.colorScheme.primary
+              isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+              else -> MaterialTheme.colorScheme.onSurface
+            },
+            minLines = 2,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+          )
+        }
+      }
+    }
+  }
+
+  /**
    * Compact card for playlist in horizontal shelf
    */
   @OptIn(ExperimentalFoundationApi::class)
@@ -1181,6 +1430,7 @@ object YouScreen : Screen {
   ) {
     Card(
       modifier = modifier
+        .height(148.dp)
         .clip(RoundedCornerShape(12.dp))
         .combinedClickable(
           onClick = onClick,
@@ -1228,20 +1478,25 @@ object YouScreen : Screen {
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        Text(
-          text = playlist.name,
-          style = MaterialTheme.typography.bodyMedium,
-          fontWeight = FontWeight.SemiBold,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          color = MaterialTheme.colorScheme.onSurface,
-        )
+        Column(
+          modifier = Modifier.height(44.dp),
+          verticalArrangement = Arrangement.Center,
+        ) {
+          Text(
+            text = playlist.name,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface,
+          )
 
-        Text(
-          text = if (playlist.isM3uPlaylist) "Network" else "Local",
-          style = MaterialTheme.typography.labelSmall,
-          color = MaterialTheme.colorScheme.outline,
-        )
+          Text(
+            text = if (playlist.isM3uPlaylist) "Network" else "Local",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+          )
+        }
       }
     }
   }

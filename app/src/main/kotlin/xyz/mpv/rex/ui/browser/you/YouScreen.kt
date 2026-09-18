@@ -3,6 +3,7 @@ package xyz.mpv.rex.ui.browser.you
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -73,6 +74,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.unit.sp
+import xyz.mpv.rex.ui.theme.pillShape
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.LinearProgressIndicator
@@ -818,12 +823,15 @@ object YouScreen : Screen {
     onPlaylistsClick: () -> Unit,
     modifier: Modifier = Modifier,
   ) {
+    val haptic = LocalHapticFeedback.current
+
     Column(
       modifier = modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
+        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 2.dp),
+      verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+      // Profile Info Row
       Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -843,13 +851,19 @@ object YouScreen : Screen {
           }
         }
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+          modifier = Modifier.weight(1f),
+          verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
           Text(
             text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
           )
+
           val stats = buildList {
             if (recentCount > 0) add("$recentCount recent")
             if (playlistCount > 0) add("$playlistCount ${if (playlistCount == 1) "playlist" else "playlists"}")
@@ -858,36 +872,40 @@ object YouScreen : Screen {
           if (stats.isNotBlank()) {
             Text(
               text = stats,
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.outline,
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
         }
       }
 
-      // Quick action shortcut buttons
+      // Quick action shortcut buttons (compact and fit in without horizontal overflow)
       Row(
-        modifier = Modifier
-          .fillMaxWidth()
-          .horizontalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        QuickActionChip(
+        CompactQuickActionChip(
           icon = Icons.Filled.History,
           label = stringResource(R.string.recently_played),
-          onClick = onHistoryClick,
+          onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onHistoryClick()
+          },
         )
-        QuickActionChip(
+        CompactQuickActionChip(
           icon = Icons.AutoMirrored.Filled.PlaylistPlay,
           label = stringResource(R.string.playlists),
-          onClick = onPlaylistsClick,
+          onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onPlaylistsClick()
+          },
         )
       }
     }
   }
 
   @Composable
-  private fun QuickActionChip(
+  private fun CompactQuickActionChip(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
@@ -895,18 +913,31 @@ object YouScreen : Screen {
   ) {
     Surface(
       onClick = onClick,
-      shape = RoundedCornerShape(10.dp),
+      shape = pillShape,
       color = MaterialTheme.colorScheme.surfaceContainerHigh,
+      border = BorderStroke(
+        width = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+      ),
       contentColor = MaterialTheme.colorScheme.onSurface,
-      modifier = modifier,
+      modifier = modifier.height(34.dp),
     ) {
       Row(
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
       ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium)
+        Icon(
+          imageVector = icon,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.size(16.dp),
+        )
+        Text(
+          text = label,
+          style = MaterialTheme.typography.labelMedium,
+          fontWeight = FontWeight.Medium,
+        )
       }
     }
   }
@@ -923,7 +954,7 @@ object YouScreen : Screen {
     Row(
       modifier = modifier
         .fillMaxWidth()
-        .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
+        .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 2.dp),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.SpaceBetween,
     ) {

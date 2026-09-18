@@ -40,6 +40,8 @@ class AppearancePreferences(
   val communityAlreadyJoinedTimestamp = preferenceStore.getLong("community_already_joined_timestamp", 0L)
 
   val showHiddenFiles = preferenceStore.getBoolean("show_hidden_files", false)
+  val customProfileName = preferenceStore.getString("custom_profile_name", "")
+  val customProfileImagePath = preferenceStore.getString("custom_profile_image_path", "")
   val showUnplayedOldVideoLabel = preferenceStore.getBoolean("show_unplayed_old_video_label", true)
   val unplayedOldVideoDays = preferenceStore.getInt("unplayed_old_video_days", 7)
   val showNetworkThumbnails = preferenceStore.getBoolean("show_network_thumbnails", false)

@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +56,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.res.pluralStringResource
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.graphics.ImageBitmap
+import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.presentation.components.ConfirmDialog
 import xyz.mpv.rex.presentation.components.pullrefresh.PullRefreshBox
 import xyz.mpv.rex.utils.permission.PermissionUtils
@@ -134,8 +150,24 @@ object YouScreen : Screen {
     val scope = rememberCoroutineScope()
     val browserPreferences = koinInject<BrowserPreferences>()
     val advancedPreferences = koinInject<AdvancedPreferences>()
+    val appearancePreferences = koinInject<AppearancePreferences>()
     val playlistRepository = koinInject<PlaylistRepository>()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
+    val customProfileName by appearancePreferences.customProfileName.collectAsState()
+    val customProfileImagePath by appearancePreferences.customProfileImagePath.collectAsState()
+
+    val customAvatarBitmap = remember(customProfileImagePath) {
+      if (customProfileImagePath.isNotBlank()) {
+        val file = java.io.File(customProfileImagePath)
+        if (file.exists()) {
+          try {
+            BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+          } catch (e: Exception) {
+            null
+          }
+        } else null
+      } else null
+    }
     val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
     val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
     val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
@@ -168,6 +200,7 @@ object YouScreen : Screen {
     var playlistToDelete by remember { mutableStateOf<PlaylistEntity?>(null) }
     var videoToDeleteFromRecents by remember { mutableStateOf<RecentlyPlayedItem.VideoItem?>(null) }
     val deleteFilesCheckbox = rememberSaveable { mutableStateOf(false) }
+    var showProfileCustomizationDialog by rememberSaveable { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
 
@@ -230,6 +263,11 @@ object YouScreen : Screen {
           // ==========================================
           item(key = "profile_header") {
             YouProfileHeader(
+              name = customProfileName,
+              avatarBitmap = customAvatarBitmap,
+              onAvatarLongClick = {
+                showProfileCustomizationDialog = true
+              },
               recentCount = recentItems.size,
               playlistCount = playlistsWithCount.size,
               onHistoryClick = { backStack.add(RecentlyPlayedScreen) },
@@ -768,6 +806,21 @@ object YouScreen : Screen {
         },
       )
     }
+
+    // Profile Customization Dialog (Easter Egg)
+    if (showProfileCustomizationDialog) {
+      ProfileCustomizationDialog(
+        initialName = customProfileName,
+        currentImagePath = customProfileImagePath,
+        currentImageBitmap = customAvatarBitmap,
+        onDismissRequest = { showProfileCustomizationDialog = false },
+        onSave = { newName, newImagePath ->
+          appearancePreferences.customProfileName.set(newName)
+          appearancePreferences.customProfileImagePath.set(newImagePath)
+          showProfileCustomizationDialog = false
+        },
+      )
+    }
   }
 
   /**
@@ -815,8 +868,12 @@ object YouScreen : Screen {
   /**
    * Top Profile & Quick Actions header for 'You' tab
    */
+  @OptIn(ExperimentalFoundationApi::class)
   @Composable
   private fun YouProfileHeader(
+    name: String,
+    avatarBitmap: ImageBitmap?,
+    onAvatarLongClick: () -> Unit,
     recentCount: Int,
     playlistCount: Int,
     onHistoryClick: () -> Unit,
@@ -839,15 +896,38 @@ object YouScreen : Screen {
         Surface(
           shape = CircleShape,
           color = MaterialTheme.colorScheme.primaryContainer,
-          modifier = Modifier.size(52.dp),
+          modifier = Modifier
+            .size(52.dp)
+            .clip(CircleShape)
+            .border(
+              width = 1.dp,
+              color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+              shape = CircleShape,
+            )
+            .combinedClickable(
+              onClick = {},
+              onLongClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onAvatarLongClick()
+              },
+            ),
         ) {
           Box(contentAlignment = Alignment.Center) {
-            Icon(
-              imageVector = Icons.Filled.AccountCircle,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.onPrimaryContainer,
-              modifier = Modifier.size(36.dp),
-            )
+            if (avatarBitmap != null) {
+              Image(
+                bitmap = avatarBitmap,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+              )
+            } else {
+              Icon(
+                imageVector = Icons.Filled.AccountCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(36.dp),
+              )
+            }
           }
         }
 
@@ -856,7 +936,7 @@ object YouScreen : Screen {
           verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
           Text(
-            text = stringResource(R.string.app_name),
+            text = name.ifBlank { stringResource(R.string.app_name) },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -1262,5 +1342,240 @@ object YouScreen : Screen {
         }
       }
     }
+  }
+
+  @Composable
+  private fun ProfileCustomizationDialog(
+    initialName: String,
+    currentImagePath: String,
+    currentImageBitmap: ImageBitmap?,
+    onDismissRequest: () -> Unit,
+    onSave: (newName: String, newImagePath: String) -> Unit,
+  ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var nameText by rememberSaveable { mutableStateOf(initialName) }
+    var selectedBitmap by remember { mutableStateOf(currentImageBitmap) }
+    var tempCopiedFile by remember { mutableStateOf<java.io.File?>(null) }
+    var isImageRemoved by remember { mutableStateOf(false) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.GetContent(),
+    ) { uri: Uri? ->
+      if (uri != null) {
+        scope.launch(Dispatchers.IO) {
+          try {
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+              val original = BitmapFactory.decodeStream(inputStream)
+              if (original != null) {
+                val maxDim = 512
+                val width = original.width
+                val height = original.height
+                val scale = maxDim.toFloat() / maxOf(width, height)
+                val targetWidth = if (scale < 1f) (width * scale).roundToInt().coerceAtLeast(1) else width
+                val targetHeight = if (scale < 1f) (height * scale).roundToInt().coerceAtLeast(1) else height
+                val scaled = Bitmap.createScaledBitmap(original, targetWidth, targetHeight, true)
+
+                val tempFile = java.io.File(context.cacheDir, "temp_avatar_${System.currentTimeMillis()}.png")
+                tempFile.outputStream().use { out ->
+                  scaled.compress(Bitmap.CompressFormat.PNG, 95, out)
+                }
+                withContext(Dispatchers.Main) {
+                  selectedBitmap = scaled.asImageBitmap()
+                  tempCopiedFile = tempFile
+                  isImageRemoved = false
+                }
+              }
+            }
+          } catch (e: Exception) {
+            e.printStackTrace()
+          }
+        }
+      }
+    }
+
+    AlertDialog(
+      onDismissRequest = {
+        tempCopiedFile?.delete()
+        onDismissRequest()
+      },
+      title = {
+        Text(
+          text = "Customize Profile",
+          style = MaterialTheme.typography.titleLarge,
+          fontWeight = FontWeight.Bold,
+        )
+      },
+      text = {
+        Column(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+          // Avatar preview with click to change
+          Box(
+            contentAlignment = Alignment.BottomEnd,
+          ) {
+            Surface(
+              shape = CircleShape,
+              color = MaterialTheme.colorScheme.primaryContainer,
+              modifier = Modifier
+                .size(88.dp)
+                .clip(CircleShape)
+                .border(
+                  width = 1.5.dp,
+                  color = MaterialTheme.colorScheme.outlineVariant,
+                  shape = CircleShape,
+                )
+                .clickable {
+                  photoPickerLauncher.launch("image/*")
+                },
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                if (selectedBitmap != null) {
+                  Image(
+                    bitmap = selectedBitmap!!,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                  )
+                } else {
+                  Icon(
+                    imageVector = Icons.Filled.AccountCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(60.dp),
+                  )
+                }
+              }
+            }
+
+            // Small badge on bottom-right of avatar
+            Surface(
+              shape = CircleShape,
+              color = MaterialTheme.colorScheme.primary,
+              contentColor = MaterialTheme.colorScheme.onPrimary,
+              modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .clickable {
+                  photoPickerLauncher.launch("image/*")
+                },
+              shadowElevation = 2.dp,
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Filled.AddPhotoAlternate,
+                  contentDescription = null,
+                  modifier = Modifier.size(16.dp),
+                )
+              }
+            }
+          }
+
+          // Action buttons row for image (Choose / Remove)
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            OutlinedButton(
+              onClick = { photoPickerLauncher.launch("image/*") },
+              contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+              Icon(
+                imageVector = Icons.Filled.AddPhotoAlternate,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(if (selectedBitmap != null) "Change Photo" else "Choose Photo")
+            }
+
+            if (selectedBitmap != null) {
+              TextButton(
+                onClick = {
+                  selectedBitmap = null
+                  tempCopiedFile?.delete()
+                  tempCopiedFile = null
+                  isImageRemoved = true
+                },
+                colors = ButtonDefaults.textButtonColors(
+                  contentColor = MaterialTheme.colorScheme.error,
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+              ) {
+                Icon(
+                  imageVector = Icons.Filled.DeleteOutline,
+                  contentDescription = null,
+                  modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Remove")
+              }
+            }
+          }
+
+          // Display name text field
+          OutlinedTextField(
+            value = nameText,
+            onValueChange = { nameText = it },
+            label = { Text(stringResource(R.string.name)) },
+            placeholder = { Text(stringResource(R.string.app_name)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+              if (nameText.isNotEmpty()) {
+                IconButton(onClick = { nameText = "" }) {
+                  Icon(
+                    imageVector = Icons.Filled.Clear,
+                    contentDescription = "Clear",
+                  )
+                }
+              }
+            },
+          )
+        }
+      },
+      confirmButton = {
+        Button(
+          onClick = {
+            scope.launch(Dispatchers.IO) {
+              val finalPath = when {
+                tempCopiedFile != null -> {
+                  // Delete existing avatar files
+                  context.filesDir.listFiles { file -> file.name.startsWith("custom_profile_avatar") }?.forEach { it.delete() }
+                  val permanentFile = java.io.File(context.filesDir, "custom_profile_avatar_${System.currentTimeMillis()}.png")
+                  tempCopiedFile!!.copyTo(permanentFile, overwrite = true)
+                  tempCopiedFile!!.delete()
+                  permanentFile.absolutePath
+                }
+                isImageRemoved -> {
+                  context.filesDir.listFiles { file -> file.name.startsWith("custom_profile_avatar") }?.forEach { it.delete() }
+                  ""
+                }
+                else -> currentImagePath
+              }
+              withContext(Dispatchers.Main) {
+                onSave(nameText.trim(), finalPath)
+              }
+            }
+          },
+        ) {
+          Text(stringResource(R.string.save))
+        }
+      },
+      dismissButton = {
+        TextButton(
+          onClick = {
+            tempCopiedFile?.delete()
+            onDismissRequest()
+          },
+        ) {
+          Text(stringResource(R.string.generic_cancel))
+        }
+      },
+    )
   }
 }

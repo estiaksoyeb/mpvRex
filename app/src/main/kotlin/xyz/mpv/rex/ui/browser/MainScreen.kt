@@ -12,8 +12,15 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.AccountCircle
@@ -165,6 +172,7 @@ object MainScreen : Screen {
     val density = LocalDensity.current
     val haptic = LocalHapticFeedback.current
     val browserPreferences = koinInject<BrowserPreferences>()
+    val appearancePreferences = koinInject<AppearancePreferences>()
     val miniPlayerStateManager = koinInject<MiniPlayerStateManager>()
     val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val isShortsEnabled by browserPreferences.enableShorts.collectAsState()
@@ -172,6 +180,20 @@ object MainScreen : Screen {
     val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
     val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
     val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
+    val customProfileImagePath by appearancePreferences.customProfileImagePath.collectAsState()
+
+    val customAvatarBitmap = remember(customProfileImagePath) {
+      if (customProfileImagePath.isNotBlank()) {
+        val file = java.io.File(customProfileImagePath)
+        if (file.exists()) {
+          try {
+            android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+          } catch (e: Exception) {
+            null
+          }
+        } else null
+      } else null
+    }
 
     val homeLabel = stringResource(R.string.home)
     val shortsLabel = stringResource(R.string.shorts)
@@ -266,7 +288,6 @@ object MainScreen : Screen {
     }
 
     // Community Hub auto-popup: Phase 1 (initial 1 min test threshold) / Phase 2 (15 days after "Already joined")
-    val appearancePreferences = koinInject<AppearancePreferences>()
     val isCommunityPromptPermanentlyDismissed by appearancePreferences.communityPromptDismissedPermanently.collectAsState()
     val firstOpenTimestamp by appearancePreferences.communityFirstAppOpenTimestamp.collectAsState()
     val alreadyJoinedTimestamp by appearancePreferences.communityAlreadyJoinedTimestamp.collectAsState()
@@ -359,8 +380,27 @@ object MainScreen : Screen {
               }
 
               visibleTabs.forEachIndexed { index, tab ->
+                val isYouTabWithCustomAvatar = tab.id == "you" && customAvatarBitmap != null
                 NavigationBarItem(
-                  icon = { Icon(tab.icon, contentDescription = tab.label) },
+                  icon = {
+                    if (isYouTabWithCustomAvatar) {
+                      Image(
+                        bitmap = customAvatarBitmap!!,
+                        contentDescription = tab.label,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                          .size(24.dp)
+                          .clip(CircleShape)
+                          .border(
+                            width = if (selectedTab == index) 1.5.dp else 1.dp,
+                            color = if (selectedTab == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            shape = CircleShape,
+                          ),
+                      )
+                    } else {
+                      Icon(tab.icon, contentDescription = tab.label)
+                    }
+                  },
                   label = { Text(tab.label) },
                   selected = selectedTab == index,
                   onClick = {

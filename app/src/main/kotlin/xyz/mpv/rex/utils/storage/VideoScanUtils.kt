@@ -174,6 +174,91 @@ object VideoScanUtils {
     }
 
     /**
+     * Retrieves the most recently added videos directly from MediaStore.
+     */
+    suspend fun getRecentlyAddedVideos(context: Context, limit: Int = 50): List<Video> = withContext(Dispatchers.IO) {
+        val videos = mutableListOf<Video>()
+        val projection = arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DURATION,
+            MediaStore.Video.Media.DATE_MODIFIED,
+            MediaStore.Video.Media.DATE_ADDED,
+            MediaStore.Video.Media.MIME_TYPE,
+            MediaStore.Video.Media.WIDTH,
+            MediaStore.Video.Media.HEIGHT
+        )
+
+        val sortOrder = "${MediaStore.Video.Media.DATE_ADDED} DESC"
+
+        try {
+            context.contentResolver.query(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                null,
+                null,
+                sortOrder
+            )?.use { cursor ->
+                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
+                val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+                val durCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+                val modCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
+                val addCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+                val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
+                val widthCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
+                val heightCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
+
+                while (cursor.moveToNext() && videos.size < limit) {
+                    val path = cursor.getString(dataCol) ?: continue
+                    val file = File(path)
+                    if (!file.exists() || !file.isFile) continue
+
+                    val id = cursor.getLong(idCol)
+                    val name = cursor.getString(nameCol) ?: file.name
+                    val size = cursor.getLong(sizeCol)
+                    val duration = cursor.getLong(durCol)
+                    val dateModified = cursor.getLong(modCol)
+                    val dateAdded = cursor.getLong(addCol)
+                    val mimeType = cursor.getString(mimeCol) ?: "video/*"
+                    val width = cursor.getInt(widthCol)
+                    val height = cursor.getInt(heightCol)
+
+                    videos.add(
+                        Video(
+                            id = id,
+                            title = file.nameWithoutExtension,
+                            displayName = name,
+                            path = path,
+                            uri = Uri.fromFile(file),
+                            duration = duration,
+                            durationFormatted = MediaFormatter.formatDuration(duration),
+                            size = size,
+                            sizeFormatted = MediaFormatter.formatFileSize(size),
+                            dateModified = dateModified,
+                            dateAdded = dateAdded,
+                            mimeType = mimeType,
+                            bucketId = file.parent ?: "",
+                            bucketDisplayName = file.parentFile?.name ?: "",
+                            width = width,
+                            height = height,
+                            fps = 0f,
+                            resolution = MediaFormatter.formatResolution(width, height),
+                            isAudio = false
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying recently added videos from MediaStore", e)
+        }
+        videos
+    }
+
+    /**
      * Get all videos and audio in a specific folder.
      * MediaStore remains the fast source and direct storage reconciles it when allowed.
      */

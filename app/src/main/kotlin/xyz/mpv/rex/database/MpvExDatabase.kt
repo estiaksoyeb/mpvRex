@@ -17,6 +17,8 @@ import xyz.mpv.rex.database.entities.PlaybackStateEntity
 import xyz.mpv.rex.database.entities.PlaylistEntity
 import xyz.mpv.rex.database.entities.PlaylistItemEntity
 import xyz.mpv.rex.database.entities.RecentlyPlayedEntity
+import xyz.mpv.rex.database.dao.MediaPlayCountDao
+import xyz.mpv.rex.database.entities.MediaPlayCountEntity
 import xyz.mpv.rex.database.entities.ShortsMediaEntity
 import xyz.mpv.rex.database.entities.VideoMetadataEntity
 import xyz.mpv.rex.domain.network.NetworkConnection
@@ -32,8 +34,9 @@ import xyz.mpv.rex.domain.network.NetworkConnection
     ShortsMediaEntity::class,
     HybridMediaEntity::class,
     HybridMediaRootEntity::class,
+    MediaPlayCountEntity::class,
   ],
-  version = 17,
+  version = 18,
   exportSchema = true,
 )
 @TypeConverters(NetworkProtocolConverter::class)
@@ -51,4 +54,6 @@ abstract class MpvExDatabase : RoomDatabase() {
   abstract fun shortsMediaDao(): ShortsMediaDao
 
   abstract fun hybridMediaDao(): HybridMediaDao
+
+  abstract fun mediaPlayCountDao(): MediaPlayCountDao
 }

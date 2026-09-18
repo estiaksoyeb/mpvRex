@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import xyz.mpv.rex.database.MpvExDatabase
+import xyz.mpv.rex.database.repository.MediaPlayCountRepository
 import xyz.mpv.rex.database.repository.PlaybackStateRepositoryImpl
 import xyz.mpv.rex.database.repository.PlaylistRepository
 import xyz.mpv.rex.database.repository.RecentlyPlayedRepositoryImpl
@@ -560,6 +561,21 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
   }
 }
 
+val MIGRATION_17_18 = object : Migration(17, 18) {
+  override fun migrate(db: SupportSQLiteDatabase) {
+    db.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS `media_play_counts` (
+        `filePath` TEXT NOT NULL,
+        `playCount` INTEGER NOT NULL DEFAULT 1,
+        `lastPlayedAt` INTEGER NOT NULL,
+        PRIMARY KEY(`filePath`)
+      )
+      """.trimIndent(),
+    )
+  }
+}
+
 val DatabaseModule =
   module {
     single<Json> {
@@ -574,7 +590,7 @@ val DatabaseModule =
       Room
         .databaseBuilder(context, MpvExDatabase::class.java, "mpvex.db")
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
         .fallbackToDestructiveMigration(false) // This is now safe
         .build()
     }
@@ -625,4 +641,10 @@ val DatabaseModule =
         playlistDao = get<MpvExDatabase>().playlistDao(),
       )
     }
+
+    single {
+      get<MpvExDatabase>().mediaPlayCountDao()
+    }
+
+    singleOf(::MediaPlayCountRepository)
   }

@@ -273,8 +273,10 @@ fun PlaylistCard(
       }
     },
     chipsContent = if (isGridMode) null else ({
-      val chipText = if (playlist.isM3uPlaylist) "Network" else "Local"
-      val (chipColor, chipBgColor) = if (playlist.isM3uPlaylist) {
+      val chipText = if (playlist.id < 0) "Auto" else if (playlist.isM3uPlaylist) "Network" else "Local"
+      val (chipColor, chipBgColor) = if (playlist.id < 0) {
+        MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.secondaryContainer
+      } else if (playlist.isM3uPlaylist) {
         MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.tertiaryContainer
       } else {
         MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.primaryContainer

@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -79,6 +80,7 @@ import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.dialogs.DeleteConfirmationDialog
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
+import xyz.mpv.rex.ui.browser.sheets.AutoPlaylistsSheet
 import xyz.mpv.rex.ui.browser.sheets.PlaylistActionSheet
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
@@ -131,9 +133,12 @@ object PlaylistScreen : Screen {
       }
     }
 
-    // Selection manager - use filtered list
+    // Selection manager - use user-manageable playlists only
+    val selectablePlaylists = remember(filteredPlaylists) {
+      filteredPlaylists.filter { !it.isAutoPlaylist && it.playlist.id >= 0 }
+    }
     val selectionManager = rememberSelectionManager(
-      items = filteredPlaylists,
+      items = selectablePlaylists,
       getId = { it.playlist.id },
       onDeleteItems = { itemsToDelete, _ ->
         // Delete all items sequentially
@@ -171,6 +176,7 @@ object PlaylistScreen : Screen {
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     // Playlist action sheet state
     var showPlaylistActionSheet by remember { mutableStateOf(false) }
+    var showAutoPlaylistsSheet by rememberSaveable { mutableStateOf(false) }
 
     // FAB visibility for scroll-based hiding
     val isFabVisible = remember { mutableStateOf(true) }
@@ -274,6 +280,13 @@ object PlaylistScreen : Screen {
               onSelectAll = { selectionManager.selectAll() },
               onInvertSelection = { selectionManager.invertSelection() },
               onDeselectAll = { selectionManager.clear() },
+              normalOverflowActions = listOf(
+                xyz.mpv.rex.ui.browser.components.SelectionOverflowAction(
+                  icon = Icons.Filled.AutoAwesome,
+                  label = stringResource(R.string.auto_playlists),
+                  onClick = { showAutoPlaylistsSheet = true },
+                ),
+              ),
             )
           }
         },
@@ -332,13 +345,17 @@ object PlaylistScreen : Screen {
             selectionManager = selectionManager,
             onPlaylistClick = { playlistWithCount ->
               if (selectionManager.isInSelectionMode) {
-                selectionManager.toggle(playlistWithCount)
+                if (!playlistWithCount.isAutoPlaylist && playlistWithCount.playlist.id >= 0) {
+                  selectionManager.toggle(playlistWithCount)
+                }
               } else {
                 backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
               }
             },
             onPlaylistLongClick = { playlistWithCount ->
-              selectionManager.handleLongClick(playlistWithCount)
+              if (!playlistWithCount.isAutoPlaylist && playlistWithCount.playlist.id >= 0) {
+                selectionManager.handleLongClick(playlistWithCount)
+              }
             },
             modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
             isInSelectionMode = selectionManager.isInSelectionMode,
@@ -428,6 +445,11 @@ object PlaylistScreen : Screen {
           itemNames = selectionManager.getSelectedItems().map { it.playlist.name },
         )
       }
+
+      AutoPlaylistsSheet(
+        isOpen = showAutoPlaylistsSheet,
+        onDismiss = { showAutoPlaylistsSheet = false },
+      )
     }
   }
 

@@ -30,7 +30,8 @@ class HistoryManager(
     private val recentlyPlayedRepository: RecentlyPlayedRepository,
     private val playbackStateRepository: PlaybackStateRepository,
     private val advancedPreferences: AdvancedPreferences,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val mediaPlayCountRepository: xyz.mpv.rex.database.repository.MediaPlayCountRepository? = org.koin.core.context.GlobalContext.getOrNull()?.getOrNull(),
 ) {
     companion object {
         private const val TAG = "HistoryManager"
@@ -45,7 +46,6 @@ class HistoryManager(
         launchSource: String,
         playlistId: Int? = null
     ) {
-        if (!advancedPreferences.enableRecentlyPlayed.get()) return
         val isExternalOrShare = launchSource == "share" || launchSource == "open_file" || launchSource == "external"
         if (isExternalOrShare && advancedPreferences.excludeExternalPlaybackFromHistory.get()) {
             Log.d(TAG, "recordPlaybackStart: skipping history for external/share launchSource=$launchSource")
@@ -58,6 +58,12 @@ class HistoryManager(
                 Log.d(TAG, "recordPlaybackStart: uri=$uri, resolvedPath=$filePath, source=$launchSource")
                 if (shouldSkipHistory(filePath)) {
                     Log.d(TAG, "recordPlaybackStart: skipping history for $filePath")
+                    return@launch
+                }
+
+                mediaPlayCountRepository?.incrementPlayCount(filePath)
+
+                if (!advancedPreferences.enableRecentlyPlayed.get()) {
                     return@launch
                 }
 

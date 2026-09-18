@@ -17,7 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -32,6 +35,7 @@ import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
+import xyz.mpv.rex.ui.browser.sheets.AutoPlaylistsSheet
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +63,7 @@ object MediaLibraryPreferencesScreen : Screen {
     val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
     val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
     val libraryScanRoots by foldersPreferences.libraryScanRoots.collectAsState()
+    var showAutoPlaylistsSheet by remember { mutableStateOf(false) }
 
     Scaffold(
       topBar = {
@@ -123,7 +128,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
-                position = GroupPosition.LAST,
+                position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_show_audio_files_title,
               ) {
                 SwitchPreference(
@@ -139,6 +144,22 @@ object MediaLibraryPreferencesScreen : Screen {
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.auto_playlists,
+              ) {
+                Preference(
+                  title = { Text(text = stringResource(R.string.auto_playlists)) },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.auto_playlists_desc),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = { showAutoPlaylistsSheet = true },
                 )
               }
             }
@@ -241,6 +262,11 @@ object MediaLibraryPreferencesScreen : Screen {
           }
         }
       }
+
+      AutoPlaylistsSheet(
+        isOpen = showAutoPlaylistsSheet,
+        onDismiss = { showAutoPlaylistsSheet = false },
+      )
     }
   }
 }

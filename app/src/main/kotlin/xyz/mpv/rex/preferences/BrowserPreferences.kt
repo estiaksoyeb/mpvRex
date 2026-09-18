@@ -78,6 +78,10 @@ class BrowserPreferences(
   val enableTabPlaylists = preferenceStore.getBoolean("enable_tab_playlists", true)
   val enableTabNetwork = preferenceStore.getBoolean("enable_tab_network", true)
   val playedNetworkLinks = preferenceStore.getString("played_network_links", "")
+
+  // Auto-playlist preferences
+  val showRecentlyAddedPlaylist = preferenceStore.getBoolean("show_recently_added_playlist", true)
+  val showMostPlayedPlaylist = preferenceStore.getBoolean("show_most_played_playlist", true)
 }
 
 /**

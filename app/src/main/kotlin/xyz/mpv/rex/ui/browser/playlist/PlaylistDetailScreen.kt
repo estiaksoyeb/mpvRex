@@ -125,6 +125,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
       )
 
     val playlist by viewModel.playlist.collectAsState()
+    val isAutoPlaylist = playlistId < 0
     val videoItems by viewModel.videoItems.collectAsState()
     val videos = videoItems.map { it.video }
     val isLoading by viewModel.isLoading.collectAsState()
@@ -298,7 +299,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                   },
                 ))
               }
-              if (selectionManager.isSingleSelection) {
+              if (!isAutoPlaylist && selectionManager.isSingleSelection) {
                 val selected = selectionManager.getSelectedItems().firstOrNull()
                 val isCurrentThumbnail = selected?.video?.path != null && selected.video.path == playlist?.customThumbnailPath
                 if (isCurrentThumbnail) {
@@ -333,7 +334,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },
             onDeselectAll = { selectionManager.clear() },
-            onDeleteClick = { deleteDialogOpen.value = true },
+            onDeleteClick = if (isAutoPlaylist) null else ({ deleteDialogOpen.value = true }),
             additionalActions = {
               when {
                 // Show done button when in reorder mode
@@ -365,8 +366,8 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                     }
                     Spacer(modifier = Modifier.width(4.dp))
 
-                    // Reorder button (hide for M3U playlists)
-                    if (playlist?.isM3uPlaylist != true) {
+                    // Reorder button (hide for M3U playlists and auto playlists)
+                    if (playlist?.isM3uPlaylist != true && !isAutoPlaylist) {
                       IconButton(
                         onClick = { isReorderMode = true },
                       ) {
@@ -419,8 +420,8 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                               videos = videos,
                               startIndex = startIndex,
                               context = context,
-                              launchSource = "playlist",
-                              playlistId = playlistId
+                              launchSource = if (isAutoPlaylist) "auto_playlist" else "playlist",
+                              playlistId = if (isAutoPlaylist) null else playlistId
                             )
                           }
                         }
@@ -541,8 +542,8 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                       videos = videos,
                       startIndex = startIndex,
                       context = context,
-                      launchSource = "playlist",
-                      playlistId = playlistId
+                      launchSource = if (isAutoPlaylist) "auto_playlist" else "playlist",
+                      playlistId = if (isAutoPlaylist) null else playlistId
                     )
                   }
                 } else {

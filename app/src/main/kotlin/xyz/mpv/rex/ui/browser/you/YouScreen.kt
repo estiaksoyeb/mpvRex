@@ -341,14 +341,14 @@ object YouScreen : Screen {
               Column(
                 modifier = Modifier
                   .fillMaxWidth()
-                  .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                  .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
               ) {
                 val chunkedPlaylists = previewPlaylists.chunked(folderGridColumns)
                 for (rowItems in chunkedPlaylists) {
                   Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                   ) {
                     for (playlistWithCount in rowItems) {
                       Box(modifier = Modifier.weight(1f)) {
@@ -378,8 +378,8 @@ object YouScreen : Screen {
               Column(
                 modifier = Modifier
                   .fillMaxWidth()
-                  .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                  .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
               ) {
                 previewPlaylists.forEach { playlistWithCount ->
                   PlaylistCard(
@@ -1112,16 +1112,11 @@ object YouScreen : Screen {
             .padding(horizontal = 2.dp),
           verticalArrangement = Arrangement.Center,
         ) {
-          val shouldHighlight = isRecentlyPlayed && !isWatched
           Text(
             text = video.displayName,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (shouldHighlight) FontWeight.Bold else FontWeight.SemiBold,
-            color = when {
-              shouldHighlight -> MaterialTheme.colorScheme.primary
-              isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-              else -> MaterialTheme.colorScheme.onSurface
-            },
+            fontWeight = FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurface,
             minLines = 2,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,

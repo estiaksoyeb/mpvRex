@@ -118,9 +118,9 @@ fun <T> UnifiedExplorerContent(
 
   val animatedBottomPadding by animateDpAsState(
     targetValue = if (isInSelectionMode) {
-      navigationBarHeight + 144.dp
-    } else {
       navigationBarHeight + 88.dp
+    } else {
+      navigationBarHeight + 16.dp
     },
     animationSpec = spring(
       dampingRatio = Spring.DampingRatioLowBouncy,

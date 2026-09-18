@@ -272,7 +272,7 @@ fun PlaylistCard(
         }
       }
     },
-    chipsContent = {
+    chipsContent = if (isGridMode) null else ({
       val chipText = if (playlist.isM3uPlaylist) "Network" else "Local"
       val (chipColor, chipBgColor) = if (playlist.isM3uPlaylist) {
         MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.tertiaryContainer
@@ -285,11 +285,15 @@ fun PlaylistCard(
         contentColor = chipColor,
       )
 
+      MediaMetadataChip(
+        text = if (itemCount == 1) "1 item" else "$itemCount items",
+      )
+
       if (uiSettings.showDateChip && playlist.updatedAt > 0) {
         MediaMetadataChip(
-          text = MediaFormatter.formatDate(playlist.updatedAt)
+          text = MediaFormatter.formatDate(playlist.updatedAt),
         )
       }
-    }
+    }),
   )
 }

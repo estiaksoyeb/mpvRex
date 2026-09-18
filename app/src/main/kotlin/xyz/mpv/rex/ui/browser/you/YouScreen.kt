@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Stream
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -88,6 +90,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -119,6 +122,7 @@ import xyz.mpv.rex.R
 import xyz.mpv.rex.database.entities.PlaylistEntity
 import xyz.mpv.rex.database.repository.PlaylistRepository
 import xyz.mpv.rex.domain.media.model.Video
+import xyz.mpv.rex.utils.storage.VideoScanUtils
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.MediaLayoutMode
@@ -345,6 +349,8 @@ object YouScreen : Screen {
                         PlaylistShelfCard(
                           playlist = item.playlist,
                           itemCount = item.videoCount,
+                          mostRecentVideoPath = item.mostRecentVideoPath,
+                          showThumbnails = recentsUiSettings.showVideoThumbnails,
                           onClick = {
                             backStack.add(PlaylistDetailScreen(item.playlist.id))
                           },
@@ -1256,62 +1262,214 @@ object YouScreen : Screen {
   private fun PlaylistShelfCard(
     playlist: PlaylistEntity,
     itemCount: Int,
+    mostRecentVideoPath: String? = null,
+    showThumbnails: Boolean = true,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
   ) {
+    val thumbnailRepository = koinInject<ThumbnailRepository>()
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val thumbWidthDp = 160.dp
+    val aspect = 16f / 9f
+    val thumbWidthPx = with(density) { thumbWidthDp.roundToPx() }
+    val thumbHeightPx = (thumbWidthPx / aspect).roundToInt()
+
+    var resolvedVideo by remember(mostRecentVideoPath) { mutableStateOf<Video?>(null) }
+
+    LaunchedEffect(mostRecentVideoPath) {
+      if (mostRecentVideoPath.isNullOrBlank()) {
+        resolvedVideo = null
+      } else {
+        resolvedVideo = withContext(Dispatchers.IO) {
+          val isNetwork = mostRecentVideoPath.startsWith("http://") || mostRecentVideoPath.startsWith("https://")
+          if (isNetwork) null else VideoScanUtils.getVideoByPath(context, mostRecentVideoPath)
+        }
+      }
+    }
+
+    val dummyVideo = remember(mostRecentVideoPath) {
+      if (mostRecentVideoPath.isNullOrBlank()) null
+      else {
+        val isNetwork = mostRecentVideoPath.startsWith("http://") || mostRecentVideoPath.startsWith("https://")
+        val file = if (!isNetwork) java.io.File(mostRecentVideoPath) else null
+        val exists = file?.exists() == true && file.isFile
+        val size = if (exists) file.length() else 0L
+        val dateModified = if (exists) file.lastModified() / 1000 else 0L
+
+        Video(
+          id = mostRecentVideoPath.hashCode().toLong(),
+          title = playlist.name,
+          displayName = playlist.name,
+          path = mostRecentVideoPath,
+          uri = if (isNetwork) {
+            android.net.Uri.parse(mostRecentVideoPath)
+          } else {
+            android.net.Uri.fromFile(file ?: java.io.File(mostRecentVideoPath))
+          },
+          duration = 0,
+          durationFormatted = "",
+          size = size,
+          sizeFormatted = "",
+          dateModified = dateModified,
+          dateAdded = dateModified,
+          mimeType = "video/*",
+          bucketId = "",
+          bucketDisplayName = "",
+          width = 0,
+          height = 0,
+          fps = 0f,
+          resolution = ""
+        )
+      }
+    }
+
+    val activeVideo = resolvedVideo ?: dummyVideo
+
+    val thumbnailKey = remember(activeVideo?.id, activeVideo?.dateModified, activeVideo?.size, activeVideo?.duration, thumbWidthPx, thumbHeightPx) {
+      activeVideo?.let { thumbnailRepository.thumbnailKey(it, thumbWidthPx, thumbHeightPx) }
+    }
+
+    var thumbnail by remember(thumbnailKey) {
+      mutableStateOf(
+        if (activeVideo != null && thumbnailKey != null && showThumbnails) {
+          thumbnailRepository.getThumbnailFromMemory(activeVideo, thumbWidthPx, thumbHeightPx)
+        } else null
+      )
+    }
+
+    LaunchedEffect(thumbnailKey) {
+      if (thumbnailKey != null && activeVideo != null) {
+        thumbnailRepository.thumbnailReadyKeys.filter { it == thumbnailKey }.collect {
+          thumbnail = thumbnailRepository.getThumbnailFromMemory(activeVideo, thumbWidthPx, thumbHeightPx)
+        }
+      }
+    }
+
+    LaunchedEffect(thumbnailKey, showThumbnails) {
+      if (thumbnailKey != null && activeVideo != null && thumbnail == null && showThumbnails) {
+        thumbnail = withContext(Dispatchers.IO) {
+          thumbnailRepository.getThumbnail(activeVideo, thumbWidthPx, thumbHeightPx)
+        }
+      }
+    }
+
+    val colorScheme = MaterialTheme.colorScheme
+    val fallbackPalettes = remember(colorScheme) {
+      listOf(
+        colorScheme.primaryContainer to colorScheme.onPrimaryContainer,
+        colorScheme.secondaryContainer to colorScheme.onSecondaryContainer,
+        colorScheme.tertiaryContainer to colorScheme.onTertiaryContainer,
+        colorScheme.surfaceContainerHighest to colorScheme.primary,
+        colorScheme.primary.copy(alpha = 0.22f) to colorScheme.primary,
+        colorScheme.tertiary.copy(alpha = 0.22f) to colorScheme.tertiary,
+      )
+    }
+    val paletteIndex = remember(playlist.name, playlist.id) {
+      val seed = playlist.name.ifBlank { playlist.id.toString() }
+      kotlin.math.abs(seed.hashCode()) % fallbackPalettes.size
+    }
+    val (fallbackBgColor, fallbackIconColor) = fallbackPalettes[paletteIndex]
+
     Card(
       modifier = modifier
         .height(148.dp)
-        .clip(RoundedCornerShape(12.dp))
+        .clip(RoundedCornerShape(10.dp))
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
-      shape = RoundedCornerShape(12.dp),
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+      shape = RoundedCornerShape(10.dp),
+      colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
       Column(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(8.dp),
+        modifier = Modifier.fillMaxWidth(),
       ) {
         Box(
           modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
           contentAlignment = Alignment.Center,
         ) {
-          Icon(
-            imageVector = Icons.AutoMirrored.Filled.PlaylistPlay,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(36.dp),
-          )
-
-          Surface(
-            shape = RoundedCornerShape(4.dp),
-            color = Color.Black.copy(alpha = 0.72f),
-            contentColor = Color.White,
-            modifier = Modifier
-              .align(Alignment.BottomEnd)
-              .padding(4.dp),
-          ) {
-            Text(
-              text = "$itemCount",
-              style = MaterialTheme.typography.labelSmall,
-              fontWeight = FontWeight.Bold,
-              modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+          if (showThumbnails && thumbnail != null) {
+            Image(
+              bitmap = thumbnail!!.asImageBitmap(),
+              contentDescription = null,
+              modifier = Modifier.fillMaxSize(),
+              contentScale = ContentScale.Crop,
             )
+
+            val iconVector = if (playlist.isM3uPlaylist) Icons.Filled.Stream else Icons.AutoMirrored.Filled.PlaylistPlay
+            val iconSize = 36.dp
+
+            Icon(
+              imageVector = iconVector,
+              contentDescription = null,
+              modifier = Modifier
+                .align(Alignment.Center)
+                .offset(x = 1.dp, y = 1.dp)
+                .size(iconSize),
+              tint = Color.Black.copy(alpha = 0.45f),
+            )
+            Icon(
+              imageVector = iconVector,
+              contentDescription = "Playlist",
+              modifier = Modifier
+                .align(Alignment.Center)
+                .size(iconSize),
+              tint = Color.White.copy(alpha = 0.95f),
+            )
+          } else {
+            Box(
+              modifier = Modifier
+                .fillMaxSize()
+                .background(
+                  Brush.linearGradient(
+                    colors = listOf(
+                      fallbackBgColor,
+                      fallbackBgColor.copy(alpha = 0.65f),
+                    )
+                  )
+                ),
+              contentAlignment = Alignment.Center,
+            ) {
+              Icon(
+                imageVector = if (playlist.isM3uPlaylist) Icons.Filled.Stream else Icons.AutoMirrored.Filled.PlaylistPlay,
+                contentDescription = null,
+                modifier = Modifier.size(36.dp),
+                tint = fallbackIconColor.copy(alpha = 0.85f),
+              )
+            }
+          }
+
+          if (itemCount > 0) {
+            Surface(
+              shape = pillShape,
+              color = Color.Black.copy(alpha = 0.72f),
+              contentColor = Color.White,
+              modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(4.dp),
+            ) {
+              Text(
+                text = "$itemCount",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+              )
+            }
           }
         }
 
         Spacer(modifier = Modifier.height(6.dp))
 
         Column(
-          modifier = Modifier.height(44.dp),
+          modifier = Modifier
+            .height(44.dp)
+            .padding(horizontal = 2.dp),
           verticalArrangement = Arrangement.Center,
         ) {
           Text(

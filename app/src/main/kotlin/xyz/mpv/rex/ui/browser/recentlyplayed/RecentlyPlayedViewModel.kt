@@ -138,11 +138,11 @@ class RecentlyPlayedViewModel(application: Application) :
           val playlist = playlistRepository.getPlaylistById(info.playlistId)
           if (playlist != null) {
             val count = playlistRepository.getPlaylistItemCount(playlist.id)
-            val firstPath = playlistRepository.getFirstPlaylistItemPath(playlist.id)
+            val thumbnailPath = playlistRepository.getEffectiveThumbnailPath(playlist.id)
             RecentlyPlayedItem.PlaylistItem(
               playlist = playlist,
               videoCount = count, 
-              mostRecentVideoPath = firstPath ?: "",
+              mostRecentVideoPath = thumbnailPath ?: "",
               timestamp = info.timestamp
             )
           } else {

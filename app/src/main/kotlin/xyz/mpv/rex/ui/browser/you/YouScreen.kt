@@ -37,8 +37,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -130,11 +132,13 @@ import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
 import xyz.mpv.rex.ui.browser.playlist.PlaylistDetailScreen
 import xyz.mpv.rex.ui.browser.playlist.PlaylistScreen
 import xyz.mpv.rex.ui.browser.playlist.PlaylistViewModel
+import xyz.mpv.rex.ui.browser.networkstreaming.NetworkStreamingScreen
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedItem
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedScreen
 import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedViewModel
 import xyz.mpv.rex.ui.browser.search.SearchScreen
 import xyz.mpv.rex.ui.browser.sheets.MediaInfoSheet
+import xyz.mpv.rex.ui.browser.shorts.ShortsScreen
 import xyz.mpv.rex.ui.preferences.PreferencesScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.media.MediaUtils
@@ -168,6 +172,8 @@ object YouScreen : Screen {
         } else null
       } else null
     }
+    val isShortsEnabled by browserPreferences.enableShorts.collectAsState()
+    val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
     val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
     val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
     val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
@@ -272,6 +278,8 @@ object YouScreen : Screen {
               playlistCount = playlistsWithCount.size,
               onHistoryClick = { backStack.add(RecentlyPlayedScreen) },
               onPlaylistsClick = { backStack.add(PlaylistScreen) },
+              onNetworkClick = if (!enableTabNetwork) { { backStack.add(NetworkStreamingScreen) } } else null,
+              onShortsClick = if (!isShortsEnabled) { { backStack.add(ShortsScreen()) } } else null,
             )
           }
 
@@ -878,6 +886,8 @@ object YouScreen : Screen {
     playlistCount: Int,
     onHistoryClick: () -> Unit,
     onPlaylistsClick: () -> Unit,
+    onNetworkClick: (() -> Unit)? = null,
+    onShortsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
   ) {
     val haptic = LocalHapticFeedback.current
@@ -885,11 +895,14 @@ object YouScreen : Screen {
     Column(
       modifier = modifier
         .fillMaxWidth()
-        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 2.dp),
+        .padding(top = 16.dp, bottom = 2.dp),
       verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
       // Profile Info Row
       Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
       ) {
@@ -959,9 +972,12 @@ object YouScreen : Screen {
         }
       }
 
-      // Quick action shortcut buttons (compact and fit in without horizontal overflow)
+      // Quick action shortcut buttons (compact and scrollable if multiple chips)
       Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+          .fillMaxWidth()
+          .horizontalScroll(rememberScrollState())
+          .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
         CompactQuickActionChip(
@@ -980,6 +996,26 @@ object YouScreen : Screen {
             onPlaylistsClick()
           },
         )
+        if (onNetworkClick != null) {
+          CompactQuickActionChip(
+            icon = Icons.Filled.Language,
+            label = stringResource(R.string.network),
+            onClick = {
+              haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+              onNetworkClick()
+            },
+          )
+        }
+        if (onShortsClick != null) {
+          CompactQuickActionChip(
+            icon = Icons.Outlined.VideoLibrary,
+            label = stringResource(R.string.shorts),
+            onClick = {
+              haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+              onShortsClick()
+            },
+          )
+        }
       }
     }
   }
@@ -1017,6 +1053,7 @@ object YouScreen : Screen {
           text = label,
           style = MaterialTheme.typography.labelMedium,
           fontWeight = FontWeight.Medium,
+          maxLines = 1,
         )
       }
     }

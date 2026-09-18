@@ -102,9 +102,7 @@ fun <T> UnifiedExplorerContent(
     val isFolder = remember(items) {
       items.firstOrNull()?.let {
         it is VideoFolder || 
-        it is FileSystemItem.Folder ||
-        it is PlaylistWithCount ||
-        it is RecentlyPlayedItem.PlaylistItem
+        it is FileSystemItem.Folder
       } ?: false
     }
     if (isFolder) {
@@ -806,6 +804,7 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
+        mostRecentVideoPath = item.firstItemPath,
       )
     }
     is RecentlyPlayedItem.VideoItem -> {
@@ -837,6 +836,7 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
+        mostRecentVideoPath = item.mostRecentVideoPath,
       )
     }
     is FileSystemItem.Folder -> {

@@ -22,6 +22,7 @@ import java.io.File
 data class PlaylistWithCount(
   val playlist: PlaylistEntity,
   val itemCount: Int,
+  val firstItemPath: String? = null,
 )
 
 class PlaylistViewModel(
@@ -64,7 +65,8 @@ class PlaylistViewModel(
         val playlists = repository.getAllPlaylists()
         val playlistsWithCounts = playlists.map { playlist ->
           val count = repository.getPlaylistItemCount(playlist.id)
-          PlaylistWithCount(playlist, count)
+          val firstPath = repository.getFirstPlaylistItemPath(playlist.id)
+          PlaylistWithCount(playlist, count, firstPath)
         }.sortedByDescending { it.playlist.updatedAt }
 
         _items.value = playlistsWithCounts

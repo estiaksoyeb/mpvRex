@@ -177,8 +177,11 @@ object YouScreen : Screen {
     val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
     val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
     val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
+    val videoGridColumnsPortrait by browserPreferences.videoGridColumnsPortrait.collectAsState()
+    val videoGridColumnsLandscape by browserPreferences.videoGridColumnsLandscape.collectAsState()
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+    val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
     val isRefreshing = remember { mutableStateOf(false) }
 
     val recentsViewModel: RecentlyPlayedViewModel = viewModel(
@@ -373,7 +376,7 @@ object YouScreen : Screen {
           item(key = "content_playlists") {
             val isGrid = mediaLayoutMode == MediaLayoutMode.GRID
             val previewPlaylists = if (isGrid) {
-              playlistsWithCount.take(folderGridColumns * 3)
+              playlistsWithCount.take(videoGridColumns * 3)
             } else {
               playlistsWithCount.take(8)
             }
@@ -390,7 +393,7 @@ object YouScreen : Screen {
                   .padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
               ) {
-                val chunkedPlaylists = previewPlaylists.chunked(folderGridColumns)
+                val chunkedPlaylists = previewPlaylists.chunked(videoGridColumns)
                 for (rowItems in chunkedPlaylists) {
                   Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -409,11 +412,12 @@ object YouScreen : Screen {
                             activePlaylist = playlistWithCount.playlist
                           },
                           isGridMode = true,
-                          gridColumns = folderGridColumns,
+                          gridColumns = videoGridColumns,
+                          mostRecentVideoPath = playlistWithCount.firstItemPath,
                         )
                       }
                     }
-                    val emptySlots = folderGridColumns - rowItems.size
+                    val emptySlots = videoGridColumns - rowItems.size
                     repeat(emptySlots) {
                       Spacer(modifier = Modifier.weight(1f))
                     }
@@ -439,6 +443,7 @@ object YouScreen : Screen {
                       activePlaylist = playlistWithCount.playlist
                     },
                     isGridMode = false,
+                    mostRecentVideoPath = playlistWithCount.firstItemPath,
                   )
                 }
               }

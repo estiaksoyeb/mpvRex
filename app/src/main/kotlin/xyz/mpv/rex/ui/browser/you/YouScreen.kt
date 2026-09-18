@@ -2,6 +2,7 @@ package xyz.mpv.rex.ui.browser.you
 
 import android.app.Application
 import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -70,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.filled.MusicNote
@@ -95,10 +97,13 @@ import xyz.mpv.rex.database.entities.PlaylistEntity
 import xyz.mpv.rex.database.repository.PlaylistRepository
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.preferences.AdvancedPreferences
+import xyz.mpv.rex.preferences.BrowserPreferences
+import xyz.mpv.rex.preferences.MediaLayoutMode
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.browser.MainScreen
+import xyz.mpv.rex.ui.browser.cards.PlaylistCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
 import xyz.mpv.rex.ui.browser.playlist.PlaylistDetailScreen
@@ -122,9 +127,15 @@ object YouScreen : Screen {
     val context = LocalContext.current
     val backStack = LocalBackStack.current
     val scope = rememberCoroutineScope()
+    val browserPreferences = koinInject<BrowserPreferences>()
     val advancedPreferences = koinInject<AdvancedPreferences>()
     val playlistRepository = koinInject<PlaylistRepository>()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
+    val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
+    val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
+    val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
     val isRefreshing = remember { mutableStateOf(false) }
 
     val recentsViewModel: RecentlyPlayedViewModel = viewModel(
@@ -138,6 +149,7 @@ object YouScreen : Screen {
     val recentsUiSettings by recentsViewModel.uiSettings.collectAsState()
 
     val playlistsWithCount by playlistViewModel.playlistsWithCount.collectAsState()
+    val playlistUiSettings by playlistViewModel.uiSettings.collectAsState()
 
     // Interactive Action States
     var activeVideoItem by remember { mutableStateOf<RecentlyPlayedItem.VideoItem?>(null) }
@@ -308,29 +320,74 @@ object YouScreen : Screen {
           }
 
           item(key = "content_playlists") {
-            val previewPlaylists = playlistsWithCount.take(15)
+            val isGrid = mediaLayoutMode == MediaLayoutMode.GRID
+            val previewPlaylists = if (isGrid) {
+              playlistsWithCount.take(folderGridColumns * 3)
+            } else {
+              playlistsWithCount.take(8)
+            }
             if (previewPlaylists.isEmpty()) {
               ShelfEmptyCard(
                 icon = Icons.AutoMirrored.Filled.PlaylistPlay,
                 title = stringResource(R.string.no_playlists_yet),
                 message = "Custom playlists you create will appear here",
               )
-            } else {
-              LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            } else if (isGrid) {
+              Column(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
               ) {
-                items(previewPlaylists, key = { it.playlist.id }) { playlistWithCount ->
-                  PlaylistShelfCard(
+                val chunkedPlaylists = previewPlaylists.chunked(folderGridColumns)
+                for (rowItems in chunkedPlaylists) {
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  ) {
+                    for (playlistWithCount in rowItems) {
+                      Box(modifier = Modifier.weight(1f)) {
+                        PlaylistCard(
+                          playlist = playlistWithCount.playlist,
+                          itemCount = playlistWithCount.itemCount,
+                          uiSettings = playlistUiSettings,
+                          onClick = {
+                            backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
+                          },
+                          onLongClick = {
+                            activePlaylist = playlistWithCount.playlist
+                          },
+                          isGridMode = true,
+                          gridColumns = folderGridColumns,
+                        )
+                      }
+                    }
+                    val emptySlots = folderGridColumns - rowItems.size
+                    repeat(emptySlots) {
+                      Spacer(modifier = Modifier.weight(1f))
+                    }
+                  }
+                }
+              }
+            } else {
+              Column(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+              ) {
+                previewPlaylists.forEach { playlistWithCount ->
+                  PlaylistCard(
                     playlist = playlistWithCount.playlist,
                     itemCount = playlistWithCount.itemCount,
+                    uiSettings = playlistUiSettings,
                     onClick = {
                       backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
                     },
                     onLongClick = {
                       activePlaylist = playlistWithCount.playlist
                     },
-                    modifier = Modifier.width(150.dp),
+                    isGridMode = false,
                   )
                 }
               }

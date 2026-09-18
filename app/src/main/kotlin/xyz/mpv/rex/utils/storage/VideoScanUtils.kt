@@ -54,6 +54,126 @@ object VideoScanUtils {
     }
 
     /**
+     * Get a single Video object by its file path with exact MediaStore metadata.
+     * Guaranteed to match the exact duration, size, and dateModified indexed in the library.
+     */
+    suspend fun getVideoByPath(context: Context, path: String): Video? = withContext(Dispatchers.IO) {
+        if (path.isBlank()) return@withContext null
+        val file = File(path)
+        if (!file.exists() || !file.isFile) return@withContext null
+
+        val projection = arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DURATION,
+            MediaStore.Video.Media.DATE_MODIFIED,
+            MediaStore.Video.Media.DATE_ADDED,
+            MediaStore.Video.Media.MIME_TYPE,
+            MediaStore.Video.Media.WIDTH,
+            MediaStore.Video.Media.HEIGHT
+        )
+
+        var video: Video? = null
+        try {
+            context.contentResolver.query(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Video.Media.DATA} = ?",
+                arrayOf(path),
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID))
+                    val name = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)) ?: file.name
+                    val size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE))
+                    val duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION))
+                    val dateModified = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED))
+                    val dateAdded = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED))
+                    val mimeType = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)) ?: "video/*"
+                    val width = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH))
+                    val height = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT))
+
+                    video = Video(
+                        id = id,
+                        title = file.nameWithoutExtension,
+                        displayName = name,
+                        path = path,
+                        uri = Uri.fromFile(file),
+                        duration = duration,
+                        durationFormatted = MediaFormatter.formatDuration(duration),
+                        size = size,
+                        sizeFormatted = MediaFormatter.formatFileSize(size),
+                        dateModified = dateModified,
+                        dateAdded = dateAdded,
+                        mimeType = mimeType,
+                        bucketId = file.parent ?: "",
+                        bucketDisplayName = file.parentFile?.name ?: "",
+                        width = width,
+                        height = height,
+                        fps = 0f,
+                        resolution = MediaFormatter.formatResolution(width, height),
+                        isAudio = false
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying MediaStore for video: $path", e)
+        }
+
+        // Fallback if not found in MediaStore
+        if (video == null) {
+            val isAudio = FileTypeUtils.isAudioFile(file)
+            val size = file.length()
+            val dateModified = file.lastModified() / 1000
+
+            var duration = 0L
+            var width = 0
+            var height = 0
+            var fps = 0f
+
+            try {
+                val koin = GlobalContext.getOrNull()
+                val metadataCache = koin?.getOrNull<VideoMetadataCacheRepository>()
+                val cached = metadataCache?.getOrExtractMetadata(file, Uri.fromFile(file), file.name)
+                if (cached != null) {
+                    duration = cached.durationMs
+                    width = cached.width
+                    height = cached.height
+                    fps = cached.fps
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
+
+            video = Video(
+                id = path.hashCode().toLong(),
+                title = file.nameWithoutExtension,
+                displayName = file.name,
+                path = path,
+                uri = Uri.fromFile(file),
+                duration = duration,
+                durationFormatted = MediaFormatter.formatDuration(duration),
+                size = size,
+                sizeFormatted = MediaFormatter.formatFileSize(size),
+                dateModified = dateModified,
+                dateAdded = dateModified,
+                mimeType = if (isAudio) "audio/*" else "video/*",
+                bucketId = file.parent ?: "",
+                bucketDisplayName = file.parentFile?.name ?: "",
+                width = width,
+                height = height,
+                fps = fps,
+                resolution = if (width > 0 && height > 0) MediaFormatter.formatResolution(width, height) else "",
+                isAudio = isAudio
+            )
+        }
+
+        video
+    }
+
+    /**
      * Get all videos and audio in a specific folder.
      * MediaStore remains the fast source and direct storage reconciles it when allowed.
      */

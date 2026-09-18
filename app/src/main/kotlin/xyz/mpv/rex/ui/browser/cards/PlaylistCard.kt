@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +36,7 @@ import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.preferences.UiSettings
 import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.utils.media.MediaFormatter
+import xyz.mpv.rex.utils.storage.VideoScanUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.withContext
@@ -75,7 +77,21 @@ fun PlaylistCard(
   val thumbWidthPx = with(LocalDensity.current) { thumbWidthDp.roundToPx() }
   val thumbHeightPx = (thumbWidthPx / aspect).roundToInt()
 
-  // Construct video metadata for ThumbnailRepository (resolves real file stats for instant cache hit)
+  val context = LocalContext.current
+  var resolvedVideo by remember(mostRecentVideoPath) { mutableStateOf<Video?>(null) }
+
+  LaunchedEffect(mostRecentVideoPath) {
+    if (mostRecentVideoPath.isNullOrBlank()) {
+      resolvedVideo = null
+    } else {
+      resolvedVideo = withContext(Dispatchers.IO) {
+        val isNetwork = mostRecentVideoPath.startsWith("http://") || mostRecentVideoPath.startsWith("https://")
+        if (isNetwork) null else VideoScanUtils.getVideoByPath(context, mostRecentVideoPath)
+      }
+    }
+  }
+
+  // Fast fallback dummy video while resolvedVideo loads or for network streams
   val dummyVideo = remember(mostRecentVideoPath) {
     if (mostRecentVideoPath.isNullOrBlank()) null
     else {
@@ -112,30 +128,32 @@ fun PlaylistCard(
     }
   }
 
-  val thumbnailKey = remember(dummyVideo?.id, dummyVideo?.dateModified, dummyVideo?.size, thumbWidthPx, thumbHeightPx) {
-    dummyVideo?.let { thumbnailRepository.thumbnailKey(it, thumbWidthPx, thumbHeightPx) }
+  val activeVideo = resolvedVideo ?: dummyVideo
+
+  val thumbnailKey = remember(activeVideo?.id, activeVideo?.dateModified, activeVideo?.size, activeVideo?.duration, thumbWidthPx, thumbHeightPx) {
+    activeVideo?.let { thumbnailRepository.thumbnailKey(it, thumbWidthPx, thumbHeightPx) }
   }
 
   var thumbnail by remember(thumbnailKey) {
     mutableStateOf(
-      if (dummyVideo != null && thumbnailKey != null && uiSettings.showVideoThumbnails) {
-        thumbnailRepository.getThumbnailFromMemory(dummyVideo, thumbWidthPx, thumbHeightPx)
+      if (activeVideo != null && thumbnailKey != null && uiSettings.showVideoThumbnails) {
+        thumbnailRepository.getThumbnailFromMemory(activeVideo, thumbWidthPx, thumbHeightPx)
       } else null
     )
   }
 
   LaunchedEffect(thumbnailKey) {
-    if (thumbnailKey != null && dummyVideo != null) {
+    if (thumbnailKey != null && activeVideo != null) {
       thumbnailRepository.thumbnailReadyKeys.filter { it == thumbnailKey }.collect {
-        thumbnail = thumbnailRepository.getThumbnailFromMemory(dummyVideo, thumbWidthPx, thumbHeightPx)
+        thumbnail = thumbnailRepository.getThumbnailFromMemory(activeVideo, thumbWidthPx, thumbHeightPx)
       }
     }
   }
 
   LaunchedEffect(thumbnailKey, uiSettings.showVideoThumbnails) {
-    if (thumbnailKey != null && dummyVideo != null && thumbnail == null && uiSettings.showVideoThumbnails) {
+    if (thumbnailKey != null && activeVideo != null && thumbnail == null && uiSettings.showVideoThumbnails) {
       thumbnail = withContext(Dispatchers.IO) {
-        thumbnailRepository.getThumbnail(dummyVideo, thumbWidthPx, thumbHeightPx)
+        thumbnailRepository.getThumbnail(activeVideo, thumbWidthPx, thumbHeightPx)
       }
     }
   }

@@ -65,8 +65,8 @@ class PlaylistViewModel(
         val playlists = repository.getAllPlaylists()
         val playlistsWithCounts = playlists.map { playlist ->
           val count = repository.getPlaylistItemCount(playlist.id)
-          val firstPath = repository.getFirstPlaylistItemPath(playlist.id)
-          PlaylistWithCount(playlist, count, firstPath)
+          val thumbnailPath = repository.getEffectiveThumbnailPath(playlist.id)
+          PlaylistWithCount(playlist, count, thumbnailPath)
         }.sortedByDescending { it.playlist.updatedAt }
 
         _items.value = playlistsWithCounts

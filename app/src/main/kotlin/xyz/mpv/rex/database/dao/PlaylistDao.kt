@@ -88,6 +88,17 @@ interface PlaylistDao {
   @Query("SELECT filePath FROM PlaylistItemEntity WHERE playlistId = :playlistId ORDER BY position ASC LIMIT 1")
   suspend fun getFirstPlaylistItemPath(playlistId: Int): String?
 
+  @Query("UPDATE PlaylistEntity SET customThumbnailPath = :path WHERE id = :playlistId")
+  suspend fun updateCustomThumbnailPath(playlistId: Int, path: String?)
+
+  @Query("""
+    SELECT COALESCE(
+      (SELECT customThumbnailPath FROM PlaylistEntity WHERE id = :playlistId),
+      (SELECT filePath FROM PlaylistItemEntity WHERE playlistId = :playlistId ORDER BY position ASC LIMIT 1)
+    )
+  """)
+  suspend fun getEffectiveThumbnailPath(playlistId: Int): String?
+
   // Play history operations
   @Query(
     """

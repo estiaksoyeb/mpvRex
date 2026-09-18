@@ -194,4 +194,9 @@ class PlaylistDetailViewModel(
       _isLoading.value = false
     }
   }
+
+  suspend fun setPlaylistThumbnail(path: String?) {
+    playlistRepository.setPlaylistCustomThumbnail(playlistId, path)
+    _playlist.value = playlistRepository.getPlaylistById(playlistId)
+  }
 }

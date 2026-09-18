@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -296,6 +297,37 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
                     MediaUtils.shareVideos(context, videosToShare)
                   },
                 ))
+              }
+              if (selectionManager.isSingleSelection) {
+                val selected = selectionManager.getSelectedItems().firstOrNull()
+                val isCurrentThumbnail = selected?.video?.path != null && selected.video.path == playlist?.customThumbnailPath
+                if (isCurrentThumbnail) {
+                  add(SelectionOverflowAction(
+                    icon = Icons.Filled.Image,
+                    label = "Reset playlist thumbnail",
+                    onClick = {
+                      coroutineScope.launch {
+                        viewModel.setPlaylistThumbnail(null)
+                        Toast.makeText(context, "Reset thumbnail to first video", Toast.LENGTH_SHORT).show()
+                        selectionManager.clear()
+                      }
+                    },
+                  ))
+                } else {
+                  add(SelectionOverflowAction(
+                    icon = Icons.Filled.Image,
+                    label = "Set as playlist thumbnail",
+                    onClick = {
+                      if (selected != null) {
+                        coroutineScope.launch {
+                          viewModel.setPlaylistThumbnail(selected.video.path)
+                          Toast.makeText(context, "Playlist thumbnail updated", Toast.LENGTH_SHORT).show()
+                          selectionManager.clear()
+                        }
+                      }
+                    },
+                  ))
+                }
               }
             },
             onSelectAll = { selectionManager.selectAll() },

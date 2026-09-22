@@ -107,6 +107,23 @@ object SubtitleEncodingUtils {
 
     // 3. Script frequency analysis for single-byte legacy encodings
     val sampleLimit = 64 * 1024 // Analyze up to first 64KB
+    val sampleLength = minOf(bytes.size, sampleLimit)
+
+    val arabicChars = runCatching {
+      String(bytes, 0, sampleLength, Charset.forName("windows-1256")).count { it in '\u0600'..'\u06FF' }
+    }.getOrDefault(0)
+
+    val cyrillicChars = runCatching {
+      String(bytes, 0, sampleLength, Charset.forName("windows-1251")).count { it in '\u0400'..'\u04FF' }
+    }.getOrDefault(0)
+
+    val greekChars = runCatching {
+      String(bytes, 0, sampleLength, Charset.forName("windows-1253")).count { it in '\u0370'..'\u03FF' }
+    }.getOrDefault(0)
+
+    val hebrewChars = runCatching {
+      String(bytes, 0, sampleLength, Charset.forName("windows-1255")).count { it in '\u0590'..'\u05FF' }
+    }.getOrDefault(0)
 
     // Arabic in Windows-1256:
     // Common bigrams: ال (C7 E1), لا (E1 C7), في (DA ED), من (E3 E4), ما (E3 C7), ان (C7 E4), ون (E6 E4), ين (ED E4)
@@ -173,7 +190,22 @@ object SubtitleEncodingUtils {
       hebrewScore += countBigrams(bytes, b1, b2, sampleLimit)
     }
 
-    Log.d(TAG, "Detection scores - Arabic: $arabicScore, Cyrillic: $cyrillicScore, Greek: $greekScore, Hebrew: $hebrewScore")
+    Log.d(TAG, "Detection - Arabic: chars=$arabicChars, bg=$arabicScore; Cyrillic: chars=$cyrillicChars, bg=$cyrillicScore")
+
+    if (arabicChars >= 5 || cyrillicChars >= 5 || greekChars >= 5 || hebrewChars >= 5) {
+      if (arabicChars >= cyrillicChars && (arabicScore > cyrillicScore || cyrillicScore == 0)) {
+        return "windows-1256"
+      }
+      if (cyrillicChars >= arabicChars && (cyrillicScore > arabicScore || arabicScore == 0)) {
+        return "windows-1251"
+      }
+      if (greekChars >= 5 && greekChars >= arabicChars) {
+        return "windows-1253"
+      }
+      if (hebrewChars >= 5 && hebrewChars >= arabicChars) {
+        return "windows-1255"
+      }
+    }
 
     val maxScore = maxOf(arabicScore, cyrillicScore, greekScore, hebrewScore)
     if (maxScore >= 10) {

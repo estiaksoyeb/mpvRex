@@ -127,6 +127,7 @@ class PlayerViewModel(
   private val _subtitleManager = SubtitleManager(
     context = appContext,
     wyzieRepository = wyzieRepository,
+    subtitlesPreferences = subtitlesPreferences,
     scope = viewModelScope,
     onShowToast = { showToast(it) }
   )

@@ -275,8 +275,18 @@ class PlayerIntentHandler(
     val subsToEnable = Utils.getParcelableArray<Uri>(extras, "subs.enable")
 
     activity.lifecycleScope.launch(Dispatchers.Default) {
+      val preferredEncoding = activity.subtitlesPreferences.subtitleEncoding.get()
       for (suburi in subList) {
-        val subfile = suburi.resolveUri(activity) ?: continue
+        val (normalizedPath, _) = xyz.mpv.rex.utils.media.SubtitleEncodingUtils.normalizeSubtitleUri(
+          activity,
+          suburi,
+          preferredEncoding
+        )
+        val subfile = if (normalizedPath.startsWith("content://") || normalizedPath.startsWith("file://")) {
+          suburi.resolveUri(activity) ?: continue
+        } else {
+          normalizedPath
+        }
         val flag = if (subsToEnable.any { it == suburi }) "select" else "auto"
 
         Log.v(TAG, "Adding subtitles from intent extras: $subfile")

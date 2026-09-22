@@ -106,6 +106,7 @@ import xyz.mpv.rex.presentation.components.SliderItem
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import xyz.mpv.rex.ui.theme.spacing
+import xyz.mpv.rex.utils.media.SubtitleEncodingUtils
 
 @Composable
 fun SubtitleSettingsPanel(
@@ -704,6 +705,28 @@ private fun SubtitleMiscellaneousSection(
         },
         { Text(stringResource(R.string.pref_subtitles_force_ltr_title)) },
         summary = { Text(stringResource(R.string.pref_subtitles_force_ltr_summary)) },
+      )
+      var subtitleEncoding by remember { mutableStateOf(preferences.subtitleEncoding.get()) }
+      ListPreference(
+        value = subtitleEncoding,
+        onValueChange = { newEncoding ->
+          subtitleEncoding = newEncoding
+          preferences.subtitleEncoding.set(newEncoding)
+          val codepage = if (newEncoding.isBlank() || newEncoding.equals("auto", ignoreCase = true)) "auto" else newEncoding
+          runCatching {
+            MPVLib.setPropertyString("sub-codepage", codepage)
+            MPVLib.command("sub-reload")
+          }
+        },
+        values = SubtitleEncodingUtils.ENCODINGS.map { it.code },
+        valueToText = { AnnotatedString(SubtitleEncodingUtils.getDisplayName(it)) },
+        title = { Text(stringResource(R.string.pref_subtitles_encoding_title)) },
+        summary = {
+          Text(
+            SubtitleEncodingUtils.getDisplayName(subtitleEncoding),
+            color = MaterialTheme.colorScheme.outline,
+          )
+        },
       )
     }
 

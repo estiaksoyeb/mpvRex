@@ -20,6 +20,7 @@ object SubtitleOps : KoinComponent {
   private const val TAG = "SubtitleOps"
   private val networkRepository: NetworkRepository by inject()
   private val subtitlesPreferences: SubtitlesPreferences by inject()
+  private val context: android.content.Context by inject()
 
   private fun shouldSkipNetworkSubtitleAutoload(videoFilePath: String, videoFileName: String): Boolean {
     val p = videoFilePath.lowercase(Locale.getDefault())
@@ -217,8 +218,14 @@ object SubtitleOps : KoinComponent {
           // Use "select" for the first autoloaded subtitle unless disabled by default
           val disableByDefault = subtitlesPreferences.disableSubtitlesByDefault.get()
           val flag = if (index == 0 && !disableByDefault) "select" else "auto"
-          MPVLib.command("sub-add", subtitle.absolutePath, flag, subtitle.name)
-          Log.d(TAG, "Loaded local subtitle: ${subtitle.name} (flag=$flag)")
+          val preferredEncoding = subtitlesPreferences.subtitleEncoding.get()
+          val normalizedPath = SubtitleEncodingUtils.normalizeLocalSubtitleFile(
+            context,
+            subtitle,
+            preferredEncoding
+          )
+          MPVLib.command("sub-add", normalizedPath, flag, subtitle.name)
+          Log.d(TAG, "Loaded local subtitle: ${subtitle.name} (flag=$flag, path=$normalizedPath)")
         }
       }
     }

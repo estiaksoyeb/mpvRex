@@ -73,6 +73,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
@@ -82,6 +83,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.TextButton
 import android.net.Uri
 import xyz.mpv.rex.repository.wyzie.WyzieLanguages
+import xyz.mpv.rex.utils.media.SubtitleEncodingUtils
 import org.koin.compose.koinInject
 
 @Serializable
@@ -335,6 +337,26 @@ object SubtitlesPreferencesScreen : Screen {
                   summary = {
                     Text(
                       stringResource(R.string.pref_subtitles_force_ltr_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
+
+              val subtitleEncoding by preferences.subtitleEncoding.collectAsState()
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_subtitles_encoding_title,
+              ) {
+                ListPreference(
+                  value = subtitleEncoding,
+                  onValueChange = { preferences.subtitleEncoding.set(it) },
+                  values = SubtitleEncodingUtils.ENCODINGS.map { it.code },
+                  valueToText = { androidx.compose.ui.text.AnnotatedString(SubtitleEncodingUtils.getDisplayName(it)) },
+                  title = { Text(stringResource(R.string.pref_subtitles_encoding_title)) },
+                  summary = {
+                    Text(
+                      SubtitleEncodingUtils.getDisplayName(subtitleEncoding),
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },

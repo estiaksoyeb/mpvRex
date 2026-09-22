@@ -34,8 +34,11 @@ import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.player.controls.panelCardsColors
 import xyz.mpv.rex.ui.theme.spacing
 import `is`.xyz.mpv.MPVLib
+import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
+import xyz.mpv.rex.utils.media.SubtitleEncodingUtils
+import androidx.compose.ui.text.AnnotatedString
 import org.koin.compose.koinInject
 
 @Composable
@@ -108,6 +111,28 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
           },
           { Text(stringResource(R.string.pref_subtitles_force_ltr_title)) },
           summary = { Text(stringResource(R.string.pref_subtitles_force_ltr_summary)) },
+        )
+
+        val subtitleEncoding by preferences.subtitleEncoding.collectAsState()
+        ListPreference(
+          value = subtitleEncoding,
+          onValueChange = { newEncoding ->
+            preferences.subtitleEncoding.set(newEncoding)
+            val codepage = if (newEncoding.isBlank() || newEncoding.equals("auto", ignoreCase = true)) "auto" else newEncoding
+            runCatching {
+              MPVLib.setPropertyString("sub-codepage", codepage)
+              MPVLib.command("sub-reload")
+            }
+          },
+          values = SubtitleEncodingUtils.ENCODINGS.map { it.code },
+          valueToText = { AnnotatedString(SubtitleEncodingUtils.getDisplayName(it)) },
+          title = { Text(stringResource(R.string.pref_subtitles_encoding_title)) },
+          summary = {
+            Text(
+              SubtitleEncodingUtils.getDisplayName(subtitleEncoding),
+              color = MaterialTheme.colorScheme.outline,
+            )
+          },
         )
 
         val secondarySid by MPVLib.propInt["secondary-sid"].collectAsState()

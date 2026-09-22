@@ -431,7 +431,10 @@ class MPVView(
 
     val forceLtr = if (subtitlesPreferences.forceLtr.get()) "yes" else "no"
     MPVLib.setOptionString("sub-vsfilter-bidi-compat", forceLtr)
-    MPVLib.setOptionString("sub-codepage", "auto:cp1256:utf-8")
+
+    val subEncoding = subtitlesPreferences.subtitleEncoding.get()
+    val codepage = if (subEncoding.isBlank() || subEncoding.equals("auto", ignoreCase = true)) "auto" else subEncoding
+    MPVLib.setOptionString("sub-codepage", codepage)
   }
 
 

@@ -88,6 +88,7 @@ import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.PlayerViewModel
 import xyz.mpv.rex.ui.player.Sheets
 import xyz.mpv.rex.ui.player.VideoAspect
+import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.player.controls.components.ControlsButton
 import xyz.mpv.rex.ui.player.controls.components.CurrentChapter
 import xyz.mpv.rex.ui.theme.controlColor
@@ -270,9 +271,20 @@ fun RenderPlayerButton(
     }
 
     PlayerButton.PLAYBACK_SPEED -> {
+      val playerPreferences = org.koin.compose.koinInject<xyz.mpv.rex.preferences.PlayerPreferences>()
+      val speedCyclePresetsSet by playerPreferences.speedCyclePresets.collectAsState()
+      val sortedCyclePresets = remember(speedCyclePresetsSet) {
+        speedCyclePresetsSet.mapNotNull { it.toFloatOrNull() }.sorted().ifEmpty { listOf(1.0f) }
+      }
+
       val cycleSpeed = {
-        val newSpeed = if (playbackSpeed >= 2f) 0.25f else playbackSpeed + 0.25f
-        `is`.xyz.mpv.MPVLib.setPropertyFloat("speed", newSpeed)
+        val currentIndex = sortedCyclePresets.indexOfFirst { kotlin.math.abs(it - playbackSpeed) < 0.01f }
+        val nextSpeed = if (currentIndex != -1) {
+          sortedCyclePresets[(currentIndex + 1) % sortedCyclePresets.size]
+        } else {
+          sortedCyclePresets.firstOrNull { it > playbackSpeed + 0.01f } ?: sortedCyclePresets.first()
+        }
+        `is`.xyz.mpv.MPVLib.setPropertyFloat("speed", nextSpeed.toFixed(2))
       }
 
       val showText = isSpeedNonOne || isMoreSheet

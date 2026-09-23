@@ -1913,6 +1913,7 @@ fun PlayerControls(
     val audioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
     val sleepTimerTimeRemaining by viewModel.remainingTime.collectAsState()
     val speedPresets by playerPreferences.speedPresets.collectAsState()
+    val speedCyclePresets by playerPreferences.speedCyclePresets.collectAsState()
 
     PlayerSheets(
       viewModel = viewModel,
@@ -1939,10 +1940,59 @@ fun PlayerControls(
       speed = playbackSpeed ?: playerPreferences.defaultSpeed.get(),
       onSpeedChange = { MPVLib.setPropertyFloat("speed", it.toFixed(2)) },
       onMakeDefaultSpeed = { playerPreferences.defaultSpeed.set(it.toFixed(2)) },
-      onAddSpeedPreset = { playerPreferences.speedPresets += it.toFixed(2).toString() },
-      onRemoveSpeedPreset = { playerPreferences.speedPresets -= it.toFixed(2).toString() },
-      onResetSpeedPresets = playerPreferences.speedPresets::delete,
-      speedPresets = speedPresets.map { it.toFloat() }.sorted(),
+      onAddSpeedPreset = { targetSpeed ->
+        val formatted = targetSpeed.toFixed(2).toString()
+        val current = playerPreferences.speedPresets.get()
+        if (current.none { (it.toFloatOrNull() ?: -1f).let { f -> kotlin.math.abs(f - targetSpeed) < 0.01f } }) {
+          playerPreferences.speedPresets.set(current + formatted)
+        }
+        val currentCycle = playerPreferences.speedCyclePresets.get()
+        if (currentCycle.none { (it.toFloatOrNull() ?: -1f).let { f -> kotlin.math.abs(f - targetSpeed) < 0.01f } }) {
+          playerPreferences.speedCyclePresets.set(currentCycle + formatted)
+        }
+      },
+      onRemoveSpeedPreset = { targetSpeed ->
+        val current = playerPreferences.speedPresets.get()
+        playerPreferences.speedPresets.set(
+          current.filterNot {
+            val f = it.toFloatOrNull() ?: return@filterNot false
+            kotlin.math.abs(f - targetSpeed) < 0.01f
+          }.toSet()
+        )
+        val currentCycle = playerPreferences.speedCyclePresets.get()
+        playerPreferences.speedCyclePresets.set(
+          currentCycle.filterNot {
+            val f = it.toFloatOrNull() ?: return@filterNot false
+            kotlin.math.abs(f - targetSpeed) < 0.01f
+          }.toSet()
+        )
+      },
+      onToggleSpeedCyclePreset = { targetSpeed ->
+        val currentCycle = playerPreferences.speedCyclePresets.get()
+        val isAlreadyInCycle = currentCycle.any {
+          val f = it.toFloatOrNull() ?: return@any false
+          kotlin.math.abs(f - targetSpeed) < 0.01f
+        }
+        if (isAlreadyInCycle) {
+          if (currentCycle.size > 1) {
+            playerPreferences.speedCyclePresets.set(
+              currentCycle.filterNot {
+                val f = it.toFloatOrNull() ?: return@filterNot false
+                kotlin.math.abs(f - targetSpeed) < 0.01f
+              }.toSet()
+            )
+          }
+        } else {
+          val formatted = targetSpeed.toFixed(2).toString()
+          playerPreferences.speedCyclePresets.set(currentCycle + formatted)
+        }
+      },
+      onResetSpeedPresets = {
+        playerPreferences.speedPresets.delete()
+        playerPreferences.speedCyclePresets.delete()
+      },
+      speedPresets = speedPresets.mapNotNull { it.toFloatOrNull() }.sorted(),
+      speedCyclePresets = speedCyclePresets.mapNotNull { it.toFloatOrNull() }.sorted(),
       onResetDefaultSpeed = {
         MPVLib.setPropertyFloat("speed", playerPreferences.defaultSpeed.deleteAndGet().toFixed(2))
       },

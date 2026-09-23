@@ -40,6 +40,11 @@ class PlayerPreferences(
       "default_speed_presets",
       setOf("0.25", "0.5", "0.75", "1.0", "1.25", "1.5", "1.75", "2.0", "2.5", "3.0", "3.5", "4.0"),
     )
+  val speedCyclePresets =
+    preferenceStore.getStringSet(
+      "speed_cycle_presets",
+      setOf("1.0", "1.25", "1.5", "1.75", "2.0"),
+    )
   val displayVolumeAsPercentage = preferenceStore.getBoolean("display_volume_as_percentage", true)
   val swapVolumeAndBrightness = preferenceStore.getBoolean("display_volume_on_right")
   val showLoadingCircle = preferenceStore.getBoolean("show_loading_circle", true)

@@ -1321,9 +1321,9 @@
     <string name="pref_player_auto_resume_on_ask_summary_on">الاستئناف تلقائيًا وعرض البدء من جديد</string>
     <string name="pref_player_auto_resume_on_ask_summary_off">ابدء من جديد واعرض استئناف التشغيل</string>
     <string name="player_prompt_resume_pill">شُوهد حتى %1$s</string>
-    <string name="pref_player_default_aspect_ratio" ignore="MissingTranslation">نسبة الأبعاد الافتراضية</string>
-    <string name="pref_player_remember_aspect_ratio" ignore="MissingTranslation">تذكر نسبة الأبعاد لجميع الفيديوهات</string>
-    <string name="pref_player_remember_aspect_ratio_summary" ignore="MissingTranslation">حفظ نسبة الأبعاد المعتمدة في المشغل للفيديوهات التالية</string>
+    <string name="pref_player_default_aspect_ratio">نسبة الأبعاد الافتراضية</string>
+    <string name="pref_player_remember_aspect_ratio">تذكر نسبة الأبعاد لجميع الفيديوهات</string>
+    <string name="pref_player_remember_aspect_ratio_summary">حفظ نسبة الأبعاد المعتمدة في المشغل للفيديوهات التالية</string>
     <string name="pref_advanced_history_auto_remove_deleted_title">الإزالة التلقائية للملفات المحذوفة</string>
     <string name="pref_advanced_history_auto_remove_deleted_summary">الحذف والتنظيف التلقائي للوسائط المحذوفة من \"المشغّلة مؤخرًا</string>
     <string name="pref_advanced_history_exclude_external_title">استثناء الوسائط الخارجية والمُشارَكة</string>

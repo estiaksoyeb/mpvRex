@@ -1484,4 +1484,24 @@
     <string name="playlist_most_played_desc">Dynamic playlist of your most frequently watched media</string>
     <string name="auto_playlist_badge">Auto</string>
 
+    <!-- Web Share -->
+    <string name="web_share_title">Web Share</string>
+    <string name="web_share_file">file</string>
+    <string name="web_share_files">files</string>
+    <string name="web_share_qr_desc">Scan QR Code</string>
+    <string name="web_share_enable_notifications_title">Enable Notifications</string>
+    <string name="web_share_enable_notifications_desc">Keep sharing in background &amp; reopen anytime</string>
+    <string name="web_share_allow">Allow</string>
+    <string name="web_share_require_token_title">Require Security Token</string>
+    <string name="web_share_require_token_enabled_desc">Requires ?t= token to view files</string>
+    <string name="web_share_require_token_disabled_desc">Open access (fast &amp; easy)</string>
+    <string name="web_share_received_title">Received (%1$d)</string>
+    <string name="web_share_received_path">Download/REX Player</string>
+    <string name="web_share_copy_link">Copy Link</string>
+    <string name="web_share_link_copied">Link copied to clipboard</string>
+    <string name="web_share_no_network">Turn on Hotspot or connect to Wi-Fi to share</string>
+    <string name="web_share_step_1">Connect receiving phone to this Hotspot or Wi-Fi</string>
+    <string name="web_share_step_2">Scan QR code or type URL in any browser</string>
+    <string name="web_share_stop_sharing">Stop Sharing</string>
+
 </resources>

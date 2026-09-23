@@ -421,7 +421,7 @@ data class VideoListScreen(
             add(
               SelectionOverflowAction(
                 icon = Icons.Filled.Share,
-                label = "Web Share",
+                label = stringResource(R.string.web_share_title),
                 onClick = { showWebShareSheet = true },
               )
             )

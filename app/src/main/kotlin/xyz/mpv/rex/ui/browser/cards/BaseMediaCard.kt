@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
@@ -205,7 +206,9 @@ fun BaseMediaCard(
                         visible = isSelected,
                         enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
                         exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)) + fadeOut(),
-                        modifier = Modifier.align(Alignment.TopStart),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .zIndex(1f),
                     ) {
                         Surface(
                             shape = CircleShape,
@@ -344,7 +347,9 @@ fun BaseMediaCard(
                         visible = isSelected,
                         enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
                         exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)) + fadeOut(),
-                        modifier = Modifier.align(Alignment.TopStart),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .zIndex(1f),
                     ) {
                         Surface(
                             shape = CircleShape,

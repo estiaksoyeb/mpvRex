@@ -236,6 +236,16 @@ object SubtitleEncodingUtils {
     return "windows-1252"
   }
 
+  private val originalBytesMap = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
+
+  fun registerOriginalBytes(pathOrUri: String, bytes: ByteArray) {
+    originalBytesMap[pathOrUri] = bytes
+  }
+
+  fun getOriginalBytes(pathOrUri: String): ByteArray? {
+    return originalBytesMap[pathOrUri]
+  }
+
   /**
    * Normalizes a subtitle from bytes, converting to UTF-8 if necessary.
    * Returns the converted file path if conversion was performed, or null if already valid UTF-8.
@@ -277,9 +287,12 @@ object SubtitleEncodingUtils {
       val cacheDir = File(context.cacheDir, CONVERTED_DIR_NAME).apply { mkdirs() }
       val safeBaseName = originalName.substringBeforeLast('.').replace(Regex("[^a-zA-Z0-9._-]"), "_")
       val ext = originalName.substringAfterLast('.', "srt")
-      val outFile = File(cacheDir, "${safeBaseName}_${targetEncoding}_utf8.$ext")
+      val outFile = File(cacheDir, "${safeBaseName}_converted.$ext")
+      val rawFile = File(cacheDir, "${outFile.nameWithoutExtension}.raw")
 
       outFile.writeText(decodedText, Charsets.UTF_8)
+      rawFile.writeBytes(bytes)
+      registerOriginalBytes(outFile.absolutePath, bytes)
       Log.i(TAG, "Successfully converted subtitle to: ${outFile.absolutePath}")
       outFile
     }.onFailure { e ->
@@ -302,8 +315,14 @@ object SubtitleEncodingUtils {
 
     return runCatching {
       val bytes = file.readBytes()
+      registerOriginalBytes(file.absolutePath, bytes)
       val converted = convertToUtf8IfNecessary(context, bytes, file.name, preferredEncoding)
-      converted?.absolutePath ?: file.absolutePath
+      if (converted != null) {
+        registerOriginalBytes(converted.absolutePath, bytes)
+        converted.absolutePath
+      } else {
+        file.absolutePath
+      }
     }.getOrDefault(file.absolutePath)
   }
 
@@ -325,8 +344,10 @@ object SubtitleEncodingUtils {
       val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
         ?: return (uri.toString()) to null
 
+      registerOriginalBytes(uri.toString(), bytes)
       val converted = convertToUtf8IfNecessary(context, bytes, fileName, preferredEncoding)
       if (converted != null) {
+        registerOriginalBytes(converted.absolutePath, bytes)
         converted.absolutePath to converted
       } else {
         uri.toString() to null
@@ -338,9 +359,111 @@ object SubtitleEncodingUtils {
   }
 
   /**
-   * Cleans up all converted subtitle files from the cache directory.
+   * Immediately reloads all active external subtitle tracks in MPV with the given encoding.
+   */
+  fun applyEncodingChange(context: Context, newEncoding: String) {
+    runCatching {
+      val trackCount = runCatching { `is`.xyz.mpv.MPVLib.getPropertyInt("track-list/count") ?: 0 }.getOrDefault(0)
+      val primarySid = runCatching { `is`.xyz.mpv.MPVLib.getPropertyInt("sid") ?: 0 }.getOrDefault(0)
+      val secondarySid = runCatching { `is`.xyz.mpv.MPVLib.getPropertyInt("secondary-sid") ?: 0 }.getOrDefault(0)
+      val cacheDir = File(context.cacheDir, CONVERTED_DIR_NAME).apply { mkdirs() }
+
+      data class ExternalTrack(
+        val id: Int,
+        val isPrimary: Boolean,
+        val isSecondary: Boolean,
+        val externalFilename: String,
+        val title: String?,
+      )
+
+      val externalTracks = mutableListOf<ExternalTrack>()
+      for (i in 0 until trackCount) {
+        val type = `is`.xyz.mpv.MPVLib.getPropertyString("track-list/$i/type") ?: continue
+        if (type != "sub") continue
+        val isExternal = `is`.xyz.mpv.MPVLib.getPropertyBoolean("track-list/$i/external") ?: false
+        if (!isExternal) continue
+        val id = `is`.xyz.mpv.MPVLib.getPropertyInt("track-list/$i/id") ?: continue
+        val isSelected = `is`.xyz.mpv.MPVLib.getPropertyBoolean("track-list/$i/selected") ?: false
+        val externalFilename = `is`.xyz.mpv.MPVLib.getPropertyString("track-list/$i/external-filename") ?: continue
+        val title = `is`.xyz.mpv.MPVLib.getPropertyString("track-list/$i/title")
+        externalTracks.add(
+          ExternalTrack(
+            id = id,
+            isPrimary = isSelected || (id == primarySid),
+            isSecondary = (id == secondarySid),
+            externalFilename = externalFilename,
+            title = title,
+          )
+        )
+      }
+
+      for (track in externalTracks) {
+        val file = File(track.externalFilename)
+        val rawFile = File(cacheDir, "${file.nameWithoutExtension}.raw")
+
+        val originalBytes = originalBytesMap[track.externalFilename]
+          ?: (if (rawFile.exists()) rawFile.readBytes() else null)
+          ?: (if (file.exists()) file.readBytes() else null)
+          ?: continue
+
+        val targetEncoding = if (newEncoding.isBlank() || newEncoding.equals("auto", ignoreCase = true)) {
+          detectEncoding(originalBytes)
+        } else {
+          newEncoding
+        }
+
+        val charset = runCatching { Charset.forName(targetEncoding) }.getOrDefault(Charsets.UTF_8)
+        val newText = String(originalBytes, charset)
+
+        val isInsideCache = runCatching {
+          file.canonicalPath.startsWith(cacheDir.canonicalPath)
+        }.getOrDefault(false)
+
+        if (isInsideCache && file.exists()) {
+          file.writeText(newText, Charsets.UTF_8)
+          `is`.xyz.mpv.MPVLib.command("sub-reload", track.id.toString())
+          Log.i(TAG, "Re-encoded in-place cache subtitle ${track.externalFilename} with $targetEncoding and reloaded")
+        } else {
+          val safeBaseName = file.nameWithoutExtension.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+          val ext = file.extension.ifBlank { "srt" }
+          val newCacheFile = File(cacheDir, "${safeBaseName}_${track.id}_converted.$ext")
+          val newRawFile = File(cacheDir, "${newCacheFile.nameWithoutExtension}.raw")
+          newCacheFile.writeText(newText, Charsets.UTF_8)
+          newRawFile.writeBytes(originalBytes)
+
+          registerOriginalBytes(newCacheFile.absolutePath, originalBytes)
+
+          `is`.xyz.mpv.MPVLib.command("sub-remove", track.id.toString())
+          val mode = if (track.isPrimary) "select" else "auto"
+          if (track.title != null) {
+            `is`.xyz.mpv.MPVLib.command("sub-add", newCacheFile.absolutePath, mode, track.title)
+          } else {
+            `is`.xyz.mpv.MPVLib.command("sub-add", newCacheFile.absolutePath, mode)
+          }
+
+          if (track.isSecondary) {
+            val countAfter = `is`.xyz.mpv.MPVLib.getPropertyInt("track-list/count") ?: 0
+            if (countAfter > 0) {
+              val newId = `is`.xyz.mpv.MPVLib.getPropertyInt("track-list/${countAfter - 1}/id")
+              if (newId != null) {
+                `is`.xyz.mpv.MPVLib.setPropertyInt("secondary-sid", newId)
+              }
+            }
+          }
+          Log.i(TAG, "Replaced external subtitle track ${track.id} with converted file ${newCacheFile.absolutePath}")
+        }
+      }
+      `is`.xyz.mpv.MPVLib.command("sub-reload")
+    }.onFailure { e ->
+      Log.e(TAG, "Failed to apply encoding change: $newEncoding", e)
+    }
+  }
+
+  /**
+   * Cleans up all converted subtitle files from the cache directory and clears memory maps.
    */
   fun cleanupConvertedSubtitles(context: Context) {
+    originalBytesMap.clear()
     runCatching {
       val cacheDir = File(context.cacheDir, CONVERTED_DIR_NAME)
       if (cacheDir.exists() && cacheDir.isDirectory) {

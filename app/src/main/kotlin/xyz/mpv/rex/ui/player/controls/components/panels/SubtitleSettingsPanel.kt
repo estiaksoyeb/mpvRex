@@ -594,6 +594,8 @@ private fun SubtitleMiscellaneousSection(
   }
   val openAtVideoLocation by preferences.openPickerAtVideoLocation.collectAsState()
   val forceLtr by preferences.forceLtr.collectAsState()
+  val subtitleEncoding by preferences.subtitleEncoding.collectAsState()
+  val context = LocalContext.current
 
   val secondarySid by MPVLib.propInt["secondary-sid"].collectAsState()
   val isSecondaryActive = (secondarySid ?: (MPVLib.getPropertyInt("secondary-sid") ?: 0)) > 0
@@ -706,16 +708,14 @@ private fun SubtitleMiscellaneousSection(
         { Text(stringResource(R.string.pref_subtitles_force_ltr_title)) },
         summary = { Text(stringResource(R.string.pref_subtitles_force_ltr_summary)) },
       )
-      var subtitleEncoding by remember { mutableStateOf(preferences.subtitleEncoding.get()) }
       ListPreference(
         value = subtitleEncoding,
         onValueChange = { newEncoding ->
-          subtitleEncoding = newEncoding
           preferences.subtitleEncoding.set(newEncoding)
           val codepage = if (newEncoding.isBlank() || newEncoding.equals("auto", ignoreCase = true)) "auto" else newEncoding
           runCatching {
             MPVLib.setPropertyString("sub-codepage", codepage)
-            MPVLib.command("sub-reload")
+            SubtitleEncodingUtils.applyEncodingChange(context, newEncoding)
           }
         },
         values = SubtitleEncodingUtils.ENCODINGS.map { it.code },

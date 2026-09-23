@@ -157,42 +157,7 @@ class SubtitleManager(
     }
 
     fun reloadExternalSubtitlesWithEncoding(newEncoding: String) {
-        if (_externalSubtitles.isEmpty()) return
-        scope.launch(Dispatchers.IO) {
-            runCatching {
-                val trackedUris = _externalSubtitles.toList()
-                for (uriString in trackedUris) {
-                    val originalUri = uriStringToUriMap[uriString] ?: continue
-                    val oldMpvPath = uriStringToMpvPathMap[uriString] ?: continue
-
-                    val (newMpvPath, _) = SubtitleEncodingUtils.normalizeSubtitleUri(
-                        context,
-                        originalUri,
-                        newEncoding
-                    )
-                    val finalPath = if (newMpvPath.startsWith("content://") || newMpvPath.startsWith("file://")) {
-                        originalUri.resolveUri(context) ?: originalUri.toString()
-                    } else {
-                        newMpvPath
-                    }
-
-                    if (finalPath != oldMpvPath) {
-                        mpvPathToUriMap.remove(oldMpvPath)
-                        mpvPathToUriMap[finalPath] = uriString
-                        uriStringToMpvPathMap[uriString] = finalPath
-
-                        if (oldMpvPath.contains("converted_subtitles")) {
-                            File(oldMpvPath).delete()
-                        }
-                        MPVLib.command("sub-add", finalPath, "select")
-                    } else {
-                        MPVLib.command("sub-reload")
-                    }
-                }
-            }.onFailure { e ->
-                Log.e(TAG, "Failed to reload external subtitles with new encoding", e)
-            }
-        }
+        SubtitleEncodingUtils.applyEncodingChange(context, newEncoding)
     }
 
     fun removeSubtitle(id: Int, tracks: List<TrackNode>) {

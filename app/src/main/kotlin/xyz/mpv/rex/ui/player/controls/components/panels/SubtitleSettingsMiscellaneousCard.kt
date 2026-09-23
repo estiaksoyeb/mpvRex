@@ -37,12 +37,14 @@ import `is`.xyz.mpv.MPVLib
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
-import xyz.mpv.rex.utils.media.SubtitleEncodingUtils
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import org.koin.compose.koinInject
+import xyz.mpv.rex.utils.media.SubtitleEncodingUtils
 
 @Composable
 fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
+  val context = LocalContext.current
   val preferences = koinInject<SubtitlesPreferences>()
   var isExpanded by remember { mutableStateOf(true) }
   ExpandableCard(
@@ -121,7 +123,7 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
             val codepage = if (newEncoding.isBlank() || newEncoding.equals("auto", ignoreCase = true)) "auto" else newEncoding
             runCatching {
               MPVLib.setPropertyString("sub-codepage", codepage)
-              MPVLib.command("sub-reload")
+              SubtitleEncodingUtils.applyEncodingChange(context, newEncoding)
             }
           },
           values = SubtitleEncodingUtils.ENCODINGS.map { it.code },

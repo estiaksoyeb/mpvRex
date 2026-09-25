@@ -4470,5 +4470,550 @@
   "pref_gesture_double_tap_right": {
     "source_hash": "883361d5d682a1574410961ce51450b6e036a779c9f098dec71e28aec832bfa6",
     "translated_value": "Derecha"
+  },
+  "pref_appearance_tab_you_title": {
+    "source_hash": "356beb0523d5412a1c60f6d9fa200a57a70acbcf3aba1058fbc50169d37d88c3",
+    "translated_value": "Pestaña 'Tú'",
+    "ignore_warnings": false
+  },
+  "open_with_mini_player": {
+    "source_hash": "84f3c6b3e068e3286640c7d03ac3fd9e8dee4083cc43a70dc74d9c75d534cf23",
+    "translated_value": "Abrir con el mini reproductor",
+    "ignore_warnings": false
+  },
+  "ui_loading": {
+    "source_hash": "ba3bbbe10d8bef66441c88536ce7b8e724e2829b59a3da658654f4961cd61ae5",
+    "translated_value": "Cargando…",
+    "ignore_warnings": false
+  },
+  "ui_loading_percent": {
+    "source_hash": "2956bcfd1e3a3d76b430beb1a2bb522293fba763b74b4030eec1ae9a12d9d096",
+    "translated_value": "Cargando %d%%",
+    "ignore_warnings": false
+  },
+  "pref_appearance_tab_you_summary": {
+    "source_hash": "8f3301b863e59e058f79d2e1d2fd69eb64e1c4e2e7b2bbc956910e798f3114c1",
+    "translated_value": "Combine las listas de reproducción y las reproducidas recientemente en una sola pestaña",
+    "ignore_warnings": false
+  },
+  "pref_appearance_show_next_previous_buttons_title": {
+    "source_hash": "38ca0e738d72e40e148dc948d9d1b3bc2fc594894699a5fd7c537bcf3d2f55ca",
+    "translated_value": "Mostrar botones siguiente/anterior",
+    "ignore_warnings": false
+  },
+  "pref_appearance_show_next_previous_buttons_summary": {
+    "source_hash": "a86423b7655ae3f91c713e5a1b9cc29ceb2c553faf705e80187a0138a577a24c",
+    "translated_value": "Mostrar los botones de salto siguiente y anterior en la superposición de controles del reproductor",
+    "ignore_warnings": false
+  },
+  "pref_appearance_player_always_dark_mode_disabled_toast": {
+    "source_hash": "4ee4b5d0bac9c18e718114e180c97338a89662975d6e7d41cf1b5104b36440aa",
+    "translated_value": "Se requiere el modo siempre oscuro del reproductor cuando los controles del reproductor de cristal están habilitados",
+    "ignore_warnings": false
+  },
+  "pref_autoplay_on_open_title": {
+    "source_hash": "15ea89726de133c1c039d13cc62d23bad3c449dcaf4f208c793e75d78ef0eb06",
+    "translated_value": "Reproducción automática al abrir",
+    "ignore_warnings": false
+  },
+  "pref_autoplay_on_open_summary": {
+    "source_hash": "3b42f84a032a0e5c71f4a500b02b152a61edce09aea03dbc30aea65aca7d1136",
+    "translated_value": "Iniciar automáticamente la reproducción cuando se abre el archivo multimedia",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_playback_title": {
+    "source_hash": "b19825c20fabcd3c8789b24591e91b76fc2e1a2b9d947a806dd06e8581fe7531",
+    "translated_value": "Reanudar la reproducción",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_playback_summary": {
+    "source_hash": "5b9d41b1b46feafa4f6cd1125f8716f5b56999768e29f1da71d64d77f3d7f0ed",
+    "translated_value": "Elige cómo se abren los vídeos vistos anteriormente",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_mode_always": {
+    "source_hash": "2f1fc268a4f35b1de0ff76acfafab95e99d5ba949c315dcb9087e0ee6a21e764",
+    "translated_value": "Reanudar siempre",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_mode_always_summary": {
+    "source_hash": "1ef17835e31af5c7a1ddce78ed0ece619f27ebd9334f543cc45f585e3c2e1291",
+    "translated_value": "Reanudar automáticamente desde la última posición guardada",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_mode_ask": {
+    "source_hash": "91da6bc629e0a3283107d5d84072d03044ec6818d41c65cb2726e3a89f67da17",
+    "translated_value": "pregunta cada vez",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_mode_ask_summary": {
+    "source_hash": "15b6fc8713a23c9dc79d4d5798924ca96ea9e9be01a618e9085cc281ce7a9d83",
+    "translated_value": "Solicitar reanudar o comenzar de nuevo",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_mode_never": {
+    "source_hash": "dfd6ac91c0301255351c05449f7dbc8e156287cca8b342a2326b06f51ff66e75",
+    "translated_value": "Empezar siempre de nuevo",
+    "ignore_warnings": false
+  },
+  "pref_player_resume_mode_never_summary": {
+    "source_hash": "77a3b3dc38a06be1572d27ae161e660fa1ca6f6844d94b77a16e0394d1f1ecce",
+    "translated_value": "Iniciar siempre la reproducción desde las 00:00",
+    "ignore_warnings": false
+  },
+  "player_resume_prompt_title": {
+    "source_hash": "c8cdf903a7d7903dd79938a343c55bf3906a5cb1a7ac9dd443d7ea431b5c94ad",
+    "translated_value": "¿Reanudar la reproducción?",
+    "ignore_warnings": false
+  },
+  "player_resume_prompt_message": {
+    "source_hash": "3d99cb250872c088272d9d537f5667c4c4dac79ca813986e6165214ca254abab",
+    "translated_value": "Anteriormente viste hasta %1$s.",
+    "ignore_warnings": false
+  },
+  "player_resume_prompt_message_with_duration": {
+    "source_hash": "972fc0f899a90e352f726d18b66bd4dbdc068ca1a8b8c4886384f2e0386efc49",
+    "translated_value": "Anteriormente viste hasta %1$s de %2$s.",
+    "ignore_warnings": false
+  },
+  "player_resume_action_resume": {
+    "source_hash": "d640c7421da066618a39daf4266da5f61f66a9b1afcd626481b831a17064965d",
+    "translated_value": "Reanudar",
+    "ignore_warnings": false
+  },
+  "player_resume_action_start_over": {
+    "source_hash": "b0045b84fe47c0bb4e403bebd0e11af5e895b6799e462440f5c73588fefd418b",
+    "translated_value": "Empezar de nuevo",
+    "ignore_warnings": false
+  },
+  "player_resumed_from_pill": {
+    "source_hash": "859eaa481fe757edaf1ef45133fd8c9c9a3b95b299647c62f839c31483de7e8e",
+    "translated_value": "Reanudado desde %1$s",
+    "ignore_warnings": false
+  },
+  "player_restart_action": {
+    "source_hash": "6b983a81e5e8099e4e23a368e72636e31f029f2e691e5be714106b8cf59d70a7",
+    "translated_value": "Reiniciar",
+    "ignore_warnings": false
+  },
+  "pref_player_auto_resume_on_ask_title": {
+    "source_hash": "d4732e4846b080167df38b33fcc396df8c7484f3b9001a09924294a109beb66f",
+    "translated_value": "Reanudar automáticamente la reproducción",
+    "ignore_warnings": false
+  },
+  "pref_player_auto_resume_on_ask_summary_on": {
+    "source_hash": "73f7f920886a9d67ba3047e9ef7570a668deefcf98c797bbb652981c777ba900",
+    "translated_value": "Reanudar automáticamente y ofrecer comenzar de nuevo",
+    "ignore_warnings": false
+  },
+  "pref_player_auto_resume_on_ask_summary_off": {
+    "source_hash": "875da2b90027c2cda88932cb1d1d579377fd55038547085d01ddf00b28ec42f7",
+    "translated_value": "Comience de nuevo y ofrezca reanudar la reproducción.",
+    "ignore_warnings": false
+  },
+  "player_prompt_resume_pill": {
+    "source_hash": "c08336cb0aa324476161d98ce43b880787d92ecdcf05dfde32d067df251047b8",
+    "translated_value": "Visto hasta %1$s",
+    "ignore_warnings": false
+  },
+  "pref_player_section_mini_player": {
+    "source_hash": "2113289ad08a45a1abb862209124013539ec3be064da742b091486a0883f5ff6",
+    "translated_value": "Mini reproductor",
+    "ignore_warnings": false
+  },
+  "pref_player_play_in_mini_player": {
+    "source_hash": "d61f08d5fd33f074485c77a0cdc3b4055bf5ccedc8440bd85aad56ae0c5ae629",
+    "translated_value": "Reproducir audio en mini reproductor",
+    "ignore_warnings": false
+  },
+  "pref_player_play_in_mini_player_summary_on": {
+    "source_hash": "04659693cbab529635701a72cff2331ddd3f27f41f627d91c16890be2624324e",
+    "translated_value": "Al tocar un archivo de audio, se inicia la reproducción directamente en la barra inferior del mini reproductor.",
+    "ignore_warnings": false
+  },
+  "pref_player_play_in_mini_player_summary_off": {
+    "source_hash": "005a5e05767ac3b40fe16ba60a5b089cad3615f3b230ee11faa1ec02a45b111f",
+    "translated_value": "Al tocar un archivo de audio, se abre el reproductor en pantalla completa.",
+    "ignore_warnings": false
+  },
+  "pref_player_remember_long_press_speed_title": {
+    "source_hash": "85272ee685dbbf73aeacd10cab9f58fbfcdb5951364af1bb10719a6706710f6e",
+    "translated_value": "Recuerda la velocidad ajustada",
+    "ignore_warnings": false
+  },
+  "pref_player_remember_long_press_speed_summary": {
+    "source_hash": "68f06eadb95c4a04a72b3dbe9228219cc7b6d402fd11ac31a3d9a50d6788fe3d",
+    "translated_value": "Utiliza la última velocidad de deslizamiento para las presiones prolongadas siguientes",
+    "ignore_warnings": false
+  },
+  "pref_subtitles_force_ltr_title": {
+    "source_hash": "fb45f337d881507d8dc130fd6ed0fbe54629f0b90cbab8e0b4219a049a7ae09b",
+    "translated_value": "Forzar dirección LTR",
+    "ignore_warnings": false
+  },
+  "pref_subtitles_force_ltr_summary": {
+    "source_hash": "fe329c788bfa244d3662b2364554f5e8112b3f1babccad2dd1eab7d3ab0644a1",
+    "translated_value": "Fuerza la dirección de izquierda a derecha para los subtítulos RTL",
+    "ignore_warnings": false
+  },
+  "pref_subtitles_encoding_title": {
+    "source_hash": "f1633cd16ad9fb5b136ebd723afb3d1bda659c96d177fc6b06bd710ba9379bb3",
+    "translated_value": "Codificación de subtítulos",
+    "ignore_warnings": false
+  },
+  "pref_subtitles_encoding_summary": {
+    "source_hash": "bd92050f1da6b02345316cf579ed79d326033f50a5d7d64a8f2dea8cc558daab",
+    "translated_value": "Codificación de caracteres utilizada para subtítulos externos.",
+    "ignore_warnings": false
+  },
+  "pref_advanced_history_auto_remove_deleted_title": {
+    "source_hash": "fbf27355b8337fb9cc69f924f491623abaa216ca5d2b875eaa09320d50f5376c",
+    "translated_value": "Eliminar automáticamente los archivos borrados",
+    "ignore_warnings": false
+  },
+  "pref_advanced_history_auto_remove_deleted_summary": {
+    "source_hash": "c058f83a000047e96f9468966ce10e7dd219c77489847f7c761ef543fecf59f0",
+    "translated_value": "Eliminar y limpiar automáticamente los archivos multimedia borrados de Reproducidos recientemente",
+    "ignore_warnings": false
+  },
+  "pref_advanced_history_exclude_external_title": {
+    "source_hash": "26993a8e4c67bdd749a78c0526f3ce99616412e47415983fa617dd808c7af4d3",
+    "translated_value": "Excluir medios externos y compartidos",
+    "ignore_warnings": false
+  },
+  "pref_advanced_history_exclude_external_summary": {
+    "source_hash": "fccb53666c18c8b9e9f6df17c24e7cf454d9a7e3f8692411246dd3d64c8b7079",
+    "translated_value": "No agregar archivos multimedia a Reproducidos recientemente cuando se abra desde otras aplicaciones o desde el menú de compartir",
+    "ignore_warnings": false
+  },
+  "player_sheets_sub_primary_position": {
+    "source_hash": "ac576666b92c92f254560797ed5860419a4df1c17ec840ead51a3912cc8f52ec",
+    "translated_value": "Posición principal del subtítulo",
+    "ignore_warnings": false
+  },
+  "player_sheets_secondary_sub_position": {
+    "source_hash": "40e95b6f530cf95d114927b62840277c15d1e997f6cc8930a27067dce39510cf",
+    "translated_value": "Posición de subtítulos secundarios",
+    "ignore_warnings": false
+  },
+  "player_sheets_secondary_sub_scale": {
+    "source_hash": "237eed33626952d871df08646c6af8c3059a3074d3d17ee3fee89ea690c0473c",
+    "translated_value": "Escala de subtítulos secundarios",
+    "ignore_warnings": false
+  },
+  "player_sheets_stats_page_6_desc": {
+    "source_hash": "18721e35a2991cafd411845aeebab326fae1a58dbcd0fb7828eac75520abc8c1",
+    "translated_value": "Estadísticas del sistema. Nivel de batería, consumo de energía, temperatura, RAM, pantalla.",
+    "ignore_warnings": false
+  },
+  "diagnostics_playback_decoder_header": {
+    "source_hash": "c055c291b4584dd1625ed5ba13ba0836eeab88eef7aa446fbec5f6b5442e429a",
+    "translated_value": "REPRODUCCIÓN Y DECODIFICADOR",
+    "ignore_warnings": false
+  },
+  "diagnostics_power_thermals_header": {
+    "source_hash": "4e16dc1519219c2acf0b15e26841bc6fad47b3f3903b701d33509f1e004d0650",
+    "translated_value": "ENERGÍA Y TEMPERATURA",
+    "ignore_warnings": false
+  },
+  "diagnostics_session_header": {
+    "source_hash": "cb66ec751f958acf43b6fec80a2002e8312c2b2d458a7e42da526aa7bd647fc9",
+    "translated_value": "SESIÓN",
+    "ignore_warnings": false
+  },
+  "diagnostics_app_cpu": {
+    "source_hash": "faf249d914da963d836e2a653ea76db6864b610873063cecb3ec22819bae7233",
+    "translated_value": "CPU de la aplicación",
+    "ignore_warnings": false
+  },
+  "diagnostics_memory_cache_header": {
+    "source_hash": "85d2b773539168beba2726c6bd5cb18be926905c2214265b9501ddfbf1e2c99e",
+    "translated_value": "MEMORIA Y CACHÉ",
+    "ignore_warnings": false
+  },
+  "diagnostics_process_memory": {
+    "source_hash": "e083bd83e9d3e97e3b3e7dbe6cca0dcac2c1342b57cb7984792ec01beee22c28",
+    "translated_value": "Proceso",
+    "ignore_warnings": false
+  },
+  "diagnostics_process_memory_value": {
+    "source_hash": "dc39ca0bc05a7fc8b9391e2fa1c8ed4b50534c321c3bfee63d060a5b3719e686",
+    "translated_value": "PSS %1$s | Java %2$s/%3$s | Nativo %4$s",
+    "ignore_warnings": false
+  },
+  "diagnostics_playback_cache": {
+    "source_hash": "2db1db07062e4a013e4662a3eab15891bd2dcaffe689d97cf99a605bf6fe5b67",
+    "translated_value": "Reproducción",
+    "ignore_warnings": false
+  },
+  "diagnostics_playback_cache_value": {
+    "source_hash": "f7e3ecc958e7f803872d374c89975dfd1012e66601d47a0e47ed805629f1d7c0",
+    "translated_value": "%1$.1f s almacenados en el búfer | Paquetes %2$s | Archivo %3$s",
+    "ignore_warnings": false
+  },
+  "you": {
+    "source_hash": "08b041935798fbf6fd6ff51099ffedb140a475889986d14f5559ff8e7fc571dd",
+    "translated_value": "Tú",
+    "ignore_warnings": false
+  },
+  "view_all": {
+    "source_hash": "30a64216eaeac5d3a328c11bf5e3269d10a3ca0d50aa7a8b99337ab429b73cb2",
+    "translated_value": "Ver todo",
+    "ignore_warnings": false
+  },
+  "watched": {
+    "source_hash": "1ca8c1c0de6fce0f4d13389a8e4a4cb646a316516fc7efbc9c734fc6026fcc75",
+    "translated_value": "Visto",
+    "ignore_warnings": false
+  },
+  "pref_include_no_media_content_title": {
+    "source_hash": "9e21cf77ffa88f31e8f8bf68c5e043f0cda538d5d71bc47e98dfc29f174307bc",
+    "translated_value": "Incluir contenido `.nomedia`",
+    "ignore_warnings": false
+  },
+  "pref_include_no_media_content_summary": {
+    "source_hash": "354fed8e3a8123ea40f8c0d63c442f1540f1f0f28728e8e04fc62831fdaf6170",
+    "translated_value": "Mostrar archivos multimedia de las carpetas excluidas de la biblioteca multimedia de Android. El escaneo de estas carpetas puede tardar más tiempo.",
+    "ignore_warnings": false
+  },
+  "pref_add_library_root": {
+    "source_hash": "82b5438745c48d29ecc17cf127d1b7417a37d5d1a9e1129d5b1a1df63812cc88",
+    "translated_value": "Agregar carpeta de biblioteca",
+    "ignore_warnings": false
+  },
+  "pref_clear_library_roots": {
+    "source_hash": "0a0a92e4e587e34b48262799feff56a5048658befbc0c952608e5549f54294dc",
+    "translated_value": "Eliminar carpetas de biblioteca seleccionadas",
+    "ignore_warnings": false
+  },
+  "pref_library_root_count": {
+    "source_hash": "56037758a5b4aecad14a51d05336621d4a4f578198bfad48a6e2def89845dd2c",
+    "translated_value": "Carpetas de biblioteca seleccionadas: %1$d",
+    "ignore_warnings": false
+  },
+  "pref_library_roots_title": {
+    "source_hash": "b8b8255c88730e62b1dd6572b811079cc6650f1749253c02263486d8ff8e00db",
+    "translated_value": "Carpetas de escaneo de la biblioteca",
+    "ignore_warnings": false
+  },
+  "pref_library_roots_summary": {
+    "source_hash": "511d592cc2c64a5c770fa37c243294d937f3e4634f28263eb746ec93b790bc8c",
+    "translated_value": "Carpetas personalizadas y directorios raíz de SAF autorizados explícitamente para la indexación de la biblioteca",
+    "ignore_warnings": false
+  },
+  "pref_library_roots_empty_title": {
+    "source_hash": "80240065dd49cad0556bd390ba0bacbddadadb119d904b34e1ea9e2baa0d500e",
+    "translated_value": "No se han agregado carpetas de biblioteca",
+    "ignore_warnings": false
+  },
+  "pref_library_roots_empty_message": {
+    "source_hash": "a1222427300615cc15f2644694dd6ff70930be35a6bf9818c2114a371ec2a8bb",
+    "translated_value": "Agrega rutas de carpetas personalizadas o directorios de almacenamiento externo para indexarlos en tu biblioteca.",
+    "ignore_warnings": false
+  },
+  "pref_library_roots_clear_all_confirm_title": {
+    "source_hash": "afabb5f19c661db0b7b132a72ae4f18d1d4858b67197ccad6d33ed75cef57b33",
+    "translated_value": "¿Eliminar todas las carpetas de la biblioteca?",
+    "ignore_warnings": false
+  },
+  "pref_library_roots_clear_all_confirm_message": {
+    "source_hash": "a06872879fbd8d4198e3a535d54e6914c8797fa398656791c4bd9214f71daa5e",
+    "translated_value": "¿Estás seguro de que quieres eliminar todas las raíces de escaneo de bibliotecas agregadas? Se liberarán los permisos guardados.",
+    "ignore_warnings": false
+  },
+  "pref_media_library_title": {
+    "source_hash": "1beb470bcc494ea941b4512485c2d5f7e43346ae5f64086c63670ca294f78ab4",
+    "translated_value": "Medios y biblioteca",
+    "ignore_warnings": false
+  },
+  "pref_media_library_summary": {
+    "source_hash": "1b1d170a91e428a094fb3726a3b540a7f6f288c0d766f0115d99d529dd4bd2b5",
+    "translated_value": "Administrar rutas de escaneo, archivos .nomedia, carpetas en la lista negra e indexación",
+    "ignore_warnings": false
+  },
+  "pref_category_content_discovery": {
+    "source_hash": "2f920c60a70134cb06bdba00bdc9656293268e9266953e468316f90b0957fbbe",
+    "translated_value": "Contenido y descubrimiento",
+    "ignore_warnings": false
+  },
+  "pref_category_storage_exclusions": {
+    "source_hash": "1fbe77f3e142f0afcfc10fc6b1eff4b93917ae1563fb5ee3f4131cad1cfa6956",
+    "translated_value": "Almacenamiento y exclusiones",
+    "ignore_warnings": false
+  },
+  "pref_category_library_maintenance": {
+    "source_hash": "5cbe78f9ee15b1d85033483e65a67a4414390e946d0791d71cb4b5cdc3065257",
+    "translated_value": "Mantenimiento de la biblioteca",
+    "ignore_warnings": false
+  },
+  "pref_rescan_library_title": {
+    "source_hash": "c5ac5b41824488cd5663bf625db6a883713d790e84e6f5844341aa02b151eef0",
+    "translated_value": "Forzar un nuevo escaneo de la biblioteca",
+    "ignore_warnings": false
+  },
+  "pref_rescan_library_summary": {
+    "source_hash": "126875d1e1c5bbb8736f1bb321ddfb6ca66cf400e619ff572b0ab0c0a713b41d",
+    "translated_value": "Reindexar el almacenamiento compartido interno y las rutas personalizadas para detectar archivos multimedia",
+    "ignore_warnings": false
+  },
+  "pref_clear_metadata_cache_title": {
+    "source_hash": "98928bac09661c44a9f739deb8404dc2b4ee20713411e7ff1539b23570f0f547",
+    "translated_value": "Borrar caché de metadatos",
+    "ignore_warnings": false
+  },
+  "pref_clear_metadata_cache_summary": {
+    "source_hash": "e341085154d6bc76f047b511f7347759c46cacce3d89d86ccade9db566060882",
+    "translated_value": "Eliminar los metadatos de los videos almacenados en caché, las dimensiones de los fotogramas y la caché de miniaturas",
+    "ignore_warnings": false
+  },
+  "pref_rescan_started_toast": {
+    "source_hash": "5b11c335879a9c2e50362e5a019e2403a0069636022b839ca0a3fdc022655723",
+    "translated_value": "Se inició el nuevo escaneo de la biblioteca multimedia",
+    "ignore_warnings": false
+  },
+  "pref_cache_cleared_toast": {
+    "source_hash": "c4c4d13d542efce4b542175770501073714590e3c5b4b780478a7478e2b8f53e",
+    "translated_value": "Caché de metadatos borrada",
+    "ignore_warnings": false
+  },
+  "media_info_folder_path": {
+    "source_hash": "98bca2fab915abe0541e612db447c6cf9ad18d1aaa595f052c5d1bf6a697995b",
+    "translated_value": "Ruta de la carpeta",
+    "ignore_warnings": false
+  },
+  "community_already_joined": {
+    "source_hash": "8fdecf3bd747f49d5f20a7375cf9dcc48ce0dd3b625b4d0e4c04022b190e72e7",
+    "translated_value": "Ya me uní",
+    "ignore_warnings": false
+  },
+  "community_never_show_again": {
+    "source_hash": "f2d1044281dce5ac4a57ae691fced59a896549a616b006a56744d9cf90fcedd1",
+    "translated_value": "Nunca volver a mostrar",
+    "ignore_warnings": false
+  },
+  "community_not_now": {
+    "source_hash": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c",
+    "translated_value": "Ahora no",
+    "ignore_warnings": false
+  },
+  "community_already_joined_message": {
+    "source_hash": "731c09e3ba3ea9e345670f8d57d0831eac5ea216d9b0e0ac5a7a81de9bcf21c9",
+    "translated_value": "También puedes encontrar estos enlaces a la comunidad en Preferencias → Acerca de.",
+    "ignore_warnings": false
+  },
+  "btn_label_quality": {
+    "source_hash": "255da5c20861b5ef51d5ffe2a15c97d76ff1bdf8c608fcad3291e31b73677749",
+    "translated_value": "Calidad de video",
+    "ignore_warnings": false
+  },
+  "video_quality": {
+    "source_hash": "255da5c20861b5ef51d5ffe2a15c97d76ff1bdf8c608fcad3291e31b73677749",
+    "translated_value": "Calidad de video",
+    "ignore_warnings": false
+  },
+  "video_quality_auto": {
+    "source_hash": "0286249762f7c94349cdc0ba3bb2255baf9a80036e2193ead1d77696f888582f",
+    "translated_value": "Automático",
+    "ignore_warnings": false
+  },
+  "video_quality_not_available": {
+    "source_hash": "6097f5ef6ccd5195dd56666c442491ffa4d6fb7e12d323b3efb193eaa9daf3d3",
+    "translated_value": "No hay calidades de transmisión disponibles para este contenido multimedia",
+    "ignore_warnings": false
+  },
+  "video_quality_addon_outdated": {
+    "source_hash": "3f06b56db903377fd75dcd82181bf0f8de3ecea1391be6fb58c9ebf90d444ba5",
+    "translated_value": "Actualiza la aplicación complementaria REX Ytdlp para habilitar el cambio de calidad",
+    "ignore_warnings": false
+  },
+  "video_quality_set_as_default": {
+    "source_hash": "cd9fd6617ee7296789b0770b8d12d95ecd1698d06f4454eeeccf53394786f1e8",
+    "translated_value": "Establecer \"%1$s\" como predeterminado",
+    "ignore_warnings": false
+  },
+  "video_quality_default_saved": {
+    "source_hash": "726a779f8d716babbfaffa4a6155da8b880d902be2c4811049838d31d1005531",
+    "translated_value": "Calidad predeterminada establecida en %1$s",
+    "ignore_warnings": false
+  },
+  "clip_export_title": {
+    "source_hash": "e451241a796d1a078628d746383417d8994dd62b8db95f781eae26a0712259a5",
+    "translated_value": "Exportar clip",
+    "ignore_warnings": false
+  },
+  "clip_export_fast_title": {
+    "source_hash": "d64456a493972b23f66ea664509da8d82391b0e0c5c710038d44fee4c9101f4a",
+    "translated_value": "Rápido (copia sin pérdida)",
+    "ignore_warnings": false
+  },
+  "clip_export_fast_desc": {
+    "source_hash": "6df31d35ac20fd08ab985332c7aecd55af5b06782ba1299ec1e5ef88b90d3149",
+    "translated_value": "Copia instantánea de la transmisión con calidad 100 % original. Comienza en el fotograma clave más cercano.",
+    "ignore_warnings": false
+  },
+  "clip_export_exact_title": {
+    "source_hash": "ee4be3bb77a547c44fc3462fa5f8bdfd3701c95adc57c0d8f4cee7a819b63551",
+    "translated_value": "Fotograma exacto (transcodificación)",
+    "ignore_warnings": false
+  },
+  "clip_export_exact_desc": {
+    "source_hash": "672b110e36461b9f71a9df32d85b370af415721c056177e20953a666d33fbeda",
+    "translated_value": "Exportación con precisión de fotograma a partir de la marca de tiempo exacta.",
+    "ignore_warnings": false
+  },
+  "clip_export_fast_tag": {
+    "source_hash": "4b86dab6fdeaa7641e7c467cf43325ac8fa44b3711734816da763b0c9ea1a31d",
+    "translated_value": "Sin pérdidas",
+    "ignore_warnings": false
+  },
+  "clip_export_exact_tag": {
+    "source_hash": "388bf409083301d34513ba75e3ff9a952c66643d1e2e76d9296e78f52b194a89",
+    "translated_value": "Precisión de fotograma",
+    "ignore_warnings": false
+  },
+  "clip_export_duration": {
+    "source_hash": "270fd8d2cd2c082852e29a6da892ce04087fcae52b38a06c4579ddc3eaa53ac7",
+    "translated_value": "Duración: %s",
+    "ignore_warnings": false
+  },
+  "generic_off": {
+    "source_hash": "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1",
+    "translated_value": "Desactivado",
+    "ignore_warnings": false
+  },
+  "network_share_unreachable": {
+    "source_hash": "803271d9a81b2c5e36cd33fc32a6e309cbe2350dd367f641bc2709ba3174a126",
+    "translated_value": "No se puede acceder al recurso compartido de red.",
+    "ignore_warnings": false
+  },
+  "pref_player_autoplay_on_open": {
+    "source_hash": "15ea89726de133c1c039d13cc62d23bad3c449dcaf4f208c793e75d78ef0eb06",
+    "translated_value": "Reproducción automática al abrir",
+    "ignore_warnings": false
+  },
+  "pref_player_autoplay_on_open_summary": {
+    "source_hash": "3b42f84a032a0e5c71f4a500b02b152a61edce09aea03dbc30aea65aca7d1136",
+    "translated_value": "Iniciar la reproducción automáticamente al abrir el archivo multimedia",
+    "ignore_warnings": false
+  },
+  "pref_player_autoplay_on_open_summary_on": {
+    "source_hash": "3b42f84a032a0e5c71f4a500b02b152a61edce09aea03dbc30aea65aca7d1136",
+    "translated_value": "Iniciar la reproducción automáticamente al abrir el archivo multimedia",
+    "ignore_warnings": false
+  },
+  "pref_player_autoplay_on_open_summary_off": {
+    "source_hash": "c31265ce635049e54ff10cd7117490aaaa4ac3511cd33e08950922f5ed5d1471",
+    "translated_value": "Abrir el contenido multimedia en estado de pausa",
+    "ignore_warnings": false
+  },
+  "shorts_restart_from_beginning": {
+    "source_hash": "928a13ee4db186788f9f65a29f3e3805659088d647137cc332da0adee6a88546",
+    "translated_value": "Volver a empezar desde el principio",
+    "ignore_warnings": false
+  },
+  "shorts_reshuffle_feed": {
+    "source_hash": "b7e3878a92d39faf585b61e1fee84bf33b70ade12f8b04d58bc113ba92b2c823",
+    "translated_value": "Reorganizar el feed",
+    "ignore_warnings": false
   }
 }

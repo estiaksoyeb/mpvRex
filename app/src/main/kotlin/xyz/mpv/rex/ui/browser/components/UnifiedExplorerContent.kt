@@ -114,6 +114,7 @@ fun <T> UnifiedExplorerContent(
 
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
+  val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val navigationBarHeight = LocalNavigationBarHeight.current
 
   val animatedBottomPadding by animateDpAsState(
@@ -339,7 +340,8 @@ fun <T> UnifiedExplorerContent(
                         newVideoIds = newVideoIds,
                         watchedVideoIds = watchedVideoIds,
                         videoPlaybackProgress = videoPlaybackProgress,
-                        showSections = showSections
+                        showSections = showSections,
+                        showAudioFiles = showAudioFiles,
                       )
                     }
                   }
@@ -386,7 +388,8 @@ fun <T> UnifiedExplorerContent(
                   newVideoIds = newVideoIds,
                   watchedVideoIds = watchedVideoIds,
                   videoPlaybackProgress = videoPlaybackProgress,
-                  showSections = showSections
+                  showSections = showSections,
+                  showAudioFiles = showAudioFiles,
                 )
               }
             }
@@ -448,7 +451,8 @@ fun <T> UnifiedExplorerContent(
                         newVideoIds = newVideoIds,
                         watchedVideoIds = watchedVideoIds,
                         videoPlaybackProgress = videoPlaybackProgress,
-                        showSections = showSections
+                        showSections = showSections,
+                        showAudioFiles = showAudioFiles,
                       )
                     }
                   }
@@ -495,7 +499,8 @@ fun <T> UnifiedExplorerContent(
                   newVideoIds = newVideoIds,
                   watchedVideoIds = watchedVideoIds,
                   videoPlaybackProgress = videoPlaybackProgress,
-                  showSections = showSections
+                  showSections = showSections,
+                  showAudioFiles = showAudioFiles,
                 )
               }
             }
@@ -550,7 +555,8 @@ fun <T> UnifiedExplorerContent(
               newVideoIds = newVideoIds,
               watchedVideoIds = watchedVideoIds,
               videoPlaybackProgress = videoPlaybackProgress,
-              showSections = showSections
+              showSections = showSections,
+              showAudioFiles = showAudioFiles,
             )
           }
         }
@@ -614,7 +620,8 @@ fun <T> UnifiedExplorerContent(
                       newVideoIds = newVideoIds,
                       watchedVideoIds = watchedVideoIds,
                       videoPlaybackProgress = videoPlaybackProgress,
-                      showSections = showSections
+                      showSections = showSections,
+                      showAudioFiles = showAudioFiles,
                     )
                   }
                   IconButton(
@@ -648,7 +655,8 @@ fun <T> UnifiedExplorerContent(
                 newVideoIds = newVideoIds,
                 watchedVideoIds = watchedVideoIds,
                 videoPlaybackProgress = videoPlaybackProgress,
-                showSections = showSections
+                showSections = showSections,
+                showAudioFiles = showAudioFiles,
               )
             }
           }
@@ -723,6 +731,7 @@ private fun <T> ExplorerItemCard(
   watchedVideoIds: Set<Long> = emptySet(),
   videoPlaybackProgress: Map<Long, Float> = emptyMap(),
   showSections: Boolean = false,
+  showAudioFiles: Boolean = true,
 ) {
   val lastPlayedVideoPathsInFolder = LocalLastPlayedVideoPathsInFolder.current
   val recentlyPlayedFilePaths = LocalRecentlyPlayedFilePaths.current
@@ -736,7 +745,7 @@ private fun <T> ExplorerItemCard(
         }
       }
       val isNeverPlayed = item.path !in playedFolderPaths
-      val isWatched = (item.videoCount > 0 || item.audioCount > 0) && item.unwatchedVideoCount == 0
+      val isWatched = item.activeCount(showAudioFiles) > 0 && item.unwatchedVideoCount == 0
 
       FolderCard(
         folder = item,
@@ -848,6 +857,10 @@ private fun <T> ExplorerItemCard(
         audioCount = item.audioCount,
         totalSize = item.totalSize,
         totalDuration = item.totalDuration,
+        videoSize = item.videoSize,
+        audioSize = item.audioSize,
+        videoDuration = item.videoDuration,
+        audioDuration = item.audioDuration,
         lastModified = item.lastModified / 1000,
         newCount = item.newCount,
         unwatchedVideoCount = item.unwatchedVideoCount,
@@ -860,7 +873,7 @@ private fun <T> ExplorerItemCard(
         }
       }
       val isNeverPlayed = item.path !in playedFolderPaths
-      val isWatched = (item.videoCount > 0 || item.audioCount > 0) && item.unwatchedVideoCount == 0
+      val isWatched = item.activeCount(showAudioFiles) > 0 && item.unwatchedVideoCount == 0
 
       FolderCard(
         folder = folderModel,

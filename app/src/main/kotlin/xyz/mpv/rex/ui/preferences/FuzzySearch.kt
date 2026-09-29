@@ -28,109 +28,160 @@ object FuzzySearch {
         // 1. Exact match
         if (q == t) return 1000
 
+        val qNorm = normalizePhrase(q)
+        if (qNorm.isEmpty()) return -1
+
+        val tNorm = normalizePhrase(t)
+        if (tNorm.isEmpty()) return -1
+
+        if (qNorm == tNorm) return 980
+
         // 2. Target starts with query
-        if (t.startsWith(q)) {
-            return 850 + (100 - t.length.coerceAtMost(100))
+        if (t.startsWith(q) || tNorm.startsWith(qNorm)) {
+            val len = minOf(t.length, tNorm.length)
+            return 850 + (100 - len.coerceAtMost(100))
         }
 
         // 3. Word boundary matches
-        val words = t.split(" ", "-", "_", "/", ".", ",", "(", ")")
-            .filter { it.isNotEmpty() }
+        val words = tNorm.split(' ')
 
-        // Any word exactly equals query
-        if (words.any { it == q }) {
+        if (words.any { it == qNorm || it == q }) {
             return 750
         }
 
-        // Any word starts with query
-        val prefixWord = words.find { it.startsWith(q) }
+        val prefixWord = words.find { it.startsWith(qNorm) || it.startsWith(q) }
         if (prefixWord != null) {
             return 650 + (50 - prefixWord.length.coerceAtMost(50))
         }
 
         // 4. Substring match
-        val subIndex = t.indexOf(q)
+        val subIndex = if (tNorm.contains(qNorm)) tNorm.indexOf(qNorm) else t.indexOf(q)
         if (subIndex >= 0) {
-            // Earlier in the string scores higher
-            return 500 - subIndex.coerceAtMost(50)
+            return 600 - subIndex.coerceAtMost(50)
         }
 
-        // 5. Multi-token query check: e.g. "dark amoled" or "hw dec"
-        val qTokens = q.split(" ").filter { it.isNotEmpty() }
+        // 5. Multi-token query check
+        val qTokens = qNorm.split(' ')
         if (qTokens.size > 1) {
+            val availableWords = words.toMutableList()
             var allMatch = true
             var scoreSum = 0
             for (token in qTokens) {
-                val best = words.maxOfOrNull { wordScore(token, it) } ?: -1
-                if (best <= 0) {
+                var bestScore = -1
+                var bestIdx = -1
+                for (i in availableWords.indices) {
+                    val s = wordScore(token, availableWords[i])
+                    if (s > bestScore) {
+                        bestScore = s
+                        bestIdx = i
+                    }
+                }
+                if (bestScore <= 0 || bestIdx < 0) {
                     allMatch = false
                     break
                 }
-                scoreSum += best
+                scoreSum += bestScore
+                availableWords.removeAt(bestIdx)
             }
             if (allMatch) {
                 return 400 + (scoreSum / qTokens.size)
             }
         }
 
-        // 6. Subsequence match (e.g. "hwdec" -> "hardware decoding")
-        val subseq = subsequenceScore(q, t)
+        // 6. Subsequence match
+        val subseq = subsequenceScore(qNorm, t)
         if (subseq > 0) return subseq
 
-        // 7. Typo match against individual words (Levenshtein distance)
-        val bestTypoScore = words.maxOfOrNull { wordTypoScore(q, it) } ?: -1
+        // 7. Typo match against individual words
+        val bestTypoScore = words.maxOfOrNull { wordTypoScore(qNorm, it) } ?: -1
         if (bestTypoScore > 0) return bestTypoScore
 
-        // 8. Typo match against target as whole if lengths are comparable
-        if (abs(q.length - t.length) <= 3) {
-            val wholeTypoScore = wordTypoScore(q, t)
+        // 8. Typo match against target as whole
+        if (abs(qNorm.length - tNorm.length) <= 3) {
+            val wholeTypoScore = wordTypoScore(qNorm, tNorm)
             if (wholeTypoScore > 0) return wholeTypoScore
         }
 
         return -1
     }
 
+    private fun normalizePhrase(s: String): String {
+        val sb = StringBuilder(s.length)
+        var prevSpace = false
+        for (c in s) {
+            if (!c.isLetterOrDigit()) {
+                if (!prevSpace && sb.isNotEmpty()) {
+                    sb.append(' ')
+                    prevSpace = true
+                }
+            } else {
+                sb.append(c)
+                prevSpace = false
+            }
+        }
+        return sb.toString().trimEnd()
+    }
+
     private fun wordScore(token: String, word: String): Int {
         if (word == token) return 100
         if (word.startsWith(token)) return 80
-        if (word.contains(token)) return 60
-        val typo = wordTypoScore(token, word)
-        if (typo > 0) return typo
+        if (token.length >= 2 && word.contains(token)) return 60
+        val dist = typoDistance(token, word)
+        if (dist > 0) return (55 - (dist * 15)).coerceAtLeast(10)
         return -1
     }
 
     private fun subsequenceScore(query: String, target: String): Int {
-        if (query.length < 2) return -1
-        var qIdx = 0
-        var tIdx = 0
-        var consecutive = 0
-        var bonus = 0
+        if (query.length < 2 || target.length < query.length) return -1
 
-        while (qIdx < query.length && tIdx < target.length) {
-            if (query[qIdx] == target[tIdx]) {
-                consecutive++
-                bonus += 10 + (consecutive * 5)
-                if (tIdx == 0 || target[tIdx - 1] in " -_/") {
-                    bonus += 25 // Match at word boundary
+        fun match(qIdx: Int, tIdx: Int, consecutive: Int, boundaryMatches: Int, contiguousMatches: Int, bonus: Int): Int {
+            if (qIdx == query.length) {
+                val meaningfulMatches = boundaryMatches + contiguousMatches
+                val minRequired = maxOf(2, (query.length + 1) / 2)
+                return if (meaningfulMatches >= minRequired) {
+                    260 + bonus.coerceAtMost(140)
+                } else {
+                    -1
                 }
-                qIdx++
-            } else {
-                consecutive = 0
             }
-            tIdx++
+            if (tIdx >= target.length || target.length - tIdx < query.length - qIdx) return -1
+
+            val isBoundary = tIdx == 0 || !target[tIdx - 1].isLetterOrDigit()
+
+            if (query[qIdx] == target[tIdx]) {
+                if (qIdx == 0 && !isBoundary) {
+                    return match(qIdx, tIdx + 1, 0, boundaryMatches, contiguousMatches, bonus)
+                }
+
+                val newConsecutive = consecutive + 1
+                val newContiguous = if (newConsecutive > 1) contiguousMatches + 1 else contiguousMatches
+                val newBoundary = if (isBoundary) boundaryMatches + 1 else boundaryMatches
+                val boundaryBonus = if (isBoundary) 25 else 0
+                val matchBonus = 10 + (newConsecutive * 5)
+                val takeScore = match(
+                    qIdx + 1,
+                    tIdx + 1,
+                    newConsecutive,
+                    newBoundary,
+                    newContiguous,
+                    bonus + boundaryBonus + matchBonus
+                )
+
+                if (!isBoundary) {
+                    val skipScore = match(qIdx, tIdx + 1, 0, boundaryMatches, contiguousMatches, bonus)
+                    return maxOf(takeScore, skipScore)
+                }
+                return takeScore
+            } else {
+                return match(qIdx, tIdx + 1, 0, boundaryMatches, contiguousMatches, bonus)
+            }
         }
 
-        return if (qIdx == query.length) {
-            250 + bonus.coerceAtMost(150)
-        } else {
-            -1
-        }
+        return match(0, 0, 0, 0, 0, 0)
     }
 
-    private fun wordTypoScore(query: String, word: String): Int {
+    private fun typoDistance(query: String, word: String): Int {
         val qLen = query.length
-        val wLen = word.length
-        // Only attempt typo matching if query has at least 3 characters
         if (qLen < 3) return -1
 
         val maxAllowedDistance = when {
@@ -140,10 +191,12 @@ object FuzzySearch {
         }
 
         val dist = boundedLevenshtein(query, word, maxAllowedDistance)
-        if (dist in 1..maxAllowedDistance) {
-            return 320 - (dist * 70)
-        }
-        return -1
+        return if (dist in 1..maxAllowedDistance) dist else -1
+    }
+
+    private fun wordTypoScore(query: String, word: String): Int {
+        val dist = typoDistance(query, word)
+        return if (dist > 0) 320 - (dist * 70) else -1
     }
 
     private fun boundedLevenshtein(s1: String, s2: String, maxLimit: Int): Int {

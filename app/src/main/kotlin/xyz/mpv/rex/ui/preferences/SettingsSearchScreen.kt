@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,7 +36,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,11 +73,9 @@ object SettingsSearchScreen : Screen {
             mutableStateOf(TextFieldValue(""))
         }
 
-        val searchResults by remember(searchQuery.text) {
-            derivedStateOf {
-                SearchablePreferences.search(searchQuery.text) { resId ->
-                    context.getString(resId)
-                }
+        val searchResults = remember(searchQuery.text) {
+            SearchablePreferences.search(searchQuery.text) { resId ->
+                context.getString(resId)
             }
         }
 
@@ -221,10 +218,10 @@ object SettingsSearchScreen : Screen {
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
                     ) {
-                        itemsIndexed(
+                        items(
                             items = searchResults,
-                            key = { index, pref -> "${pref.titleRes}_${pref.category}_${pref.screen}_$index".hashCode() }
-                        ) { _, preference ->
+                            key = { pref -> "${pref.titleRes ?: pref.title}_${pref.category}_${pref.screen}" }
+                        ) { preference ->
                             SearchResultItem(
                                 preference = preference,
                                 onClick = {

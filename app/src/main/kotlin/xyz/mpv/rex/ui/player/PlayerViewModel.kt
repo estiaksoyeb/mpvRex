@@ -1997,6 +1997,7 @@ class PlayerViewModel(
 
   override fun onCleared() {
     super.onCleared()
+    _playbackManager.cancelPendingJobs()
     ambientModeManager.cleanup()
     videoFlipFilterManager.reset()
   }

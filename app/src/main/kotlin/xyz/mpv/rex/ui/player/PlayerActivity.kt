@@ -338,6 +338,7 @@ class PlayerActivity :
       }
 
       override fun onPlaybackRestart() {
+        if (isFinishing || isUserFinishing || player.isExiting || MPVLifecycleLock.isTearingDown.value) return
         player.isExiting = false
         if (!isReady && !viewModel.isLoadingFile.value && !isAutoAdvancing) {
           isReady = true
@@ -1069,6 +1070,8 @@ class PlayerActivity :
     }
 
     isUserFinishing = true
+    player.isExiting = true
+    viewModel.playbackManager.cancelPendingJobs()
     miniPlayerStateManager.clearState()
     finish()
   }
@@ -1132,6 +1135,8 @@ class PlayerActivity :
   @RequiresApi(Build.VERSION_CODES.P)
   override fun onDestroy() {
     Log.d(TAG, "PlayerActivity onDestroy")
+    player.isExiting = true
+    viewModel.playbackManager.cancelPendingJobs()
     runCatching { remoteClient.onPlayerFinished() }
 
     runCatching {
@@ -1186,6 +1191,7 @@ class PlayerActivity :
     if (!isFinishing || isManualBackgroundPlayback) return
 
     player.isExiting = true
+    viewModel.playbackManager.cancelPendingJobs()
 
     // Stop media notification service when activity is destroyed
     endBackgroundPlayback()
@@ -1274,6 +1280,8 @@ class PlayerActivity :
     Log.d(TAG, "finish() called, caller stack:\n" + Log.getStackTraceString(Throwable()))
     runCatching {
       if (!isManualBackgroundPlayback) {
+        player.isExiting = true
+        viewModel.playbackManager.cancelPendingJobs()
         isReady = false
       }
 
@@ -1301,6 +1309,8 @@ class PlayerActivity :
     Log.d(TAG, "finishAndRemoveTask() called, caller stack:\n" + Log.getStackTraceString(Throwable()))
     runCatching {
       if (!isManualBackgroundPlayback) {
+        player.isExiting = true
+        viewModel.playbackManager.cancelPendingJobs()
         isReady = false
       }
       isUserFinishing = true

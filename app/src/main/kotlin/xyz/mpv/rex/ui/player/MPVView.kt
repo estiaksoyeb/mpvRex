@@ -47,7 +47,7 @@ class MPVView(
    */
   override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
     super.surfaceChanged(holder, format, width, height)
-    if (isExiting) return
+    if (isExiting || !MPVLifecycleLock.isNativeInitialized || MPVLifecycleLock.isTearingDown.value) return
     // Only needed while paused; during playback the next frame repaints at the new size.
     val paused = runCatching { MPVLib.getPropertyBoolean("pause") }.getOrNull() == true
     if (paused) {
@@ -193,7 +193,7 @@ class MPVView(
 
   override fun surfaceCreated(holder: SurfaceHolder) {
     super.surfaceCreated(holder)
-    if (!MPVLifecycleLock.isNativeInitialized) return
+    if (!MPVLifecycleLock.isNativeInitialized || MPVLifecycleLock.isTearingDown.value || isExiting) return
 
     // Audio may have been loaded while vo=null with no video track selected. Unlike vid=auto,
     // selecting the attached-picture track by ID reliably starts its single-frame decoder.

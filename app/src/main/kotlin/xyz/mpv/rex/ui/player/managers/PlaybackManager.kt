@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import xyz.mpv.rex.ui.player.MPVLifecycleLock
 import xyz.mpv.rex.ui.player.VideoAspect
 
 /**
@@ -28,6 +29,16 @@ class PlaybackManager(
     private var resyncJob: Job? = null
     @Volatile private var lastSeekAt = 0L
 
+    private fun canAccessMpv(): Boolean =
+        MPVLifecycleLock.isNativeInitialized && !MPVLifecycleLock.isTearingDown.value
+
+    fun cancelPendingJobs() {
+        seekJob?.cancel()
+        seekJob = null
+        resyncJob?.cancel()
+        resyncJob = null
+    }
+
     fun onPlaybackRestart() {
         ensureUnmuted()
     }
@@ -36,6 +47,7 @@ class PlaybackManager(
      * Ensures MPV mute property is not stuck at true from prior seek guard or race condition.
      */
     fun ensureUnmuted() {
+        if (!canAccessMpv()) return
         runCatching {
             if (MPVLib.getPropertyBoolean("mute") == true) {
                 MPVLib.setPropertyBoolean("mute", false)
@@ -50,16 +62,18 @@ class PlaybackManager(
      */
     fun seekTo(scope: CoroutineScope, position: Int, abLoopA: Double?, abLoopB: Double?) {
         seekJob?.cancel()
+        if (!canAccessMpv()) return
         seekJob = scope.launch(Dispatchers.IO) {
-            val isRemote = MPVLib.getPropertyString("path")?.startsWith("http", ignoreCase = true) == true
+            if (!isActive || !canAccessMpv()) return@launch
+            val isRemote = runCatching { MPVLib.getPropertyString("path") }.getOrNull()?.startsWith("http", ignoreCase = true) == true
             val coalesceMs = if (isRemote) SEEK_COALESCE_REMOTE_MS else SEEK_COALESCE_LOCAL_MS
             val timeSinceLastSeek = SystemClock.elapsedRealtime() - lastSeekAt
             if (timeSinceLastSeek < coalesceMs) {
                 delay(coalesceMs - timeSinceLastSeek)
             }
-            if (!isActive) return@launch
+            if (!isActive || !canAccessMpv()) return@launch
             lastSeekAt = SystemClock.elapsedRealtime()
-            val maxDuration = MPVLib.getPropertyInt("duration") ?: 0
+            val maxDuration = runCatching { MPVLib.getPropertyInt("duration") }.getOrNull() ?: 0
 
             var clampedPosition = position
             if (abLoopA != null && abLoopB != null) {
@@ -74,13 +88,14 @@ class PlaybackManager(
                 if (clampedPosition < 0) return@launch
             }
 
-            if (!isActive) return@launch
+            if (!isActive || !canAccessMpv()) return@launch
 
             // Use precise seeking only if preference is explicitly enabled or for short finite videos (1..119s)
             val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (maxDuration in 1..119)
             val seekMode = if (shouldUsePreciseSeeking) "absolute+exact" else "absolute+keyframes"
             ensureUnmuted()
-            MPVLib.command("seek", clampedPosition.toString(), seekMode)
+            if (!canAccessMpv()) return@launch
+            runCatching { MPVLib.command("seek", clampedPosition.toString(), seekMode) }
         }
     }
 
@@ -88,22 +103,24 @@ class PlaybackManager(
      * Performs a relative seek immediately with concurrency protection and stream-safe seek modes.
      */
     fun seekBy(scope: CoroutineScope, offset: Int) {
-        if (offset == 0) return
+        if (offset == 0 || !canAccessMpv()) return
         
         seekJob?.cancel()
         seekJob = scope.launch(Dispatchers.IO) {
-            val duration = MPVLib.getPropertyInt("duration") ?: 0
-            val currentPos = MPVLib.getPropertyInt("time-pos") ?: 0
+            if (!isActive || !canAccessMpv()) return@launch
+            val duration = runCatching { MPVLib.getPropertyInt("duration") }.getOrNull() ?: 0
+            val currentPos = runCatching { MPVLib.getPropertyInt("time-pos") }.getOrNull() ?: 0
 
-            if (!isActive) return@launch
+            if (!isActive || !canAccessMpv()) return@launch
             ensureUnmuted()
+            if (!canAccessMpv()) return@launch
             if (duration > 0 && currentPos + offset >= duration) {
                 // Force seek to 100% to ensure EOF is triggered
-                MPVLib.command("seek", "100", "absolute-percent+exact")
+                runCatching { MPVLib.command("seek", "100", "absolute-percent+exact") }
             } else {
                 val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (duration in 1..119)
                 val seekMode = if (shouldUsePreciseSeeking) "relative+exact" else "relative+keyframes"
-                MPVLib.command("seek", offset.toString(), seekMode)
+                runCatching { MPVLib.command("seek", offset.toString(), seekMode) }
             }
         }
     }
@@ -115,19 +132,22 @@ class PlaybackManager(
      */
     fun resyncAudioOnTrackChange(scope: CoroutineScope) {
         resyncJob?.cancel()
+        if (!canAccessMpv()) return
         resyncJob = scope.launch(Dispatchers.IO) {
             delay(50)
-            val timePos = MPVLib.getPropertyDouble("time-pos")
+            if (!isActive || !canAccessMpv()) return@launch
+            val timePos = runCatching { MPVLib.getPropertyDouble("time-pos") }.getOrNull()
             if (timePos != null && timePos > 0.0) {
-                MPVLib.command("seek", timePos.toString(), "absolute+keyframes")
+                runCatching { MPVLib.command("seek", timePos.toString(), "absolute+keyframes") }
             } else {
-                MPVLib.command("seek", "0", "relative+keyframes")
+                runCatching { MPVLib.command("seek", "0", "relative+keyframes") }
             }
         }
     }
 
     fun setSpeed(speed: Float) {
-        MPVLib.setPropertyFloat("speed", speed)
+        if (!canAccessMpv()) return
+        runCatching { MPVLib.setPropertyFloat("speed", speed) }
     }
 
     fun resetSpeed() {
@@ -135,8 +155,11 @@ class PlaybackManager(
     }
 
     fun setSubSpeed(speed: Double) {
-        MPVLib.setPropertyDouble("sub-speed", speed)
-        MPVLib.setPropertyDouble("secondary-sub-speed", speed)
+        if (!canAccessMpv()) return
+        runCatching {
+            MPVLib.setPropertyDouble("sub-speed", speed)
+            MPVLib.setPropertyDouble("secondary-sub-speed", speed)
+        }
     }
 
     fun pauseUnpause(
@@ -144,29 +167,38 @@ class PlaybackManager(
         onRequestAudioFocus: () -> Unit,
         onAbandonAudioFocus: () -> Unit,
     ) {
+        if (!canAccessMpv()) return
         scope.launch(Dispatchers.IO) {
-            val isPaused = MPVLib.getPropertyBoolean("pause") ?: false
+            if (!isActive || !canAccessMpv()) return@launch
+            val isPaused = runCatching { MPVLib.getPropertyBoolean("pause") }.getOrNull() ?: false
+            if (!canAccessMpv()) return@launch
             if (isPaused) {
                 withContext(Dispatchers.Main) { onRequestAudioFocus() }
-                MPVLib.setPropertyBoolean("pause", false)
+                if (!canAccessMpv()) return@launch
+                runCatching { MPVLib.setPropertyBoolean("pause", false) }
             } else {
-                MPVLib.setPropertyBoolean("pause", true)
+                runCatching { MPVLib.setPropertyBoolean("pause", true) }
                 withContext(Dispatchers.Main) { onAbandonAudioFocus() }
             }
         }
     }
 
     fun pause(scope: CoroutineScope, onAbandonAudioFocus: () -> Unit) {
+        if (!canAccessMpv()) return
         scope.launch(Dispatchers.IO) {
-            MPVLib.setPropertyBoolean("pause", true)
+            if (!isActive || !canAccessMpv()) return@launch
+            runCatching { MPVLib.setPropertyBoolean("pause", true) }
             withContext(Dispatchers.Main) { onAbandonAudioFocus() }
         }
     }
 
     fun unpause(scope: CoroutineScope, onRequestAudioFocus: () -> Unit) {
+        if (!canAccessMpv()) return
         scope.launch(Dispatchers.IO) {
+            if (!isActive || !canAccessMpv()) return@launch
             withContext(Dispatchers.Main) { onRequestAudioFocus() }
-            MPVLib.setPropertyBoolean("pause", false)
+            if (!canAccessMpv()) return@launch
+            runCatching { MPVLib.setPropertyBoolean("pause", false) }
         }
     }
 
@@ -176,13 +208,16 @@ class PlaybackManager(
         onPauseUnpause: () -> Unit,
         onFrameStepped: () -> Unit,
     ) {
+        if (!canAccessMpv()) return
         scope.launch(Dispatchers.IO) {
             if (paused != true) {
                 onPauseUnpause()
                 delay(50)
             }
-            MPVLib.command("no-osd", "frame-step")
+            if (!isActive || !canAccessMpv()) return@launch
+            runCatching { MPVLib.command("no-osd", "frame-step") }
             delay(100)
+            if (!isActive || !canAccessMpv()) return@launch
             onFrameStepped()
         }
     }
@@ -193,13 +228,16 @@ class PlaybackManager(
         onPauseUnpause: () -> Unit,
         onFrameStepped: () -> Unit,
     ) {
+        if (!canAccessMpv()) return
         scope.launch(Dispatchers.IO) {
             if (paused != true) {
                 onPauseUnpause()
                 delay(50)
             }
-            MPVLib.command("no-osd", "frame-back-step")
+            if (!isActive || !canAccessMpv()) return@launch
+            runCatching { MPVLib.command("no-osd", "frame-back-step") }
             delay(100)
+            if (!isActive || !canAccessMpv()) return@launch
             onFrameStepped()
         }
     }
@@ -210,14 +248,16 @@ class PlaybackManager(
         onDiffCalculated: (diff: Double) -> Unit,
         onFallback: () -> Unit,
     ) {
-        val sid = MPVLib.getPropertyInt("sid") ?: 0
+        if (!canAccessMpv()) return
+        val sid = runCatching { MPVLib.getPropertyInt("sid") }.getOrNull() ?: 0
         if (sid != 0) {
-            val pos1 = MPVLib.getPropertyDouble("time-pos") ?: 0.0
-            MPVLib.command("sub-seek", if (forward) "1" else "-1")
+            val pos1 = runCatching { MPVLib.getPropertyDouble("time-pos") }.getOrNull() ?: 0.0
+            runCatching { MPVLib.command("sub-seek", if (forward) "1" else "-1") }
 
             scope.launch(Dispatchers.IO) {
                 delay(50)
-                val pos2 = MPVLib.getPropertyDouble("time-pos") ?: pos1
+                if (!isActive || !canAccessMpv()) return@launch
+                val pos2 = runCatching { MPVLib.getPropertyDouble("time-pos") }.getOrNull() ?: pos1
                 val diff = pos2 - pos1
                 onDiffCalculated(diff)
             }
@@ -232,30 +272,36 @@ class PlaybackManager(
         screenHeight: Int,
         videoRotation: Int,
     ) {
-        when (aspect) {
-            VideoAspect.Fit -> {
-                MPVLib.setPropertyDouble("panscan", 0.0)
-                MPVLib.setPropertyDouble("video-aspect-override", -1.0)
-            }
-            VideoAspect.Crop -> {
-                MPVLib.setPropertyDouble("video-aspect-override", -1.0)
-                MPVLib.setPropertyDouble("panscan", 1.0)
-            }
-            VideoAspect.Stretch -> {
-                val isVideoRotated = (videoRotation % 180 == 90)
-                val screenRatio = if (isVideoRotated) {
-                    screenHeight.toDouble() / screenWidth.toDouble()
-                } else {
-                    screenWidth.toDouble() / screenHeight.toDouble()
+        if (!canAccessMpv()) return
+        runCatching {
+            when (aspect) {
+                VideoAspect.Fit -> {
+                    MPVLib.setPropertyDouble("panscan", 0.0)
+                    MPVLib.setPropertyDouble("video-aspect-override", -1.0)
                 }
-                MPVLib.setPropertyDouble("video-aspect-override", screenRatio)
-                MPVLib.setPropertyDouble("panscan", 0.0)
+                VideoAspect.Crop -> {
+                    MPVLib.setPropertyDouble("video-aspect-override", -1.0)
+                    MPVLib.setPropertyDouble("panscan", 1.0)
+                }
+                VideoAspect.Stretch -> {
+                    val isVideoRotated = (videoRotation % 180 == 90)
+                    val screenRatio = if (isVideoRotated) {
+                        screenHeight.toDouble() / screenWidth.toDouble()
+                    } else {
+                        screenWidth.toDouble() / screenHeight.toDouble()
+                    }
+                    MPVLib.setPropertyDouble("video-aspect-override", screenRatio)
+                    MPVLib.setPropertyDouble("panscan", 0.0)
+                }
             }
         }
     }
 
     fun applyCustomAspectRatio(ratio: Double) {
-        MPVLib.setPropertyDouble("panscan", 0.0)
-        MPVLib.setPropertyDouble("video-aspect-override", ratio)
+        if (!canAccessMpv()) return
+        runCatching {
+            MPVLib.setPropertyDouble("panscan", 0.0)
+            MPVLib.setPropertyDouble("video-aspect-override", ratio)
+        }
     }
 }

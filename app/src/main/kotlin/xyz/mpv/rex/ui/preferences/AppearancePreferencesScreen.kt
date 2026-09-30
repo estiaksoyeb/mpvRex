@@ -53,6 +53,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -336,111 +337,146 @@ object AppearancePreferencesScreen : Screen {
                         val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
                         val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
                         val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
+                        val bottomNavOrder by browserPreferences.bottomNavOrder.collectAsState()
 
-                        GroupedListColumn {
-                            GroupedPreferenceCard(
-                                position = GroupPosition.FIRST,
-                                highlightKey = R.string.pref_appearance_tab_home_title,
-                            ) {
-                                SwitchPreference(
-                                    value = true,
-                                    onValueChange = {},
-                                    enabled = false,
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_home_title)) },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_tab_home_summary),
-                                            color = MaterialTheme.colorScheme.outline,
+                        val orderedTabIds = remember(bottomNavOrder) {
+                            browserPreferences.getBottomNavOrder()
+                        }
+
+                        val visibleTabConfigs = remember(
+                            orderedTabIds,
+                            enableShorts,
+                            enableTabYou,
+                            enableTabRecents,
+                            enableTabPlaylists,
+                            enableTabNetwork
+                        ) {
+                            val items = mutableListOf<BottomNavTabItem>()
+                            for (id in orderedTabIds) {
+                                when (id) {
+                                    "home" -> items.add(
+                                        BottomNavTabItem(
+                                            id = "home",
+                                            titleRes = R.string.pref_appearance_tab_home_title,
+                                            summaryRes = R.string.pref_appearance_tab_home_summary,
+                                            value = true,
+                                            enabled = false,
+                                            onValueChange = {}
+                                        )
+                                    )
+                                    "shorts" -> items.add(
+                                        BottomNavTabItem(
+                                            id = "shorts",
+                                            titleRes = R.string.pref_appearance_tab_shorts_title,
+                                            summaryRes = R.string.pref_appearance_tab_shorts_summary,
+                                            value = enableShorts,
+                                            enabled = true,
+                                            onValueChange = { browserPreferences.enableShorts.set(it) }
+                                        )
+                                    )
+                                    "you" -> items.add(
+                                        BottomNavTabItem(
+                                            id = "you",
+                                            titleRes = R.string.pref_appearance_tab_you_title,
+                                            summaryRes = R.string.pref_appearance_tab_you_summary,
+                                            value = enableTabYou,
+                                            enabled = true,
+                                            onValueChange = { browserPreferences.enableTabYou.set(it) }
+                                        )
+                                    )
+                                    "recents" -> if (!enableTabYou) {
+                                        items.add(
+                                            BottomNavTabItem(
+                                                id = "recents",
+                                                titleRes = R.string.pref_appearance_tab_recents_title,
+                                                summaryRes = R.string.pref_appearance_tab_recents_summary,
+                                                value = enableTabRecents,
+                                                enabled = true,
+                                                onValueChange = { browserPreferences.enableTabRecents.set(it) }
+                                            )
                                         )
                                     }
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_tab_shorts_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableShorts,
-                                    onValueChange = { browserPreferences.enableShorts.set(it) },
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_shorts_title)) },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_tab_shorts_summary),
-                                            color = MaterialTheme.colorScheme.outline,
+                                    "playlists" -> if (!enableTabYou) {
+                                        items.add(
+                                            BottomNavTabItem(
+                                                id = "playlists",
+                                                titleRes = R.string.pref_appearance_tab_playlists_title,
+                                                summaryRes = R.string.pref_appearance_tab_playlists_summary,
+                                                value = enableTabPlaylists,
+                                                enabled = true,
+                                                onValueChange = { browserPreferences.enableTabPlaylists.set(it) }
+                                            )
                                         )
                                     }
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_tab_you_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableTabYou,
-                                    onValueChange = { browserPreferences.enableTabYou.set(it) },
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_you_title)) },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_tab_you_summary),
-                                            color = MaterialTheme.colorScheme.outline,
+                                    "network" -> items.add(
+                                        BottomNavTabItem(
+                                            id = "network",
+                                            titleRes = R.string.pref_appearance_tab_network_title,
+                                            summaryRes = R.string.pref_appearance_tab_network_summary,
+                                            value = enableTabNetwork,
+                                            enabled = true,
+                                            onValueChange = { browserPreferences.enableTabNetwork.set(it) }
                                         )
-                                    }
-                                )
+                                    )
+                                }
                             }
+                            items
+                        }
 
-                            if (!enableTabYou) {
+                        sh.calvin.reorderable.ReorderableColumn(
+                            list = visibleTabConfigs,
+                            onSettle = { fromIndex, toIndex ->
+                                val updated = visibleTabConfigs.map { it.id }.toMutableList()
+                                val moved = updated.removeAt(fromIndex)
+                                updated.add(toIndex, moved)
+                                val fullOrder = browserPreferences.getBottomNavOrder().toMutableList()
+                                val reorderedFull = updated + fullOrder.filterNot { it in updated }
+                                browserPreferences.setBottomNavOrder(reorderedFull)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(1.dp)
+                        ) { index, item, isDragging ->
+                            ReorderableItem {
+                                val position = when {
+                                    visibleTabConfigs.size == 1 -> GroupPosition.ONLY
+                                    index == 0 -> GroupPosition.FIRST
+                                    index == visibleTabConfigs.lastIndex -> GroupPosition.LAST
+                                    else -> GroupPosition.MIDDLE
+                                }
+
+                                val elevation by androidx.compose.animation.core.animateDpAsState(
+                                    targetValue = if (isDragging) 8.dp else 1.dp,
+                                    label = "elevation"
+                                )
+
                                 GroupedPreferenceCard(
-                                    position = GroupPosition.MIDDLE,
-                                    highlightKey = R.string.pref_appearance_tab_recents_title,
+                                    position = position,
+                                    highlightKey = item.titleRes,
+                                    tonalElevation = elevation,
                                 ) {
                                     SwitchPreference(
-                                        value = enableTabRecents,
-                                        onValueChange = { browserPreferences.enableTabRecents.set(it) },
-                                        title = { Text(text = stringResource(id = R.string.pref_appearance_tab_recents_title)) },
+                                        value = item.value,
+                                        onValueChange = item.onValueChange,
+                                        enabled = item.enabled,
+                                        icon = {
+                                            Icon(
+                                                imageVector = Icons.Default.DragHandle,
+                                                contentDescription = stringResource(R.string.drag_to_reorder),
+                                                modifier = Modifier
+                                                    .draggableHandle()
+                                                    .padding(end = 4.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            )
+                                        },
+                                        title = { Text(text = stringResource(id = item.titleRes)) },
                                         summary = {
                                             Text(
-                                                text = stringResource(id = R.string.pref_appearance_tab_recents_summary),
+                                                text = stringResource(id = item.summaryRes),
                                                 color = MaterialTheme.colorScheme.outline,
                                             )
                                         }
                                     )
                                 }
-
-                                GroupedPreferenceCard(
-                                    position = GroupPosition.MIDDLE,
-                                    highlightKey = R.string.pref_appearance_tab_playlists_title,
-                                ) {
-                                    SwitchPreference(
-                                        value = enableTabPlaylists,
-                                        onValueChange = { browserPreferences.enableTabPlaylists.set(it) },
-                                        title = { Text(text = stringResource(id = R.string.pref_appearance_tab_playlists_title)) },
-                                        summary = {
-                                            Text(
-                                                text = stringResource(id = R.string.pref_appearance_tab_playlists_summary),
-                                                color = MaterialTheme.colorScheme.outline,
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.LAST,
-                                highlightKey = R.string.pref_appearance_tab_network_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableTabNetwork,
-                                    onValueChange = { browserPreferences.enableTabNetwork.set(it) },
-                                    title = { Text(text = stringResource(id = R.string.pref_appearance_tab_network_title)) },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_tab_network_summary),
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    }
-                                )
                             }
                         }
                     }
@@ -821,3 +857,12 @@ object AppearancePreferencesScreen : Screen {
         }
     }
 }
+
+private data class BottomNavTabItem(
+    val id: String,
+    val titleRes: Int,
+    val summaryRes: Int,
+    val value: Boolean,
+    val enabled: Boolean,
+    val onValueChange: (Boolean) -> Unit,
+)

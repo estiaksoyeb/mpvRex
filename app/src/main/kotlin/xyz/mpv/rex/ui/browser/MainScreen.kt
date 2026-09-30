@@ -180,6 +180,7 @@ object MainScreen : Screen {
     val enableTabRecents by browserPreferences.enableTabRecents.collectAsState()
     val enableTabPlaylists by browserPreferences.enableTabPlaylists.collectAsState()
     val enableTabNetwork by browserPreferences.enableTabNetwork.collectAsState()
+    val bottomNavOrder by browserPreferences.bottomNavOrder.collectAsState()
     val customProfileImagePath by appearancePreferences.customProfileImagePath.collectAsState()
 
     val customAvatarBitmap = remember(customProfileImagePath) {
@@ -204,9 +205,10 @@ object MainScreen : Screen {
 
     val visibleTabs = remember(
       isShortsEnabled, enableTabYou, enableTabRecents, enableTabPlaylists, enableTabNetwork,
+      bottomNavOrder,
       homeLabel, shortsLabel, youLabel, recentsLabel, playlistsLabel, networkLabel
     ) {
-      buildList {
+      val rawTabs = buildList {
         add(
           VisibleTab("home", homeLabel, Icons.Filled.Home) {
             FolderListScreen.Content()
@@ -248,6 +250,12 @@ object MainScreen : Screen {
             }
           )
         }
+      }
+
+      val orderList = bottomNavOrder.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+      rawTabs.sortedBy { tab ->
+        val idx = orderList.indexOf(tab.id)
+        if (idx == -1) Int.MAX_VALUE else idx
       }
     }
 

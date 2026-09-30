@@ -69,7 +69,7 @@ fun SubtitlesSheet(
             Icon(Icons.Default.Search, null)
           }
           IconButton(onClick = onOpenSubtitleSettings) {
-            Icon(Icons.Default.Palette, null)
+            Icon(Icons.Default.Settings, null)
           }
           IconButton(onClick = onOpenSubtitleDelay) {
             Icon(Icons.Default.MoreTime, null)

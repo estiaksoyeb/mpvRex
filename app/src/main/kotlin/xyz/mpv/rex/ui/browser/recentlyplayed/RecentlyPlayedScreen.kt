@@ -123,8 +123,8 @@ object RecentlyPlayedScreen : Screen {
             is RecentlyPlayedItem.PlaylistItem -> "playlist_${item.playlist.id}"
           }
         },
-        onDeleteItems = { items, _ ->
-          viewModel.deleteRecentItems(items)
+        onDeleteItems = { items, deleteFiles ->
+          viewModel.deleteRecentItems(items, deleteFiles)
         },
         onRenameItem = null, // Cannot rename from history screen
         onOperationComplete = { },

@@ -813,10 +813,7 @@ object YouScreen : Screen {
           videoToDeleteFromRecents = null
           deleteFilesCheckbox.value = false
           scope.launch {
-            if (shouldDeleteFiles) {
-              PermissionUtils.StorageOps.deleteVideos(context, listOf(toDelete.video))
-            }
-            recentsViewModel.deleteRecentItems(listOf(toDelete))
+            recentsViewModel.deleteRecentItems(listOf(toDelete), shouldDeleteFiles)
           }
         },
         onCancel = {

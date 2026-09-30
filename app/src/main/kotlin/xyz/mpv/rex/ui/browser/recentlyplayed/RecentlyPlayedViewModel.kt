@@ -228,10 +228,15 @@ class RecentlyPlayedViewModel(application: Application) :
     )
     }
 
-  suspend fun deleteRecentItems(itemsToDelete: List<RecentlyPlayedItem>): Pair<Int, Int> {
+  suspend fun deleteRecentItems(
+    itemsToDelete: List<RecentlyPlayedItem>,
+    deleteFiles: Boolean = false,
+  ): Pair<Int, Int> {
     return try {
-      val videoPaths = itemsToDelete.filterIsInstance<RecentlyPlayedItem.VideoItem>().map { it.video.path }.toSet()
-      val playlistIds = itemsToDelete.filterIsInstance<RecentlyPlayedItem.PlaylistItem>().map { it.playlist.id }.toSet()
+      val videoItems = itemsToDelete.filterIsInstance<RecentlyPlayedItem.VideoItem>()
+      val playlistItems = itemsToDelete.filterIsInstance<RecentlyPlayedItem.PlaylistItem>()
+      val videoPaths = videoItems.map { it.video.path }.toSet()
+      val playlistIds = playlistItems.map { it.playlist.id }.toSet()
       
       // Optimistically remove from UI state immediately
       _items.value = _items.value.filterNot { item ->
@@ -242,10 +247,20 @@ class RecentlyPlayedViewModel(application: Application) :
       }
 
       var deletedCount = 0
+      var failedCount = 0
+
+      if (deleteFiles && videoItems.isNotEmpty()) {
+        val (deletedStorage, failedStorage) = deleteVideos(videoItems.map { it.video })
+        deletedCount += deletedStorage
+        failedCount += failedStorage
+      }
+
       if (videoPaths.isNotEmpty()) {
         videoPaths.forEach { path ->
           recentlyPlayedRepository.deleteByFilePath(path)
-          deletedCount++
+          if (!deleteFiles) {
+            deletedCount++
+          }
         }
       }
       if (playlistIds.isNotEmpty()) {
@@ -256,7 +271,7 @@ class RecentlyPlayedViewModel(application: Application) :
       }
       
       loadData()
-      Pair(deletedCount, 0)
+      Pair(deletedCount, failedCount)
     } catch (e: Exception) {
       Log.e("RecentlyPlayedViewModel", "Error deleting items from history", e)
       Pair(0, itemsToDelete.size)

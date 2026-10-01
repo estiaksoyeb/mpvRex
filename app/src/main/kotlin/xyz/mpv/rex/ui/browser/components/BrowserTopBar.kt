@@ -81,7 +81,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import androidx.compose.runtime.LaunchedEffect
 
 /**
  * An action that appears in the selection-mode overflow (⋮) menu.
@@ -173,8 +172,6 @@ fun BrowserTopBar(
     }
   }
 }
-
-private var hasHeaderAnimationPlayed = false
 
 /**
  * Normal mode top bar
@@ -270,47 +267,8 @@ private fun NormalTopBar(
           )
         }
 
-      val isAppTitleHeader = isHomeScreen || title == stringResource(R.string.app_name) || title == "mpvRex" || title == "REX Player"
-      var animatedTitleText by remember {
-        mutableStateOf(if (isAppTitleHeader && !hasHeaderAnimationPlayed) "mpvRex|" else title)
-      }
-
-      if (isAppTitleHeader && !hasHeaderAnimationPlayed) {
-        LaunchedEffect(Unit) {
-          // Initial pause showing "mpvRex|"
-          delay(600)
-
-          // Delete "mpvRex" backwards
-          val initialWord = "mpvRex"
-          for (i in (initialWord.length - 1) downTo 0) {
-            animatedTitleText = initialWord.substring(0, i) + "|"
-            delay(90)
-          }
-
-          delay(150)
-
-          // Type "REX Player" forwards
-          val targetWord = "REX Player"
-          for (i in 1..targetWord.length) {
-            animatedTitleText = targetWord.substring(0, i) + "|"
-            delay(85)
-          }
-
-          // Finish: blink cursor, then settle on final text
-          delay(400)
-          animatedTitleText = targetWord
-          delay(300)
-          animatedTitleText = "$targetWord|"
-          delay(300)
-          animatedTitleText = targetWord
-          hasHeaderAnimationPlayed = true
-        }
-      }
-
-      val displayTitle = if (isAppTitleHeader && !hasHeaderAnimationPlayed) animatedTitleText else title
-
       Text(
-        text = displayTitle,
+        text = title,
         style =
           if (onBackClick == null) {
             MaterialTheme.typography.headlineMediumEmphasized

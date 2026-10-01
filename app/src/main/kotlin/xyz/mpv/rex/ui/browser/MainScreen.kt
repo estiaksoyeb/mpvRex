@@ -266,10 +266,16 @@ object MainScreen : Screen {
       }
     }
 
-    // Intercept back button when on Shorts tab to return to previous tab
+    // Intercept back button when on Shorts tab to return to Home or previous tab
     val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
+    val homeIdx = visibleTabs.indexOfFirst { it.id == "home" }
     androidx.activity.compose.BackHandler(enabled = shortsIdx != -1 && selectedTab == shortsIdx) {
-      selectedTab = previousTab
+      val targetTab = when {
+        previousTab != shortsIdx && previousTab in visibleTabs.indices -> previousTab
+        homeIdx != -1 -> homeIdx
+        else -> visibleTabs.indices.firstOrNull { it != shortsIdx } ?: 0
+      }
+      selectedTab = targetTab
     }
 
     // Shared state (across the app) collected reactively via StateFlow

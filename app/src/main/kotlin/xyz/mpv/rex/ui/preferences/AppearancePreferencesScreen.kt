@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.animation.animateContentSize
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -374,16 +375,6 @@ object AppearancePreferencesScreen : Screen {
                                             onValueChange = { browserPreferences.enableShorts.set(it) }
                                         )
                                     )
-                                    "you" -> items.add(
-                                        BottomNavTabItem(
-                                            id = "you",
-                                            titleRes = R.string.pref_appearance_tab_you_title,
-                                            summaryRes = R.string.pref_appearance_tab_you_summary,
-                                            value = enableTabYou,
-                                            enabled = true,
-                                            onValueChange = { browserPreferences.enableTabYou.set(it) }
-                                        )
-                                    )
                                     "recents" -> if (!enableTabYou) {
                                         items.add(
                                             BottomNavTabItem(
@@ -418,6 +409,16 @@ object AppearancePreferencesScreen : Screen {
                                             onValueChange = { browserPreferences.enableTabNetwork.set(it) }
                                         )
                                     )
+                                    "you" -> items.add(
+                                        BottomNavTabItem(
+                                            id = "you",
+                                            titleRes = R.string.pref_appearance_tab_you_title,
+                                            summaryRes = R.string.pref_appearance_tab_you_summary,
+                                            value = enableTabYou,
+                                            enabled = true,
+                                            onValueChange = { browserPreferences.enableTabYou.set(it) }
+                                        )
+                                    )
                                 }
                             }
                             items
@@ -433,7 +434,9 @@ object AppearancePreferencesScreen : Screen {
                                 val reorderedFull = updated + fullOrder.filterNot { it in updated }
                                 browserPreferences.setBottomNavOrder(reorderedFull)
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .animateContentSize(),
                             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(1.dp)
                         ) { index, item, isDragging ->
                             ReorderableItem {

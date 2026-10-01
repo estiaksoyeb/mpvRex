@@ -221,13 +221,7 @@ object MainScreen : Screen {
             }
           )
         }
-        if (enableTabYou) {
-          add(
-            VisibleTab("you", youLabel, Icons.Filled.AccountCircle) {
-              YouScreen.Content()
-            }
-          )
-        } else {
+        if (!enableTabYou) {
           if (enableTabRecents) {
             add(
               VisibleTab("recents", recentsLabel, Icons.Filled.History) {
@@ -250,9 +244,16 @@ object MainScreen : Screen {
             }
           )
         }
+        if (enableTabYou) {
+          add(
+            VisibleTab("you", youLabel, Icons.Filled.AccountCircle) {
+              YouScreen.Content()
+            }
+          )
+        }
       }
 
-      val orderList = bottomNavOrder.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+      val orderList = browserPreferences.getBottomNavOrder()
       rawTabs.sortedBy { tab ->
         val idx = orderList.indexOf(tab.id)
         if (idx == -1) Int.MAX_VALUE else idx

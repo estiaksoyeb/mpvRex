@@ -76,6 +76,7 @@ import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.components.SelectionOverflowAction
+import xyz.mpv.rex.ui.browser.dialogs.DeleteConfirmationDialog
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.utils.LocalBackStack
@@ -126,6 +127,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
 
     val playlist by viewModel.playlist.collectAsState()
     val isAutoPlaylist = playlistId < 0
+    val isRecentlyAdded = playlistId == PlaylistViewModel.ID_RECENTLY_ADDED
     val videoItems by viewModel.videoItems.collectAsState()
     val videos = videoItems.map { it.video }
     val isLoading by viewModel.isLoading.collectAsState()
@@ -166,8 +168,12 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
         items = filteredVideoItems,
         getId = { it.playlistItem.id },
         onDeleteItems = { itemsToDelete, _ ->
-          viewModel.removeVideosFromPlaylist(itemsToDelete)
-          Pair(itemsToDelete.size, 0)
+          if (isRecentlyAdded) {
+            viewModel.deleteVideos(itemsToDelete.map { it.video })
+          } else {
+            viewModel.removeVideosFromPlaylist(itemsToDelete)
+            Pair(itemsToDelete.size, 0)
+          }
         },
         onOperationComplete = { viewModel.refresh() },
       )
@@ -258,7 +264,8 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
             },
             onCancelSelection = { selectionManager.clear() },
             isSingleSelection = selectionManager.isSingleSelection,
-            useRemoveIcon = true, // Show remove icon instead of delete for playlist
+            useRemoveIcon = !isRecentlyAdded, // Show remove icon for regular playlists, delete icon for recently added
+            deleteBeforeInfo = true,
             onInfoClick = {
               val selected = selectionManager.getSelectedItems()
               if (selectionManager.isSingleSelection) {
@@ -334,7 +341,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },
             onDeselectAll = { selectionManager.clear() },
-            onDeleteClick = if (isAutoPlaylist) null else ({ deleteDialogOpen.value = true }),
+            onDeleteClick = if (isAutoPlaylist && !isRecentlyAdded) null else ({ deleteDialogOpen.value = true }),
             additionalActions = {
               when {
                 // Show done button when in reorder mode
@@ -561,12 +568,23 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
       }
 
       // Dialogs
-      RemoveFromPlaylistDialog(
-        isOpen = deleteDialogOpen.value,
-        onDismiss = { deleteDialogOpen.value = false },
-        onConfirm = { selectionManager.deleteSelected() },
-        itemCount = selectionManager.selectedCount,
-      )
+      if (isRecentlyAdded) {
+        DeleteConfirmationDialog(
+          isOpen = deleteDialogOpen.value,
+          onDismiss = { deleteDialogOpen.value = false },
+          onConfirm = { selectionManager.deleteSelected() },
+          itemTypePluralRes = R.plurals.item_type_video_plural,
+          itemCount = selectionManager.selectedCount,
+          itemNames = selectionManager.getSelectedItems().map { it.video.displayName },
+        )
+      } else {
+        RemoveFromPlaylistDialog(
+          isOpen = deleteDialogOpen.value,
+          onDismiss = { deleteDialogOpen.value = false },
+          onConfirm = { selectionManager.deleteSelected() },
+          itemCount = selectionManager.selectedCount,
+        )
+      }
 
       // URL Dialog for M3U streams
       if (showUrlDialog) {

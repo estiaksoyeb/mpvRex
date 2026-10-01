@@ -123,6 +123,7 @@ fun BrowserTopBar(
   onTitleLongPress: (() -> Unit)? = null,
   useRemoveIcon: Boolean = false,
   deleteInOverflow: Boolean = false,
+  deleteBeforeInfo: Boolean = false,
   isHomeScreen: Boolean = false,
 ) {
   AnimatedContent(
@@ -154,6 +155,7 @@ fun BrowserTopBar(
         modifier = modifier,
         useRemoveIcon = useRemoveIcon,
         deleteInOverflow = deleteInOverflow,
+        deleteBeforeInfo = deleteBeforeInfo,
       )
     } else {
       NormalTopBar(
@@ -464,6 +466,7 @@ private fun SelectionTopBar(
   modifier: Modifier = Modifier,
   useRemoveIcon: Boolean = false,
   deleteInOverflow: Boolean = false,
+  deleteBeforeInfo: Boolean = false,
 ) {
   var showDropdown by remember { mutableStateOf(false) }
   var showOverflowMenu by remember { mutableStateOf(false) }
@@ -608,8 +611,8 @@ private fun SelectionTopBar(
         }
       }
 
-      // Remove icon (playlist style) — shown before Info for muscle-memory consistency
-      if (onDelete != null && useRemoveIcon) {
+      // Remove icon (playlist style) or Delete icon (when deleteBeforeInfo is true) — shown before Info for muscle-memory consistency
+      if (onDelete != null && (useRemoveIcon || (deleteBeforeInfo && !deleteInOverflow))) {
         IconButton(
           onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -618,7 +621,7 @@ private fun SelectionTopBar(
           modifier = Modifier.padding(horizontal = 2.dp),
         ) {
           Icon(
-            imageVector = Icons.Filled.RemoveCircle,
+            imageVector = if (useRemoveIcon) Icons.Filled.RemoveCircle else Icons.Filled.Delete,
             contentDescription = stringResource(R.string.delete),
             modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.error,
@@ -644,8 +647,8 @@ private fun SelectionTopBar(
         }
       }
 
-      // Delete icon — inline only when not using remove icon and not delegated to overflow
-      if (onDelete != null && !useRemoveIcon && !deleteInOverflow) {
+      // Delete icon — inline only when not using remove icon, not delegated to overflow, and not shown before info
+      if (onDelete != null && !useRemoveIcon && !deleteInOverflow && !deleteBeforeInfo) {
         IconButton(
           onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

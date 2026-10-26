@@ -51,6 +51,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import xyz.mpv.rex.BuildConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,8 +115,9 @@ sealed interface ChangelogSegment {
 class UpdateManager(
     private val context: Context
 ) {
-    private val client = OkHttpClient()
+    private val client = clientWithUserAgent()
     private val json = Json { ignoreUnknownKeys = true }
+    private val prefs by lazy { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
 
     companion object {
         const val PREVIEW_PAGE_URL = "https://mpvrex.github.io/REX-Player/"
@@ -123,6 +125,31 @@ class UpdateManager(
         const val RELEASE_API_URL = "https://api.github.com/repos/mpvRex/REX-Player/releases/latest"
         const val REPO_COMMIT_URL = "https://github.com/mpvRex/REX-Player/commit"
         const val REPO_ISSUE_URL = "https://github.com/mpvRex/REX-Player/issues"
+
+        /** Minimum gap between two automatic (non-manual) server checks. */
+        const val AUTO_CHECK_INTERVAL_MS = 60L * 60L * 1000L
+
+        private const val PREFS_NAME = "mpvEx_prefs"
+        private const val KEY_LAST_CHECK = "last_update_check"
+
+        /** True if an automatic check is allowed right now (never checked, or interval elapsed). */
+        fun isAutoCheckDue(lastCheckMillis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean {
+            if (lastCheckMillis <= 0L) return true
+            // Clock moved backwards or timer overflowed -> treat as due instead of blocking forever.
+            if (nowMillis < lastCheckMillis) return true
+            return nowMillis - lastCheckMillis >= AUTO_CHECK_INTERVAL_MS
+        }
+
+        /** GitHub API requires a User-Agent; without one requests are rejected. */
+        fun clientWithUserAgent(): OkHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", "mpvRex/${BuildConfig.VERSION_NAME}")
+                        .build()
+                )
+            }
+            .build()
 
         fun isPreviewBuild(): Boolean {
             return BuildConfig.IS_PREVIEW || BuildConfig.BUILD_TYPE == "preview" || BuildConfig.APPLICATION_ID.endsWith(".preview")
@@ -310,9 +337,20 @@ class UpdateManager(
         }
     }
 
-    suspend fun checkForUpdate(forceShow: Boolean = false): Release? {
+    /**
+     * Checks the server for a newer release.
+     *
+     * @param forceShow manual check: bypasses the ignore list.
+     * @param manual explicit user action: bypasses the hourly auto-check throttle.
+     *   Automatic callers should skip the call when [isAutoCheckDue] is false.
+     */
+    suspend fun checkForUpdate(forceShow: Boolean = false, manual: Boolean = forceShow): Release? {
         // Return null immediately if update feature is disabled (F-Droid flavor)
         if (!BuildConfig.ENABLE_UPDATE_FEATURE) {
+            return null
+        }
+
+        if (!manual && !isAutoCheckDue()) {
             return null
         }
 
@@ -325,9 +363,10 @@ class UpdateManager(
 
     private suspend fun checkReleaseUpdate(forceShow: Boolean): Release? {
         val release = getLatestRelease(RELEASE_API_URL)
+        // Server answered, so count this as a check even if the ignored list hides it.
+        markChecked()
         val currentVersion = BuildConfig.VERSION_NAME.replace("-dev", "")
         val remoteVersion = release.tagName.removePrefix("v")
-        val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
         val ignoredVersion = prefs.getString("ignored_version", null)
 
         // If this version was ignored, don't show it unless forced (manual check)
@@ -344,8 +383,9 @@ class UpdateManager(
 
     private suspend fun checkPreviewUpdate(forceShow: Boolean): Release? {
         val release = getLatestPreviewRelease() ?: return null
+        // Server answered, so count this as a check even if the ignored list hides it.
+        markChecked()
         val remoteVersion = release.tagName.removePrefix("v")
-        val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
         val ignoredVersion = prefs.getString("ignored_version", null)
 
         if (!forceShow && ignoredVersion == remoteVersion) {
@@ -394,10 +434,23 @@ class UpdateManager(
             return
         }
         
-        val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
         prefs.edit()
             .putString("ignored_version", version)
             .apply()
+    }
+
+    /** True if an automatic (non-manual) check is allowed right now. */
+    fun isAutoCheckDue(): Boolean {
+        val last = prefs.getLong(KEY_LAST_CHECK, 0L)
+        return isAutoCheckDue(last)
+    }
+
+    /**
+     * Records a successful check so the next automatic check waits [AUTO_CHECK_INTERVAL_MS].
+     * Only called when the server actually answered, so network failures retry next launch.
+     */
+    fun markChecked() {
+        prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
     }
 
     private suspend fun getLatestRelease(url: String): Release = withContext(Dispatchers.IO) {
@@ -527,6 +580,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val updateManager = UpdateManager(application)
     private val ytdlpUpdateManager = YtdlpUpdateManager(application)
 
+    /** Single-flight guards so overlapping triggers never fire duplicate requests. */
+    private var appCheckJob: Job? = null
+    private var companionCheckJob: Job? = null
+
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
 
@@ -550,6 +607,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         
         prefs.edit().putBoolean("auto_update", enabled).apply()
         _isAutoUpdateEnabled.value = enabled
+        // Re-enabling runs a check, but only if the hourly window has elapsed.
         if (enabled) {
             checkForUpdate(manual = false)
         }
@@ -572,7 +630,9 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         if (!BuildConfig.ENABLE_UPDATE_FEATURE) return
         prefs.edit().putBoolean("ytdlp_auto_update", enabled).apply()
         _isYtdlpAutoUpdateEnabled.value = enabled
-        if (enabled) checkCompanionUpdate(manual = false)
+        if (enabled) {
+            checkCompanionUpdate(manual = false)
+        }
     }
 
     fun refreshCompanionInstalled() {
@@ -585,18 +645,32 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         if (!BuildConfig.ENABLE_UPDATE_FEATURE) return
         refreshCompanionInstalled()
         if (!_isCompanionInstalled.value) return
-        viewModelScope.launch {
-            _companionUpdateState.value = UpdateState.Loading
+        // Never run two companion checks at once (avoids duplicate API hits).
+        if (companionCheckJob?.isActive == true) return
+        // Automatic checks are throttled to once per hour, across restarts.
+        if (!manual && !ytdlpUpdateManager.isAutoCheckDue()) return
+        // Preserve an already-displayed dialog instead of overwriting it with Loading.
+        val hadUpdate = _companionUpdateState.value is UpdateState.Available
+        companionCheckJob = viewModelScope.launch {
+            if (!hadUpdate) _companionUpdateState.value = UpdateState.Loading
             try {
-                val release = ytdlpUpdateManager.checkForUpdate(forceShow = manual)
-                _companionUpdateState.value = when {
-                    release != null -> UpdateState.Available(release)
-                    manual -> UpdateState.NoUpdate
-                    else -> UpdateState.Idle
+                val release = ytdlpUpdateManager.checkForUpdate(forceShow = manual, manual = manual)
+                val current = _companionUpdateState.value
+                when {
+                    release != null -> _companionUpdateState.value = UpdateState.Available(release)
+                    manual -> _companionUpdateState.value = UpdateState.NoUpdate
+                    // Keep whatever the user is already looking at on a throttled/skipped check.
+                    current is UpdateState.Available -> Unit
+                    else -> _companionUpdateState.value = UpdateState.Idle
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                _companionUpdateState.value = if (manual) UpdateState.Error else UpdateState.Idle
+                val current = _companionUpdateState.value
+                _companionUpdateState.value = when {
+                    manual -> UpdateState.Error
+                    current is UpdateState.Available -> current
+                    else -> UpdateState.Idle
+                }
             }
         }
     }
@@ -611,13 +685,17 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     init {
-        // Only initialize auto-update if feature is enabled
-        if (BuildConfig.ENABLE_UPDATE_FEATURE && isAutoUpdateEnabled.value) {
-            checkForUpdate(manual = false)
-        }
-        // Companion auto-check only when addon is present (your conditional).
-        if (BuildConfig.ENABLE_UPDATE_FEATURE && _isCompanionInstalled.value && _isYtdlpAutoUpdateEnabled.value) {
-            checkCompanionUpdate(manual = false)
+        // Only initialize auto-update if feature is enabled.
+        // The checks themselves are throttled to once per hour (persisted across launches),
+        // so reopening the app repeatedly within the hour makes no server request.
+        if (BuildConfig.ENABLE_UPDATE_FEATURE) {
+            if (isAutoUpdateEnabled.value) {
+                checkForUpdate(manual = false)
+            }
+            // Companion auto-check only when addon is present (your conditional).
+            if (_isCompanionInstalled.value && _isYtdlpAutoUpdateEnabled.value) {
+                checkCompanionUpdate(manual = false)
+            }
         }
     }
 
@@ -639,11 +717,18 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         if (!BuildConfig.ENABLE_UPDATE_FEATURE) {
             return
         }
-        
-        viewModelScope.launch {
-            _updateState.value = UpdateState.Loading
+        // Never run two app checks at once (avoids duplicate API hits).
+        if (appCheckJob?.isActive == true) return
+        // Automatic checks are throttled to once per hour, across app restarts.
+        if (!manual && !updateManager.isAutoCheckDue()) return
+        // Preserve an already-displayed dialog instead of overwriting it with Loading.
+        val hadUpdate = _updateState.value.let {
+            it is UpdateState.Available || it is UpdateState.ReadyToInstall
+        }
+        appCheckJob = viewModelScope.launch {
+            if (!hadUpdate) _updateState.value = UpdateState.Loading
             try {
-                val release = updateManager.checkForUpdate(forceShow = manual)
+                val release = updateManager.checkForUpdate(forceShow = manual, manual = manual)
                 if (release != null) {
                     val existingFile = updateManager.getApkFile(release)
                      if (existingFile != null) {
@@ -652,13 +737,22 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
                          _updateState.value = UpdateState.Available(release)
                      }
                 } else {
-                    if (manual) _updateState.value = UpdateState.NoUpdate
-                    else _updateState.value = UpdateState.Idle
+                    val current = _updateState.value
+                    when {
+                        manual -> _updateState.value = UpdateState.NoUpdate
+                        // Keep whatever the user is already looking at on a throttled/skipped check.
+                        current is UpdateState.Available || current is UpdateState.ReadyToInstall -> Unit
+                        else -> _updateState.value = UpdateState.Idle
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                if (manual) _updateState.value = UpdateState.Error
-                else _updateState.value = UpdateState.Idle
+                val current = _updateState.value
+                _updateState.value = when {
+                    manual -> UpdateState.Error
+                    current is UpdateState.Available || current is UpdateState.ReadyToInstall -> current
+                    else -> UpdateState.Idle
+                }
             }
         }
     }

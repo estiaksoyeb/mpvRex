@@ -22,8 +22,29 @@ class UpdateFeatureTest {
     }
 
     @Test
-    fun isNewerPreviewVersion_comparesCommitCountsCorrectly() {
-        // Remote is newer
+    fun isAutoCheckDue_respectsOneHourWindow() {
+        val hour = UpdateManager.AUTO_CHECK_INTERVAL_MS
+        val now = 1_000_000_000_000L
+
+        // Never checked -> due
+        assertTrue(UpdateManager.isAutoCheckDue(0L, now))
+        assertTrue(UpdateManager.isAutoCheckDue(-5L, now))
+
+        // Restarting within the hour must NOT hit the server
+        assertFalse(UpdateManager.isAutoCheckDue(now, now))
+        assertFalse(UpdateManager.isAutoCheckDue(now - 1000L, now))
+        assertFalse(UpdateManager.isAutoCheckDue(now - hour + 1L, now))
+
+        // An hour later -> due again
+        assertTrue(UpdateManager.isAutoCheckDue(now - hour, now))
+        assertTrue(UpdateManager.isAutoCheckDue(now - hour - 1L, now))
+
+        // Clock moved backwards must not block checks forever
+        assertTrue(UpdateManager.isAutoCheckDue(now + 5000L, now))
+    }
+
+    @Test
+    fun isNewerPreviewVersion_comparesCommitCountsCorrectly() {        // Remote is newer
         assertTrue(UpdateManager.isNewerPreviewVersion("r1015", 1010))
         assertTrue(UpdateManager.isNewerPreviewVersion("1015", 1010))
 

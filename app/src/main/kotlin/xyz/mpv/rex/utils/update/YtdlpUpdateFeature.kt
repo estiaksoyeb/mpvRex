@@ -24,8 +24,9 @@ import xyz.mpv.rex.BuildConfig
  */
 class YtdlpUpdateManager(private val context: Context) {
 
-    private val client = OkHttpClient()
+    private val client = UpdateManager.clientWithUserAgent()
     private val json = Json { ignoreUnknownKeys = true }
+    private val prefs by lazy { context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE) }
 
     fun isCompanionInstalled(): Boolean {
         return try {
@@ -61,18 +62,21 @@ class YtdlpUpdateManager(private val context: Context) {
         }
     }
 
-    suspend fun checkForUpdate(forceShow: Boolean = false): Release? {
+    suspend fun checkForUpdate(forceShow: Boolean = false, manual: Boolean = forceShow): Release? {
         // Hard gate: no companion installed -> never nag.
         if (!isCompanionInstalled()) return null
         if (!BuildConfig.ENABLE_UPDATE_FEATURE) return null
+        // Automatic checks are throttled to once per hour; manual ones always run.
+        if (!manual && !isAutoCheckDue()) return null
 
         val currentVersion = installedVersion() ?: return null
 
         val release = getLatestRelease(
             "https://api.github.com/repos/mpvRex/REX-Ytdlp/releases/latest"
         )
+        // Server answered, so count this as a check.
+        markChecked()
         val remoteVersion = release.tagName.removePrefix("v")
-        val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
         val ignoredVersion = prefs.getString("ytdlp_ignored_version", null)
 
         if (!forceShow && ignoredVersion == remoteVersion) return null
@@ -80,8 +84,15 @@ class YtdlpUpdateManager(private val context: Context) {
         return if (isNewerVersion(remoteVersion, currentVersion)) release else null
     }
 
+    /** True if an automatic (non-manual) companion check is allowed right now. */
+    fun isAutoCheckDue(): Boolean = UpdateManager.isAutoCheckDue(prefs.getLong(KEY_LAST_CHECK, 0L))
+
+    /** Records a successful check so the next automatic check waits an hour. */
+    fun markChecked() {
+        prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
+    }
+
     fun ignoreVersion(version: String) {
-        val prefs = context.getSharedPreferences("mpvEx_prefs", Context.MODE_PRIVATE)
         prefs.edit().putString("ytdlp_ignored_version", version).apply()
     }
 
@@ -106,5 +117,6 @@ class YtdlpUpdateManager(private val context: Context) {
 
     companion object {
         const val COMPANION_PACKAGE = "xyz.mpv.rex.addon.ytdl"
+        private const val KEY_LAST_CHECK = "last_ytdlp_update_check"
     }
 }

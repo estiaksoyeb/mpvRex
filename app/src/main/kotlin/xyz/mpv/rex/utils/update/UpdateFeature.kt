@@ -2,6 +2,7 @@ package xyz.mpv.rex.utils.update
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -131,6 +132,7 @@ class UpdateManager(
 
         private const val PREFS_NAME = "mpvEx_prefs"
         private const val KEY_LAST_CHECK = "last_update_check"
+        private const val KEY_CACHED_RELEASE = "cached_release"
 
         /** True if an automatic check is allowed right now (never checked, or interval elapsed). */
         fun isAutoCheckDue(lastCheckMillis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean {
@@ -138,6 +140,16 @@ class UpdateManager(
             // Clock moved backwards or timer overflowed -> treat as due instead of blocking forever.
             if (nowMillis < lastCheckMillis) return true
             return nowMillis - lastCheckMillis >= AUTO_CHECK_INTERVAL_MS
+        }
+
+        /** Decodes a cached [Release] stored under [key], or null if absent/corrupt. */
+        fun readCachedRelease(prefs: SharedPreferences, key: String): Release? {
+            val raw = prefs.getString(key, null) ?: return null
+            return try {
+                Json { ignoreUnknownKeys = true }.decodeFromString(Release.serializer(), raw)
+            } catch (_: Exception) {
+                null
+            }
         }
 
         /** GitHub API requires a User-Agent; without one requests are rejected. */
@@ -371,12 +383,14 @@ class UpdateManager(
 
         // If this version was ignored, don't show it unless forced (manual check)
         if (!forceShow && ignoredVersion == remoteVersion) {
+            cacheRelease(null)
             return null
         }
 
         return if (isNewerVersion(remoteVersion, currentVersion)) {
-            ensureAssetSizes(release)
+            ensureAssetSizes(release).also { cacheRelease(it) }
         } else {
+            cacheRelease(null)
             null
         }
     }
@@ -389,13 +403,15 @@ class UpdateManager(
         val ignoredVersion = prefs.getString("ignored_version", null)
 
         if (!forceShow && ignoredVersion == remoteVersion) {
+            cacheRelease(null)
             return null
         }
 
         val currentCommitCount = getCurrentCommitCount()
         return if (isNewerPreviewVersion(remoteVersion, currentCommitCount)) {
-            ensureAssetSizes(release)
+            ensureAssetSizes(release).also { cacheRelease(it) }
         } else {
+            cacheRelease(null)
             null
         }
     }
@@ -437,6 +453,8 @@ class UpdateManager(
         prefs.edit()
             .putString("ignored_version", version)
             .apply()
+        // Don't resurrect an ignored version from the cache on the next launch.
+        cacheRelease(null)
     }
 
     /** True if an automatic (non-manual) check is allowed right now. */
@@ -451,6 +469,17 @@ class UpdateManager(
      */
     fun markChecked() {
         prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
+    }
+
+    /** The newest release that was known to be available at the last successful check, if any. */
+    fun cachedRelease(): Release? = readCachedRelease(prefs, KEY_CACHED_RELEASE)
+
+    /** Stores the newest available release; passing null clears it (already up to date). */
+    fun cacheRelease(release: Release?) {
+        prefs.edit().apply {
+            if (release == null) remove(KEY_CACHED_RELEASE)
+            else putString(KEY_CACHED_RELEASE, json.encodeToString(Release.serializer(), release))
+        }.apply()
     }
 
     private suspend fun getLatestRelease(url: String): Release = withContext(Dispatchers.IO) {
@@ -648,7 +677,12 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         // Never run two companion checks at once (avoids duplicate API hits).
         if (companionCheckJob?.isActive == true) return
         // Automatic checks are throttled to once per hour, across restarts.
-        if (!manual && !ytdlpUpdateManager.isAutoCheckDue()) return
+        // When throttled, fall back to the last known release so the dialog still shows offline.
+        if (!manual && !ytdlpUpdateManager.isAutoCheckDue()) {
+            val cached = ytdlpUpdateManager.cachedRelease()
+            if (cached != null) _companionUpdateState.value = UpdateState.Available(cached)
+            return
+        }
         // Preserve an already-displayed dialog instead of overwriting it with Loading.
         val hadUpdate = _companionUpdateState.value is UpdateState.Available
         companionCheckJob = viewModelScope.launch {
@@ -720,7 +754,17 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         // Never run two app checks at once (avoids duplicate API hits).
         if (appCheckJob?.isActive == true) return
         // Automatic checks are throttled to once per hour, across app restarts.
-        if (!manual && !updateManager.isAutoCheckDue()) return
+        // When throttled, fall back to the last known release so the dialog still shows offline.
+        if (!manual && !updateManager.isAutoCheckDue()) {
+            updateManager.cachedRelease()?.let { release ->
+                _updateState.value = if (updateManager.getApkFile(release) != null) {
+                    UpdateState.ReadyToInstall(release)
+                } else {
+                    UpdateState.Available(release)
+                }
+            }
+            return
+        }
         // Preserve an already-displayed dialog instead of overwriting it with Loading.
         val hadUpdate = _updateState.value.let {
             it is UpdateState.Available || it is UpdateState.ReadyToInstall

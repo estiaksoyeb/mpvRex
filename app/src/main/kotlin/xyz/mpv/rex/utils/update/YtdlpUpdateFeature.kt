@@ -79,9 +79,17 @@ class YtdlpUpdateManager(private val context: Context) {
         val remoteVersion = release.tagName.removePrefix("v")
         val ignoredVersion = prefs.getString("ytdlp_ignored_version", null)
 
-        if (!forceShow && ignoredVersion == remoteVersion) return null
+        if (!forceShow && ignoredVersion == remoteVersion) {
+            cacheRelease(null)
+            return null
+        }
 
-        return if (isNewerVersion(remoteVersion, currentVersion)) release else null
+        return if (isNewerVersion(remoteVersion, currentVersion)) {
+            release.also { cacheRelease(it) }
+        } else {
+            cacheRelease(null)
+            null
+        }
     }
 
     /** True if an automatic (non-manual) companion check is allowed right now. */
@@ -92,8 +100,21 @@ class YtdlpUpdateManager(private val context: Context) {
         prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
     }
 
+    /** The newest companion release known from the last successful check, if any. */
+    fun cachedRelease(): Release? = UpdateManager.readCachedRelease(prefs, KEY_CACHED_RELEASE)
+
+    /** Stores the newest available companion release; passing null clears it. */
+    fun cacheRelease(release: Release?) {
+        prefs.edit().apply {
+            if (release == null) remove(KEY_CACHED_RELEASE)
+            else putString(KEY_CACHED_RELEASE, json.encodeToString(Release.serializer(), release))
+        }.apply()
+    }
+
     fun ignoreVersion(version: String) {
         prefs.edit().putString("ytdlp_ignored_version", version).apply()
+        // Don't resurrect an ignored version from the cache on the next launch.
+        cacheRelease(null)
     }
 
     private suspend fun getLatestRelease(url: String): Release = withContext(Dispatchers.IO) {
@@ -118,5 +139,6 @@ class YtdlpUpdateManager(private val context: Context) {
     companion object {
         const val COMPANION_PACKAGE = "xyz.mpv.rex.addon.ytdl"
         private const val KEY_LAST_CHECK = "last_ytdlp_update_check"
+        private const val KEY_CACHED_RELEASE = "ytdlp_cached_release"
     }
 }

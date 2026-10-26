@@ -1,6 +1,7 @@
 package xyz.mpv.rex.utils.update
 
 import kotlinx.serialization.json.Json
+import android.content.SharedPreferences
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -44,7 +45,32 @@ class UpdateFeatureTest {
     }
 
     @Test
-    fun isNewerPreviewVersion_comparesCommitCountsCorrectly() {        // Remote is newer
+    fun cachedRelease_roundTripsThroughPrefs() {
+        val prefs = FakePrefs()
+        val release = Release(
+            tagName = "r1042",
+            name = "REX r1042",
+            body = "notes",
+            publishedAt = "2026-10-26T00:00:00Z",
+            assets = listOf(Asset("https://example.com/app.apk", "app-arm64-v8a.apk", 123L, "apk")),
+            htmlUrl = "https://example.com/release"
+        )
+
+        assertNull(UpdateManager.readCachedRelease(prefs, "k"))
+
+        prefs.edit().putString("k", Json.encodeToString(Release.serializer(), release)).apply()
+        val restored = UpdateManager.readCachedRelease(prefs, "k")
+        assertNotNull(restored)
+        assertEquals(release, restored)
+
+        // Corrupt payload must not crash, just behave as "no cache".
+        prefs.edit().putString("k", "{not json").apply()
+        assertNull(UpdateManager.readCachedRelease(prefs, "k"))
+    }
+
+    @Test
+    fun isNewerPreviewVersion_comparesCommitCountsCorrectly() {
+        // Remote is newer
         assertTrue(UpdateManager.isNewerPreviewVersion("r1015", 1010))
         assertTrue(UpdateManager.isNewerPreviewVersion("1015", 1010))
 
@@ -310,5 +336,54 @@ class UpdateFeatureTest {
 
         assertTrue(release.changelog.isEmpty())
         assertEquals("Release notes", release.body)
+    }
+}
+
+/** Minimal in-memory [SharedPreferences] for unit tests. */
+private class FakePrefs : SharedPreferences {
+    private val values = mutableMapOf<String, Any?>()
+
+    override fun getAll(): Map<String, *> = values
+    override fun getString(key: String, defValue: String?): String? = values[key] as? String ?: defValue
+    @Suppress("UNCHECKED_CAST")
+    override fun getStringSet(key: String, defValues: Set<String>?): Set<String>? =
+        values[key] as? Set<String> ?: defValues
+    override fun getInt(key: String, defValue: Int): Int = values[key] as? Int ?: defValue
+    override fun getLong(key: String, defValue: Long): Long = values[key] as? Long ?: defValue
+    override fun getFloat(key: String, defValue: Float): Float = values[key] as? Float ?: defValue
+    override fun getBoolean(key: String, defValue: Boolean): Boolean = values[key] as? Boolean ?: defValue
+    override fun contains(key: String): Boolean = values.containsKey(key)
+    override fun edit(): SharedPreferences.Editor = Editor()
+    override fun registerOnSharedPreferenceChangeListener(
+        listener: SharedPreferences.OnSharedPreferenceChangeListener?
+    ) = Unit
+    override fun unregisterOnSharedPreferenceChangeListener(
+        listener: SharedPreferences.OnSharedPreferenceChangeListener?
+    ) = Unit
+
+    private inner class Editor : SharedPreferences.Editor {
+        private val pending = mutableMapOf<String, Any?>()
+        private val removals = mutableSetOf<String>()
+        private var clear = false
+
+        override fun putString(key: String, value: String?) = apply { pending[key] = value }
+        override fun putStringSet(key: String, values: Set<String>?) = apply { pending[key] = values }
+        override fun putInt(key: String, value: Int) = apply { pending[key] = value }
+        override fun putLong(key: String, value: Long) = apply { pending[key] = value }
+        override fun putFloat(key: String, value: Float) = apply { pending[key] = value }
+        override fun putBoolean(key: String, value: Boolean) = apply { pending[key] = value }
+        override fun remove(key: String) = apply { removals += key }
+        override fun clear() = apply { clear = true }
+        override fun commit(): Boolean { applyInternal(); return true }
+        override fun apply() { applyInternal() }
+
+        private fun applyInternal() {
+            if (clear) values.clear()
+            removals.forEach { values.remove(it) }
+            values.putAll(pending)
+            pending.clear()
+            removals.clear()
+            clear = false
+        }
     }
 }

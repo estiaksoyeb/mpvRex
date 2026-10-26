@@ -81,6 +81,59 @@ import org.koin.compose.koinInject
 import xyz.mpv.rex.preferences.GesturePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 
+/** Tap tolerance (in dp) used to snap a seekbar tap onto a nearby bookmark pin. */
+private const val BOOKMARK_SNAP_TOLERANCE_DP = 8f
+
+/**
+ * Snaps [tapSeconds] to the closest bookmark when the tap lands within
+ * [BOOKMARK_SNAP_TOLERANCE_DP] of it, so pins are actually easy to hit.
+ */
+internal fun snapToNearbyBookmark(
+  tapSeconds: Float,
+  bookmarks: List<Segment>,
+  widthPx: Float,
+  duration: Float,
+  density: Float,
+): Float {
+  if (bookmarks.isEmpty() || widthPx <= 0f || duration <= 0f) return tapSeconds
+  val toleranceSeconds = (BOOKMARK_SNAP_TOLERANCE_DP * density / widthPx) * duration
+  val nearest = bookmarks.minByOrNull { kotlin.math.abs(it.start - tapSeconds) } ?: return tapSeconds
+  return if (kotlin.math.abs(nearest.start - tapSeconds) <= toleranceSeconds) nearest.start else tapSeconds
+}
+
+/**
+ * Builds the (start, end) pixel gaps used to break the track at chapter and bookmark boundaries.
+ *
+ * Bookmarks are rendered exactly like chapters — a gap in the track — and are always shown.
+ */
+internal fun buildBoundaryGaps(
+  points: List<Float>,
+  duration: Float,
+  widthPx: Float,
+  gapHalf: Float,
+  startX: Float,
+  endX: Float,
+): List<Pair<Float, Float>> {
+  if (points.isEmpty() || duration <= 0f || widthPx <= 0f) return emptyList()
+  return points
+    .map { (it / duration).coerceIn(0f, 1f) * widthPx }
+    .filter { it in startX..endX }
+    .sorted()
+    .map { x -> (x - gapHalf).coerceAtLeast(startX) to (x + gapHalf).coerceAtMost(endX) }
+}
+
+/** Chapter boundaries plus bookmark pins, for rendering the same way as chapters. */
+internal fun collectSeekbarBoundaries(
+  chapters: List<Segment>,
+  bookmarks: List<Segment>,
+  showChapters: Boolean,
+): List<Float> =
+  buildList {
+    if (showChapters) chapters.forEach { add(it.start) }
+    // Bookmarks are always drawn, so they stay visible even if chapters are hidden.
+    bookmarks.forEach { add(it.start) }
+  }
+
 @Composable
 fun SeekbarWithTimers(
   position: () -> Float,
@@ -98,6 +151,7 @@ fun SeekbarWithTimers(
   loopEnd: Float? = null,
   isGestureSeeking: Boolean = false,
   isCancelActive: Boolean = false,
+  bookmarks: ImmutableList<Segment> = persistentListOf(),
   modifier: Modifier = Modifier,
 ) {
   val clickEvent = LocalPlayerButtonsClickEvent.current
@@ -267,6 +321,7 @@ fun SeekbarWithTimers(
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
+            bookmarks = bookmarks,
             isCancelActive = isCancelActive,
             onSeek = handleSeek,
             onSeekFinished = handleSeekFinished,
@@ -278,6 +333,7 @@ fun SeekbarWithTimers(
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
+            bookmarks = bookmarks,
             isPaused = paused,
             isScrubbing = isUserInteracting,
             useWavySeekbar = true,
@@ -293,6 +349,7 @@ fun SeekbarWithTimers(
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
+            bookmarks = bookmarks,
             isPaused = paused,
             isScrubbing = isUserInteracting,
             useWavySeekbar = true,
@@ -308,6 +365,7 @@ fun SeekbarWithTimers(
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
+            bookmarks = bookmarks,
             isPaused = paused,
             isScrubbing = isUserInteracting,
             useWavySeekbar = false,
@@ -323,6 +381,7 @@ fun SeekbarWithTimers(
             duration = duration,
             readAheadValue = readAheadValue,
             chapters = chapters,
+            bookmarks = bookmarks,
             seekbarStyle = SeekbarStyle.Thick,
             isCancelActive = isCancelActive,
             onSeek = handleSeek,
@@ -362,6 +421,7 @@ private fun SquigglySeekbar(
   onSeekFinished: () -> Unit,
   loopStart: Float? = null,
   loopEnd: Float? = null,
+  bookmarks: ImmutableList<Segment> = persistentListOf(),
   modifier: Modifier = Modifier,
 ) {
   val playerPreferences = koinInject<PlayerPreferences>()
@@ -390,6 +450,8 @@ private fun SquigglySeekbar(
   var heightFraction by remember { mutableFloatStateOf(1f) }
 
   val scope = rememberCoroutineScope()
+  val density = androidx.compose.ui.platform.LocalDensity.current.density
+  val currentBookmarks by rememberUpdatedState(bookmarks)
 
   // Wave parameters
   val waveLength = 80f
@@ -459,7 +521,14 @@ private fun SquigglySeekbar(
             },
             onTap = { offset ->
                 if (preventSeekbarTap) return@detectTapGestures
-                val newPosition = (offset.x / size.width) * currentDuration
+                val rawPosition = (offset.x / size.width) * currentDuration
+                val newPosition = snapToNearbyBookmark(
+                  tapSeconds = rawPosition,
+                  bookmarks = currentBookmarks,
+                  widthPx = size.width.toFloat(),
+                  duration = currentDuration,
+                  density = density,
+                )
                 onSeek(newPosition.coerceIn(0f, currentDuration))
                 onSeekFinished()
             }
@@ -605,13 +674,18 @@ private fun SquigglySeekbar(
         return
       }
       val gaps =
-        if (showSeekbarChapters) {
-          chapters
-            .map { (it.start / duration).coerceIn(0f, 1f) * totalWidth }
-            .filter { it in startX..endX }
-            .sorted()
-            .map { x -> (x - gapHalf).coerceAtLeast(startX) to (x + gapHalf).coerceAtMost(endX) }
-        } else emptyList()
+        buildBoundaryGaps(
+          points = collectSeekbarBoundaries(
+            chapters = chapters,
+            bookmarks = currentBookmarks,
+            showChapters = showSeekbarChapters,
+          ),
+          duration = duration,
+          widthPx = totalWidth,
+          gapHalf = gapHalf,
+          startX = startX,
+          endX = endX,
+        )
 
       var segmentStart = startX
       for ((gapStart, gapEnd) in gaps) {
@@ -786,6 +860,7 @@ fun StandardSeekbar(
     loopStart: Float? = null,
     loopEnd: Float? = null,
     isCancelActive: Boolean = false,
+    bookmarks: ImmutableList<Segment> = persistentListOf(),
     modifier: Modifier = Modifier,
 ) {
     val playerPreferences = koinInject<PlayerPreferences>()
@@ -807,6 +882,8 @@ fun StandardSeekbar(
 
     val currentPosition by rememberUpdatedState(position)
     val currentDuration by rememberUpdatedState(duration)
+    val density = androidx.compose.ui.platform.LocalDensity.current.density
+    val currentBookmarks by rememberUpdatedState(bookmarks)
 
     val thumbScale by animateFloatAsState(
         targetValue = if (isCancelActive) 0.7f else 1f,
@@ -831,7 +908,14 @@ fun StandardSeekbar(
                 detectTapGestures(
                     onTap = { offset ->
                         if (preventSeekbarTap) return@detectTapGestures
-                        val newPosition = (offset.x / size.width) * currentDuration
+                        val rawPosition = (offset.x / size.width) * currentDuration
+                        val newPosition = snapToNearbyBookmark(
+                            tapSeconds = rawPosition,
+                            bookmarks = currentBookmarks,
+                            widthPx = size.width.toFloat(),
+                            duration = currentDuration,
+                            density = density,
+                        )
                         onSeek(newPosition.coerceIn(0f, currentDuration))
                         onSeekFinished()
                     }
@@ -935,12 +1019,18 @@ fun StandardSeekbar(
                     val thumbGapStart = (thumbPx - gapHalf).coerceIn(0f, size.width)
                     val thumbGapEnd = (thumbPx + gapHalf).coerceIn(0f, size.width)
                     
-                    val chapterGaps = if (showSeekbarChapters && duration > 0f) {
-                        chapters
-                            .map { (it.start / duration).coerceIn(0f, 1f) * size.width }
-                            .filter { it > 0f && it < size.width }
-                            .map { x -> (x - chapterGapHalf) to (x + chapterGapHalf) }
-                    } else emptyList()
+                    val chapterGaps = buildBoundaryGaps(
+                        points = collectSeekbarBoundaries(
+                            chapters = chapters,
+                            bookmarks = currentBookmarks,
+                            showChapters = showSeekbarChapters,
+                        ),
+                        duration = duration,
+                        widthPx = size.width,
+                        gapHalf = chapterGapHalf,
+                        startX = 0f,
+                        endX = size.width,
+                    ).filter { (gStart, _) -> gStart > chapterGapHalf && gStart < size.width - chapterGapHalf }
 
                     val allGaps = (chapterGaps + (thumbGapStart to thumbGapEnd))
                         .filter { it.first < it.second }
@@ -1021,7 +1111,7 @@ fun StandardSeekbar(
                      if (playedPx > 0f) {
                          drawRangeWithGaps(0f, playedPx, allGaps, primaryColor)
                      }
- 
+
                      // 3. A-B Loop Indicators
                      if (loopStart != null || loopEnd != null) {
                          val loopColor = Color(0xFFFFB300) // Amber/Gold color for loop

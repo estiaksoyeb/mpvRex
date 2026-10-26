@@ -497,7 +497,7 @@ fun ControlsTab(
           val allPortrait = appearancePreferences.parseButtons(portraitBottomControlsPref, mutableSetOf())
           val visibleInRow = allPortrait.filter { button ->
               when (button) {
-                  PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
+                  PlayerButton.BOOKMARKS_CHAPTERS -> true
                   PlayerButton.SHUFFLE -> hasPlaylistSupport
                   PlayerButton.CURRENT_CHAPTER -> false
                   PlayerButton.VIDEO_QUALITY -> hasMultipleQualities
@@ -513,9 +513,9 @@ fun ControlsTab(
           allLandscape.addAll(appearancePreferences.parseButtons(bottomLeftControlsPref, mutableSetOf()))
           val visibleInLandscape = allLandscape.filter { button ->
               when (button) {
-                  PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
+                  PlayerButton.BOOKMARKS_CHAPTERS -> true
                   PlayerButton.SHUFFLE -> hasPlaylistSupport
-                  PlayerButton.CURRENT_CHAPTER -> chapters.isNotEmpty()
+                  PlayerButton.CURRENT_CHAPTER -> true
                   PlayerButton.VIDEO_QUALITY -> hasMultipleQualities
                   PlayerButton.NONE -> false
                   else -> true
@@ -547,8 +547,8 @@ fun ControlsTab(
           // Functional filters (don't show buttons that can't work)
           when (button) {
               PlayerButton.SHUFFLE -> hasPlaylistSupport
-              PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
-              PlayerButton.CURRENT_CHAPTER -> chapters.isNotEmpty()
+              PlayerButton.BOOKMARKS_CHAPTERS -> true
+              PlayerButton.CURRENT_CHAPTER -> true
               PlayerButton.AB_LOOP -> true // Always show in more sheet if missing from UI
               PlayerButton.VIDEO_QUALITY -> hasMultipleQualities
               else -> true

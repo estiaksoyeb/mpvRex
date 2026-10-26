@@ -90,6 +90,7 @@ import xyz.mpv.rex.ui.player.PlayerViewModel
 import xyz.mpv.rex.ui.player.Sheets
 import xyz.mpv.rex.ui.player.VideoAspect
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
+import xyz.mpv.rex.ui.player.controls.components.sheets.ChapterSheetItem
 import xyz.mpv.rex.ui.player.controls.components.ControlsButton
 import xyz.mpv.rex.ui.player.controls.components.CurrentChapter
 import xyz.mpv.rex.ui.theme.controlColor
@@ -279,60 +280,75 @@ fun RenderPlayerButton(
     }
 
     PlayerButton.BOOKMARKS_CHAPTERS -> {
-      if (chapters.isNotEmpty()) {
-        val nextChapter = (currentChapter ?: 0) + 1
-        val onNextChapter: (() -> Unit)? =
-          if (doubleTapChapterToSkip && nextChapter < chapters.size) {
-            {
-              clickEvent()
-              `is`.xyz.mpv.MPVLib.setPropertyInt("chapter", nextChapter)
-            }
-          } else null
-        if (isMoreSheet) {
-          val chapter = chapters.getOrNull(currentChapter ?: 0)
-          Surface(
-            shape = itemShape,
-            color = surfaceColor,
-            contentColor = contentColor,
-            border = borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .combinedClickable(
-                onClick = {
-                  clickEvent()
-                  onOpenSheet(Sheets.Chapters)
-                },
-                onDoubleClick = onNextChapter,
-              )
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Icon(
-                imageVector = Icons.Default.Bookmarks,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-              )
-              Text(
-                text = chapter?.name ?: stringResource(R.string.chapters),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 200.dp)
-              )
-            }
+      // Always available: bookmarks can be created even when the file has no embedded chapters,
+      // so this is the entry point that makes "Add bookmark here" reachable.
+      // Double-tap skips to the next stop, whether that is a chapter or a manual bookmark.
+      val onNextChapter: (() -> Unit)? =
+        if (doubleTapChapterToSkip) {
+          {
+            clickEvent()
+            viewModel.seekToNextStop()
           }
-        } else {
-          ControlsButton(
-            Icons.Default.Bookmarks,
-            onClick = { onOpenSheet(Sheets.Chapters) },
-            onDoubleClick = onNextChapter,
-            modifier = Modifier.size(buttonSize),
-          )
+        } else null
+      // Long-press adds a bookmark at the current position (same affordance as a pin button).
+      val onAddBookmarkHere: (() -> Unit) = {
+        clickEvent()
+        viewModel.addBookmark()
+      }
+      // Title follows the same merged timeline as the sheet, so a bookmark in range wins
+      // over the chapter that merely contains it. Comes from the view model so a jump shows its
+      // target immediately, before mpv re-publishes chapter/time-pos.
+      val currentStopTitle = viewModel.currentStopLineup.collectAsState().value.active?.let { item ->
+        when (item) {
+          is ChapterSheetItem.BookmarkItem -> item.bookmark.title
+          is ChapterSheetItem.ChapterItem -> item.chapter.name
         }
+      }
+      if (isMoreSheet) {
+        Surface(
+          shape = itemShape,
+          color = surfaceColor,
+          contentColor = contentColor,
+          border = borderColor,
+          modifier = Modifier
+            .height(buttonSize)
+            .clip(itemShape)
+            .combinedClickable(
+              onClick = {
+                clickEvent()
+                onOpenSheet(Sheets.Chapters)
+              },
+              onDoubleClick = onNextChapter,
+              onLongClick = onAddBookmarkHere,
+            )
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+            modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
+          ) {
+            Icon(
+              imageVector = Icons.Default.Bookmarks,
+              contentDescription = null,
+              modifier = Modifier.size(24.dp)
+            )
+            Text(
+              text = currentStopTitle ?: stringResource(R.string.bookmarks),
+              style = MaterialTheme.typography.bodyMedium,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.widthIn(max = 200.dp)
+            )
+          }
+        }
+      } else {
+        ControlsButton(
+          Icons.Default.Bookmarks,
+          onClick = { onOpenSheet(Sheets.Chapters) },
+          onDoubleClick = onNextChapter,
+          onLongClick = onAddBookmarkHere,
+          modifier = Modifier.size(buttonSize),
+        )
       }
     }
 
@@ -856,27 +872,30 @@ fun RenderPlayerButton(
     PlayerButton.CURRENT_CHAPTER -> {
       if (isPortrait || isMoreSheet) {
       } else {
-        AnimatedVisibility(
-          chapters.getOrNull(currentChapter ?: 0) != null,
-          enter = fadeIn(),
-          exit = fadeOut(),
-        ) {
-          chapters.getOrNull(currentChapter ?: 0)?.let { chapter ->
-            val nextChapterIndex = (currentChapter ?: 0) + 1
-            CurrentChapter(
-              chapter = chapter,
-              onClick = {
-                clickEvent()
-                onOpenSheet(Sheets.Chapters)
+        val currentStop = viewModel.currentStopLineup.collectAsState().value.active
+        // Only rendered once there is a real stop to report. On a file with neither chapters nor
+        // bookmarks a "00:00" pill would be invented chrome; the Chapters/Bookmarks button is
+        // always available, so making the first bookmark never depends on this pill.
+        currentStop?.let { stop ->
+          CurrentChapter(
+            chapter = dev.vivvvek.seeker.Segment(
+              name = when (stop) {
+                is ChapterSheetItem.BookmarkItem -> stop.bookmark.title
+                is ChapterSheetItem.ChapterItem -> stop.chapter.name
               },
-              onDoubleClick = if (doubleTapChapterToSkip && nextChapterIndex < chapters.size) {
-                {
-                  clickEvent()
-                  `is`.xyz.mpv.MPVLib.setPropertyInt("chapter", nextChapterIndex)
-                }
-              } else null,
-            )
-          }
+              start = stop.startSeconds,
+            ),
+            onClick = {
+              clickEvent()
+              onOpenSheet(Sheets.Chapters)
+            },
+            onDoubleClick = if (doubleTapChapterToSkip) {
+              {
+                clickEvent()
+                viewModel.seekToNextStop()
+              }
+            } else null,
+          )
         }
       }
     }

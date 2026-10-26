@@ -1134,6 +1134,17 @@
     <!-- Player controls shared -->
     <string name="playlist_separator">• %1$s</string>
     <string name="chapters">Chapters</string>
+    <!-- Manual bookmarks -->
+    <string name="bookmarks">Bookmarks</string>
+    <string name="bookmark_add">Add bookmark here</string>
+    <string name="bookmark_added">Bookmark added</string>
+    <string name="bookmark_exists">A bookmark already exists here</string>
+    <string name="bookmark_default_title">Bookmark at %1$s</string>
+    <string name="bookmark_rename">Rename</string>
+    <string name="bookmark_delete">Delete</string>
+    <string name="bookmark_rename_title">Bookmark name</string>
+    <string name="bookmark_deleted">Bookmark deleted</string>
+    <string name="bookmark_saved">Bookmark renamed</string>
     <string name="skip_seconds">Skip %1$ds</string>
     <string name="playback_speed">Playback Speed</string>
     <string name="screen_rotation">Rotation</string>

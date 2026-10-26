@@ -14,9 +14,11 @@ import xyz.mpv.rex.ui.player.Sheets
 import xyz.mpv.rex.ui.player.TrackNode
 import androidx.navigation3.runtime.NavBackStack
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.database.entities.BookmarkEntity
 import xyz.mpv.rex.ui.player.controls.components.sheets.AspectRatioSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.AudioTracksSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.ChaptersSheet
+import xyz.mpv.rex.ui.player.controls.components.sheets.ChapterSheetItem
 import xyz.mpv.rex.ui.player.controls.components.sheets.CustomSkipDurationSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.SleepTimerSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.VideoZoomSheet
@@ -61,6 +63,11 @@ fun PlayerSheets(
   chapters: ImmutableList<Segment>,
   onSeekToChapter: (Int) -> Unit,
   currentChapterIndex: Int? = null,
+  activeStop: ChapterSheetItem? = null,
+  onAddBookmarkHere: () -> Unit = {},
+  onSeekToBookmark: (BookmarkEntity) -> Unit = {},
+  onRenameBookmark: (Long, String) -> Unit = { _, _ -> },
+  onDeleteBookmark: (Long) -> Unit = {},
   // Decoders sheet
   decoder: Decoder,
   onUpdateDecoder: (Decoder) -> Unit,
@@ -286,12 +293,21 @@ fun PlayerSheets(
     }
 
     Sheets.Chapters -> {
+      val bookmarks by viewModel.bookmarks.collectAsState(initial = emptyList())
+      val currentPosition by viewModel.currentPosition.collectAsState()
       ChaptersSheet(
         chapters = chapters,
         currentChapter = chapter,
         currentChapterIndex = currentChapterIndex,
         onChapterClick = onSeekToChapter,
         onDismissRequest = onDismissRequest,
+        bookmarks = bookmarks.toImmutableList(),
+        currentPositionSeconds = currentPosition,
+        activeStop = activeStop,
+        onAddBookmark = onAddBookmarkHere,
+        onSeekToBookmark = onSeekToBookmark,
+        onRenameBookmark = onRenameBookmark,
+        onDeleteBookmark = onDeleteBookmark,
       )
     }
 

@@ -138,6 +138,7 @@ import xyz.mpv.rex.ui.player.controls.components.SpeedControlSlider
 import xyz.mpv.rex.ui.player.controls.components.TextPlayerUpdate
 import xyz.mpv.rex.ui.player.controls.components.VolumeSlider
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
+import xyz.mpv.rex.ui.player.controls.components.sheets.toSegment
 import xyz.mpv.rex.ui.theme.controlColor
 import xyz.mpv.rex.ui.theme.playerRippleConfiguration
 import xyz.mpv.rex.ui.theme.spacing
@@ -256,6 +257,7 @@ fun PlayerControls(
   }
   val playerTimeToDisappear by playerPreferences.playerTimeToDisappear.collectAsState()
   val chapters by viewModel.chapters.collectAsState(persistentListOf())
+  val bookmarks by viewModel.bookmarks.collectAsState(persistentListOf())
   val playlist by viewModel.playlistManager.playlist.collectAsState()
   val playlistMode by playerPreferences.playlistMode.collectAsState()
   val haptic = LocalHapticFeedback.current
@@ -333,7 +335,7 @@ fun PlayerControls(
   val portraitVisibleButtons = remember(portraitBottomButtonsRaw, chapters, playlist, viewModel) {
     portraitBottomButtonsRaw.filter { button ->
       when (button) {
-        xyz.mpv.rex.preferences.PlayerButton.BOOKMARKS_CHAPTERS -> chapters.isNotEmpty()
+        xyz.mpv.rex.preferences.PlayerButton.BOOKMARKS_CHAPTERS -> true
         xyz.mpv.rex.preferences.PlayerButton.SHUFFLE -> viewModel.hasPlaylistSupport()
         xyz.mpv.rex.preferences.PlayerButton.CURRENT_CHAPTER -> false
         xyz.mpv.rex.preferences.PlayerButton.MORE_OPTIONS -> false
@@ -1528,6 +1530,7 @@ fun PlayerControls(
               },
               positionTimerOnClick = {},
               chapters = chapters.toImmutableList(),
+              bookmarks = bookmarks.map { it.toSegment() }.toImmutableList(),
               paused = isPlaybackPaused,
               readAheadValue = { readAheadPosition },
               seekbarStyle = seekbarStyle,
@@ -2087,6 +2090,7 @@ fun PlayerControls(
     }
 
     val sheetShown by viewModel.sheetShown.collectAsState()
+    val currentStopLineup by viewModel.currentStopLineup.collectAsState()
     val subtitles by viewModel.subtitleTracks.collectAsState(persistentListOf())
     val audioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
     val alternateAudio by viewModel.availableAlternateAudio.collectAsState(persistentListOf())
@@ -2112,10 +2116,14 @@ fun PlayerControls(
       chapter = chapters.getOrNull(currentChapter ?: 0),
       chapters = chapters.toImmutableList(),
       currentChapterIndex = currentChapter ?: 0,
-      onSeekToChapter = {
-        MPVLib.setPropertyInt("chapter", it)
-        viewModel.unpause()
+      onSeekToChapter = { chapterIndex ->
+        viewModel.seekToChapter(chapterIndex)
       },
+      activeStop = currentStopLineup.active,
+      onAddBookmarkHere = { viewModel.addBookmark() },
+      onSeekToBookmark = viewModel::seekToBookmark,
+      onRenameBookmark = viewModel::renameBookmark,
+      onDeleteBookmark = viewModel::deleteBookmark,
       decoder = decoder,
       onUpdateDecoder = { MPVLib.setPropertyString("hwdec", it.value) },
       speed = playbackSpeed ?: playerPreferences.defaultSpeed.get(),

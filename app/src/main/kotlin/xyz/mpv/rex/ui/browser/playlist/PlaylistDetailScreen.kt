@@ -80,6 +80,7 @@ import xyz.mpv.rex.ui.browser.dialogs.DeleteConfirmationDialog
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.media.MediaInfoOps
 import xyz.mpv.rex.utils.media.MediaUtils
 import kotlinx.coroutines.launch
@@ -259,7 +260,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
               when {
                 isReorderMode -> isReorderMode = false
                 selectionManager.isInSelectionMode -> selectionManager.clear()
-                else -> backStack.removeLastOrNull()
+                else -> backStack.navigateBack()
               }
             },
             onCancelSelection = { selectionManager.clear() },

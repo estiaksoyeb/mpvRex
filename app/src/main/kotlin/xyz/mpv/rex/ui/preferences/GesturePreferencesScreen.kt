@@ -45,6 +45,7 @@ import xyz.mpv.rex.ui.player.LongPressSpeedMemoryMode
 import xyz.mpv.rex.ui.player.SingleActionGesture
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.FooterPreference
 import me.zhanghai.compose.preference.ListPreference
@@ -80,7 +81,7 @@ object GesturePreferencesScreen : Screen {
             ) 
           },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(
                 Icons.AutoMirrored.Default.ArrowBack, 
                 contentDescription = null,

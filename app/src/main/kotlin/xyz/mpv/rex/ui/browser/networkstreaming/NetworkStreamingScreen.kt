@@ -67,6 +67,7 @@ import xyz.mpv.rex.ui.preferences.GroupedPreferenceCard
 import xyz.mpv.rex.ui.preferences.PreferenceSectionHeader
 import xyz.mpv.rex.ui.preferences.PreferencesScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.media.MediaUtils
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -134,7 +135,7 @@ object NetworkStreamingScreen : Screen {
     val canNavigateBack = remember { backstack.size > 1 }
 
     androidx.activity.compose.BackHandler(enabled = canNavigateBack) {
-      backstack.removeLastOrNull()
+      backstack.navigateBack()
     }
 
     Scaffold(
@@ -144,7 +145,7 @@ object NetworkStreamingScreen : Screen {
             isInSelectionMode = false,
             selectedCount = 0,
             totalCount = 0,
-            onBackClick = if (canNavigateBack) { { backstack.removeLastOrNull() } } else null,
+            onBackClick = if (canNavigateBack) { { backstack.navigateBack() } } else null,
             onCancelSelection = { },
           onSortClick = null,
           // Search functionality disabled for production

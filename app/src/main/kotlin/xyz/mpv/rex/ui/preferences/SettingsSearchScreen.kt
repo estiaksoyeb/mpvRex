@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -101,7 +102,7 @@ object SettingsSearchScreen : Screen {
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = backstack::removeLastOrNull) {
+                        IconButton(onClick = backstack::navigateBack) {
                             Icon(
                                 Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = null,

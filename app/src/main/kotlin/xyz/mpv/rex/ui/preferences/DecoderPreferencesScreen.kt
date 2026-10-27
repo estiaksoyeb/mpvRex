@@ -46,6 +46,7 @@ import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.player.Debanding
 import xyz.mpv.rex.ui.player.MPVProfile
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.ui.preferences.VulkanUtils
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
@@ -75,7 +76,7 @@ object DecoderPreferencesScreen : Screen {
             )
           },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(
                 Icons.AutoMirrored.Default.ArrowBack,
                 contentDescription = null,

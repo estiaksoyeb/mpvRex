@@ -124,6 +124,7 @@ import xyz.mpv.rex.ui.browser.MainScreen
 import xyz.mpv.rex.ui.player.MPVView
 import xyz.mpv.rex.ui.preferences.BlockedShortsScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import `is`.xyz.mpv.MPVLib
 import org.koin.compose.koinInject
 import xyz.mpv.rex.preferences.PlayerPreferences
@@ -376,7 +377,7 @@ data class ShortsScreen(
                         viewModel = viewModel,
                         onBack = { 
                             if (backstack.size > 1) {
-                                backstack.removeLastOrNull()
+                                backstack.navigateBack()
                             } else {
                                 MainScreen.requestPreviousTab()
                             }

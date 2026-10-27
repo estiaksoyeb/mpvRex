@@ -53,6 +53,7 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 
 data class CodecInfoItem(
   val name: String,
@@ -179,7 +180,7 @@ object CodecInformationScreen : Screen {
             )
           },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(
                 Icons.AutoMirrored.Default.ArrowBack,
                 contentDescription = null,

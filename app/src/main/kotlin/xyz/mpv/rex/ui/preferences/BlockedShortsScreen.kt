@@ -38,6 +38,7 @@ import xyz.mpv.rex.database.dao.ShortsMediaDao
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.browser.shorts.ShortsScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
@@ -67,7 +68,7 @@ object BlockedShortsScreen : Screen {
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = backstack::removeLastOrNull) {
+                        IconButton(onClick = backstack::navigateBack) {
                             Icon(
                                 Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = null,

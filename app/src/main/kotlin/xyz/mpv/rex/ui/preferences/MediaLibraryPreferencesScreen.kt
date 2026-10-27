@@ -42,6 +42,7 @@ import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.browser.sheets.AutoPlaylistsSheet
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import kotlinx.coroutines.Dispatchers
@@ -102,7 +103,7 @@ object MediaLibraryPreferencesScreen : Screen {
             )
           },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(
                 Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = null,

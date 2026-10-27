@@ -47,6 +47,7 @@ import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.dialogs.NetworkSortDialog
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import java.io.File
 import kotlinx.serialization.Serializable
@@ -92,7 +93,7 @@ data class NetworkBrowserScreen(
     }
 
     BackHandler {
-      backstack.removeLastOrNull()
+      backstack.navigateBack()
     }
 
     Scaffold(
@@ -102,7 +103,7 @@ data class NetworkBrowserScreen(
           isInSelectionMode = false,
           selectedCount = 0,
           totalCount = 0,
-          onBackClick = { backstack.removeLastOrNull() },
+          onBackClick = { backstack.navigateBack() },
           onCancelSelection = {},
           onSortClick = { sortDialogOpen.value = true },
           onSearchClick = null,

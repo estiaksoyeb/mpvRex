@@ -89,6 +89,7 @@ import xyz.mpv.rex.ui.browser.playlist.PlaylistDetailScreen
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.media.MediaUtils
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -147,7 +148,7 @@ object RecentlyPlayedScreen : Screen {
       if (selectionManager.isInSelectionMode) {
         selectionManager.clear()
       } else {
-        backStack.removeLastOrNull()
+        backStack.navigateBack()
       }
     }
 
@@ -194,7 +195,7 @@ object RecentlyPlayedScreen : Screen {
                 if (selectionManager.isInSelectionMode) {
                   selectionManager.clear()
                 } else {
-                  backStack.removeLastOrNull()
+                  backStack.navigateBack()
                 }
               }
             } else null,

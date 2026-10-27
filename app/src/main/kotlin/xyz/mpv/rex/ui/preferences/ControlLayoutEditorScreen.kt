@@ -54,6 +54,7 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.ConfirmDialog
 import xyz.mpv.rex.ui.preferences.components.PlayerButtonChip
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
@@ -166,7 +167,7 @@ data class ControlLayoutEditorScreen(
         onConfirm = {
           isReset = true
           prefToEdit.deleteAndGet()
-          backstack.removeLastOrNull()
+          backstack.navigateBack()
         },
         onCancel = { showResetDialog = false },
       )
@@ -177,7 +178,7 @@ data class ControlLayoutEditorScreen(
         TopAppBar(
           title = { Text(text = title) },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.control_layout_back))
             }
           },

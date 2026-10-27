@@ -127,6 +127,7 @@ import xyz.mpv.rex.ui.browser.selection.SelectionManager
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.ui.browser.sheets.MarkAsBottomSheet
 import xyz.mpv.rex.utils.history.MarkAsState
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
@@ -396,7 +397,7 @@ data class VideoListScreen(
             if (selectionManager.isInSelectionMode) {
               selectionManager.clear()
             } else {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           },
           onCancelSelection = { selectionManager.clear() },

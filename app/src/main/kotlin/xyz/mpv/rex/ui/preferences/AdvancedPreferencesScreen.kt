@@ -59,6 +59,7 @@ import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.presentation.crash.CrashActivity
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -195,7 +196,7 @@ object AdvancedPreferencesScreen : Screen {
             )
           },
           navigationIcon = {
-            IconButton(onClick = backStack::removeLastOrNull) {
+            IconButton(onClick = backStack::navigateBack) {
               Icon(
                 Icons.AutoMirrored.Default.ArrowBack, 
                 contentDescription = null,

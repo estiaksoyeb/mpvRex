@@ -46,6 +46,7 @@ import xyz.mpv.rex.preferences.MediaLayoutMode
 import xyz.mpv.rex.preferences.preference.collectAsState
 import org.koin.compose.koinInject
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.FilterChipDefaults
@@ -880,7 +881,7 @@ fun FolderSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.AlbumView)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         ),
@@ -891,7 +892,7 @@ fun FolderSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.FileManager)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         ),
@@ -902,7 +903,7 @@ fun FolderSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.MediaLibrary)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         )
@@ -1106,7 +1107,7 @@ fun VideoSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.AlbumView)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         ),
@@ -1117,7 +1118,7 @@ fun VideoSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.FileManager)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         ),
@@ -1128,7 +1129,7 @@ fun VideoSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.MediaLibrary)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         )
@@ -1327,7 +1328,7 @@ fun FileSystemSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.AlbumView)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         ),
@@ -1338,7 +1339,7 @@ fun FileSystemSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.FileManager)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         ),
@@ -1349,7 +1350,7 @@ fun FileSystemSortDialog(
           onClick = {
             browserPreferences.folderViewMode.set(FolderViewMode.MediaLibrary)
             while (backstack.size > 1) {
-              backstack.removeLastOrNull()
+              backstack.navigateBack()
             }
           }
         )

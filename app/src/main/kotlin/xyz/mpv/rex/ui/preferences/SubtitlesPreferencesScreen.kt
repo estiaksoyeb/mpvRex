@@ -65,6 +65,7 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.media.CustomFontEntry
 import xyz.mpv.rex.utils.media.copyFontsFromDirectory
 import xyz.mpv.rex.utils.media.loadCustomFontEntries
@@ -109,7 +110,7 @@ object SubtitlesPreferencesScreen : Screen {
           },
           navigationIcon = {
             IconButton(
-              onClick = backstack::removeLastOrNull,
+              onClick = backstack::navigateBack,
             ) {
               Icon(
                 Icons.AutoMirrored.Outlined.ArrowBack,

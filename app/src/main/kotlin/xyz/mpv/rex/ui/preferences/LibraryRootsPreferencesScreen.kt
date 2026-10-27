@@ -58,6 +58,7 @@ import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.selection.SelectionState
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import xyz.mpv.rex.utils.media.OpenDocumentTreeContract
 import kotlinx.coroutines.Dispatchers
@@ -124,7 +125,7 @@ object LibraryRootsPreferencesScreen : Screen {
           selectedCount = selectionState.selectedCount,
           totalCount = libraryRootsList.size,
           onCancelSelection = { selectionState = selectionState.clear() },
-          onBackClick = backstack::removeLastOrNull,
+          onBackClick = backstack::navigateBack,
           onDeleteClick = {
             removeRoots(selectionState.selectedIds)
             selectionState = selectionState.clear()

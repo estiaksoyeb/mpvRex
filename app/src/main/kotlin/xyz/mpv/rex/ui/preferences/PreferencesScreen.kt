@@ -55,6 +55,7 @@ import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.presentation.components.GroupedListItem
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 
 @Serializable
 object PreferencesScreen : Screen {
@@ -75,7 +76,7 @@ object PreferencesScreen : Screen {
             )
           },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(
                 Icons.AutoMirrored.Outlined.ArrowBack, 
                 contentDescription = null,

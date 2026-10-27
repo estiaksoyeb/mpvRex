@@ -60,6 +60,7 @@ import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.presentation.crash.CrashActivity.Companion.collectDeviceInfo
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import me.zhanghai.compose.preference.Preference
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
@@ -121,7 +122,7 @@ object AboutScreen : Screen {
             ) 
           },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(
                 imageVector = Icons.AutoMirrored.Default.ArrowBack, 
                 contentDescription = null,
@@ -449,7 +450,7 @@ object LibrariesScreen : Screen {
             ) 
           },
           navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
+            IconButton(onClick = backstack::navigateBack) {
               Icon(
                 imageVector = Icons.AutoMirrored.Default.ArrowBack, 
                 contentDescription = null,

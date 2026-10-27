@@ -50,6 +50,7 @@ import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -193,7 +194,7 @@ object LuaScriptsScreen : Screen {
             )
           },
           navigationIcon = {
-            IconButton(onClick = backStack::removeLastOrNull) {
+            IconButton(onClick = backStack::navigateBack) {
               Icon(
                 Icons.AutoMirrored.Default.ArrowBack,
                 contentDescription = "Back",

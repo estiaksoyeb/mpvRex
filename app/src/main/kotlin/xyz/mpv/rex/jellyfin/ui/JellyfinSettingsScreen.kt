@@ -49,6 +49,7 @@ import xyz.mpv.rex.jellyfin.remote.JellyfinRemoteClient
 import xyz.mpv.rex.jellyfin.remote.JellyfinRemoteService
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -81,7 +82,7 @@ object JellyfinSettingsScreen : Screen {
         TopAppBar(
           title = { Text("Jellyfin") },
           navigationIcon = {
-            IconButton(onClick = { backstack.removeLastOrNull() }) {
+            IconButton(onClick = { backstack.navigateBack() }) {
               Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
             }
           },

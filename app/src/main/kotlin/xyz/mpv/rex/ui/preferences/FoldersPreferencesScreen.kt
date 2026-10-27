@@ -58,6 +58,7 @@ import xyz.mpv.rex.ui.browser.components.BrowserTopBar
 import xyz.mpv.rex.ui.browser.selection.SelectionState
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -92,7 +93,7 @@ object FoldersPreferencesScreen : Screen {
           selectedCount = selectionState.selectedCount,
           totalCount = blacklistedFoldersList.size,
           onCancelSelection = { selectionState = selectionState.clear() },
-          onBackClick = backstack::removeLastOrNull,
+          onBackClick = backstack::navigateBack,
           onDeleteClick = {
             val updated = blacklistedFolders.toMutableSet().apply {
               removeAll(selectionState.selectedIds)

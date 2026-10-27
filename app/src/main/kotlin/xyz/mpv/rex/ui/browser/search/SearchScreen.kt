@@ -105,6 +105,7 @@ import xyz.mpv.rex.ui.browser.sheets.MediaInfoSheet
 import xyz.mpv.rex.ui.browser.sheets.MultiSelectionInfoSheet
 import xyz.mpv.rex.ui.browser.videolist.VideoListScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.CopyPasteOps
 import xyz.mpv.rex.utils.media.MediaUtils
@@ -243,7 +244,7 @@ data class SearchScreen(
         folderSelectionManager.clear()
         videoSelectionManager.clear()
       } else {
-        backstack.removeLastOrNull()
+        backstack.navigateBack()
       }
     }
 
@@ -426,7 +427,7 @@ data class SearchScreen(
                 ),
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 navigationIcon = {
-                  IconButton(onClick = { backstack.removeLastOrNull() }) {
+                  IconButton(onClick = { backstack.navigateBack() }) {
                     Icon(
                       imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                       contentDescription = stringResource(R.string.generic_cancel),

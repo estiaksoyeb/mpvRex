@@ -131,6 +131,7 @@ import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.browser.states.PermissionDeniedState
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.media.CopyPasteOps
 import xyz.mpv.rex.utils.media.MediaUtils
 import androidx.compose.ui.text.style.TextOverflow
@@ -483,7 +484,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
           onBackClick = if (isAtRoot) {
             null
           } else {
-            { backstack.removeLastOrNull() }
+            { backstack.navigateBack() }
           },
           onCancelSelection = {
             folderSelectionManager.clear()

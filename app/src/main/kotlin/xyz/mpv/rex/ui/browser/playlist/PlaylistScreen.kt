@@ -84,6 +84,7 @@ import xyz.mpv.rex.ui.browser.sheets.AutoPlaylistsSheet
 import xyz.mpv.rex.ui.browser.sheets.PlaylistActionSheet
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -191,7 +192,7 @@ object PlaylistScreen : Screen {
         }
 
         selectionManager.isInSelectionMode -> selectionManager.clear()
-        else -> backStack.removeLastOrNull()
+        else -> backStack.navigateBack()
       }
     }
 
@@ -263,7 +264,7 @@ object PlaylistScreen : Screen {
                       searchQuery = ""
                     }
                     selectionManager.isInSelectionMode -> selectionManager.clear()
-                    else -> backStack.removeLastOrNull()
+                    else -> backStack.navigateBack()
                   }
                 }
               } else null,

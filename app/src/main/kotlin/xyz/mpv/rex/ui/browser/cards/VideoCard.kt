@@ -152,7 +152,7 @@ fun VideoCard(
           color = MaterialTheme.colorScheme.errorContainer,
           contentColor = MaterialTheme.colorScheme.onErrorContainer,
           modifier = Modifier
-            .align(Alignment.TopStart)
+            .align(Alignment.TopEnd)
             .padding(6.dp),
           shadowElevation = 2.dp,
         ) {

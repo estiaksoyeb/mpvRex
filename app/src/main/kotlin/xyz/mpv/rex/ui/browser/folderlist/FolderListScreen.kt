@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
@@ -101,6 +102,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
 import xyz.mpv.rex.domain.browser.FileSystemItem
+import xyz.mpv.rex.domain.pinned.PinScope
 import xyz.mpv.rex.domain.media.model.VideoFolder
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
@@ -143,6 +145,7 @@ import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.MediaUtils
 import xyz.mpv.rex.utils.permission.PermissionUtils
+import xyz.mpv.rex.utils.sort.PinnedSortUtils
 import xyz.mpv.rex.utils.sort.SortUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
@@ -195,6 +198,12 @@ object FolderListScreen : Screen {
     val appearancePreferences = koinInject<AppearancePreferences>()
     val hidePlayFabShowInHeader by appearancePreferences.hidePlayFabShowInHeader.collectAsState()
 
+    // Pinned folders (issue #466), scoped to the album view so tree-view pins
+    // don't flood this list when isolation is enabled.
+    val pinnedItemRepository = koinInject<xyz.mpv.rex.domain.pinned.PinnedItemRepository>()
+    val pinnedPaths by pinnedItemRepository.pinnedPaths(PinScope.ALBUM)
+      .collectAsState(initial = pinnedItemRepository.getPinnedPaths(PinScope.ALBUM))
+
     // State collection
     val videoFolders by viewModel.videoFolders.collectAsState()
     val foldersWithNewCount by viewModel.foldersWithNewCount.collectAsState()
@@ -229,8 +238,10 @@ object FolderListScreen : Screen {
     val hasGridAutoScrolled = rememberSaveable(inputs = arrayOf(recentlyPlayedFilePath ?: "")) { mutableStateOf(false) }
 
     // Sorting and filtering
-    val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder, showAudioFiles) {
-      SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder, showAudioFiles)
+    val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder, showAudioFiles, pinnedPaths) {
+      val sorted = SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder, showAudioFiles)
+      // Pinned folders come first, in pin order (issue #466).
+      PinnedSortUtils.sortPinnedFirst(sorted, pinnedPaths) { it.path }
     }
 
     val initialListIndex = if (rememberedListIndex.intValue > 0) {
@@ -497,8 +508,8 @@ object FolderListScreen : Screen {
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },
             onDeselectAll = { selectionManager.clear() },
-            selectionOverflowActions = listOf(
-              SelectionOverflowAction(
+            selectionOverflowActions = buildList {
+              add(SelectionOverflowAction(
                 icon = Icons.Filled.Share,
                 label = stringResource(R.string.generic_share),
                 onClick = {
@@ -514,8 +525,8 @@ object FolderListScreen : Screen {
                     }
                   }
                 },
-              ),
-              SelectionOverflowAction(
+              ))
+              add(SelectionOverflowAction(
                 icon = Icons.Filled.Block,
                 label = stringResource(R.string.pref_folders_blacklist),
                 onClick = {
@@ -533,8 +544,8 @@ object FolderListScreen : Screen {
                     ).show()
                   }
                 },
-              ),
-              SelectionOverflowAction(
+              ))
+              add(SelectionOverflowAction(
                 icon = Icons.Filled.ContentCopy,
                 label = stringResource(R.string.copy_folder_path),
                 onClick = {
@@ -545,8 +556,35 @@ object FolderListScreen : Screen {
                     Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
                   }
                 }
-              ),
-            ),
+              ))
+              // Pin / unpin the selected folders to the top of the list (issue #466).
+              val pinPaths = selectionManager.getSelectedItems().map { it.path }.filter { it.isNotBlank() }
+              if (pinPaths.isNotEmpty()) {
+                val allPinned = pinPaths.all { it in pinnedPaths.toSet() }
+                add(SelectionOverflowAction(
+                  icon = Icons.Filled.PushPin,
+                  label = stringResource(if (allPinned) R.string.unpin_from_top else R.string.pin_to_top),
+                  onClick = {
+                    coroutineScope.launch {
+                      if (allPinned) {
+                        pinnedItemRepository.unpinAll(PinScope.ALBUM, pinPaths)
+                      } else {
+                        pinnedItemRepository.pinAll(PinScope.ALBUM, pinPaths)
+                      }
+                      Toast.makeText(
+                        context,
+                        context.getString(
+                          if (allPinned) R.string.unpinned_toast else R.string.pinned_toast,
+                          pinPaths.size,
+                        ),
+                        Toast.LENGTH_SHORT,
+                      ).show()
+                      selectionManager.clear()
+                    }
+                  },
+                ))
+              }
+            },
           )
         },
       floatingActionButton = {
@@ -692,6 +730,7 @@ object FolderListScreen : Screen {
                 selectionManager.handleLongClick(folder)
               },
               scrollTriggerKey = "${folderSortType.name}:${folderSortOrder.name}",
+              pinnedPaths = pinnedPaths,
             )
           }
 
@@ -921,6 +960,7 @@ private fun FolderListContent(
   onFolderClick: (VideoFolder) -> Unit,
   onFolderLongClick: (VideoFolder) -> Unit,
   scrollTriggerKey: Any? = null,
+  pinnedPaths: List<String> = emptyList(),
 ) {
   val showLoading = isLoading && !hasCompletedInitialLoad
 
@@ -947,6 +987,7 @@ private fun FolderListContent(
       gridState = gridState,
       scrollTriggerKey = scrollTriggerKey,
       gridColumns = folderGridColumns,
+      pinnedPaths = pinnedPaths,
     )
   }
 }

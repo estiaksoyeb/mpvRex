@@ -34,6 +34,7 @@ import xyz.mpv.rex.ui.browser.cards.FolderCard
 import xyz.mpv.rex.ui.browser.cards.PlaylistCard
 import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.videolist.VideoWithPlaybackInfo
+import xyz.mpv.rex.utils.sort.PinnedSortUtils
 import xyz.mpv.rex.preferences.UiSettings
 import org.koin.compose.koinInject
 import xyz.mpv.rex.preferences.BrowserPreferences
@@ -83,6 +84,8 @@ fun <T> UnifiedExplorerContent(
   showSections: Boolean = false,
   isReorderMode: Boolean = false,
   onReorder: ((Int, Int) -> Unit)? = null,
+  /** Paths of pinned entries; when non-empty and [showSections] is set they render in a "Pinned" section on top. */
+  pinnedPaths: List<String> = emptyList(),
   listState: LazyListState? = null,
   gridState: LazyGridState? = null,
 ) {
@@ -157,6 +160,8 @@ fun <T> UnifiedExplorerContent(
     val safeItems = remember(items) {
       items.distinctBy { getItemId(it) }
     }
+    // O(1) pin lookups for the card badges, rebuilt only when pins change.
+    val pinnedPathSet = remember(pinnedPaths) { pinnedPaths.toHashSet() }
     val listState = listState ?: rememberLazyListState()
     val gridState = gridState ?: rememberLazyGridState()
 
@@ -224,16 +229,23 @@ fun <T> UnifiedExplorerContent(
           hasAutoScrolled.value = true
           if (showSections) {
             val matchedItem = safeItems[lastPlayedIndex]
-            val isFolder = matchedItem is VideoFolder || matchedItem is FileSystemItem.Folder
-            val folderItems = safeItems.filter { it is VideoFolder || it is FileSystemItem.Folder }
-            val videoItems = safeItems.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
 
+            // Pinned entries stay inside their normal Folders/Media sections
+            // (sorted to the front), so the index math is just "sections above
+            // + offset within this section".
+            val gridMode = mediaLayoutMode == MediaLayoutMode.GRID
+            val folderCols = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
+            val videoCols = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+            val sorted = PinnedSortUtils.sortPinnedFirst(safeItems, pinnedPaths) { pinnedKeyOf(it) ?: "" }
+            val folderItems = sorted.filter { it is VideoFolder || it is FileSystemItem.Folder }
+            val videoItems = sorted.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+
+            val isFolder = matchedItem is VideoFolder || matchedItem is FileSystemItem.Folder
             val targetIndex = if (isFolder) {
               val folderIndex = folderItems.indexOf(matchedItem)
               if (folderIndex != -1) {
-                if (mediaLayoutMode == MediaLayoutMode.GRID) {
-                  val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-                  1 + (folderIndex / folderGridColumns)
+                if (gridMode) {
+                  1 + (folderIndex / folderCols)
                 } else {
                   1 + folderIndex
                 }
@@ -242,18 +254,15 @@ fun <T> UnifiedExplorerContent(
               val videoIndex = videoItems.indexOf(matchedItem)
               if (videoIndex != -1) {
                 if (folderItems.isNotEmpty()) {
-                  if (mediaLayoutMode == MediaLayoutMode.GRID) {
-                    val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-                    val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
-                    val numFolderRows = (folderItems.size + folderGridColumns - 1) / folderGridColumns
-                    numFolderRows + 3 + (videoIndex / videoGridColumns)
+                  if (gridMode) {
+                    val numFolderRows = (folderItems.size + folderCols - 1) / folderCols
+                    numFolderRows + 3 + (videoIndex / videoCols)
                   } else {
                     folderItems.size + 3 + videoIndex
                   }
                 } else {
-                  if (mediaLayoutMode == MediaLayoutMode.GRID) {
-                    val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
-                    1 + (videoIndex / videoGridColumns)
+                  if (gridMode) {
+                    1 + (videoIndex / videoCols)
                   } else {
                     1 + videoIndex
                   }
@@ -274,8 +283,13 @@ fun <T> UnifiedExplorerContent(
 
     val contentBlock: @Composable BoxScope.() -> Unit = {
       if (showSections) {
-        val folderItems = safeItems.filter { it is VideoFolder || it is FileSystemItem.Folder }
-        val videoItems = safeItems.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+        // Pinned entries stay inside their normal Folders/Media sections but are
+        // sorted to the front in pin order, mirroring the album/video-list views.
+        val (folderItems, videoItems) = remember(safeItems, pinnedPaths) {
+          val sorted = PinnedSortUtils.sortPinnedFirst(safeItems, pinnedPaths) { pinnedKeyOf(it) ?: "" }
+          sorted.filter { it is VideoFolder || it is FileSystemItem.Folder } to
+            sorted.filter { it is Video || it is VideoWithPlaybackInfo || it is FileSystemItem.VideoFile || it is RecentlyPlayedItem.VideoItem }
+        }
 
         val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
         val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
@@ -342,6 +356,7 @@ fun <T> UnifiedExplorerContent(
                         videoPlaybackProgress = videoPlaybackProgress,
                         showSections = showSections,
                         showAudioFiles = showAudioFiles,
+                        pinnedPathSet = pinnedPathSet,
                       )
                     }
                   }
@@ -390,6 +405,7 @@ fun <T> UnifiedExplorerContent(
                   videoPlaybackProgress = videoPlaybackProgress,
                   showSections = showSections,
                   showAudioFiles = showAudioFiles,
+                  pinnedPathSet = pinnedPathSet,
                 )
               }
             }
@@ -453,6 +469,7 @@ fun <T> UnifiedExplorerContent(
                         videoPlaybackProgress = videoPlaybackProgress,
                         showSections = showSections,
                         showAudioFiles = showAudioFiles,
+                        pinnedPathSet = pinnedPathSet,
                       )
                     }
                   }
@@ -501,6 +518,7 @@ fun <T> UnifiedExplorerContent(
                   videoPlaybackProgress = videoPlaybackProgress,
                   showSections = showSections,
                   showAudioFiles = showAudioFiles,
+                  pinnedPathSet = pinnedPathSet,
                 )
               }
             }
@@ -557,6 +575,7 @@ fun <T> UnifiedExplorerContent(
               videoPlaybackProgress = videoPlaybackProgress,
               showSections = showSections,
               showAudioFiles = showAudioFiles,
+              pinnedPathSet = pinnedPathSet,
             )
           }
         }
@@ -622,6 +641,7 @@ fun <T> UnifiedExplorerContent(
                       videoPlaybackProgress = videoPlaybackProgress,
                       showSections = showSections,
                       showAudioFiles = showAudioFiles,
+                      pinnedPathSet = pinnedPathSet,
                     )
                   }
                   IconButton(
@@ -657,6 +677,7 @@ fun <T> UnifiedExplorerContent(
                 videoPlaybackProgress = videoPlaybackProgress,
                 showSections = showSections,
                 showAudioFiles = showAudioFiles,
+                pinnedPathSet = pinnedPathSet,
               )
             }
           }
@@ -732,9 +753,15 @@ private fun <T> ExplorerItemCard(
   videoPlaybackProgress: Map<Long, Float> = emptyMap(),
   showSections: Boolean = false,
   showAudioFiles: Boolean = true,
+  pinnedPathSet: Set<String> = emptySet(),
 ) {
   val lastPlayedVideoPathsInFolder = LocalLastPlayedVideoPathsInFolder.current
   val recentlyPlayedFilePaths = LocalRecentlyPlayedFilePaths.current
+  // Derived once here so every card type (folder or video) shows the pin badge.
+  val isPinned = remember(item, pinnedPathSet) {
+    val path = pinnedKeyOf(item)
+    path != null && path in pinnedPathSet
+  }
   when (item) {
     is VideoFolder -> {
       val isRecentlyPlayed = recentlyPlayedFilePaths.any { path ->
@@ -759,7 +786,8 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        newVideoCount = item.newCount
+        newVideoCount = item.newCount,
+        isPinned = isPinned,
       )
     }
     is Video -> {
@@ -779,7 +807,8 @@ private fun <T> ExplorerItemCard(
         showSubtitleIndicator = showSubtitleIndicator,
         isOldAndUnplayed = isOldAndUnplayed,
         isWatched = isWatched,
-        isRecentlyPlayed = isRecentlyPlayed
+        isRecentlyPlayed = isRecentlyPlayed,
+        isPinned = isPinned,
       )
     }
     is VideoWithPlaybackInfo -> {
@@ -799,7 +828,8 @@ private fun <T> ExplorerItemCard(
         isWatched = item.isWatched,
         isOldAndUnplayed = item.isOldAndUnplayed,
         isNeverPlayed = item.isNeverPlayed,
-        isRecentlyPlayed = isRecentlyPlayed
+        isRecentlyPlayed = isRecentlyPlayed,
+        isPinned = isPinned,
       )
     }
     is PlaylistWithCount -> {
@@ -831,7 +861,8 @@ private fun <T> ExplorerItemCard(
         showSubtitleIndicator = showSubtitleIndicator,
         progressPercentage = item.progress,
         isWatched = item.isWatched,
-        isRecentlyPlayed = isRecentlyPlayed
+        isRecentlyPlayed = isRecentlyPlayed,
+        isPinned = isPinned,
       )
     }
     is RecentlyPlayedItem.PlaylistItem -> {
@@ -887,7 +918,8 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        newVideoCount = item.newCount
+        newVideoCount = item.newCount,
+        isPinned = isPinned,
       )
     }
     is FileSystemItem.VideoFile -> {
@@ -909,7 +941,8 @@ private fun <T> ExplorerItemCard(
         isOldAndUnplayed = isOldAndUnplayed,
         isWatched = isWatched,
         isNeverPlayed = videoPlaybackProgress[item.video.id] == null,
-        isRecentlyPlayed = isRecentlyPlayed
+        isRecentlyPlayed = isRecentlyPlayed,
+        isPinned = isPinned,
       )
     }
     is PlaylistVideoItem -> {
@@ -940,3 +973,21 @@ private fun SectionHeader(title: String, modifier: Modifier = Modifier) {
       .padding(horizontal = 8.dp, vertical = 12.dp)
   )
 }
+
+/**
+ * Path used for pinning lookups, or null for item types that can't be pinned
+ * (playlists, recently played rows, ...). Both [VideoFolder] and [FileSystemItem]
+ * are identified by their absolute path, which is what the repository stores.
+ *
+ * Internal (not private) so the media-badge wiring can be unit tested.
+ */
+internal fun <T> pinnedKeyOf(item: T): String? =
+  when (item) {
+    is VideoFolder -> item.path.ifBlank { item.bucketId }
+    is FileSystemItem.Folder -> item.path
+    is FileSystemItem.VideoFile -> item.path.ifBlank { item.video.path }
+    is Video -> item.path.ifBlank { item.uri.toString() }
+    is VideoWithPlaybackInfo -> item.video.path.ifBlank { item.video.uri.toString() }
+    is RecentlyPlayedItem.VideoItem -> item.video.path.ifBlank { item.video.uri.toString() }
+    else -> null
+  }

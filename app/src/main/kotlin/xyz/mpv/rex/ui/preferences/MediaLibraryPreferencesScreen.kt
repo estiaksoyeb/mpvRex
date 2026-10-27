@@ -79,6 +79,8 @@ object MediaLibraryPreferencesScreen : Screen {
     val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
     val watchedThreshold by browserPreferences.watchedThreshold.collectAsState()
     val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
+    val pinnedItemRepository = koinInject<xyz.mpv.rex.domain.pinned.PinnedItemRepository>()
+    val isolatePinsByView by pinnedItemRepository.isolatedPreference.collectAsState()
     val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
     val showUnplayedOldVideoLabel by appearancePreferences.showUnplayedOldVideoLabel.collectAsState()
     val unplayedOldVideoDays by appearancePreferences.unplayedOldVideoDays.collectAsState()
@@ -387,6 +389,25 @@ object MediaLibraryPreferencesScreen : Screen {
                     )
                   },
                   onClick = { backstack.add(FoldersPreferencesScreen) },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_pins_isolate_title,
+              ) {
+                SwitchPreference(
+                  value = isolatePinsByView,
+                  onValueChange = { isolate ->
+                    scope.launch { pinnedItemRepository.setIsIsolated(isolate) }
+                  },
+                  title = { Text(text = stringResource(id = R.string.pref_pins_isolate_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(id = R.string.pref_pins_isolate_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  }
                 )
               }
 

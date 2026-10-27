@@ -83,6 +83,7 @@ import androidx.compose.ui.text.AnnotatedString
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VideoLibrary
 import xyz.mpv.rex.R
@@ -131,6 +132,7 @@ import xyz.mpv.rex.utils.history.MarkAsState
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.CopyPasteOps
 import xyz.mpv.rex.utils.media.MediaUtils
+import xyz.mpv.rex.utils.sort.PinnedSortUtils
 import xyz.mpv.rex.utils.sort.SortUtils
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -177,14 +179,23 @@ data class VideoListScreen(
     // Sorting
     val videoSortType by browserPreferences.videoSortType.collectAsState()
     val videoSortOrder by browserPreferences.videoSortOrder.collectAsState()
+
+    // Media pins are shared across tree / video list / media library views.
+    val pinnedItemRepository = koinInject<xyz.mpv.rex.domain.pinned.PinnedItemRepository>()
+    val mediaPins by
+      pinnedItemRepository.pinnedPaths(xyz.mpv.rex.domain.pinned.PinScope.MEDIA)
+        .collectAsState(initial = pinnedItemRepository.getPinnedPaths(xyz.mpv.rex.domain.pinned.PinScope.MEDIA))
+
     val sortedVideosWithInfo =
-      remember(videosWithPlaybackInfo, videoSortType, videoSortOrder) {
+      remember(videosWithPlaybackInfo, videoSortType, videoSortOrder, mediaPins) {
         val infoById = videosWithPlaybackInfo.associateBy { it.video.id }
         val sortedVideos = SortUtils.sortVideos(videosWithPlaybackInfo.map { it.video }, videoSortType, videoSortOrder)
         // Maintain the playback info mapping — O(1) lookup per item
-        sortedVideos.map { video ->
+        val mapped = sortedVideos.map { video ->
           infoById[video.id] ?: VideoWithPlaybackInfo(video)
         }
+        // Pinned media first, in pin order, then the regular sort.
+        PinnedSortUtils.sortPinnedFirst(mapped, mediaPins) { it.video.path.ifBlank { it.video.uri.toString() } }
       }
 
     // Selection manager
@@ -467,6 +478,35 @@ data class VideoListScreen(
                 )
               )
             }
+            // Pin / unpin selected media (shared across tree, folder and library views).
+            val pinPaths = selectedVideos.map { it.path.ifBlank { it.uri.toString() } }.filter { it.isNotBlank() }
+            if (pinPaths.isNotEmpty()) {
+              val allPinned = pinPaths.all { it in mediaPins.toSet() }
+              add(
+                SelectionOverflowAction(
+                  icon = Icons.Filled.PushPin,
+                  label = stringResource(if (allPinned) R.string.unpin_from_top else R.string.pin_to_top),
+                  onClick = {
+                    coroutineScope.launch {
+                      if (allPinned) {
+                        pinnedItemRepository.unpinAll(xyz.mpv.rex.domain.pinned.PinScope.MEDIA, pinPaths)
+                      } else {
+                        pinnedItemRepository.pinAll(xyz.mpv.rex.domain.pinned.PinScope.MEDIA, pinPaths)
+                      }
+                      Toast.makeText(
+                        context,
+                        context.getString(
+                          if (allPinned) R.string.unpinned_toast else R.string.pinned_toast,
+                          pinPaths.size,
+                        ),
+                        Toast.LENGTH_SHORT,
+                      ).show()
+                      selectionManager.clear()
+                    }
+                  },
+                )
+              )
+            }
           },
 
           onSelectAll = { selectionManager.selectAll() },
@@ -593,6 +633,7 @@ data class VideoListScreen(
           sortOrder = videoSortOrder,
           listState = listState,
           gridState = gridState,
+          pinnedPaths = mediaPins,
         )
         
         // Floating Material 3 Button Group overlay with animation
@@ -832,6 +873,7 @@ fun VideoListContent(
   searchQuery: String? = null,
   listState: LazyListState = rememberLazyListState(),
   gridState: LazyGridState = rememberLazyGridState(),
+  pinnedPaths: List<String> = emptyList(),
 ) {
   val thumbnailRepository = koinInject<ThumbnailRepository>()
   val browserPreferences = koinInject<BrowserPreferences>()
@@ -884,6 +926,7 @@ fun VideoListContent(
     scrollTriggerKey = "${sortType.name}:${sortOrder.name}",
     listState = listState,
     gridState = gridState,
+    pinnedPaths = pinnedPaths,
   )
 }
 

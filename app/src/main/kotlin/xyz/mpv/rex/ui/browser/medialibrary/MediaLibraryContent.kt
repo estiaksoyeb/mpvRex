@@ -70,6 +70,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.PushPin
 import android.widget.Toast
 import xyz.mpv.rex.R
 import androidx.compose.ui.unit.dp
@@ -96,6 +97,7 @@ import xyz.mpv.rex.ui.browser.sheets.MarkAsBottomSheet
 import xyz.mpv.rex.utils.history.MarkAsState
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.MediaUtils
+import xyz.mpv.rex.utils.sort.PinnedSortUtils
 import xyz.mpv.rex.utils.sort.SortUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -129,14 +131,23 @@ fun MediaLibraryContent() {
   // Sorting
   val videoSortType by browserPreferences.videoSortType.collectAsState()
   val videoSortOrder by browserPreferences.videoSortOrder.collectAsState()
-  val sortedVideosWithInfo = remember(videosWithPlaybackInfo, videoSortType, videoSortOrder) {
+
+  // Media pins are shared across tree / video list / media library views.
+  val pinnedItemRepository = koinInject<xyz.mpv.rex.domain.pinned.PinnedItemRepository>()
+  val mediaPins by
+    pinnedItemRepository.pinnedPaths(xyz.mpv.rex.domain.pinned.PinScope.MEDIA)
+      .collectAsState(initial = pinnedItemRepository.getPinnedPaths(xyz.mpv.rex.domain.pinned.PinScope.MEDIA))
+
+  val sortedVideosWithInfo = remember(videosWithPlaybackInfo, videoSortType, videoSortOrder, mediaPins) {
     val infoById = videosWithPlaybackInfo.associateBy { it.video.path.ifBlank { it.video.uri.toString() } }
     val uniqueVideos = videosWithPlaybackInfo.map { it.video }.distinctBy { it.path.ifBlank { it.uri.toString() } }
     val sortedVideos = SortUtils.sortVideos(uniqueVideos, videoSortType, videoSortOrder)
-    sortedVideos.map { video ->
+    val mapped = sortedVideos.map { video ->
       val key = video.path.ifBlank { video.uri.toString() }
       infoById[key] ?: VideoWithPlaybackInfo(video)
     }
+    // Pinned media first, in pin order, then the regular sort.
+    PinnedSortUtils.sortPinnedFirst(mapped, mediaPins) { it.video.path.ifBlank { it.video.uri.toString() } }
   }
 
   // Selection manager
@@ -336,6 +347,35 @@ fun MediaLibraryContent() {
                 )
               )
             }
+            // Pin / unpin selected media (shared across tree, folder and library views).
+            val pinPaths = selectedVideos.map { it.path.ifBlank { it.uri.toString() } }.filter { it.isNotBlank() }
+            if (pinPaths.isNotEmpty()) {
+              val allPinned = pinPaths.all { it in mediaPins.toSet() }
+              add(
+                SelectionOverflowAction(
+                  icon = Icons.Filled.PushPin,
+                  label = stringResource(if (allPinned) R.string.unpin_from_top else R.string.pin_to_top),
+                  onClick = {
+                    coroutineScope.launch {
+                      if (allPinned) {
+                        pinnedItemRepository.unpinAll(xyz.mpv.rex.domain.pinned.PinScope.MEDIA, pinPaths)
+                      } else {
+                        pinnedItemRepository.pinAll(xyz.mpv.rex.domain.pinned.PinScope.MEDIA, pinPaths)
+                      }
+                      Toast.makeText(
+                        context,
+                        context.getString(
+                          if (allPinned) R.string.unpinned_toast else R.string.pinned_toast,
+                          pinPaths.size,
+                        ),
+                        Toast.LENGTH_SHORT,
+                      ).show()
+                      selectionManager.clear()
+                    }
+                  },
+                )
+              )
+            }
           },
           onSelectAll = { selectionManager.selectAll() },
           onInvertSelection = { selectionManager.invertSelection() },
@@ -496,6 +536,7 @@ fun MediaLibraryContent() {
         sortType = videoSortType,
         sortOrder = videoSortOrder,
         searchQuery = if (isSearching) searchQuery else null,
+        pinnedPaths = mediaPins,
       )
 
       AnimatedVisibility(

@@ -984,6 +984,13 @@
     <string name="mark_as_new_desc">Remove all marks and mark as new</string>
     <string name="folders_count">Folders (%1$d)</string>
     <string name="media_count">Media (%1$d)</string>
+    <string name="pin_to_top">Pin to top</string>
+    <string name="unpin_from_top">Unpin</string>
+    <string name="pinned_toast">Pinned %1$d item(s)</string>
+    <string name="unpinned_toast">Unpinned %1$d item(s)</string>
+    <string name="pinned_badge">Pinned</string>
+    <string name="pref_pins_isolate_title">Separate pins per view</string>
+    <string name="pref_pins_isolate_summary">Keep a separate set of pinned folders and files for the tree view and the folder view. When off, both views share the same pins.</string>
     <string name="drag_to_reorder">Drag to reorder</string>
     <string name="community_links">Community Links</string>
     <string name="community_hub">Community Hub</string>

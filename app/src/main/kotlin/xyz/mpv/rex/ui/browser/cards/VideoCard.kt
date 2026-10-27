@@ -80,6 +80,7 @@ fun VideoCard(
   showSubtitleIndicator: Boolean = true,
   useFolderNameStyle: Boolean = false,
   allowThumbnailGeneration: Boolean = true,
+  isPinned: Boolean = false,
 ) {
   val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
   
@@ -178,6 +179,9 @@ fun VideoCard(
           fontWeight = FontWeight.Medium,
           modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
         )
+      }
+      if (isPinned) {
+        PinBadge(modifier = Modifier.align(Alignment.BottomStart).padding(6.dp))
       }
     },
     infoContent = {

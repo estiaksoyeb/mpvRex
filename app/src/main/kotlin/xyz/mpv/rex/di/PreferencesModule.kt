@@ -1,6 +1,8 @@
 package xyz.mpv.rex.di
 
 import xyz.mpv.rex.database.MpvExDatabase
+import xyz.mpv.rex.domain.pinned.PinnedItemRepository
+import xyz.mpv.rex.domain.pinned.PinnedItemRepositoryImpl
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.AudioPreferences
@@ -36,6 +38,7 @@ val PreferencesModule =
     singleOf(::AdvancedPreferences)
     single { BrowserPreferences(get(), androidContext()) }
     singleOf(::FoldersPreferences)
+    single<PinnedItemRepository> { PinnedItemRepositoryImpl(get()) }
     singleOf(::SettingsManager)
     singleOf(::UiPreferences)
     singleOf(::PlayerTutorialManager)

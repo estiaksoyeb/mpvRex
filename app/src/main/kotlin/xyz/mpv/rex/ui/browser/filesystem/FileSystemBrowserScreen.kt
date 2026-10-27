@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
@@ -209,6 +210,10 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val isAtRoot by viewModel.isAtRoot.collectAsState()
   val breadcrumbs by viewModel.breadcrumbs.collectAsState()
   val playlistMode by playerPreferences.playlistMode.collectAsState()
+
+  // Pinned folders/files (issue #466). Collected from the app-wide repository so
+  // every directory shares the same pin set.
+  val pinnedPaths by viewModel.pinnedPathList.collectAsState(initial = emptyList())
   val itemsWereDeletedOrMoved by viewModel.itemsWereDeletedOrMoved.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
@@ -663,6 +668,34 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   },
                 ))
               }
+              run {
+                val folderPaths = folderSelectionManager.getSelectedItems()
+                  .map { it.path }.filter { it.isNotBlank() }
+                val mediaPaths = videoSelectionManager.getSelectedItems()
+                  .map { it.path }.filter { it.isNotBlank() }
+                val allPaths = (folderPaths + mediaPaths).distinct()
+                if (allPaths.isNotEmpty()) {
+                  val pinnedSet = pinnedPaths.toSet()
+                  val allPinned = allPaths.all { it in pinnedSet }
+                  add(SelectionOverflowAction(
+                    icon = Icons.Filled.PushPin,
+                    label = stringResource(if (allPinned) R.string.unpin_from_top else R.string.pin_to_top),
+                    onClick = {
+                      viewModel.setPinned(folderPaths, mediaPaths, pinned = !allPinned)
+                      Toast.makeText(
+                        context,
+                        context.getString(
+                          if (allPinned) R.string.unpinned_toast else R.string.pinned_toast,
+                          allPaths.size,
+                        ),
+                        Toast.LENGTH_SHORT,
+                      ).show()
+                      folderSelectionManager.clear()
+                      videoSelectionManager.clear()
+                    },
+                  ))
+                }
+              }
               val selectedVideos = videoSelectionManager.getSelectedItems()
               val selectedFolders = folderSelectionManager.getSelectedItems()
               val hasSelection = selectedVideos.isNotEmpty() || selectedFolders.isNotEmpty()
@@ -857,6 +890,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
               modifier = Modifier,
               isInSelectionMode = isInSelectionMode,
               scrollTriggerKey = "${sortType.name}:${sortOrder.name}",
+              pinnedPaths = pinnedPaths,
             )
           }
 
@@ -1275,6 +1309,7 @@ private fun FileSystemBrowserContent(
   modifier: Modifier = Modifier,
   isInSelectionMode: Boolean = false,
   scrollTriggerKey: Any? = null,
+  pinnedPaths: List<String> = emptyList(),
 ) {
   val thumbnailRepository = koinInject<xyz.mpv.rex.domain.thumbnail.ThumbnailRepository>()
   val browserPreferences = koinInject<BrowserPreferences>()
@@ -1364,6 +1399,7 @@ private fun FileSystemBrowserContent(
       videoPlaybackProgress = videoFilesWithPlayback,
       scrollTriggerKey = scrollTriggerKey,
       showSections = true,
+      pinnedPaths = pinnedPaths,
     )
   }
 }

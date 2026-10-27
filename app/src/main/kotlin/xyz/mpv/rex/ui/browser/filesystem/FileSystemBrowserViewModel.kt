@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import xyz.mpv.rex.domain.browser.FileSystemItem
 import xyz.mpv.rex.domain.browser.PathComponent
 import xyz.mpv.rex.domain.media.model.Video
+import xyz.mpv.rex.domain.pinned.PinScope
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.repository.MediaFileRepository
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -44,6 +46,7 @@ class FileSystemBrowserViewModel(
   KoinComponent {
   private val foldersPreferences: xyz.mpv.rex.preferences.FoldersPreferences by inject()
   private val appearancePreferences: xyz.mpv.rex.preferences.AppearancePreferences by inject()
+  private val pinnedItemRepository: xyz.mpv.rex.domain.pinned.PinnedItemRepository by inject()
 
   // Special marker for "show storage volumes" mode
 
@@ -54,6 +57,20 @@ class FileSystemBrowserViewModel(
   val currentPath: StateFlow<String> = _currentPath.asStateFlow()
 
   private val _unsortedItems = MutableStateFlow<List<FileSystemItem>>(emptyList())
+
+  // Folder pins (scoped to the tree view) merged with media pins (always shared
+  // across tree/folder/library views), so a pinned video shows its badge here too.
+  val pinnedPathList: StateFlow<List<String>> =
+    combine(
+      pinnedItemRepository.pinnedPaths(PinScope.TREE),
+      pinnedItemRepository.pinnedPaths(PinScope.MEDIA),
+    ) { folderPins, mediaPins -> (folderPins + mediaPins).distinct() }
+      .stateIn(
+        viewModelScope,
+        kotlinx.coroutines.flow.SharingStarted.Eagerly,
+        (pinnedItemRepository.getPinnedPaths(PinScope.TREE) +
+          pinnedItemRepository.getPinnedPaths(PinScope.MEDIA)).distinct(),
+      )
 
   // Video playback progress map
   private val _videoFilesWithPlayback = MutableStateFlow<Map<Long, Float>>(emptyMap())
@@ -146,6 +163,7 @@ class FileSystemBrowserViewModel(
       }
     }
 
+
     // Refresh when blacklist changes
     viewModelScope.launch {
       foldersPreferences.blacklistedFolders.changes().drop(1).collectLatest {
@@ -189,6 +207,27 @@ class FileSystemBrowserViewModel(
       folders.forEach { currentBlacklist.add(it.path) }
       foldersPreferences.blacklistedFolders.set(currentBlacklist)
       // BaseBrowserViewModel or init block should handle the refresh via flow observation
+    }
+  }
+
+  /**
+   * Pins (or unpins) the given items. Folders go to the tree view's pin set,
+   * videos/audio go to the shared media pin set.
+   */
+  fun setPinned(
+    folderPaths: List<String>,
+    mediaPaths: List<String>,
+    pinned: Boolean,
+  ) {
+    if (folderPaths.isEmpty() && mediaPaths.isEmpty()) return
+    viewModelScope.launch {
+      if (pinned) {
+        if (folderPaths.isNotEmpty()) pinnedItemRepository.pinAll(PinScope.TREE, folderPaths)
+        if (mediaPaths.isNotEmpty()) pinnedItemRepository.pinAll(PinScope.MEDIA, mediaPaths)
+      } else {
+        if (folderPaths.isNotEmpty()) pinnedItemRepository.unpinAll(PinScope.TREE, folderPaths)
+        if (mediaPaths.isNotEmpty()) pinnedItemRepository.unpinAll(PinScope.MEDIA, mediaPaths)
+      }
     }
   }
 
@@ -240,6 +279,9 @@ class FileSystemBrowserViewModel(
       _items.value = _items.value.filterNot { it is FileSystemItem.Folder && it.path in deletedFolderPaths }
       _unsortedItems.value = _unsortedItems.value.filterNot { it is FileSystemItem.Folder && it.path in deletedFolderPaths }
       _itemsWereDeletedOrMoved.value = true
+      deletedFolderPaths.forEach { deletedPath ->
+        pinnedItemRepository.removePinsUnder(deletedPath)
+      }
       MediaLibraryEvents.notifyChanged()
     }
     Pair(successCount, failureCount)
@@ -252,12 +294,25 @@ class FileSystemBrowserViewModel(
     val result = super.deleteVideos(videos)
     if (result.first > 0) {
       _itemsWereDeletedOrMoved.value = true
+      pinnedItemRepository.unpinAll(PinScope.TREE, deletedPaths)
+      pinnedItemRepository.unpinAll(PinScope.MEDIA, deletedPaths)
     }
     return result
   }
 
   override suspend fun renameVideo(video: Video, newDisplayName: String): Result<Unit> {
-    return super.renameVideo(video, newDisplayName)
+    val oldPath = video.path.ifBlank { video.uri.toString() }
+    val result = super.renameVideo(video, newDisplayName)
+    if (result.isSuccess) {
+      // BaseBrowserViewModel performs the rename on disk; re-read the parent to
+      // find the file's new path so an existing pin follows it.
+      val parentDir = File(oldPath).parent
+      if (parentDir != null) {
+        val newPath = File(parentDir, newDisplayName).absolutePath
+        pinnedItemRepository.renamePin(oldPath, newPath)
+      }
+    }
+    return result
   }
 
   suspend fun renameFolder(folder: FileSystemItem.Folder, newName: String): Boolean {
@@ -266,6 +321,7 @@ class FileSystemBrowserViewModel(
     if (dst.exists()) return false
     val ok = src.renameTo(dst)
     if (ok) {
+      pinnedItemRepository.renamePin(folder.path, dst.absolutePath)
       android.media.MediaScannerConnection.scanFile(getApplication(), arrayOf(dst.absolutePath), null, null)
       setItemsWereDeletedOrMoved()
     }

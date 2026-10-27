@@ -157,7 +157,7 @@ class PlayerPlaylistLoader(
         if (token != smbResolveToken) {
           stream?.streamId?.takeIf { it.isNotEmpty() }?.let { streamId ->
             activity.lifecycleScope.launch(Dispatchers.IO) {
-              NetworkStreamingProxy.getInstance().unregisterStream(streamId)
+              NetworkStreamingProxy.getInstance()?.unregisterStream(streamId)
             }
           }
           return@launch
@@ -180,11 +180,12 @@ class PlayerPlaylistLoader(
   }
 
   fun switchActiveNetworkStream(playableUri: String?) {
-    val newStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
+    // Parsing a proxy URL is pure; never start the proxy to inspect a local file's URI.
+    val newStreamId = NetworkStreamingProxy.extractStreamIdFromUrl(playableUri)
     val oldStreamId = activeNetworkStreamId
     if (oldStreamId != null && oldStreamId != newStreamId) {
       activity.lifecycleScope.launch(Dispatchers.IO) {
-        NetworkStreamingProxy.getInstance().unregisterStream(oldStreamId)
+        NetworkStreamingProxy.getInstance()?.unregisterStream(oldStreamId)
       }
     }
     activeNetworkStreamId = newStreamId

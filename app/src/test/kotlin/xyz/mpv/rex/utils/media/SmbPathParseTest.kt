@@ -1,6 +1,7 @@
 package xyz.mpv.rex.utils.media
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import xyz.mpv.rex.domain.network.NetworkConnection
@@ -94,26 +95,34 @@ class SmbPathParseTest {
   fun `extracts streamId from local proxy URL`() {
     assertEquals(
       "123_456789",
-      NetworkStreamingProxy.getInstance().extractStreamId("http://127.0.0.1:8080/123_456789"),
+      NetworkStreamingProxy.extractStreamIdFromUrl("http://127.0.0.1:8080/123_456789"),
     )
     assertEquals(
       "smb_123456",
-      NetworkStreamingProxy.getInstance().extractStreamId("http://localhost:8080/smb_123456"),
+      NetworkStreamingProxy.extractStreamIdFromUrl("http://localhost:8080/smb_123456"),
     )
     assertNull(
-      NetworkStreamingProxy.getInstance().extractStreamId("http://192.168.1.10:8080/123_456"),
+      NetworkStreamingProxy.extractStreamIdFromUrl("http://192.168.1.10:8080/123_456"),
     )
     assertNull(
-      NetworkStreamingProxy.getInstance().extractStreamId(null),
+      NetworkStreamingProxy.extractStreamIdFromUrl(null),
     )
     assertNull(
-      NetworkStreamingProxy.getInstance().extractStreamId("content://media/external/video/1"),
+      NetworkStreamingProxy.extractStreamIdFromUrl("content://media/external/video/1"),
     )
   }
 
   @Test
+  fun `local files never resolve to a proxy stream`() {
+    // Local playback must not depend on the proxy socket, which needs the Network permission.
+    assertNull(NetworkStreamingProxy.extractStreamIdFromUrl("/storage/emulated/0/Movies/a.mp4"))
+    assertNull(NetworkStreamingProxy.extractStreamIdFromUrl("file:///storage/emulated/0/Movies/a.mp4"))
+    assertFalse(NetworkStreamingProxy.isProxyUrl("content://media/external/video/1"))
+  }
+
+  @Test
   fun `unregisterStream removes stream and executes asynchronously without error`() {
-    val proxy = NetworkStreamingProxy.getInstance()
+    val proxy = NetworkStreamingProxy.getInstance() ?: return
     val connection = NetworkConnection(
       id = 99L,
       name = "TestSMB",

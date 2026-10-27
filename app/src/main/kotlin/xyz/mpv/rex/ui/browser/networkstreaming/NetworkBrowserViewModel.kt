@@ -103,6 +103,7 @@ class NetworkBrowserViewModel(
 
         val uri = if (useProxy) {
           val proxy = xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy.getInstance()
+            ?: throw IllegalStateException("Local proxy unavailable; network playback requires the Network permission")
           val streamId = "${connectionId}_${System.currentTimeMillis()}"
           val proxyUrl = proxy.registerStream(
             streamId = streamId,

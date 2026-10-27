@@ -736,7 +736,9 @@ class PlayerActivity :
     if (hasPlayableMediaInIntent) {
       val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull()) || ytDlClient.requiresYtdl(playableUri)
       viewModel.onFileStartLoading(isNetwork = isNetwork)
-      activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
+      // Local files never touch the proxy: starting it binds a socket gated by the
+      // INTERNET permission and must not break playback when that permission is revoked.
+      activeNetworkStreamId = NetworkStreamingProxy.extractStreamIdFromUrl(playableUri)
       if (isManualBackgroundPlayback || isInBackgroundPlayback) {
         isManualBackgroundPlayback = false
         endBackgroundPlayback()
@@ -750,7 +752,7 @@ class PlayerActivity :
       }
     } else if (isAlreadyPlayingCurrent) {
       Log.d(TAG, "MPV is already playing media: $currentMpvPath. Re-attaching to active session.")
-      activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(currentMpvPath)
+      activeNetworkStreamId = NetworkStreamingProxy.extractStreamIdFromUrl(currentMpvPath)
       isReady = true
       enableVideoAfterBackground()
     }
@@ -1201,7 +1203,7 @@ class PlayerActivity :
         activeNetworkStreamId = null
         if (!isManualBackgroundPlayback) {
           kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-            NetworkStreamingProxy.getInstance().unregisterStream(streamId)
+            NetworkStreamingProxy.getInstance()?.unregisterStream(streamId)
           }
         }
       }

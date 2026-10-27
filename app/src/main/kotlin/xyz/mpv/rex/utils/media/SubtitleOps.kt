@@ -140,6 +140,10 @@ object SubtitleOps : KoinComponent {
 
       // Load subtitles via proxy
       val proxy = NetworkStreamingProxy.getInstance()
+      if (proxy == null) {
+        Log.w(TAG, "Local proxy unavailable, skipping network subtitle autoload")
+        return
+      }
       
       // Keep mpv calls off the main thread for network-backed subtitle sources to avoid ANRs.
       subtitles.forEachIndexed { index, subtitle ->

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.LruCache
+import android.util.Log
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.utils.media.MediaInfoOps
 import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
@@ -1189,6 +1190,10 @@ class ThumbnailRepository(
                 bitmap = testExtractor(tempVideo, targetDimension)
               } else {
                 val proxy = NetworkStreamingProxy.getInstance()
+                if (proxy == null) {
+                  Log.w("ThumbnailRepository", "Local proxy unavailable, skipping thumbnail for $path")
+                  return@withPermit null
+                }
                 val streamId = "thumb_${connection.id}_${path.hashCode()}_${System.nanoTime()}"
 
                 val localUrl = proxy.registerStream(

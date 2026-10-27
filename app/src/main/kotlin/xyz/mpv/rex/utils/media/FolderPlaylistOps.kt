@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Parcelable
+import android.util.Log
 import androidx.core.net.toUri
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.domain.network.NetworkFile
@@ -337,12 +338,15 @@ object FolderPlaylistOps : KoinComponent {
     val connection = resolveNetworkConnection(parsed)
     val extension = File(parsed.filePath).extension
     val streamId = "${if (connection.id != -1L) connection.id else "smb"}_${System.currentTimeMillis()}"
-    val url = NetworkStreamingProxy.getInstance().registerStream(
+    val url = NetworkStreamingProxy.getInstance()?.registerStream(
       streamId = streamId,
       connection = connection,
       filePath = parsed.filePath,
       mimeType = FileTypeUtils.getMimeTypeFromExtension(extension),
-    )
+    ) ?: run {
+      Log.w("FolderPlaylistOps", "Local proxy unavailable, cannot stream $smbPath")
+      return null
+    }
     return SmbStream(url, connection.id, parsed.filePath, streamId)
   }
 

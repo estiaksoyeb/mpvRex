@@ -571,14 +571,6 @@ object FolderListScreen : Screen {
                       } else {
                         pinnedItemRepository.pinAll(PinScope.ALBUM, pinPaths)
                       }
-                      Toast.makeText(
-                        context,
-                        context.getString(
-                          if (allPinned) R.string.unpinned_toast else R.string.pinned_toast,
-                          pinPaths.size,
-                        ),
-                        Toast.LENGTH_SHORT,
-                      ).show()
                       selectionManager.clear()
                     }
                   },

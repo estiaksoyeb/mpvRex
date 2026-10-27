@@ -683,14 +683,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
                     label = stringResource(if (allPinned) R.string.unpin_from_top else R.string.pin_to_top),
                     onClick = {
                       viewModel.setPinned(folderPaths, mediaPaths, pinned = !allPinned)
-                      Toast.makeText(
-                        context,
-                        context.getString(
-                          if (allPinned) R.string.unpinned_toast else R.string.pinned_toast,
-                          allPaths.size,
-                        ),
-                        Toast.LENGTH_SHORT,
-                      ).show()
                       folderSelectionManager.clear()
                       videoSelectionManager.clear()
                     },

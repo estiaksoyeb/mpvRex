@@ -494,14 +494,6 @@ data class VideoListScreen(
                       } else {
                         pinnedItemRepository.pinAll(xyz.mpv.rex.domain.pinned.PinScope.MEDIA, pinPaths)
                       }
-                      Toast.makeText(
-                        context,
-                        context.getString(
-                          if (allPinned) R.string.unpinned_toast else R.string.pinned_toast,
-                          pinPaths.size,
-                        ),
-                        Toast.LENGTH_SHORT,
-                      ).show()
                       selectionManager.clear()
                     }
                   },

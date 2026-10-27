@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -62,94 +63,131 @@ class ShortsViewModel(
     val currentSpeed: StateFlow<Double> = _currentSpeed.asStateFlow()
 
     private var currentLoadedBlockedOnly: Boolean? = null
+    private var loadJob: Job? = null
 
     fun loadShorts(initialVideoPath: String? = null, blockedOnly: Boolean = false, forceRefresh: Boolean = false) {
         if (!forceRefresh && _shorts.value.isNotEmpty() && currentLoadedBlockedOnly == blockedOnly && initialVideoPath == null) {
             return
         }
 
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _isLoading.value = true
             currentLoadedBlockedOnly = blockedOnly
+            _shorts.value = emptyList()
+            _totalShortsCount.value = 0
+            pendingInitialVideo = null
 
             if (forceRefresh) {
                 browserPreferences.lastWatchedShortPath.set("")
             }
-            
-            val finalShorts = if (blockedOnly) {
-                val blockedInDb = shortsMediaDao.getAllShortsMedia().filter { it.isBlocked }
-                val configuredFoldersSet = browserPreferences.shortsSourceFolders.get()
-                val flatFolders = xyz.mpv.rex.utils.storage.CoreMediaScanner.getFlatMediaFolders(getApplication())
-                val filteredFolders = if (configuredFoldersSet.isNotEmpty()) {
-                    flatFolders.filter { it.path in configuredFoldersSet }
-                } else {
-                    flatFolders
+
+            try {
+                val received = mutableListOf<Video>()
+
+                if (blockedOnly) {
+                    val blockedShorts = loadBlockedShorts()
+                    _totalShortsCount.value = blockedShorts.size
+                    _shorts.value = blockedShorts
+                    return@launch
                 }
-                val allVideos = filteredFolders.flatMap { folder ->
-                    xyz.mpv.rex.utils.storage.VideoScanUtils.getVideosInFolder(getApplication(), folder.path)
-                }.filter { !it.isAudio }
-                
-                val blockedPathsSet = blockedInDb.map { it.path }.toSet()
-                val blockedVideos = allVideos.filter { it.path in blockedPathsSet }
-                
-                val fileTriples = blockedVideos.mapNotNull { video ->
-                    val file = java.io.File(video.path)
-                    if (file.exists()) Triple(file, video.uri, video.displayName) else null
-                }
-                val metadataMap = metadataCache.getOrExtractMetadataBatch(fileTriples)
-                blockedVideos.map { video ->
-                    val metadata = metadataMap[video.path]
-                    if (metadata != null) {
-                        video.copy(
-                            duration = metadata.durationMs,
-                            durationFormatted = MediaFormatter.formatDuration(metadata.durationMs),
-                            width = metadata.width,
-                            height = metadata.height,
-                            fps = metadata.fps,
-                            resolution = MediaFormatter.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
-                            hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
-                            subtitleCodec = metadata.subtitleCodec
-                        )
-                    } else {
-                        video
-                    }
-                }
-            } else {
-                ShortsDiscoveryOps.discoverShorts(
+
+                ShortsDiscoveryOps.discoverShortsProgressively(
                     getApplication(),
                     shortsMediaDao,
                     metadataCache,
-                    browserPreferences
-                )
-            }
+                    browserPreferences,
+                ).collect { video ->
+                    // The first item must be able to render before discovery finishes,
+                    // otherwise the spinner from #450 comes straight back.
+                    if (received.isEmpty()) {
+                        _isLoading.value = false
+                    }
 
-            _totalShortsCount.value = finalShorts.size
-
-            val interleavedShorts = if (blockedOnly) {
-                finalShorts
-            } else {
-                // Partition into Loved and Others
-                val loved = finalShorts.filter { lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
-                val others = finalShorts.filter { !lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
-                
-                // Apply Elastic Interleaving Algorithm
-                buildElasticFeed(loved, others)
-            }
-
-            // Move initial video to the front if explicitly specified
-            val orderedShorts = if (initialVideoPath != null) {
-                val initial = interleavedShorts.find { it.path == initialVideoPath }
-                if (initial != null) {
-                    listOf(initial) + interleavedShorts.filter { it.path != initialVideoPath }
-                } else {
-                    interleavedShorts
+                    // Honor an explicit start video: hold it back until the rest of the
+                    // feed is known so it can be guaranteed to occupy page 0.
+                    if (initialVideoPath != null && video.path == initialVideoPath) {
+                        pendingInitialVideo = video
+                        return@collect
+                    }
+                    received.add(video)
+                    _shorts.value = withInitialFirst(received)
+                    _totalShortsCount.value = received.size
                 }
-            } else {
-                interleavedShorts
+
+                // Discovery done: pin the requested video to the front, then interleave
+                // loved items through the remaining feed.
+                val initial = pendingInitialVideo
+                pendingInitialVideo = null
+                val ordered = if (initial != null) {
+                    listOf(initial) + interleave(received.filter { it.path != initial.path })
+                } else {
+                    interleave(received)
+                }
+                _shorts.value = ordered
+                _totalShortsCount.value = ordered.size
+            } finally {
+                _isLoading.value = false
             }
-            
-            _shorts.value = orderedShorts
-            _isLoading.value = false
+        }
+    }
+
+    private var pendingInitialVideo: Video? = null
+
+    /**
+     * Keeps the requested start video in front while more discoveries land, so the
+     * pager does not jump once discovery finishes.
+     */
+    private fun withInitialFirst(received: List<Video>): List<Video> {
+        val pending = pendingInitialVideo ?: return received
+        return listOf(pending) + received
+    }
+
+    /** Applies the loved/other elastic ordering once the feed is complete. */
+    private fun interleave(videos: List<Video>): List<Video> {
+        val loved = videos.filter { lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
+        val others = videos.filter { !lovedPaths.value.contains(it.path) }.shuffled().toMutableList()
+        return buildElasticFeed(loved, others)
+    }
+
+    /** Blocked-only feed; inherently a full scan, so it stays a single pass. */
+    private suspend fun loadBlockedShorts(): List<Video> {
+        val blockedInDb = shortsMediaDao.getAllShortsMedia().filter { it.isBlocked }
+        val configuredFoldersSet = browserPreferences.shortsSourceFolders.get()
+        val flatFolders = xyz.mpv.rex.utils.storage.CoreMediaScanner.getFlatMediaFolders(getApplication())
+        val filteredFolders = if (configuredFoldersSet.isNotEmpty()) {
+            flatFolders.filter { it.path in configuredFoldersSet }
+        } else {
+            flatFolders
+        }
+        val allVideos = filteredFolders.flatMap { folder ->
+            xyz.mpv.rex.utils.storage.VideoScanUtils.getVideosInFolder(getApplication(), folder.path)
+        }.filter { !it.isAudio }
+
+        val blockedPathsSet = blockedInDb.map { it.path }.toSet()
+        val blockedVideos = allVideos.filter { it.path in blockedPathsSet }
+
+        val fileTriples = blockedVideos.mapNotNull { video ->
+            val file = java.io.File(video.path)
+            if (file.exists()) Triple(file, video.uri, video.displayName) else null
+        }
+        val metadataMap = metadataCache.getOrExtractMetadataBatch(fileTriples)
+        return blockedVideos.map { video ->
+            val metadata = metadataMap[video.path]
+            if (metadata != null) {
+                video.copy(
+                    duration = metadata.durationMs,
+                    durationFormatted = MediaFormatter.formatDuration(metadata.durationMs),
+                    width = metadata.width,
+                    height = metadata.height,
+                    fps = metadata.fps,
+                    resolution = MediaFormatter.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
+                    hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
+                    subtitleCodec = metadata.subtitleCodec
+                )
+            } else {
+                video
+            }
         }
     }
 

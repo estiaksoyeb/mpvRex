@@ -215,7 +215,9 @@ data class ShortsScreen(
                 var isManuallyPaused by remember { mutableStateOf(false) }
                 var isFreeModeEnabled by remember { mutableStateOf(false) }
                 
-                val initialIndex = remember(shorts) {
+                // Compute once: the feed now grows while the user watches, so keying this
+                // on `shorts` would restart the pager on every appended page.
+                val initialIndex = remember {
                     viewModel.getInitialPageIndex(initialVideoPath)
                 }
                 val pagerState = rememberPagerState(

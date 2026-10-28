@@ -123,6 +123,7 @@ fun GestureHandler(
   val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
   val useSingleTapForLeftRight by gesturePreferences.useSingleTapForLeftRight.collectAsState()
   val reverseDoubleTap by gesturePreferences.reverseDoubleTap.collectAsState()
+  val instantControlsToggle by gesturePreferences.instantControlsToggle.collectAsState()
   val doubleTapSeekAreaWidth by gesturePreferences.doubleTapSeekAreaWidth.collectAsState()
   var isDoubleTapSeeking by remember { mutableStateOf(false) }
   var longPressStartTime by remember { mutableStateOf(0L) }
@@ -207,11 +208,24 @@ fun GestureHandler(
   val currentUseSingleTapForLeftRight by rememberUpdatedState(useSingleTapForLeftRight)
   val currentReverseDoubleTap by rememberUpdatedState(reverseDoubleTap)
   val currentSeekAreaPercent by rememberUpdatedState(doubleTapSeekAreaWidth)
+  val currentInstantControlsToggle by rememberUpdatedState(instantControlsToggle)
+
+  /** The tap viewport is only known inside the pointerInput scope; the config lambda reads it lazily. */
+  var tapViewportSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
+
+  // Live player state for the tap engine, read at call time. The pointerInput coroutines started
+  // long ago with captured lambdas, but these delegates and the lambda body are recreated on each
+  // recomposition, so a deferred toggle always sees the chrome as it is when it fires.
+  val tapEnvNow = {
+    TapEnv(
+      chromeShown = currentControlsShown,
+      locked = currentAreControlsLocked,
+      panelOrSheetOpen = currentPanelShown != Panels.None || currentSheetShown != Sheets.None,
+    )
+  }
 
   // The double-tap / chrome decision lives in a pure state machine so it can be tested on a plain
   // JVM (see TapChromeEngineTest). This host only turns its effects into ViewModel calls.
-  // The tap viewport is only known inside the pointerInput scope; the config lambda reads it lazily.
-  var tapViewportSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
   val tapChromeEngine = remember(viewModel) {
     TapChromeEngine(
       listener = object : TapChromeListener {
@@ -256,6 +270,7 @@ fun GestureHandler(
           seekLeft = gesturePreferences.leftSingleActionGesture.get() == SingleActionGesture.Seek,
           seekRight = gesturePreferences.rightSingleActionGesture.get() == SingleActionGesture.Seek,
           doubleTapMs = android.view.ViewConfiguration.getDoubleTapTimeout().toLong(),
+          deferToggle = !currentInstantControlsToggle,
         )
       },
     )
@@ -266,7 +281,21 @@ fun GestureHandler(
   LaunchedEffect(Unit) {
     while (true) {
       delay(50)
-      tapChromeEngine.tick(SystemClock.uptimeMillis())
+      tapChromeEngine.tick(SystemClock.uptimeMillis(), tapEnvNow())
+    }
+  }
+
+  // Deferred controls (instant controls off) do not poll: the engine names its next deadline and
+  // we sleep exactly that long. Down and up are dispatched on the main thread, so a second tap is
+  // always handled before a deadline that is still in its future.
+  val tapDeadline: Long? = if (instantControlsToggle) null else tapChromeEngine.nextDeadline()
+  if (!instantControlsToggle) {
+    LaunchedEffect(tapDeadline) {
+      val deadline = tapDeadline ?: return@LaunchedEffect
+      delay((deadline - SystemClock.uptimeMillis()).coerceAtLeast(0))
+      tapChromeEngine.tick(SystemClock.uptimeMillis(), tapEnvNow())
+      // The tick toggles the chrome, so this recomposes and restarts the effect with the next
+      // deadline: null after a flush, or a fresh one if another toggle was queued meanwhile.
     }
   }
 
@@ -314,11 +343,7 @@ fun GestureHandler(
             time = tapDownTime,
             x = downPosition.x,
             y = downPosition.y,
-            env = TapEnv(
-              chromeShown = currentControlsShown,
-              locked = currentAreControlsLocked,
-              panelOrSheetOpen = currentPanelShown != Panels.None || currentSheetShown != Sheets.None,
-            ),
+            env = tapEnvNow(),
           )
 
           var isDrag = false

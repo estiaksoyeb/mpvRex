@@ -49,6 +49,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +82,7 @@ import xyz.mpv.rex.ui.player.PlayerUpdates
 import xyz.mpv.rex.ui.player.LongPressSpeedMemoryMode
 import xyz.mpv.rex.ui.player.PlayerViewModel
 import xyz.mpv.rex.ui.player.PlayerTutorialManager
+import xyz.mpv.rex.ui.player.Sheets
 import xyz.mpv.rex.ui.player.SingleActionGesture
 import xyz.mpv.rex.ui.theme.playerRippleConfiguration
 import kotlinx.coroutines.delay
@@ -197,56 +199,80 @@ fun GestureHandler(
   var lastTapTime by remember { mutableStateOf(0L) }
   var lastTapPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
   var lastTapRegion by remember { mutableStateOf<String?>(null) }
-  var pendingSingleTapRegion by remember { mutableStateOf<String?>(null) }
-  var pendingSingleTapPosition by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
-  var pendingTapInExclusionZone by remember { mutableStateOf(false) }
-  val doubleTapTimeout = 250L
+
+  // Controls visibility captured on the tap's DOWN, before the chrome was toggled. A confirmed
+  // double tap restores this, so the toggled state never sticks for a gesture that was really a
+  // double tap (e.g. double-tapping with the controls already open leaves them open).
+  var controlsShownAtDown by remember { mutableStateOf(false) }
+  // True while the chrome was optimistically toggled by a DOWN that may still turn into a double
+  // tap. Either the double tap restores the snapshot or the timeout below confirms the toggle.
+  var controlsCommittedByDown by remember { mutableStateOf(false) }
+  // Platform double-tap window (300ms on most devices) instead of a hardcoded, stricter value.
+  val doubleTapTimeout = android.view.ViewConfiguration.getDoubleTapTimeout().toLong()
   val multiTapContinueWindow = 650L
+  // Last down time of a recognized double tap, used to keep a multi-tap seek chain alive.
+  var lastDoubleTapDownTime by remember { mutableStateOf(0L) }
+
+  // Pointer-input coroutines live as long as the pointerInput block, which is keyed on a handful of
+  // values only. Read the live visibility through rememberUpdatedState so a long-lived lambda can't
+  // act on a stale snapshot.
+  val currentControlsShown by rememberUpdatedState(controlsShown)
+  val currentAreControlsLocked by rememberUpdatedState(areControlsLocked)
+  val currentPanelShown by rememberUpdatedState(panelShown)
+
+  // True when this DOWN continues an active multi-tap seek chain. Those taps belong to the seek, so
+  // the chrome is left alone entirely: no reveal, no toggle, and therefore no blink per extra tap.
+  val isInSeekChain: (Long) -> Boolean = { downTime ->
+    isDoubleTapSeeking && lastDoubleTapDownTime != 0L &&
+      downTime - lastDoubleTapDownTime < multiTapContinueWindow
+  }
+
+  // The player UI follows the finger, like any other tap-to-show player: it toggles on DOWN and is
+  // rolled back only if the touch turns out to be a double tap. Previously the whole single-tap
+  // action was deferred by doubleTapTimeout so it could be cancelled, which made every tap feel
+  // ~250ms late (and made hiding even later, since it was deferred on top of the lift).
+  //
+  // `tapIsSpentOnAction` is true when this DOWN is already committed to an instant single-tap action
+  // (outside the exclusion zone, with that region's instant action enabled). Such a tap belongs to
+  // the action, so the chrome is left completely alone: no toggle on DOWN, nothing to roll back and
+  // therefore no flash before the action lands.
+  val toggleControlsOnDown: (Long, Boolean) -> Unit = { downTime, tapIsSpentOnAction ->
+    if (
+      !tapIsSpentOnAction &&
+      !isInSeekChain(downTime) &&
+      !currentAreControlsLocked &&
+      currentPanelShown == Panels.None &&
+      viewModel.sheetShown.value == Sheets.None
+    ) {
+      controlsShownAtDown = currentControlsShown
+      controlsCommittedByDown = true
+      if (currentControlsShown) viewModel.hideControls() else viewModel.showControls()
+    }
+  }
+
+  // Put the chrome back exactly as it was before this tap.
+  val restoreControlsFromDown: () -> Unit = {
+    if (controlsCommittedByDown) {
+      if (controlsShownAtDown) viewModel.showControls() else viewModel.hideControls()
+      controlsCommittedByDown = false
+    }
+  }
 
   // Multi-tap seeking state
   var lastSeekRegion by remember { mutableStateOf<String?>(null) }
   var lastSeekTime by remember { mutableStateOf<Long?>(null) }
 
-  // Auto-reset tap count on timeout and execute single tap if no double tap detected
+  // The single-tap action (chrome toggle + any configured instant single-tap action) has already
+  // been committed on DOWN. This effect only waits out the double-tap window so a second tap still
+  // lands as a double tap, then confirms the toggle and cleans up.
   LaunchedEffect(tapCount, longPressTriggeredDuringTouch) {
     if (tapCount == 1) {
       delay(doubleTapTimeout)
-      // Timeout occurred, execute single tap action only if not double-tap seeking and not triggered by long press
-      if (tapCount == 1 && pendingSingleTapRegion != null && !isDoubleTapSeeking && !longPressTriggeredDuringTouch) {
-        val region = pendingSingleTapRegion!!
-        
-        var handled = false
-        if (areControlsLocked) {
-             viewModel.showControls()
-             handled = true
-        } else if (!pendingTapInExclusionZone) {
-            if (region == "center" && useSingleTapForCenter) {
-              viewModel.handleCenterSingleTap()
-              handled = true
-            } else if (region == "left" && useSingleTapForLeftRight) {
-              viewModel.handleLeftSingleTap()
-              handled = true
-            } else if (region == "right" && useSingleTapForLeftRight) {
-              viewModel.handleRightSingleTap()
-              handled = true
-            }
-        }
-
-        if (!handled) {
-          if (panelShown != Panels.None && !allowGesturesInPanels) {
-            viewModel.panelShown.update { Panels.None }
-          }
-          if (controlsShown) {
-            viewModel.hideControls()
-          } else {
-            viewModel.showControls()
-          }
-        }
-        pendingSingleTapRegion = null
-        pendingSingleTapPosition = null
-      }
+      // Timeout occurred: this was a real single tap, so the DOWN toggle was correct all along.
+      controlsCommittedByDown = false
       tapCount = 0
       lastTapRegion = null
+      lastDoubleTapDownTime = 0L
       if (!isDoubleTapSeeking) {
         isDoubleTapSeeking = false
         viewModel.updateSeekAmount(0)
@@ -299,6 +325,20 @@ fun GestureHandler(
             else -> "center"
           }
 
+          // Toggle the chrome straight away (YouTube style), both to show and to hide. Taps in the
+          // top/bottom quarters and taps whose region has an instant single-tap action enabled are
+          // left out: those taps belong to the zone rule / the action, not to the chrome.
+          val exclusionZoneHeight = size.height * 0.25f
+          val downInExclusionZone =
+            downPosition.y < exclusionZoneHeight || downPosition.y > size.height - exclusionZoneHeight
+          val regionHasInstantAction = when (region) {
+            "center" -> useSingleTapForCenter
+            "left", "right" -> useSingleTapForLeftRight
+            else -> false
+          }
+          val tapIsSpentOnAction = regionHasInstantAction && !downInExclusionZone
+          toggleControlsOnDown(downTime, tapIsSpentOnAction)
+
           // Track for potential drag
           var isDrag = false
           var wasConsumedByTapGesture = false
@@ -346,20 +386,37 @@ fun GestureHandler(
                   positionChange < 100f &&
                   tapCount == 1
 
-                if (isDoubleTap && !areControlsLocked && !pendingTapInExclusionZone) {
+                if (isDoubleTap && !areControlsLocked) {
                   // Valid double-tap detected
                   tapCount = 2
                   lastTapTime = downTime
                   lastTapPosition = downPosition
-                  pendingSingleTapRegion = null // Cancel pending single tap
-                  pendingSingleTapPosition = null
                   wasConsumedByTapGesture = true
                   pointer.consume()
 
+                  // With the region's instant single tap enabled, a double tap is the pure action
+                  // and nothing else: the chrome was never touched on DOWN, so there is nothing to
+                  // restore and the player window must not flash. Without it, the double tap is
+                  // disambiguated from the chrome toggle, so seeks keep the toggle and every other
+                  // action puts the chrome back the way it was.
+                  if (!regionHasInstantAction) {
+                    val isSeekDoubleTap = when (region) {
+                      "right" -> gesturePreferences.rightSingleActionGesture.get() == SingleActionGesture.Seek
+                      "left" -> gesturePreferences.leftSingleActionGesture.get() == SingleActionGesture.Seek
+                      else -> false
+                    }
+                    if (isSeekDoubleTap) {
+                      // A seek owns the screen, so keep the state the DOWN toggle produced: hidden
+                      // stays hidden, visible stays visible.
+                      controlsCommittedByDown = false
+                    } else {
+                      restoreControlsFromDown()
+                    }
+                  }
+
                   when (region) {
                     "right" -> {
-                      val rightGesture = gesturePreferences.rightSingleActionGesture.get()
-                      if (rightGesture == SingleActionGesture.Seek) {
+                      if (gesturePreferences.rightSingleActionGesture.get() == SingleActionGesture.Seek) {
                         isDoubleTapSeeking = true
                         lastSeekRegion = "right"
                         lastSeekTime = System.currentTimeMillis()
@@ -368,8 +425,7 @@ fun GestureHandler(
                       viewModel.handleRightDoubleTap()
                     }
                     "left" -> {
-                      val leftGesture = gesturePreferences.leftSingleActionGesture.get()
-                      if (leftGesture == SingleActionGesture.Seek) {
+                      if (gesturePreferences.leftSingleActionGesture.get() == SingleActionGesture.Seek) {
                         isDoubleTapSeeking = true
                         lastSeekRegion = "left"
                         lastSeekTime = System.currentTimeMillis()
@@ -381,11 +437,15 @@ fun GestureHandler(
                       viewModel.handleCenterDoubleTap()
                     }
                   }
+                  lastDoubleTapDownTime = downTime
                 } else if (isMultiTapContinuation && isDoubleTapSeeking) {
                   // Continue multi-tap seeking
                   tapCount++
                   wasConsumedByTapGesture = true
                   pointer.consume()
+                  // Nothing to restore: the DOWN of a continuation tap deliberately skips the
+                  // chrome toggle, so the chain never blinks the player window.
+                  lastDoubleTapDownTime = downTime
                   lastSeekTime = System.currentTimeMillis()
                   lastTapTime = downTime
                   lastTapPosition = downPosition
@@ -410,42 +470,28 @@ fun GestureHandler(
                     }
                   }
                 } else if (tapCount == 0 || timeSinceLastTap >= doubleTapTimeout) {
-                  // Single tap or timed out - start new tap sequence
+                  // Single tap or timed out - start new tap sequence. The chrome toggle itself was
+                  // already committed on DOWN; here we only run the configured instant single-tap
+                  // action, which must wait for the lift so a double tap doesn't fire it as well.
                   tapCount = 1
                   lastTapTime = downTime
                   lastTapPosition = downPosition
                   lastTapRegion = region
-                  pendingSingleTapRegion = region
-                  pendingSingleTapPosition = downPosition
                   wasConsumedByTapGesture = true
                   pointer.consume()
-                  
-                  // Instant single tap for center if enabled and not in exclusion zones
-                  // Instant single tap logic
-                  val isCenterImmediate = region == "center" && useSingleTapForCenter
-                  val isLeftImmediate = region == "left" && useSingleTapForLeftRight
-                  val isRightImmediate = region == "right" && useSingleTapForLeftRight
 
-                  if ((isCenterImmediate || isLeftImmediate || isRightImmediate) && !longPressTriggeredDuringTouch) {
-                    val exclusionZoneHeight = size.height * 0.25f // 25% from top and bottom
-                    val inExclusionZone = downPosition.y < exclusionZoneHeight || 
-                                          downPosition.y > size.height - exclusionZoneHeight
-                    
-                    pendingTapInExclusionZone = inExclusionZone // Store for delayed execution check
-
-                    if (!inExclusionZone) {
-                       if (areControlsLocked) {
-                           viewModel.showControls()
-                       } else {
-                           if (isCenterImmediate) viewModel.handleCenterSingleTap()
-                           else if (isLeftImmediate) viewModel.handleLeftSingleTap()
-                           else if (isRightImmediate) viewModel.handleRightSingleTap()
-                       }
-                       
-                       pendingSingleTapRegion = null 
+                  // The chrome was already left untouched on DOWN for this case, so the action is
+                  // the only thing left to do.
+                  if (tapIsSpentOnAction && !longPressTriggeredDuringTouch) {
+                    if (areControlsLocked) {
+                      viewModel.showControls()
+                    } else {
+                      when (region) {
+                        "center" -> viewModel.handleCenterSingleTap()
+                        "left" -> viewModel.handleLeftSingleTap()
+                        "right" -> viewModel.handleRightSingleTap()
+                      }
                     }
-                  } else {
-                    pendingTapInExclusionZone = false
                   }
                 }
               }

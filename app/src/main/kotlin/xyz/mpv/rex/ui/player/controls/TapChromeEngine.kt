@@ -94,7 +94,7 @@ internal class TapChromeEngine(
 
   /**
    * When a deferred toggle is waiting, the monotonic time at which it becomes due. The host sleeps
-   * until then instead of polling; `null` means park until the next touch.
+   * until then; `null` means park until the next touch.
    */
   fun nextDeadline(): Long? = if (pending) pendingDeadline else null
 

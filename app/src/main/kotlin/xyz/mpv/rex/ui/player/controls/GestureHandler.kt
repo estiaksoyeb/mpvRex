@@ -227,6 +227,30 @@ fun GestureHandler(
       downTime - lastDoubleTapDownTime < multiTapContinueWindow
   }
 
+  // Put the chrome back exactly as it was before this tap. A no-op when nothing was committed.
+  val restoreControlsFromDown: () -> Unit = {
+    if (controlsCommittedByDown) {
+      if (controlsShownAtDown) viewModel.showControls() else viewModel.hideControls()
+      controlsCommittedByDown = false
+    }
+  }
+
+  // One predicate, used both when the second DOWN lands and when the second UP is classified, so
+  // the two can never disagree (a mismatch would toggle on DOWN2 but never recognise the double tap,
+  // leaving the chrome stuck in the first tap's state).
+  val isSecondTapOfDouble: (
+    downTime: Long,
+    downPosition: androidx.compose.ui.geometry.Offset,
+    region: String,
+  ) -> Boolean = { downTime, downPosition, region ->
+    val timeSince = downTime - lastTapTime
+    val moved = sqrt(
+      (downPosition.x - lastTapPosition.x) * (downPosition.x - lastTapPosition.x) +
+      (downPosition.y - lastTapPosition.y) * (downPosition.y - lastTapPosition.y)
+    )
+    timeSince < doubleTapTimeout && lastTapRegion == region && moved < 100f && tapCount == 1
+  }
+
   // The player UI follows the finger, like any other tap-to-show player: it toggles on DOWN and is
   // rolled back only if the touch turns out to be a double tap. Previously the whole single-tap
   // action was deferred by doubleTapTimeout so it could be cancelled, which made every tap feel
@@ -236,25 +260,26 @@ fun GestureHandler(
   // (outside the exclusion zone, with that region's instant action enabled). Such a tap belongs to
   // the action, so the chrome is left completely alone: no toggle on DOWN, nothing to roll back and
   // therefore no flash before the action lands.
-  val toggleControlsOnDown: (Long, Boolean) -> Unit = { downTime, tapIsSpentOnAction ->
-    if (
-      !tapIsSpentOnAction &&
-      !isInSeekChain(downTime) &&
-      !currentAreControlsLocked &&
-      currentPanelShown == Panels.None &&
-      viewModel.sheetShown.value == Sheets.None
-    ) {
-      controlsShownAtDown = currentControlsShown
-      controlsCommittedByDown = true
-      if (currentControlsShown) viewModel.hideControls() else viewModel.showControls()
-    }
-  }
-
-  // Put the chrome back exactly as it was before this tap.
-  val restoreControlsFromDown: () -> Unit = {
-    if (controlsCommittedByDown) {
-      if (controlsShownAtDown) viewModel.showControls() else viewModel.hideControls()
-      controlsCommittedByDown = false
+  //
+  // `secondOfDouble` is true when this DOWN is the second tap of a double tap. That DOWN must NOT
+  // toggle again: it is the same gesture, and a second toggle would flip the chrome back and
+  // overwrite the snapshot with the already-toggled value. Instead it undoes the first tap's
+  // feedback immediately, which also keeps the "clear screen stays clear" promise.
+  val toggleControlsOnDown: (Long, Boolean, Boolean) -> Unit = { downTime, tapIsSpentOnAction, secondOfDouble ->
+    if (secondOfDouble) {
+      restoreControlsFromDown()
+    } else if (!isInSeekChain(downTime)) {
+      controlsCommittedByDown = false // new sequence: drop stale state from the previous one
+      if (
+        !tapIsSpentOnAction &&
+        !currentAreControlsLocked &&
+        currentPanelShown == Panels.None &&
+        viewModel.sheetShown.value == Sheets.None
+      ) {
+        controlsShownAtDown = currentControlsShown // snapshot: first DOWN only
+        controlsCommittedByDown = true
+        if (currentControlsShown) viewModel.hideControls() else viewModel.showControls()
+      }
     }
   }
 
@@ -337,7 +362,8 @@ fun GestureHandler(
             else -> false
           }
           val tapIsSpentOnAction = regionHasInstantAction && !downInExclusionZone
-          toggleControlsOnDown(downTime, tapIsSpentOnAction)
+          val secondOfDouble = isSecondTapOfDouble(downTime, downPosition, region)
+          toggleControlsOnDown(downTime, tapIsSpentOnAction, secondOfDouble)
 
           // Track for potential drag
           var isDrag = false
@@ -379,12 +405,9 @@ fun GestureHandler(
                   tapCount >= 2 &&
                   isDoubleTapSeeking
 
-                // Check if this is a valid double-tap
-                val isDoubleTap =
-                  timeSinceLastTap < doubleTapTimeout &&
-                  lastTapRegion == region &&
-                  positionChange < 100f &&
-                  tapCount == 1
+                // Check if this is a valid double-tap. Same predicate as the DOWN handler uses, so
+                // the two can never disagree about what counts as the second tap.
+                val isDoubleTap = isSecondTapOfDouble(downTime, downPosition, region)
 
                 if (isDoubleTap && !areControlsLocked) {
                   // Valid double-tap detected
@@ -394,25 +417,11 @@ fun GestureHandler(
                   wasConsumedByTapGesture = true
                   pointer.consume()
 
-                  // With the region's instant single tap enabled, a double tap is the pure action
-                  // and nothing else: the chrome was never touched on DOWN, so there is nothing to
-                  // restore and the player window must not flash. Without it, the double tap is
-                  // disambiguated from the chrome toggle, so seeks keep the toggle and every other
-                  // action puts the chrome back the way it was.
-                  if (!regionHasInstantAction) {
-                    val isSeekDoubleTap = when (region) {
-                      "right" -> gesturePreferences.rightSingleActionGesture.get() == SingleActionGesture.Seek
-                      "left" -> gesturePreferences.leftSingleActionGesture.get() == SingleActionGesture.Seek
-                      else -> false
-                    }
-                    if (isSeekDoubleTap) {
-                      // A seek owns the screen, so keep the state the DOWN toggle produced: hidden
-                      // stays hidden, visible stays visible.
-                      controlsCommittedByDown = false
-                    } else {
-                      restoreControlsFromDown()
-                    }
-                  }
+                  // A double tap always ends with the chrome exactly as it was before the gesture:
+                  // clear stays clear, visible stays visible. The first tap's toggle was only ever
+                  // instant feedback, so it must never survive. Usually already done on the second
+                  // DOWN; this is a no-op then, and the safety net otherwise.
+                  restoreControlsFromDown()
 
                   when (region) {
                     "right" -> {

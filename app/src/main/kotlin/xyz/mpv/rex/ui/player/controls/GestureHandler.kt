@@ -1,5 +1,6 @@
 package xyz.mpv.rex.ui.player.controls
 
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -261,10 +262,11 @@ fun GestureHandler(
   }
 
   // Expire the double-tap window even when no finger touches again; the engine has no timers.
+  // Monotonic: a wall-clock jump would otherwise corrupt every window comparison.
   LaunchedEffect(Unit) {
     while (true) {
       delay(50)
-      tapChromeEngine.tick(System.currentTimeMillis())
+      tapChromeEngine.tick(SystemClock.uptimeMillis())
     }
   }
 
@@ -303,7 +305,8 @@ fun GestureHandler(
           // touch has actually become a subtitle drag/pinch (checked again inside the loop below).
           if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val downPosition = down.position
-          val tapDownTime = System.currentTimeMillis()
+          // Call-time stamp on the monotonic clock, matching the tick loop above.
+          val tapDownTime = SystemClock.uptimeMillis()
 
           // The engine decides everything on DOWN: whether this is a first tap, the second of a
           // double, a seek continuation or a swallowed extra tap, and whether the chrome toggles.
@@ -345,7 +348,7 @@ fun GestureHandler(
           if (isDrag) {
             if (!cancelled) tapChromeEngine.cancel()
           } else {
-            tapChromeEngine.up(System.currentTimeMillis())
+            tapChromeEngine.up(SystemClock.uptimeMillis())
           }
         }
       }

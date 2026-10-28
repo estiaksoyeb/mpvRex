@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.toSize
 import `is`.xyz.mpv.MPVLib
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.AudioPreferences
@@ -115,6 +116,7 @@ fun GestureHandler(
   val playbackSpeed by MPVLib.propFloat["speed"].collectAsState()
   val controlsShown by viewModel.controlsShown.collectAsState()
   val areControlsLocked by viewModel.areControlsLocked.collectAsState()
+  val sheetShown by viewModel.sheetShown.collectAsState()
   val seekAmount by viewModel.doubleTapSeekAmount.collectAsState()
   val isSeekingForwards by viewModel.isSeekingForwards.collectAsState()
   val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
@@ -152,7 +154,6 @@ fun GestureHandler(
   var dynamicSpeedStartValue by remember { mutableStateOf(2f) }
   var lastAppliedSpeed by remember { mutableStateOf(2f) }
   var hasSwipedEnough by remember { mutableStateOf(false) }
-  var longPressTriggeredDuringTouch by remember { mutableStateOf(false) }
   var isVerticalGestureActive by remember { mutableStateOf(false) }
   var hasIncrementedSpeedLockHint by remember { mutableStateOf(false) }
   val currentVolume by viewModel.currentVolume.collectAsState()
@@ -194,114 +195,76 @@ fun GestureHandler(
     }
   }
 
-  // Isolated double-tap state tracking
-  var tapCount by remember { mutableStateOf(0) }
-  var lastTapTime by remember { mutableStateOf(0L) }
-  var lastTapPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-  var lastTapRegion by remember { mutableStateOf<String?>(null) }
-
-  // Controls visibility captured on the tap's DOWN, before the chrome was toggled. A confirmed
-  // double tap restores this, so the toggled state never sticks for a gesture that was really a
-  // double tap (e.g. double-tapping with the controls already open leaves them open).
-  var controlsShownAtDown by remember { mutableStateOf(false) }
-  // True while the chrome was optimistically toggled by a DOWN that may still turn into a double
-  // tap. Either the double tap restores the snapshot or the timeout below confirms the toggle.
-  var controlsCommittedByDown by remember { mutableStateOf(false) }
-  // Platform double-tap window (300ms on most devices) instead of a hardcoded, stricter value.
-  val doubleTapTimeout = android.view.ViewConfiguration.getDoubleTapTimeout().toLong()
-  val multiTapContinueWindow = 650L
-  // Last down time of a recognized double tap, used to keep a multi-tap seek chain alive.
-  var lastDoubleTapDownTime by remember { mutableStateOf(0L) }
-
   // Pointer-input coroutines live as long as the pointerInput block, which is keyed on a handful of
   // values only. Read the live visibility through rememberUpdatedState so a long-lived lambda can't
   // act on a stale snapshot.
   val currentControlsShown by rememberUpdatedState(controlsShown)
   val currentAreControlsLocked by rememberUpdatedState(areControlsLocked)
   val currentPanelShown by rememberUpdatedState(panelShown)
+  val currentSheetShown by rememberUpdatedState(sheetShown)
+  val currentUseSingleTapForCenter by rememberUpdatedState(useSingleTapForCenter)
+  val currentUseSingleTapForLeftRight by rememberUpdatedState(useSingleTapForLeftRight)
+  val currentReverseDoubleTap by rememberUpdatedState(reverseDoubleTap)
+  val currentSeekAreaPercent by rememberUpdatedState(doubleTapSeekAreaWidth)
 
-  // True when this DOWN continues an active multi-tap seek chain. Those taps belong to the seek, so
-  // the chrome is left alone entirely: no reveal, no toggle, and therefore no blink per extra tap.
-  val isInSeekChain: (Long) -> Boolean = { downTime ->
-    isDoubleTapSeeking && lastDoubleTapDownTime != 0L &&
-      downTime - lastDoubleTapDownTime < multiTapContinueWindow
-  }
+  // The double-tap / chrome decision lives in a pure state machine so it can be tested on a plain
+  // JVM (see TapChromeEngineTest). This host only turns its effects into ViewModel calls.
+  // The tap viewport is only known inside the pointerInput scope; the config lambda reads it lazily.
+  var tapViewportSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
+  val tapChromeEngine = remember(viewModel) {
+    TapChromeEngine(
+      listener = object : TapChromeListener {
+        override fun onShowChrome() = viewModel.showControls()
 
-  // Put the chrome back exactly as it was before this tap. A no-op when nothing was committed.
-  val restoreControlsFromDown: () -> Unit = {
-    if (controlsCommittedByDown) {
-      if (controlsShownAtDown) viewModel.showControls() else viewModel.hideControls()
-      controlsCommittedByDown = false
-    }
-  }
+        override fun onHideChrome() = viewModel.hideControls()
 
-  // One predicate, used both when the second DOWN lands and when the second UP is classified, so
-  // the two can never disagree (a mismatch would toggle on DOWN2 but never recognise the double tap,
-  // leaving the chrome stuck in the first tap's state).
-  val isSecondTapOfDouble: (
-    downTime: Long,
-    downPosition: androidx.compose.ui.geometry.Offset,
-    region: String,
-  ) -> Boolean = { downTime, downPosition, region ->
-    val timeSince = downTime - lastTapTime
-    val moved = sqrt(
-      (downPosition.x - lastTapPosition.x) * (downPosition.x - lastTapPosition.x) +
-      (downPosition.y - lastTapPosition.y) * (downPosition.y - lastTapPosition.y)
+        override fun onAction(region: TapRegion, isSingleTap: Boolean) {
+          val action = when (region) {
+            TapRegion.Left -> gesturePreferences.leftSingleActionGesture.get()
+            TapRegion.Right -> gesturePreferences.rightSingleActionGesture.get()
+            TapRegion.Center -> gesturePreferences.centerSingleActionGesture.get()
+          }
+          if (isSingleTap) {
+            when (region) {
+              TapRegion.Left -> viewModel.handleLeftSingleTap()
+              TapRegion.Right -> viewModel.handleRightSingleTap()
+              TapRegion.Center -> viewModel.handleCenterSingleTap()
+            }
+            return
+          }
+          if (action == SingleActionGesture.Seek) {
+            isDoubleTapSeeking = true
+            // Reset the accumulated amount only when the direction flips, so multi-tap adds up.
+            if ((region == TapRegion.Right) != isSeekingForwards) viewModel.updateSeekAmount(0)
+          }
+          when (region) {
+            TapRegion.Left -> viewModel.handleLeftDoubleTap()
+            TapRegion.Right -> viewModel.handleRightDoubleTap()
+            TapRegion.Center -> viewModel.handleCenterDoubleTap()
+          }
+        }
+      },
+      config = {
+        TapConfig(
+          width = tapViewportSize.width,
+          height = tapViewportSize.height,
+          seekAreaPercent = currentSeekAreaPercent.toFloat(),
+          reverse = currentReverseDoubleTap,
+          instantCenter = currentUseSingleTapForCenter,
+          instantSides = currentUseSingleTapForLeftRight,
+          seekLeft = gesturePreferences.leftSingleActionGesture.get() == SingleActionGesture.Seek,
+          seekRight = gesturePreferences.rightSingleActionGesture.get() == SingleActionGesture.Seek,
+          doubleTapMs = android.view.ViewConfiguration.getDoubleTapTimeout().toLong(),
+        )
+      },
     )
-    timeSince < doubleTapTimeout && lastTapRegion == region && moved < 100f && tapCount == 1
   }
 
-  // The player UI follows the finger, like any other tap-to-show player: it toggles on DOWN and is
-  // rolled back only if the touch turns out to be a double tap. Previously the whole single-tap
-  // action was deferred by doubleTapTimeout so it could be cancelled, which made every tap feel
-  // ~250ms late (and made hiding even later, since it was deferred on top of the lift).
-  //
-  // `tapIsSpentOnAction` is true when this DOWN is already committed to an instant single-tap action
-  // (outside the exclusion zone, with that region's instant action enabled). Such a tap belongs to
-  // the action, so the chrome is left completely alone: no toggle on DOWN, nothing to roll back and
-  // therefore no flash before the action lands.
-  //
-  // `secondOfDouble` is true when this DOWN is the second tap of a double tap. That DOWN must NOT
-  // toggle again: it is the same gesture, and a second toggle would flip the chrome back and
-  // overwrite the snapshot with the already-toggled value. Instead it undoes the first tap's
-  // feedback immediately, which also keeps the "clear screen stays clear" promise.
-  val toggleControlsOnDown: (Long, Boolean, Boolean) -> Unit = { downTime, tapIsSpentOnAction, secondOfDouble ->
-    if (secondOfDouble) {
-      restoreControlsFromDown()
-    } else if (!isInSeekChain(downTime)) {
-      controlsCommittedByDown = false // new sequence: drop stale state from the previous one
-      if (
-        !tapIsSpentOnAction &&
-        !currentAreControlsLocked &&
-        currentPanelShown == Panels.None &&
-        viewModel.sheetShown.value == Sheets.None
-      ) {
-        controlsShownAtDown = currentControlsShown // snapshot: first DOWN only
-        controlsCommittedByDown = true
-        if (currentControlsShown) viewModel.hideControls() else viewModel.showControls()
-      }
-    }
-  }
-
-  // Multi-tap seeking state
-  var lastSeekRegion by remember { mutableStateOf<String?>(null) }
-  var lastSeekTime by remember { mutableStateOf<Long?>(null) }
-
-  // The single-tap action (chrome toggle + any configured instant single-tap action) has already
-  // been committed on DOWN. This effect only waits out the double-tap window so a second tap still
-  // lands as a double tap, then confirms the toggle and cleans up.
-  LaunchedEffect(tapCount, longPressTriggeredDuringTouch) {
-    if (tapCount == 1) {
-      delay(doubleTapTimeout)
-      // Timeout occurred: this was a real single tap, so the DOWN toggle was correct all along.
-      controlsCommittedByDown = false
-      tapCount = 0
-      lastTapRegion = null
-      lastDoubleTapDownTime = 0L
-      if (!isDoubleTapSeeking) {
-        isDoubleTapSeeking = false
-        viewModel.updateSeekAmount(0)
-      }
+  // Expire the double-tap window even when no finger touches again; the engine has no timers.
+  LaunchedEffect(Unit) {
+    while (true) {
+      delay(50)
+      tapChromeEngine.tick(System.currentTimeMillis())
     }
   }
 
@@ -332,42 +295,31 @@ fun GestureHandler(
       .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap) {
         // Isolated double-tap detection that doesn't interfere with other gestures
         if (isVerticalGestureActive) return@pointerInput
+        // The tap engine needs the viewport to compute regions and the exclusion zone.
+        tapViewportSize = size.toSize()
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
           // A tap that lands on a subtitle must still toggle the UI, so only step aside once the
           // touch has actually become a subtitle drag/pinch (checked again inside the loop below).
           if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val downPosition = down.position
-          val downTime = System.currentTimeMillis()
+          val tapDownTime = System.currentTimeMillis()
 
-          // Calculate regions
-          val seekAreaFraction = doubleTapSeekAreaWidth / 100f
-          val leftBoundary = size.width * seekAreaFraction
-          val rightBoundary = size.width * (1f - seekAreaFraction)
-          val region = when {
-            downPosition.x > rightBoundary -> if (reverseDoubleTap) "left" else "right"
-            downPosition.x < leftBoundary -> if (reverseDoubleTap) "right" else "left"
-            else -> "center"
-          }
+          // The engine decides everything on DOWN: whether this is a first tap, the second of a
+          // double, a seek continuation or a swallowed extra tap, and whether the chrome toggles.
+          tapChromeEngine.down(
+            time = tapDownTime,
+            x = downPosition.x,
+            y = downPosition.y,
+            env = TapEnv(
+              chromeShown = currentControlsShown,
+              locked = currentAreControlsLocked,
+              panelOrSheetOpen = currentPanelShown != Panels.None || currentSheetShown != Sheets.None,
+            ),
+          )
 
-          // Toggle the chrome straight away (YouTube style), both to show and to hide. Taps in the
-          // top/bottom quarters and taps whose region has an instant single-tap action enabled are
-          // left out: those taps belong to the zone rule / the action, not to the chrome.
-          val exclusionZoneHeight = size.height * 0.25f
-          val downInExclusionZone =
-            downPosition.y < exclusionZoneHeight || downPosition.y > size.height - exclusionZoneHeight
-          val regionHasInstantAction = when (region) {
-            "center" -> useSingleTapForCenter
-            "left", "right" -> useSingleTapForLeftRight
-            else -> false
-          }
-          val tapIsSpentOnAction = regionHasInstantAction && !downInExclusionZone
-          val secondOfDouble = isSecondTapOfDouble(downTime, downPosition, region)
-          toggleControlsOnDown(downTime, tapIsSpentOnAction, secondOfDouble)
-
-          // Track for potential drag
           var isDrag = false
-          var wasConsumedByTapGesture = false
+          var cancelled = false
 
           do {
             val event = awaitPointerEvent()
@@ -377,136 +329,24 @@ fun GestureHandler(
             // tap so we do not consume the pointer the subtitle recognizer is using.
             if (subtitleGate.isActive) break
 
-            // Check if this is a drag (not a tap)
             val distance = sqrt(
               (pointer.position.x - downPosition.x) * (pointer.position.x - downPosition.x) +
               (pointer.position.y - downPosition.y) * (pointer.position.y - downPosition.y)
             )
-
-            if (distance > 10f) {
+            if (distance > 10f && !isDrag) {
               isDrag = true
-              // Don't consume - let other pointer inputs handle drag gestures
+              // A drag is not a tap: roll back any speculative chrome feedback for this gesture.
+              if (!cancelled) { tapChromeEngine.cancel(); cancelled = true }
             }
 
-            if (!pointer.pressed) {
-              // Pointer lifted - this is a tap if it wasn't a drag
-              if (!isDrag && !wasConsumedByTapGesture) {
-                val timeSinceLastTap = downTime - lastTapTime
-                val positionChange = sqrt(
-                  (downPosition.x - lastTapPosition.x) * (downPosition.x - lastTapPosition.x) +
-                  (downPosition.y - lastTapPosition.y) * (downPosition.y - lastTapPosition.y)
-                )
-
-                // Check if this is a continuation of multi-tap sequence
-                val isMultiTapContinuation =
-                  lastTapRegion == region &&
-                  timeSinceLastTap < multiTapContinueWindow &&
-                  positionChange < 100f &&
-                  tapCount >= 2 &&
-                  isDoubleTapSeeking
-
-                // Check if this is a valid double-tap. Same predicate as the DOWN handler uses, so
-                // the two can never disagree about what counts as the second tap.
-                val isDoubleTap = isSecondTapOfDouble(downTime, downPosition, region)
-
-                if (isDoubleTap && !areControlsLocked) {
-                  // Valid double-tap detected
-                  tapCount = 2
-                  lastTapTime = downTime
-                  lastTapPosition = downPosition
-                  wasConsumedByTapGesture = true
-                  pointer.consume()
-
-                  // A double tap always ends with the chrome exactly as it was before the gesture:
-                  // clear stays clear, visible stays visible. The first tap's toggle was only ever
-                  // instant feedback, so it must never survive. Usually already done on the second
-                  // DOWN; this is a no-op then, and the safety net otherwise.
-                  restoreControlsFromDown()
-
-                  when (region) {
-                    "right" -> {
-                      if (gesturePreferences.rightSingleActionGesture.get() == SingleActionGesture.Seek) {
-                        isDoubleTapSeeking = true
-                        lastSeekRegion = "right"
-                        lastSeekTime = System.currentTimeMillis()
-                        if (!isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleRightDoubleTap()
-                    }
-                    "left" -> {
-                      if (gesturePreferences.leftSingleActionGesture.get() == SingleActionGesture.Seek) {
-                        isDoubleTapSeeking = true
-                        lastSeekRegion = "left"
-                        lastSeekTime = System.currentTimeMillis()
-                        if (isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleLeftDoubleTap()
-                    }
-                    "center" -> {
-                      viewModel.handleCenterDoubleTap()
-                    }
-                  }
-                  lastDoubleTapDownTime = downTime
-                } else if (isMultiTapContinuation && isDoubleTapSeeking) {
-                  // Continue multi-tap seeking
-                  tapCount++
-                  wasConsumedByTapGesture = true
-                  pointer.consume()
-                  // Nothing to restore: the DOWN of a continuation tap deliberately skips the
-                  // chrome toggle, so the chain never blinks the player window.
-                  lastDoubleTapDownTime = downTime
-                  lastSeekTime = System.currentTimeMillis()
-                  lastTapTime = downTime
-                  lastTapPosition = downPosition
-
-                  when (region) {
-                    "right" -> {
-                      val rightGesture = gesturePreferences.rightSingleActionGesture.get()
-                      if (rightGesture == SingleActionGesture.Seek) {
-                        if (!isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleRightDoubleTap()
-                    }
-                    "left" -> {
-                      val leftGesture = gesturePreferences.leftSingleActionGesture.get()
-                      if (leftGesture == SingleActionGesture.Seek) {
-                        if (isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleLeftDoubleTap()
-                    }
-                    "center" -> {
-                      viewModel.handleCenterDoubleTap()
-                    }
-                  }
-                } else if (tapCount == 0 || timeSinceLastTap >= doubleTapTimeout) {
-                  // Single tap or timed out - start new tap sequence. The chrome toggle itself was
-                  // already committed on DOWN; here we only run the configured instant single-tap
-                  // action, which must wait for the lift so a double tap doesn't fire it as well.
-                  tapCount = 1
-                  lastTapTime = downTime
-                  lastTapPosition = downPosition
-                  lastTapRegion = region
-                  wasConsumedByTapGesture = true
-                  pointer.consume()
-
-                  // The chrome was already left untouched on DOWN for this case, so the action is
-                  // the only thing left to do.
-                  if (tapIsSpentOnAction && !longPressTriggeredDuringTouch) {
-                    if (areControlsLocked) {
-                      viewModel.showControls()
-                    } else {
-                      when (region) {
-                        "center" -> viewModel.handleCenterSingleTap()
-                        "left" -> viewModel.handleLeftSingleTap()
-                        "right" -> viewModel.handleRightSingleTap()
-                      }
-                    }
-                  }
-                }
-              }
-              break
-            }
+            if (!pointer.pressed) break
           } while (event.changes.any { it.pressed })
+
+          if (isDrag) {
+            if (!cancelled) tapChromeEngine.cancel()
+          } else {
+            tapChromeEngine.up(System.currentTimeMillis())
+          }
         }
       }
       .pointerInput(areControlsLocked, multipleSpeedGesture, brightnessGesture, volumeGesture, longPressSpeedMemoryMode, mediaIdentifier) {
@@ -516,9 +356,6 @@ fun GestureHandler(
           val down = awaitFirstDown(requireUnconsumed = false)
           if (subtitleGate.isCandidate) return@awaitEachGesture // this touch belongs to a subtitle
           val startPosition = down.position
-
-          // Reset long press tracking at the start of each gesture
-          longPressTriggeredDuringTouch = false
 
           // State for vertical gestures (volume/brightness)
           var startingY = 0f
@@ -551,7 +388,8 @@ fun GestureHandler(
                 longPressTriggered = true
                 isLongPressing = true
                 longPressStartTime = System.currentTimeMillis()
-                longPressTriggeredDuringTouch = true
+                // A hold is not a tap, so drop any speculative chrome feedback from its DOWN.
+                tapChromeEngine.cancel()
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 originalSpeed = playbackSpeed ?: 1f
                 val targetSpeed = when (longPressSpeedMemoryMode) {

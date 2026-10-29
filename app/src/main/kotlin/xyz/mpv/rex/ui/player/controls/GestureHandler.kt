@@ -92,9 +92,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.sqrt
+
+/**
+ * How long a still touch must be held before it becomes a long press. Shared by the long-press job
+ * and the tap engine's lift check so the two can never disagree about what counts as a tap.
+ */
+private const val LongPressDelayMs = 500L
 
 @Suppress("CyclomaticComplexMethod", "MultipleEmitters")
 @Composable
@@ -324,8 +331,10 @@ fun GestureHandler(
       )
       .padding(horizontal = 16.dp, vertical = 16.dp)
       .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap) {
-        // Isolated double-tap detection that doesn't interfere with other gestures
-        if (isVerticalGestureActive) return@pointerInput
+        // Isolated double-tap detection that doesn't interfere with other gestures. The live value
+        // is read here rather than the remembered one: this block is keyed on a few values only,
+        // and a stale `true` would silently kill tap handling for the block's whole lifetime.
+        if (viewModel.isVerticalGestureActive.value) return@pointerInput
         // The tap engine needs the viewport to compute regions and the exclusion zone.
         tapViewportSize = size.toSize()
         awaitEachGesture {
@@ -337,8 +346,8 @@ fun GestureHandler(
           // Call-time stamp on the monotonic clock, matching the tick loop above.
           val tapDownTime = SystemClock.uptimeMillis()
 
-          // The engine decides everything on DOWN: whether this is a first tap, the second of a
-          // double, a seek continuation or a swallowed extra tap, and whether the chrome toggles.
+          // DOWN only classifies: whether this is a first tap, the second of a double, a seek
+          // continuation or a swallowed extra tap. Nothing is committed until the lift.
           tapChromeEngine.down(
             time = tapDownTime,
             x = downPosition.x,
@@ -346,35 +355,45 @@ fun GestureHandler(
             env = tapEnvNow(),
           )
 
-          var isDrag = false
-          var cancelled = false
+          // Default-deny: the gesture stays clean only while it remains a single pointer that never
+          // becomes a drag/pinch/long press. Every failure mode is folded into this one flag, so
+          // there is no per-gesture rollback call to forget.
+          var clean = true
+          var released = false
+          val slop = viewConfiguration.touchSlop
 
-          do {
+          while (true) {
             val event = awaitPointerEvent()
             val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
 
-            // The touch started on the subtitle and has now become a real drag/pinch: abandon the
-            // tap so we do not consume the pointer the subtitle recognizer is using.
-            if (subtitleGate.isActive) break
+            // A second finger means this was never a tap.
+            if (event.changes.count { it.pressed } > 1) clean = false
 
-            val distance = sqrt(
-              (pointer.position.x - downPosition.x) * (pointer.position.x - downPosition.x) +
-              (pointer.position.y - downPosition.y) * (pointer.position.y - downPosition.y)
-            )
-            if (distance > 10f && !isDrag) {
-              isDrag = true
-              // A drag is not a tap: roll back any speculative chrome feedback for this gesture.
-              if (!cancelled) { tapChromeEngine.cancel(); cancelled = true }
+            // The touch started on the subtitle and has now become a real drag/pinch: this gesture
+            // belongs to the subtitle recognizer. The lift itself is still seen below.
+            if (subtitleGate.isActive) {
+              clean = false
+              break
             }
 
-            if (!pointer.pressed) break
-          } while (event.changes.any { it.pressed })
+            if (hypot(pointer.position.x - downPosition.x, pointer.position.y - downPosition.y) > slop) {
+              clean = false
+            }
 
-          if (isDrag) {
-            if (!cancelled) tapChromeEngine.cancel()
-          } else {
-            tapChromeEngine.up(SystemClock.uptimeMillis())
+            if (!pointer.pressed) {
+              released = true
+              break
+            }
           }
+
+          val liftTime = SystemClock.uptimeMillis()
+          // Duration is checked here, not in the loop: a still hold emits no events at all, so a
+          // loop-local timer would never get the chance to fire.
+          tapChromeEngine.up(
+            time = liftTime,
+            env = tapEnvNow(),
+            cleanTap = clean && released && liftTime - tapDownTime < LongPressDelayMs,
+          )
         }
       }
       .pointerInput(areControlsLocked, multipleSpeedGesture, brightnessGesture, volumeGesture, longPressSpeedMemoryMode, mediaIdentifier) {
@@ -403,9 +422,8 @@ fun GestureHandler(
 
           // Track long press separately
           var longPressTriggered = false
-          val longPressDelay = 500L
           var longPressJob = coroutineScope.launch {
-            delay(longPressDelay)
+            delay(LongPressDelayMs)
             if (!longPressTriggered && paused == false) {
               val distance = sqrt(
                 (down.position.x - startPosition.x) * (down.position.x - startPosition.x) +
@@ -416,8 +434,8 @@ fun GestureHandler(
                 longPressTriggered = true
                 isLongPressing = true
                 longPressStartTime = System.currentTimeMillis()
-                // A hold is not a tap, so drop any speculative chrome feedback from its DOWN.
-                tapChromeEngine.cancel()
+                // A hold is not a tap. The chrome block withholds the commit on its own (it checks
+                // the same LongPressDelayMs at lift), so nothing needs rolling back here.
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 originalSpeed = playbackSpeed ?: 1f
                 val targetSpeed = when (longPressSpeedMemoryMode) {

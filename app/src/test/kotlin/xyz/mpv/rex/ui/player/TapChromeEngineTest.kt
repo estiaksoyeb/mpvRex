@@ -53,7 +53,11 @@ private class Rig(start: Boolean, private val c: TapConfig = cfg()) : TapChromeL
   fun down(t: Long, x: Float = 500f, y: Float = 400f) =
     engine.down(t, x, y, TapEnv(shown, locked, blocked))
 
-  fun up(t: Long) = engine.up(t)
+  fun up(t: Long, cleanTap: Boolean = true) =
+    engine.up(t, TapEnv(shown, locked, blocked), cleanTap)
+
+  /** An unclean gesture: the touch became a drag, a pinch or a long press before it lifted. */
+  fun unclean(start: Long = 60, hold: Long = 0) = up(start + hold, cleanTap = false)
 
   fun tapped(instance: String) = log.count { it == instance }
 
@@ -68,11 +72,13 @@ class TapChromeEngineTest {
   // 1, 2 ---------------------------------------------------------------------------------------
 
   @Test
-  fun singleTap_togglesOnDown_notOnLift() {
+  fun singleTap_togglesOnLift_notOnDown() {
     for (start in listOf(false, true)) {
       val r = Rig(start)
       r.down(0)
-      assertEquals("start=$start", listOf(chrome(!start)), r.log)
+      // Default-deny: landing the finger must not touch the chrome.
+      assertEquals("start=$start", emptyList<String>(), r.log)
+      assertEquals("start=$start", start, r.shown)
       r.up(60)
       assertEquals("start=$start", listOf(chrome(!start)), r.log)
       assertEquals("start=$start", !start, r.shown)
@@ -264,20 +270,24 @@ class TapChromeEngineTest {
       val r = Rig(start)
       r.tap(0)
       r.down(150)
-      r.engine.cancel()
+      r.unclean()
       assertEquals("start=$start", start, r.shown)
       assertEquals("start=$start", 0, r.tapped("center:double"))
+      // The first tap committed at its lift; DOWN2 then restored it. The unclean lift adds nothing.
+      assertEquals("start=$start", listOf(chrome(!start), chrome(start)), r.log)
     }
   }
 
   @Test
-  fun firstTapTurnsIntoDrag_rollsBack() {
+  fun firstTapTurnsIntoDrag_leavesTheChromeUntouched() {
     for (start in listOf(false, true)) {
       val r = Rig(start)
       r.down(0)
-      r.engine.cancel()
+      r.unclean()
+      // Nothing was ever committed, so there is nothing to roll back: no effect at all.
+      assertEquals("start=$start", emptyList<String>(), r.log)
       assertEquals("start=$start", start, r.shown)
-      assertEquals("start=$start", listOf(chrome(!start), chrome(start)), r.log)
+      assertEquals("start=$start", 0, r.engine.snapshotWrites)
     }
   }
 
@@ -334,6 +344,85 @@ class TapChromeEngineTest {
     // x=900 is physically right, but reverse makes it the "left" action.
     assertEquals(listOf("show", "hide", "left:double"), r.log)
     assertFalse(r.shown)
+  }
+
+  // 20 -----------------------------------------------------------------------------------------
+
+  @Test
+  fun longPress_togglesNothing_evenAfterTheDeadline() {
+    // A hold emits no pointer events at all, so the host's loop never sees a move: the only thing
+    // that can classify this as "not a tap" is the duration check at lift. Model that directly.
+    for (start in listOf(false, true)) {
+      val r = Rig(start)
+      r.down(0)
+      assertTrue("start=$start", r.engine.gestureOpen) // a still finger keeps the gesture open
+      assertEquals("start=$start", emptyList<String>(), r.log) // nothing shown while held
+      r.unclean(hold = 500) // lift well after the long-press deadline
+      assertFalse("start=$start", r.engine.gestureOpen)
+      assertEquals("start=$start", emptyList<String>(), r.log)
+      assertEquals("start=$start", start, r.shown)
+      assertEquals("start=$start", 0, r.engine.snapshotWrites)
+    }
+  }
+
+  @Test
+  fun tapJustUnderTheLongPressDeadline_stillCounts() {
+    // 499 ms is a tap; 500 ms is a hold. The host compares against the same constant.
+    val r = Rig(false)
+    r.down(0)
+    r.up(499)
+    assertEquals(listOf("show"), r.log)
+  }
+
+  @Test
+  fun uncleanGesture_isSilentForEveryKind() {
+    // Every classification goes through the same cleanTap gate, so a drag/pinch/long press can
+    // never reach the chrome no matter which tap of a sequence it interrupted.
+    data class Case(val name: String, val downAt: Long, val setup: (Rig) -> Unit)
+
+    val cases = listOf(
+      // First: a lone touch that never lifts as a tap.
+      Case("first", 1000L) { r -> r.tap(0) },
+      // SecondOfDouble: the second touch of a double turns into a drag.
+      Case("secondOfDouble", 150L) { r -> r.tap(0) },
+      // Continuation: an extra tap in a seek chain turns into a drag.
+      Case("continuation", 300L) { r ->
+        r.tap(0, x = 900f)
+        r.tap(150, x = 900f)
+      },
+      // Swallowed: a triple-tap tail turns into a drag.
+      Case("swallowed", 300L) { r ->
+        r.tap(0)
+        r.tap(150)
+      },
+    )
+
+    for (case in cases) {
+      val r = Rig(false, cfg(instantCenter = true))
+      case.setup(r)
+      val before = r.log.toList()
+      val writesBefore = r.engine.snapshotWrites
+      r.down(case.downAt)
+      r.unclean(case.downAt + 60)
+      // Nothing after the setup may have changed: no effect, no snapshot, no action.
+      assertEquals(case.name, before, r.log)
+      assertEquals(case.name, writesBefore, r.engine.snapshotWrites)
+    }
+  }
+
+  @Test
+  fun uncleanFirstTap_startsNoWindow() {
+    // An unclean gesture must not leave `count` at 1, or the next real tap would be treated as the
+    // second of a double against a gesture that never happened.
+    for (start in listOf(false, true)) {
+      val r = Rig(start)
+      r.down(0)
+      r.unclean()
+      r.tap(150)
+      assertEquals("start=$start", listOf(chrome(!start)), r.log)
+      assertEquals("start=$start", 1, r.engine.snapshotWrites)
+      assertEquals("start=$start", 0, r.tapped("center:double"))
+    }
   }
 
   @Test

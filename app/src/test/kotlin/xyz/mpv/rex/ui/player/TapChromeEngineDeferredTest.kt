@@ -55,7 +55,10 @@ private class DeferredRig(start: Boolean, val c: TapConfig = deferredCfg()) : Ta
 
   fun down(t: Long, x: Float = 500f, y: Float = 400f) = engine.down(t, x, y, env())
 
-  fun up(t: Long) = engine.up(t)
+  fun up(t: Long, cleanTap: Boolean = true) = engine.up(t, env(), cleanTap)
+
+  /** An unclean gesture: the touch became a drag, a pinch or a long press before it lifted. */
+  fun unclean(t: Long = 60) = up(t, cleanTap = false)
 
   /** Host loop: only wakes at the deadline the engine asked for. */
   fun tick(t: Long) = engine.tick(t, env())
@@ -247,24 +250,26 @@ class TapChromeEngineDeferredTest {
   }
 
   @Test
-  fun dragRollsBackBeforeAnythingWasToggled() {
+  fun uncleanGesture_queuesNothingAndTogglesNothing() {
     val r = DeferredRig(false)
     r.down(0)
-    r.engine.cancel()
+    r.unclean()
+    // Stronger than the old rollback: an unclean gesture never even queues a toggle.
     assertNull(r.requestsDeadline())
     r.tickUntilIdle(1000)
     assertTrue(r.log.isEmpty())
     assertEquals(false, r.shown)
+    assertEquals(0, r.engine.snapshotWrites)
   }
 
   @Test
   fun longPressOnSecondTap_flushesTheEarlierTapOnly() {
     // A press well after a tap is a fresh single tap, so it settles that tap's pending toggle;
-    // cancel() then drops its own. Only one effect may survive.
+    // the unclean lift then drops its own. Only one effect may survive.
     val r = DeferredRig(false)
     r.tap(1000)
     r.down(4000)
-    r.engine.cancel()
+    r.unclean(4600)
     r.tickUntilIdle(5000)
     assertTrue("at most one toggle", r.chromeEffects() <= 1)
   }
@@ -276,7 +281,7 @@ class TapChromeEngineDeferredTest {
     val r = DeferredRig(false)
     r.tap(0)
     r.down(200)
-    r.engine.cancel()
+    r.unclean(260)
     assertEquals(0, r.log.size) // never fires on DOWN; the engine has no timers
     r.tick(200)
     assertEquals(0, r.log.size) // neither an instant flush nor an early fire

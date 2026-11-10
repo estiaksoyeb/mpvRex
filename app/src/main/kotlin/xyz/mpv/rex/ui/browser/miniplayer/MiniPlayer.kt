@@ -152,8 +152,8 @@ fun MiniPlayer(
     visible = state.isPlaybackActive,
     // Docked to the bottom edge: grow and shrink on the same axis so the bar reads as attached
     // to the dock instead of flying in from below and leaving sideways.
-    enter = RexMotion.dockEnter(dockedToBottom = true),
-    exit = RexMotion.dockExit(dockedToBottom = true),
+    enter = RexMotion.dockEnter(LocalContext.current, dockedToBottom = true),
+    exit = RexMotion.dockExit(LocalContext.current, dockedToBottom = true),
     modifier = modifier,
   ) {
     val animatedHeight = lerp(MiniPlayerDefaults.CompactHeight, MiniPlayerDefaults.ExpandedHeight, fraction)

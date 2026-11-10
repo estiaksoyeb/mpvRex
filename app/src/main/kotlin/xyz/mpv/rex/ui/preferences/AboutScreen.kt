@@ -79,9 +79,14 @@ import xyz.mpv.rex.utils.update.UpdateViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.CircularProgressIndicator
+import xyz.mpv.rex.presentation.MotionStyle
 
 @Serializable
 object AboutScreen : Screen {
+  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  override val motion: MotionStyle
+    get() = MotionStyle.Slide
+
   override val transformSourceId: String
     get() = "settings:AboutScreen"
 
@@ -426,6 +431,10 @@ object AboutScreen : Screen {
 @Suppress("DEPRECATION")
 @Serializable
 object LibrariesScreen : Screen {
+  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  override val motion: MotionStyle
+    get() = MotionStyle.Slide
+
   override val transformSourceId: String
     get() = "settings:LibrariesScreen"
 

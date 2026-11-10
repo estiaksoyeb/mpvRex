@@ -109,6 +109,7 @@ import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.util.UUID
+import xyz.mpv.rex.presentation.MotionStyle
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data models
@@ -135,6 +136,10 @@ data class CustomButtonSlots(
 
 @Serializable
 object CustomButtonScreen : Screen {
+  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  override val motion: MotionStyle
+    get() = MotionStyle.Slide
+
   override val transformSourceId: String
     get() = "settings:CustomButtonScreen"
 

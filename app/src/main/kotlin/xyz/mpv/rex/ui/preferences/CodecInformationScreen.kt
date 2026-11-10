@@ -55,6 +55,7 @@ import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
+import xyz.mpv.rex.presentation.MotionStyle
 
 data class CodecInfoItem(
   val name: String,
@@ -156,6 +157,10 @@ enum class CodecFilter {
 
 @Serializable
 object CodecInformationScreen : Screen {
+  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  override val motion: MotionStyle
+    get() = MotionStyle.Slide
+
   override val transformSourceId: String
     get() = "settings:CodecInformationScreen"
 

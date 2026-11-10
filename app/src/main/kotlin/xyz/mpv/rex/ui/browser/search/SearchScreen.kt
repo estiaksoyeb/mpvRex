@@ -628,8 +628,8 @@ data class SearchScreen(
           // Floating Bottom Bar for multi-selection actions
           AnimatedVisibility(
             visible = showFloatingBottomBar,
-            enter = RexMotion.dockEnter(),
-          exit = RexMotion.dockExit(),
+            enter = RexMotion.dockEnter(LocalContext.current),
+          exit = RexMotion.dockExit(LocalContext.current),
             modifier = Modifier.align(Alignment.BottomCenter)
           ) {
             BrowserBottomBar(

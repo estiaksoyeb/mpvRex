@@ -70,6 +70,7 @@ import me.zhanghai.compose.preference.SliderPreference
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.preferences.components.PlayerButtonChip
 import org.koin.compose.koinInject
+import xyz.mpv.rex.presentation.MotionStyle
 
 // Enum to identify which region we are editing
 @Serializable
@@ -83,6 +84,10 @@ enum class ControlRegion {
 
 @Serializable
 object PlayerControlsPreferencesScreen : Screen {
+  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  override val motion: MotionStyle
+    get() = MotionStyle.Slide
+
   override val transformSourceId: String
     get() = "settings:PlayerControlsPreferencesScreen"
 

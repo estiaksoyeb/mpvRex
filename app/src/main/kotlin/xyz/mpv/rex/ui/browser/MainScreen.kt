@@ -383,8 +383,8 @@ object MainScreen : Screen {
         AnimatedVisibility(
             visible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1,
             // Dock expand: the navigation bar grows out of the bottom edge it is anchored to.
-            enter = RexMotion.dockEnter(),
-            exit = RexMotion.dockExit()
+            enter = RexMotion.dockEnter(LocalContext.current),
+            exit = RexMotion.dockExit(LocalContext.current)
           ) {
             val navBarBottomInset = NavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
             NavigationBar(

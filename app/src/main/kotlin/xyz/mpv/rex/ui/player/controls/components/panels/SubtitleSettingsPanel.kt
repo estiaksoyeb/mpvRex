@@ -218,8 +218,8 @@ private fun SubtitleSettingsSideSheet(
   ) {
     AnimatedVisibility(
       visible = isVisible,
-      enter = xyz.mpv.rex.ui.motion.RexMotion.panelEnter(fromEnd = true),
-      exit = xyz.mpv.rex.ui.motion.RexMotion.panelExit(fromEnd = true),
+      enter = xyz.mpv.rex.ui.motion.RexMotion.panelEnter(LocalContext.current, fromEnd = true),
+      exit = xyz.mpv.rex.ui.motion.RexMotion.panelExit(LocalContext.current, fromEnd = true),
     ) {
       Surface(
         modifier = modifier

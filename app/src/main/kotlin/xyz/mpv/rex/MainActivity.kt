@@ -37,6 +37,7 @@ import xyz.mpv.rex.ui.motion.rememberContainerTransformRegistry
 import xyz.mpv.rex.ui.motion.rememberWindowHeightPx
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
+import xyz.mpv.rex.presentation.MotionStyle
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.repository.NetworkRepository
 import xyz.mpv.rex.utils.update.UpdateDialog
@@ -78,6 +79,15 @@ val LocalUpdateViewModel = staticCompositionLocalOf<UpdateViewModel?> { null }
  */
 private fun sourceIdOf(scene: androidx.navigation3.scene.Scene<*>): String? =
   (scene.entries.lastOrNull()?.contentKey as? String)?.takeIf { it != "root" }
+
+/**
+ * Motion the scene's screen asked for via [xyz.mpv.rex.presentation.Screen.motion].
+ *
+ * A scene's key is the screen on the backstack; anything that is not a [Screen] (or an empty
+ * stack during a pop) falls back to the app default rather than failing a transition.
+ */
+private fun motionStyleOf(scene: androidx.navigation3.scene.Scene<*>): MotionStyle =
+  (scene.key as? Screen)?.motion ?: MotionStyle.Fade
 
 
 /**
@@ -262,21 +272,37 @@ class MainActivity : ComponentActivity() {
             NavEntry(route, contentKey = route.transformSourceId ?: "root") { route.Content() }
           },
           popTransitionSpec = {
-            val source = containerTransformRegistry.find(sourceIdOf(initialState))
-            RexMotion.navTransition(context, forward = false, source = source)
-              .let { (enter, exit) -> enter togetherWith exit }
+            RexMotion.screenTransition(
+              context = context,
+              forward = false,
+              style = motionStyleOf(initialState),
+              source = containerTransformRegistry.find(sourceIdOf(initialState)),
+            ).let { (enter, exit) -> enter togetherWith exit }
           },
           transitionSpec = {
-            val source = containerTransformRegistry.find(sourceIdOf(targetState))
-            RexMotion.navTransition(context, forward = true, source = source)
-              .let { (enter, exit) -> enter togetherWith exit }
+            RexMotion.screenTransition(
+              context = context,
+              forward = true,
+              style = motionStyleOf(targetState),
+              source = containerTransformRegistry.find(sourceIdOf(targetState)),
+            ).let { (enter, exit) -> enter togetherWith exit }
           },
           predictivePopTransitionSpec = { _ ->
             // Navigation 3 drives the gesture itself; this only decides the shape the departing
             // screen collapses into. See RexMotion.predictiveBackTransition.
-            val source = containerTransformRegistry.find(sourceIdOf(initialState))
-            RexMotion.predictiveBackTransition(context, source = source)
-              .let { (enter, exit) -> enter togetherWith exit }
+            // A screen that fades or slides has no collapse shape, so the gesture previews its
+            // own transition; only the container transform collapses toward its source card.
+            when (motionStyleOf(initialState)) {
+              MotionStyle.Slide ->
+                RexMotion.slideTransition(context, forward = false)
+              MotionStyle.Fade ->
+                RexMotion.fadeTransition(context)
+              MotionStyle.ContainerTransform ->
+                RexMotion.predictiveBackTransition(
+                  context,
+                  source = containerTransformRegistry.find(sourceIdOf(initialState)),
+                )
+            }.let { (enter, exit) -> enter togetherWith exit }
           },
         )
 

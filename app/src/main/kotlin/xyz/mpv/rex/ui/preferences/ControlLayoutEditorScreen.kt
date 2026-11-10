@@ -61,11 +61,16 @@ import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
+import xyz.mpv.rex.presentation.MotionStyle
 
 @Serializable
 data class ControlLayoutEditorScreen(
   val region: ControlRegion,
 ) : Screen {
+  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  override val motion: MotionStyle
+    get() = MotionStyle.Slide
+
   override val transformSourceId: String
     get() = "settings:ControlLayoutEditorScreen:${region.name}"
   @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)

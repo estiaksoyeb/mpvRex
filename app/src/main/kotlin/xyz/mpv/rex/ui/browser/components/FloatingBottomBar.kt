@@ -49,6 +49,7 @@ import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.motion.RexMotion
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Material 3 Floating Button Bar for file/folder operations
@@ -95,14 +96,14 @@ fun BrowserBottomBar(
     modifier = modifier.padding(bottom = animatedBottomPadding),
     // Dock expand: no vertical travel, the bar grows out of its docked edge. Scale is kept
     // small so it still reads as a distinct surface appearing.
-    enter = RexMotion.dockEnter() + scaleIn(
+    enter = RexMotion.dockEnter(LocalContext.current) + scaleIn(
       animationSpec = spring(
         dampingRatio = Spring.DampingRatioMediumBouncy,
         stiffness = Spring.StiffnessMediumLow
       ),
       initialScale = 0.92f
     ),
-    exit = RexMotion.dockExit() + scaleOut(
+    exit = RexMotion.dockExit(LocalContext.current) + scaleOut(
       animationSpec = spring(stiffness = Spring.StiffnessMedium),
       targetScale = 0.92f
     ),

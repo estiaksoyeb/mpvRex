@@ -78,6 +78,7 @@ import xyz.mpv.rex.presentation.components.OutlinedNumericChooser
 import xyz.mpv.rex.presentation.components.PlayerSheet
 import xyz.mpv.rex.ui.theme.spacing
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AudioDelayPanel(
@@ -170,8 +171,8 @@ private fun AudioDelaySideSheet(
   ) {
     AnimatedVisibility(
       visible = isVisible,
-      enter = xyz.mpv.rex.ui.motion.RexMotion.panelEnter(fromEnd = true),
-      exit = xyz.mpv.rex.ui.motion.RexMotion.panelExit(fromEnd = true),
+      enter = xyz.mpv.rex.ui.motion.RexMotion.panelEnter(LocalContext.current, fromEnd = true),
+      exit = xyz.mpv.rex.ui.motion.RexMotion.panelExit(LocalContext.current, fromEnd = true),
     ) {
       Surface(
         modifier = modifier

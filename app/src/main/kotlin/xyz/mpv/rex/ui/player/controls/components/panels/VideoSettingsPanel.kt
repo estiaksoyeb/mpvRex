@@ -85,6 +85,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun VideoSettingsPanel(
@@ -177,8 +178,8 @@ private fun VideoSettingsSideSheet(
   ) {
     AnimatedVisibility(
       visible = isVisible,
-      enter = xyz.mpv.rex.ui.motion.RexMotion.panelEnter(fromEnd = true),
-      exit = xyz.mpv.rex.ui.motion.RexMotion.panelExit(fromEnd = true),
+      enter = xyz.mpv.rex.ui.motion.RexMotion.panelEnter(LocalContext.current, fromEnd = true),
+      exit = xyz.mpv.rex.ui.motion.RexMotion.panelExit(LocalContext.current, fromEnd = true),
     ) {
       Surface(
         modifier = modifier

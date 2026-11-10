@@ -664,8 +664,8 @@ data class VideoListScreen(
         // Play Store gating is intentionally bypassed here.
         AnimatedVisibility(
           visible = showFloatingBottomBar,
-          enter = RexMotion.dockEnter(),
-          exit = RexMotion.dockExit(),
+          enter = RexMotion.dockEnter(LocalContext.current),
+          exit = RexMotion.dockExit(LocalContext.current),
           modifier = Modifier.align(Alignment.BottomCenter)
         ) {
           BrowserBottomBar(

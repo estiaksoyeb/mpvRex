@@ -88,9 +88,14 @@ import android.net.Uri
 import xyz.mpv.rex.repository.wyzie.WyzieLanguages
 import xyz.mpv.rex.utils.media.SubtitleEncodingUtils
 import org.koin.compose.koinInject
+import xyz.mpv.rex.presentation.MotionStyle
 
 @Serializable
 object SubtitlesPreferencesScreen : Screen {
+  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  override val motion: MotionStyle
+    get() = MotionStyle.Slide
+
   override val transformSourceId: String
     get() = "settings:SubtitlesPreferencesScreen"
 

@@ -773,8 +773,8 @@ object FolderListScreen : Screen {
       Box(modifier = Modifier.fillMaxSize()) {
         AnimatedVisibility(
           visible = selectionManager.isInSelectionMode,
-          enter = RexMotion.dockEnter(),
-          exit = RexMotion.dockExit(),
+          enter = RexMotion.dockEnter(LocalContext.current),
+          exit = RexMotion.dockExit(LocalContext.current),
           modifier = Modifier.align(Alignment.BottomCenter),
         ) {
           BrowserBottomBar(

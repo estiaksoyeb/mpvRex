@@ -176,6 +176,7 @@ data class VideoListScreen(
     val videos by viewModel.videos.collectAsState()
     val videosWithPlaybackInfo by viewModel.videosWithPlaybackInfo.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val hasLoaded by viewModel.hasLoaded.collectAsState()
     val uiSettings by viewModel.uiSettings.collectAsState()
     val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
     val recentlyPlayedPaths by viewModel.recentlyPlayedPaths.collectAsState()
@@ -620,7 +621,8 @@ data class VideoListScreen(
         VideoListContent(
           folderId = bucketId,
           videosWithInfo = sortedVideosWithInfo,
-          isLoading = isLoading && videos.isEmpty(),
+          isLoading = isLoading,
+          hasLoaded = hasLoaded,
           uiSettings = uiSettings,
           isRefreshing = isRefreshing,
           recentlyPlayedFilePath = lastPlayedInFolderPath ?: recentlyPlayedFilePath,
@@ -865,6 +867,7 @@ fun VideoListContent(
   folderId: String,
   videosWithInfo: List<VideoWithPlaybackInfo>,
   isLoading: Boolean,
+  hasLoaded: Boolean = !isLoading || videosWithInfo.isNotEmpty(),
   uiSettings: UiSettings,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
   recentlyPlayedFilePath: String?,
@@ -915,6 +918,7 @@ fun VideoListContent(
     UnifiedExplorerContent(
       items = videosWithInfo,
       isLoading = isLoading,
+      hasLoaded = hasLoaded,
       uiSettings = uiSettings,
       isSelected = { selectionManager.isSelected(it.video) },
       onClick = { onVideoClick(it.video) },

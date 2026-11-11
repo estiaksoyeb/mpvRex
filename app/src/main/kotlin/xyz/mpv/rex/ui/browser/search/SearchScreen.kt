@@ -564,6 +564,7 @@ data class SearchScreen(
         UnifiedExplorerContent(
           items = searchResults,
           isLoading = isSearchLoading,
+          hasLoaded = !isSearchLoading,
           uiSettings = uiSettings,
           isSelected = { item ->
             when (item) {

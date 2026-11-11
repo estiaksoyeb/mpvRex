@@ -137,6 +137,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
     val videoItems by viewModel.videoItems.collectAsState()
     val videos = videoItems.map { it.video }
     val isLoading by viewModel.isLoading.collectAsState()
+    val hasLoaded by viewModel.hasLoaded.collectAsState()
     val uiSettings by viewModel.uiSettings.collectAsState()
     val isRefreshing = remember { mutableStateOf(false) }
 
@@ -542,7 +543,8 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
         ) {
           PlaylistVideoListContent(
             videoItems = filteredVideoItems,
-            isLoading = isLoading && videoItems.isEmpty(),
+            isLoading = isLoading,
+            hasLoaded = hasLoaded,
             uiSettings = uiSettings,
             selectionManager = selectionManager,
             isM3uPlaylist = playlist?.isM3uPlaylist == true,
@@ -634,6 +636,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
 private fun PlaylistVideoListContent(
   videoItems: List<PlaylistVideoItem>,
   isLoading: Boolean,
+  hasLoaded: Boolean = !isLoading || videoItems.isNotEmpty(),
   uiSettings: UiSettings,
   selectionManager: xyz.mpv.rex.ui.browser.selection.SelectionManager<PlaylistVideoItem, Int>,
   isReorderMode: Boolean,
@@ -651,6 +654,7 @@ private fun PlaylistVideoListContent(
     UnifiedExplorerContent(
       items = videoItems,
       isLoading = isLoading,
+      hasLoaded = hasLoaded,
       uiSettings = uiSettings,
       isSelected = { selectionManager.isSelected(it) },
       onClick = onVideoItemClick,

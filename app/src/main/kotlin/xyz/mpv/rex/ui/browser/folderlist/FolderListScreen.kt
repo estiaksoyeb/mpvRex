@@ -969,7 +969,8 @@ private fun FolderListContent(
   ContentSurfaceContainer(navigationBarHeight = navigationBarHeight) {
     UnifiedExplorerContent(
       items = folders,
-      isLoading = showLoading,
+      isLoading = isLoading,
+      hasLoaded = hasCompletedInitialLoad,
       uiSettings = uiSettings,
       isSelected = { selectionManager.isSelected(it) },
       onClick = { onFolderClick(it) },

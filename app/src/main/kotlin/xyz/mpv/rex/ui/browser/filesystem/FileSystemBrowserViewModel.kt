@@ -389,6 +389,7 @@ class FileSystemBrowserViewModel(
       if (cachedFolders.isNotEmpty() && _unsortedItems.value.isEmpty()) {
         _unsortedItems.value = cachedFolders
         _isLoading.value = false
+        _hasLoaded.value = true
       }
     } catch (e: Exception) {
       Log.d(TAG, "Cache-first snapshot load skipped", e)
@@ -416,6 +417,7 @@ class FileSystemBrowserViewModel(
           val roots = MediaFileRepository.getStorageRoots(getApplication())
           _unsortedItems.value = roots
           _isLoading.value = false
+          _hasLoaded.value = true
         } else {
           MediaFileRepository
             .scanDirectory(getApplication(), path, showAllFileTypes = false)
@@ -474,6 +476,7 @@ class FileSystemBrowserViewModel(
               _watchedVideoIds.value = badges.watchedIds
               _unsortedItems.value = decorated
               _isLoading.value = false
+              _hasLoaded.value = true
 
               // Decide whether enrichment is needed from the metadata we already have.
               val videosNeedingEnrichment = videoFiles.filter { file ->
@@ -536,6 +539,7 @@ class FileSystemBrowserViewModel(
       } finally {
         if (coroutineContext.isActive) {
           _isLoading.value = false
+          _hasLoaded.value = true
         }
       }
     }

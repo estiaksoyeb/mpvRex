@@ -67,8 +67,7 @@ class FolderListViewModel(
   val foldersWithNewCount: StateFlow<List<FolderWithNewCount>> = _foldersWithNewCount.asStateFlow()
 
   // Track if initial load has completed to prevent empty state flicker
-  private val _hasCompletedInitialLoad = MutableStateFlow(false)
-  val hasCompletedInitialLoad: StateFlow<Boolean> = _hasCompletedInitialLoad.asStateFlow()
+  val hasCompletedInitialLoad: StateFlow<Boolean> = hasLoaded
 
   // Track if folders were deleted leaving list empty
   private val _foldersWereDeleted = MutableStateFlow(false)
@@ -99,7 +98,7 @@ class FolderListViewModel(
 
     if (hasCachedData) {
       // If we have cached data, show it immediately and refresh silently in background
-      _hasCompletedInitialLoad.value = true
+      _hasLoaded.value = true
       _isLoading.value = false
       viewModelScope.launch(Dispatchers.IO) {
         loadData() 
@@ -296,7 +295,7 @@ class FolderListViewModel(
       } finally {
         if (coroutineContext.isActive) {
           _isLoading.value = false
-          _hasCompletedInitialLoad.value = true
+          _hasLoaded.value = true
         }
       }
     }

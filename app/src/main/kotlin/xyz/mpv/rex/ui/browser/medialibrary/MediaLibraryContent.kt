@@ -133,6 +133,7 @@ fun MediaLibraryContent() {
   val videos by viewModel.videos.collectAsState()
   val videosWithPlaybackInfo by viewModel.videosWithPlaybackInfo.collectAsState()
   val isLoading by viewModel.isLoading.collectAsState()
+  val hasLoaded by viewModel.hasLoaded.collectAsState()
   val uiSettings by viewModel.uiSettings.collectAsState()
   val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
   val recentlyPlayedFilePaths by viewModel.recentlyPlayedFilePaths.collectAsState()
@@ -528,7 +529,8 @@ fun MediaLibraryContent() {
       VideoListContent(
         folderId = "media_library",
         videosWithInfo = displayVideos,
-        isLoading = isLoading && videos.isEmpty(),
+        isLoading = isLoading,
+        hasLoaded = hasLoaded,
         uiSettings = uiSettings,
         isRefreshing = isRefreshing,
         recentlyPlayedFilePath = recentlyPlayedFilePath,

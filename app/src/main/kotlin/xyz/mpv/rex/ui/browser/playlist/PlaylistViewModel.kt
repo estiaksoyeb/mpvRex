@@ -40,8 +40,7 @@ class PlaylistViewModel(
   val playlistsWithCount: StateFlow<List<PlaylistWithCount>> = items
 
   // Track if initial load has completed to prevent empty state flicker
-  private val _hasCompletedInitialLoad = MutableStateFlow(false)
-  val hasCompletedInitialLoad: StateFlow<Boolean> = _hasCompletedInitialLoad.asStateFlow()
+  val hasCompletedInitialLoad: StateFlow<Boolean> = hasLoaded
 
   companion object {
     private const val TAG = "PlaylistViewModel"
@@ -136,7 +135,7 @@ class PlaylistViewModel(
         }.sortedByDescending { it.playlist.updatedAt }
 
         _items.value = autoPlaylists + playlistsWithCounts
-        _hasCompletedInitialLoad.value = true
+        _hasLoaded.value = true
       } finally {
         _isLoading.value = false
       }

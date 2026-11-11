@@ -213,6 +213,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val newVideoIds by viewModel.newVideoIds.collectAsState()
   val watchedVideoIds by viewModel.watchedVideoIds.collectAsState()
   val isLoading by viewModel.isLoading.collectAsState()
+  val hasLoaded by viewModel.hasLoaded.collectAsState()
   val uiSettings by viewModel.uiSettings.collectAsState()
   val error by viewModel.error.collectAsState()
   val isAtRoot by viewModel.isAtRoot.collectAsState()
@@ -862,7 +863,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
               videoFilesWithPlayback = videoFilesWithPlayback,
               newVideoIds = newVideoIds,
               watchedVideoIds = watchedVideoIds,
-              isLoading = isLoading && items.isEmpty(),
+              isLoading = isLoading,
+              hasLoaded = hasLoaded,
               uiSettings = uiSettings,
               isRefreshing = isRefreshing,
               error = error,
@@ -1299,6 +1301,7 @@ private fun FileSystemBrowserContent(
   newVideoIds: Set<Long>,
   watchedVideoIds: Set<Long>,
   isLoading: Boolean,
+  hasLoaded: Boolean = !isLoading || items.isNotEmpty(),
   uiSettings: UiSettings,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
   error: String?,
@@ -1382,6 +1385,7 @@ private fun FileSystemBrowserContent(
       UnifiedExplorerContent(
       items = items,
       isLoading = isLoading,
+      hasLoaded = hasLoaded,
       uiSettings = uiSettings,
       isSelected = { item ->
         when (item) {

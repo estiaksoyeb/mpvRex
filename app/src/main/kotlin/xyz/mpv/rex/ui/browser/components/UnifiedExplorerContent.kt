@@ -1,8 +1,17 @@
 package xyz.mpv.rex.ui.browser.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -68,6 +77,7 @@ val LocalRecentlyPlayedFilePaths = compositionLocalOf<Set<String>> { emptySet() 
 fun <T> UnifiedExplorerContent(
   items: List<T>,
   isLoading: Boolean,
+  hasLoaded: Boolean = !isLoading || items.isNotEmpty(),
   uiSettings: UiSettings,
   isSelected: (T) -> Boolean,
   onClick: (T) -> Unit,
@@ -149,31 +159,54 @@ fun <T> UnifiedExplorerContent(
     label = "explorerBottomContentPadding"
   )
 
-  if (isLoading && items.isEmpty()) {
-    Box(
-      modifier = modifier
-        .fillMaxSize()
-        .padding(bottom = 64.dp),
-      contentAlignment = Alignment.Center,
-    ) {
-      CircularProgressIndicator(
-        modifier = Modifier.size(48.dp),
-        color = MaterialTheme.colorScheme.primary,
-      )
+  val wasInitiallyEmpty = remember { items.isEmpty() }
+
+  // Delay the spinner so fast loads (<300ms) show a clean background rather than a jarring flash.
+  var showSpinner by remember { mutableStateOf(false) }
+  LaunchedEffect(isLoading, items.isEmpty()) {
+    if (isLoading && items.isEmpty()) {
+      delay(300L)
+      showSpinner = true
+    } else {
+      showSpinner = false
     }
-  } else if (items.isEmpty()) {
-    if (useContentSurface) {
-      Surface(
-        modifier = modifier.fillMaxSize(),
-        shape = RoundedCornerShape(20.dp),
-        color = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
-          androidx.compose.ui.graphics.Color.Black
-        } else {
-          MaterialTheme.colorScheme.surface
-        },
-      ) {
+  }
+
+  if (items.isEmpty()) {
+    if (hasLoaded && !showSpinner) {
+      val emptyAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "explorerEmptyAlpha"
+      )
+      if (useContentSurface) {
+        Surface(
+          modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = emptyAlpha },
+          shape = RoundedCornerShape(20.dp),
+          color = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+            androidx.compose.ui.graphics.Color.Black
+          } else {
+            MaterialTheme.colorScheme.surface
+          },
+        ) {
+          Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+          ) {
+            EmptyState(
+              icon = emptyIcon,
+              title = emptyTitle,
+              message = emptyMessage,
+            )
+          }
+        }
+      } else {
         Box(
-          modifier = Modifier.fillMaxSize(),
+          modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = emptyAlpha },
           contentAlignment = Alignment.Center,
         ) {
           EmptyState(
@@ -188,14 +221,33 @@ fun <T> UnifiedExplorerContent(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
       ) {
-        EmptyState(
-          icon = emptyIcon,
-          title = emptyTitle,
-          message = emptyMessage,
-        )
+        AnimatedVisibility(
+          visible = showSpinner,
+          enter = fadeIn(tween(durationMillis = 150)),
+          exit = fadeOut(tween(durationMillis = 100)),
+        ) {
+          Box(
+            modifier = Modifier
+              .fillMaxSize()
+              .padding(bottom = 64.dp),
+            contentAlignment = Alignment.Center,
+          ) {
+            CircularProgressIndicator(
+              modifier = Modifier.size(48.dp),
+              color = MaterialTheme.colorScheme.primary,
+            )
+          }
+        }
       }
     }
   } else {
+    val contentAlpha = remember { Animatable(if (wasInitiallyEmpty) 0f else 1f) }
+    LaunchedEffect(Unit) {
+      if (contentAlpha.value < 1f) {
+        contentAlpha.animateTo(1f, animationSpec = tween(durationMillis = 120, easing = LinearEasing))
+      }
+    }
+
     val safeItems = remember(items) {
       items.distinctBy { getItemId(it) }
     }
@@ -959,12 +1011,18 @@ fun <T> UnifiedExplorerContent(
         PullRefreshBox(
           isRefreshing = isRefreshing,
           onRefresh = onRefresh,
-          modifier = modifier.fillMaxSize(),
+          modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = contentAlpha.value },
           headerScrollState = headerScrollState,
           content = contentBlock
         )
       } else {
-        Box(modifier = modifier.fillMaxSize()) {
+        Box(
+          modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = contentAlpha.value }
+        ) {
           contentBlock()
         }
       }

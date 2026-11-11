@@ -34,7 +34,8 @@ import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
-import xyz.mpv.rex.preferences.MultiChoiceSegmentedButton
+import xyz.mpv.rex.ui.preferences.components.ExpressiveSegmentedButton
+import xyz.mpv.rex.ui.preferences.components.ExpressiveSegmentedButtonCompact
 import xyz.mpv.rex.ui.preferences.components.ThemePicker
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import xyz.mpv.rex.preferences.preference.collectAsState
@@ -45,8 +46,6 @@ import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.theme.DarkMode
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
@@ -171,10 +170,13 @@ object AppearancePreferencesScreen : Screen {
                                 ),
                             ) {
                                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                                    MultiChoiceSegmentedButton(
-                                        choices = DarkMode.entries.map { stringResource(it.titleRes) }.toImmutableList(),
-                                        selectedIndices = persistentListOf(DarkMode.entries.indexOf(darkMode)),
-                                        onClick = { preferences.darkMode.set(DarkMode.entries[it]) },
+                                    ExpressiveSegmentedButton(
+                                        options = DarkMode.entries.map { stringResource(it.titleRes) },
+                                        selectedIndex = DarkMode.entries.indexOf(darkMode),
+                                        onSelect = { preferences.darkMode.set(DarkMode.entries[it]) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp),
                                     )
                                     ThemePicker(
                                         currentTheme = appTheme,
@@ -195,7 +197,7 @@ object AppearancePreferencesScreen : Screen {
                                         enabled = darkMode != DarkMode.Light,
                                     )
                                     val settingsBadgeShape by preferences.settingsBadgeShape.collectAsState()
-                                    val badgeChoices = persistentListOf("Squircle", "Circle")
+                                    val badgeChoices = listOf("Squircle", "Circle")
                                     val selectedBadgeIndex = if (settingsBadgeShape == "CIRCLE") 1 else 0
                                     Spacer(modifier = Modifier.padding(top = 8.dp))
                                     Text(
@@ -204,12 +206,13 @@ object AppearancePreferencesScreen : Screen {
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
                                     )
-                                    MultiChoiceSegmentedButton(
-                                        choices = badgeChoices,
-                                        selectedIndices = persistentListOf(selectedBadgeIndex),
-                                        onClick = { idx ->
+                                    ExpressiveSegmentedButtonCompact(
+                                        options = badgeChoices,
+                                        selectedIndex = selectedBadgeIndex,
+                                        onSelect = { idx ->
                                             preferences.settingsBadgeShape.set(if (idx == 1) "CIRCLE" else "SQUIRCLE")
                                         },
+                                        modifier = Modifier.padding(horizontal = 16.dp),
                                     )
                                 }
                             }

@@ -50,7 +50,6 @@ import xyz.mpv.rex.jellyfin.remote.JellyfinRemoteClient
 import xyz.mpv.rex.jellyfin.remote.JellyfinRemoteService
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
-import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
@@ -96,7 +95,6 @@ object JellyfinSettingsScreen : Screen {
         modifier = contentModifier
           .fillMaxSize()
           .verticalScroll(scrollState)
-          .edgeBlend(scrollState, 16.dp)
           .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {

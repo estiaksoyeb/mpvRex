@@ -59,7 +59,6 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
-import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.presentation.crash.CrashActivity.Companion.collectDeviceInfo
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
@@ -147,8 +146,7 @@ object AboutScreen : Screen {
         Column(
           modifier =
             contentModifier
-              .verticalScroll(scrollState)
-              .edgeBlend(scrollState, 16.dp),
+              .verticalScroll(scrollState),
         ) {
           GroupedListColumn {
             GroupedPreferenceCard(position = GroupPosition.ONLY, color = cardColor, tonalElevation = 0.dp) {

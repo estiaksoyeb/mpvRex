@@ -19,6 +19,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
@@ -48,6 +49,13 @@ import xyz.mpv.rex.presentation.MotionStyle
  */
 object RexMotion {
   private val scheme: MotionScheme = MotionScheme.expressive()
+
+  /**
+   * Live-tunable motion parameters.
+   * Can be altered on the fly by the Motion Tuning preferences without rebuilding.
+   */
+  @Volatile
+  var tuning: MotionTuning = MotionTuning()
 
   /** True when the user has not turned system animations off. */
   fun animationsEnabled(context: android.content.Context): Boolean {
@@ -111,9 +119,13 @@ object RexMotion {
     if (!animationsEnabled(context)) return fadeTransition(context)
     val enterCurve = EaseOutCubic
     val exitCurve = EaseInCubic
-    val enterDuration = 380
-    val exitDuration = 320
-    val fadeDuration = 280
+    val enterDuration = tuning.parallaxEnterDuration
+    val exitDuration = tuning.parallaxExitDuration
+    val fadeDuration = tuning.parallaxFadeDuration
+    val fadeDelay = tuning.parallaxFadeDelay
+    val inScale = tuning.parallaxInitialScale
+    val outScale = tuning.parallaxRecedingScale
+    val divisor = tuning.parallaxDivisor.coerceAtLeast(1)
 
     return if (forward) {
       val enter = slideInHorizontally(
@@ -121,41 +133,49 @@ object RexMotion {
         initialOffsetX = { it },
       ) + scaleIn(
         animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = 0.92f,
-      ) + fadeIn(
-        animationSpec = tween(fadeDuration, delayMillis = 40, easing = LinearEasing),
-      )
+        initialScale = inScale,
+      ) + (if (fadeDuration > 0) {
+        fadeIn(animationSpec = tween(enterDuration - fadeDelay, delayMillis = fadeDelay, easing = FastOutSlowInEasing))
+      } else {
+        EnterTransition.None
+      })
 
       val exit = slideOutHorizontally(
         animationSpec = tween(exitDuration, easing = exitCurve),
-        targetOffsetX = { -it / 4 },
+        targetOffsetX = { -it / divisor },
       ) + scaleOut(
         animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = 0.96f,
-      ) + fadeOut(
-        animationSpec = tween(fadeDuration, easing = LinearEasing),
-      )
+        targetScale = outScale,
+      ) + (if (fadeDuration > 0) {
+        fadeOut(animationSpec = tween(fadeDuration, easing = FastOutSlowInEasing))
+      } else {
+        ExitTransition.None
+      })
       enter to exit
     } else {
       val enter = slideInHorizontally(
         animationSpec = tween(enterDuration, easing = enterCurve),
-        initialOffsetX = { -it / 4 },
+        initialOffsetX = { -it / divisor },
       ) + scaleIn(
         animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = 0.96f,
-      ) + fadeIn(
-        animationSpec = tween(fadeDuration, delayMillis = 40, easing = LinearEasing),
-      )
+        initialScale = outScale,
+      ) + (if (fadeDuration > 0) {
+        fadeIn(animationSpec = tween(enterDuration - fadeDelay, delayMillis = fadeDelay, easing = FastOutSlowInEasing))
+      } else {
+        EnterTransition.None
+      })
 
       val exit = slideOutHorizontally(
         animationSpec = tween(exitDuration, easing = exitCurve),
         targetOffsetX = { it },
       ) + scaleOut(
         animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = 0.92f,
-      ) + fadeOut(
-        animationSpec = tween(fadeDuration, easing = LinearEasing),
-      )
+        targetScale = inScale,
+      ) + (if (fadeDuration > 0) {
+        fadeOut(animationSpec = tween(fadeDuration, easing = FastOutSlowInEasing))
+      } else {
+        ExitTransition.None
+      })
       enter to exit
     }
   }
@@ -171,19 +191,21 @@ object RexMotion {
     if (!animationsEnabled(context)) return fadeTransition(context)
     val enterCurve = EaseOutCubic
     val exitCurve = EaseInCubic
-    val enterDuration = 300
-    val exitDuration = 250
+    val enterDuration = tuning.sharedZEnterDuration
+    val exitDuration = tuning.sharedZExitDuration
+    val inScale = tuning.sharedZInitialScale
+    val outScale = tuning.sharedZTargetScale
 
     return if (forward) {
       val enter = scaleIn(
         animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = 0.88f,
+        initialScale = inScale,
       ) + fadeIn(
         animationSpec = tween(enterDuration, easing = LinearEasing),
       )
       val exit = scaleOut(
         animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = 1.08f,
+        targetScale = outScale,
       ) + fadeOut(
         animationSpec = tween(exitDuration, easing = LinearEasing),
       )
@@ -191,13 +213,13 @@ object RexMotion {
     } else {
       val enter = scaleIn(
         animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = 1.08f,
+        initialScale = outScale,
       ) + fadeIn(
         animationSpec = tween(enterDuration, easing = LinearEasing),
       )
       val exit = scaleOut(
         animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = 0.88f,
+        targetScale = inScale,
       ) + fadeOut(
         animationSpec = tween(exitDuration, easing = LinearEasing),
       )
@@ -243,11 +265,13 @@ object RexMotion {
     forward: Boolean,
   ): Pair<EnterTransition, ExitTransition> {
     if (!animationsEnabled(context)) return fadeTransition(context)
-    val spec = tween<IntOffset>(durationMillis = SLIDE_MILLIS)
-    val effects = tween<Float>(durationMillis = SLIDE_MILLIS)
+    val duration = tuning.slideDuration
+    val divisor = tuning.slideDivisor.coerceAtLeast(1)
+    val spec = tween<IntOffset>(durationMillis = duration)
+    val effects = tween<Float>(durationMillis = duration)
     val direction = if (forward) 1 else -1
-    val enter = fadeIn(effects) + slideIn(spec) { size -> IntOffset(direction * size.width / 2, 0) }
-    val exit = fadeOut(effects) + slideOut(spec) { size -> IntOffset(-direction * size.width / 2, 0) }
+    val enter = fadeIn(effects) + slideIn(spec) { size -> IntOffset(direction * size.width / divisor, 0) }
+    val exit = fadeOut(effects) + slideOut(spec) { size -> IntOffset(-direction * size.width / divisor, 0) }
     return enter to exit
   }
 

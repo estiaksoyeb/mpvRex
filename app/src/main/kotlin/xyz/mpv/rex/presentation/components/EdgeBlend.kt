@@ -39,7 +39,8 @@ fun Modifier.edgeBlend(
     val canScrollBackward by remember { derivedStateOf { lazyListState.canScrollBackward } }
     val canScrollForward by remember { derivedStateOf { lazyListState.canScrollForward } }
 
-    this.graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    val needsOffscreen = canScrollBackward || canScrollForward
+    this.graphicsLayer(compositingStrategy = if (needsOffscreen) CompositingStrategy.Offscreen else CompositingStrategy.Auto)
         .drawWithContent {
             drawContent()
             val fadePx = fadeHeight.toPx()
@@ -66,7 +67,8 @@ fun Modifier.edgeBlend(
     val canScrollBackward by remember { derivedStateOf { lazyGridState.canScrollBackward } }
     val canScrollForward by remember { derivedStateOf { lazyGridState.canScrollForward } }
 
-    this.graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    val needsOffscreen = canScrollBackward || canScrollForward
+    this.graphicsLayer(compositingStrategy = if (needsOffscreen) CompositingStrategy.Offscreen else CompositingStrategy.Auto)
         .drawWithContent {
             drawContent()
             val fadePx = fadeHeight.toPx()
@@ -93,7 +95,8 @@ fun Modifier.edgeBlend(
     val canScrollBackward by remember { derivedStateOf { scrollState.canScrollBackward } }
     val canScrollForward by remember { derivedStateOf { scrollState.canScrollForward } }
 
-    this.graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    val needsOffscreen = canScrollBackward || canScrollForward
+    this.graphicsLayer(compositingStrategy = if (needsOffscreen) CompositingStrategy.Offscreen else CompositingStrategy.Auto)
         .drawWithContent {
             drawContent()
             val fadePx = fadeHeight.toPx()

@@ -44,7 +44,6 @@ import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.RexSettingsGroup
 import xyz.mpv.rex.presentation.components.RexSettingsItem
 import xyz.mpv.rex.presentation.components.SettingsPalettes
-import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.ui.icons.RexIcons
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
@@ -114,8 +113,7 @@ object PreferencesScreen : Screen {
         LazyColumn(
           state = listState,
           modifier = contentModifier
-            .padding(horizontal = 16.dp)
-            .edgeBlend(listState, 16.dp),
+            .padding(horizontal = 16.dp),
           contentPadding = PaddingValues(top = 8.dp, bottom = navBarHeight + 24.dp),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

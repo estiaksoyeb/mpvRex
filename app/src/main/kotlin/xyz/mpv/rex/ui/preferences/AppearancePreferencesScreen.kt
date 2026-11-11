@@ -39,7 +39,6 @@ import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
-import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.theme.DarkMode
@@ -54,7 +53,9 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.outlined.Edit
 import xyz.mpv.rex.ui.motion.MotionPresetDialog
+import xyz.mpv.rex.ui.motion.MotionTuningDialog
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -98,6 +99,7 @@ object AppearancePreferencesScreen : Screen {
         val context = LocalContext.current
         var showLanguageDialog by remember { mutableStateOf(false) }
         var showMotionDialog by remember { mutableStateOf(false) }
+        var showTuningDialog by remember { mutableStateOf(false) }
 
         val pageColor = MaterialTheme.colorScheme.surfaceContainer
         val cardColor = MaterialTheme.colorScheme.surface
@@ -113,7 +115,7 @@ object AppearancePreferencesScreen : Screen {
             ProvidePreferenceLocals {
                 LazyColumn(
                     state = listState,
-                    modifier = contentModifier.edgeBlend(listState, 16.dp),
+                    modifier = contentModifier,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
                 ) {
                     item {
@@ -257,7 +259,7 @@ object AppearancePreferencesScreen : Screen {
                         GroupedListColumn {
                             GroupedPreferenceCard(
                                 color = cardColor, tonalElevation = 0.dp,
-                                position = GroupPosition.ONLY,
+                                position = GroupPosition.FIRST,
                                 highlightKey = R.string.pref_appearance_motion_preset_title,
                             ) {
                                 Preference(
@@ -276,6 +278,29 @@ object AppearancePreferencesScreen : Screen {
                                         )
                                     },
                                     onClick = { showMotionDialog = true },
+                                )
+                            }
+
+                            GroupedPreferenceCard(
+                                color = cardColor, tonalElevation = 0.dp,
+                                position = GroupPosition.LAST,
+                            ) {
+                                Preference(
+                                    title = { Text(text = "Motion Lab (Toys)") },
+                                    summary = {
+                                        Text(
+                                            text = "Live tune duration, scale, and parallax intensity",
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    icon = {
+                                        Icon(
+                                            Icons.Outlined.Edit,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = { showTuningDialog = true },
                                 )
                             }
                         }
@@ -536,6 +561,13 @@ object AppearancePreferencesScreen : Screen {
                 currentPreset = motionPreset,
                 onSelect = { preferences.navigationMotionStyle.set(it) },
                 onDismiss = { showMotionDialog = false },
+            )
+        }
+
+        if (showTuningDialog) {
+            MotionTuningDialog(
+                preferences = preferences,
+                onDismiss = { showTuningDialog = false },
             )
         }
     }

@@ -58,7 +58,6 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
-import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
@@ -147,7 +146,7 @@ object PlayerControlsPreferencesScreen : Screen {
             ProvidePreferenceLocals {
                 LazyColumn(
                     state = listState,
-                    modifier = contentModifier.edgeBlend(listState, 16.dp),
+                    modifier = contentModifier,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
                 ) {
                     // Landscape Controls Section

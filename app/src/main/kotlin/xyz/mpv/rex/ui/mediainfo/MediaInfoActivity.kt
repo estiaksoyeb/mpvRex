@@ -65,7 +65,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
-import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.ui.theme.DarkMode
 import xyz.mpv.rex.ui.theme.MpvexTheme
@@ -328,7 +327,6 @@ class MediaInfoActivity : ComponentActivity() {
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(scrollState)
-        .edgeBlend(scrollState, 16.dp)
         .padding(16.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

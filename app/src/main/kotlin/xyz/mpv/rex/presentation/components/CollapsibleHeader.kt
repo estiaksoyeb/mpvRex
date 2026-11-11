@@ -1,5 +1,6 @@
 package xyz.mpv.rex.presentation.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -68,7 +69,7 @@ fun CollapsibleHeaderScreen(
     actions: @Composable RowScope.() -> Unit = {},
     headerContent: (@Composable () -> Unit)? = null,
     headerContentSpacing: Dp = 8.dp,
-    containerColor: Color = Color.Transparent,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     backButtonContainerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     backButtonContentColor: Color = MaterialTheme.colorScheme.onSurface,
     headerBlendHeight: Dp = 24.dp,
@@ -81,31 +82,27 @@ fun CollapsibleHeaderScreen(
         canScroll = { true }
     )
 
-    // Entrance animation state
+    // Entrance animation state - staggered content cascade to prevent Frame-0 layout stutter
     var showContent by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        delay(40)
+        delay(50)
         showContent = true
     }
 
     val contentAlpha by animateFloatAsState(
         targetValue = if (showContent) 1f else 0f,
-        animationSpec = tween(durationMillis = 350),
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = "collapsibleContentAlpha"
     )
 
     val contentOffset by animateFloatAsState(
-        targetValue = if (showContent) 0f else 24f,
-        animationSpec = tween(durationMillis = 400),
+        targetValue = if (showContent) 0f else 30f,
+        animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
         label = "collapsibleContentOffset"
     )
 
-    val headerBlendBaseColor = if (containerColor == Color.Transparent) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        containerColor
-    }
+    val headerBlendBaseColor = containerColor
 
     var expandedHeaderHeight by remember { mutableIntStateOf(0) }
 

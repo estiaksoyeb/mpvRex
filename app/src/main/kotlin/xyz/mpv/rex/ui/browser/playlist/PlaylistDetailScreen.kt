@@ -112,13 +112,6 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
  */
 @Serializable
 data class PlaylistDetailScreen(val playlistId: Int) : Screen {
-  override val transformSourceId: String
-    get() = "$TRANSFORM_PREFIX:$playlistId"
-
-  companion object {
-    /** Must match `UnifiedExplorerContent.playlistTransformSourcePrefix`. */
-    const val TRANSFORM_PREFIX = "playlist"
-  }
 
   @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
   @Composable

@@ -30,20 +30,16 @@ import xyz.mpv.rex.presentation.MotionStyle
 /**
  * One source of truth for app-wide motion.
  *
- * Three primitives, per docs/ui-design/ANIMATION_STAGES.md:
- *  - container transform: a tapped card expands into the pushed screen
- *  - shared X: scale + fade for pushes with no source card
- *  - dock expand: bottom bars / sheets grow from their docked edge
+ * Navigation style is chosen per screen ([MotionStyle]); this object supplies the primitives:
+ *  - shared X: the default push/pop (small horizontal offset + fade-through)
+ *  - slide: the app's original horizontal push, used by settings
+ *  - dock expand: bottom bars / sheets grow from their docked edge, instead of sliding in
  *
- * Specs come from [MotionScheme.expressive] - the same scheme `MpvexTheme` installs on
- * `MaterialTheme` - read directly rather than through `MaterialTheme.motionScheme`, because
- * `NavDisplay` transition specs are not composable. Keeping one instance here means the
- * navigation spec cannot drift from the theme's motion tokens.
+ * Specs come from [MotionScheme.expressive] - the same scheme the theme installs - read
+ * directly rather than through `MaterialTheme.motionScheme`, because `NavDisplay` transition
+ * specs are not composable.
  */
 object RexMotion {
-  /** How far the outgoing screen recedes on a shared-X transition. */
-  const val SHARED_X_SCALE: Float = 0.96f
-
   private val scheme: MotionScheme = MotionScheme.expressive()
 
   /** True when the user has not turned system animations off. */
@@ -79,73 +75,79 @@ object RexMotion {
   /**
    * Pick the transition for a screen according to the style it asked for.
    *
-   * The app fades by default, so a source card's bounds are only looked up for screens that
-   * explicitly ask for the container transform.
+   * [forward] describes the edge: true when the screen is arriving, false when leaving. Which
+   * screen supplies the style is decided by the caller, not here. See
+   * [xyz.mpv.rex.presentation.Screen.motion].
    */
   fun screenTransition(
     context: android.content.Context,
     forward: Boolean,
     style: MotionStyle,
-    source: ContainerTransformSource?,
   ): Pair<EnterTransition, ExitTransition> = when (style) {
-    MotionStyle.Fade -> fadeTransition(context)
+    MotionStyle.SharedX -> sharedXTransition(context, forward = forward)
     MotionStyle.Slide -> slideTransition(context, forward = forward)
-    MotionStyle.ContainerTransform -> navTransition(context, forward = forward, source = source)
   }
 
   /**
-   * Push/pop transition for a navigation entry.
+   * Shared axis X: the default navigation motion.
    *
-   * @param forward true for push, false for pop
-   * @param source the card the user tapped, when this entry has one
+   * The incoming screen travels in from the trailing edge by [SHARED_X_OFFSET_DP] while fading
+   * in; the outgoing travels the same distance towards the leading edge while fading out, and is
+   * gone by [SHARED_X_OUT_MILLIS] so the content change is actually visible. A pure cross-fade
+   * between two same-looking lists reads as no animation at all, which is what this replaces.
+   *
+   * Why X and not Y or Z: a horizontal move matches the predictive-back edge swipe and the
+   * file-manager convention of horizontal depth, whereas a vertical move implies paging and
+   * fights the scrolling list underneath. The offset is deliberately small - this plays on every
+   * tap, so a full-width slide would be tiresome.
+   *
+   * The offset uses a non-bouncy spring. The expressive spatial spring overshoots, and an
+   * overshoot on a full-screen translation reads as the screen wobbling.
    */
-  @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-  fun navTransition(
+  fun sharedXTransition(
     context: android.content.Context,
     forward: Boolean,
-    source: ContainerTransformSource?,
   ): Pair<EnterTransition, ExitTransition> {
-    val spatial = spatialSpec(context)
-    val effects = effectsSpec(context)
-
-    if (source != null) {
-      // Container transform. The source screen is only faded: translating it would read as
-      // a slide, which is exactly what this change removes.
-      return containerTransformEnter(source, spatial, effects) to fadeOut(effects)
-    }
-
-    // Shared X: destination settles in, source recedes. Direction is reversed on pop so the
-    // two screens swap roles instead of both shrinking at once.
-    val (enterScale, exitScale) = if (forward) {
-      1f to SHARED_X_SCALE
-    } else {
-      SHARED_X_SCALE to 1f
-    }
-    val enter = scaleIn(animationSpec = spatial, initialScale = enterScale) + fadeIn(effects)
-    val exit = scaleOut(animationSpec = spatial, targetScale = exitScale) + fadeOut(effects)
+    if (!animationsEnabled(context)) return fadeTransition(context)
+    // Specs are not composable, so density comes from the context rather than LocalDensity.
+    val offsetPx = (SHARED_X_OFFSET_DP * context.resources.displayMetrics.density).toInt()
+    val direction = if (forward) 1 else -1
+    val enter = fadeIn(tween(durationMillis = SHARED_X_IN_MILLIS)) +
+      slideIn(sharedXSpec) { IntOffset(direction * offsetPx, 0) }
+    val exit = fadeOut(tween(durationMillis = SHARED_X_OUT_MILLIS)) +
+      slideOut(sharedXSpec) { IntOffset(-direction * offsetPx, 0) }
     return enter to exit
   }
 
   /**
+   * Non-bouncy spring for screen-sized translations (see [sharedXTransition]).
+   *
+   * Deliberately not read from the MotionScheme: the scheme's default spatial spec is expressive
+   * and overshoots, which is fine on a button but shows up as a wobble on a whole screen.
+   */
+  private val sharedXSpec: FiniteAnimationSpec<IntOffset> =
+    spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+
+  /** Horizontal travel of a shared-X screen. Small, because it plays on every tap. */
+  private const val SHARED_X_OFFSET_DP = 30
+
+  /** Outgoing fade, short so the incoming content shows through. */
+  private const val SHARED_X_OUT_MILLIS = 90
+
+  /** Incoming fade. */
+  private const val SHARED_X_IN_MILLIS = 210
+
+  /**
    * Predictive-back transition.
    *
-   * The system back gesture is driven by Navigation 3 itself (it previews the pop), so the
-   * only thing this spec decides is the *shape* the departing screen collapses into: the tapped
-   * card's band when there is a source, otherwise the shared-X scale. Progress is deliberately
-   * not re-implemented here; Navigation 3 already maps gesture distance onto it.
+   * Navigation 3 drives the gesture; this only decides the shape the departing screen leaves
+   * with, so the gesture preview and the committed pop agree.
    */
   fun predictiveBackTransition(
     context: android.content.Context,
-    source: ContainerTransformSource?,
-  ): Pair<EnterTransition, ExitTransition> {
-    val effects = effectsSpec(context)
-    val departure = scaleOut(
-      animationSpec = if (animationsEnabled(context)) settleSpec else snap(),
-      targetScale = source?.scaleFraction ?: SHARED_X_SCALE,
-      transformOrigin = TransformOrigin(0.5f, source?.topFraction ?: 0.5f),
-    ) + fadeOut(effects)
-    return fadeIn(effects) to departure
-  }
+    style: MotionStyle,
+  ): Pair<EnterTransition, ExitTransition> =
+    screenTransition(context, forward = false, style = style)
 
   /**
    * Opacity-only transition, for screens where movement of any kind is unwanted (see
@@ -183,10 +185,6 @@ object RexMotion {
 
   /** Push duration used by [slideTransition]; matches the animation this replaced. */
   private const val SLIDE_MILLIS = 220
-
-  /** Settle used when the gesture commits; a spatial spring here would fight the finger. */
-  private val settleSpec: FiniteAnimationSpec<Float> =
-    spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
 
   /**
    * Entrance for docked chrome (selection bars, mini player, floating bars).

@@ -30,14 +30,9 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
-import xyz.mpv.rex.ui.motion.LocalContainerTransformRegistry
-import xyz.mpv.rex.ui.motion.LocalWindowHeight
 import xyz.mpv.rex.ui.motion.RexMotion
-import xyz.mpv.rex.ui.motion.rememberContainerTransformRegistry
-import xyz.mpv.rex.ui.motion.rememberWindowHeightPx
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
-import xyz.mpv.rex.presentation.MotionStyle
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.repository.NetworkRepository
 import xyz.mpv.rex.utils.update.UpdateDialog
@@ -77,17 +72,21 @@ val LocalUpdateViewModel = staticCompositionLocalOf<UpdateViewModel?> { null }
  * tapped. Returns null when the entry is not a container-transform source (its contentKey
  * is the `"root"` placeholder) or when the scene has no entries.
  */
-private fun sourceIdOf(scene: androidx.navigation3.scene.Scene<*>): String? =
-  (scene.entries.lastOrNull()?.contentKey as? String)?.takeIf { it != "root" }
-
 /**
- * Motion the scene's screen asked for via [xyz.mpv.rex.presentation.Screen.motion].
+ * The screen a scene represents.
  *
- * A scene's key is the screen on the backstack; anything that is not a [Screen] (or an empty
- * stack during a pop) falls back to the app default rather than failing a transition.
+ * A scene's key is the screen on the backstack. Anything that is not a [Screen] cannot happen
+ * today (every NavKey here is one), but a transition must not throw, so it falls back to a
+ * screen that declares no motion preference.
  */
-private fun motionStyleOf(scene: androidx.navigation3.scene.Scene<*>): MotionStyle =
-  (scene.key as? Screen)?.motion ?: MotionStyle.Fade
+private fun screenOf(scene: androidx.navigation3.scene.Scene<*>): Screen =
+  scene.key as? Screen ?: FallbackScreen
+
+/** Stand-in used only if a scene's key is unexpectedly not a [Screen]. */
+private object FallbackScreen : Screen {
+  @androidx.compose.runtime.Composable
+  override fun Content() = Unit
+}
 
 
 /**
@@ -251,58 +250,38 @@ class MainActivity : ComponentActivity() {
     }
 
     // Provide shared states to all screens
-    val containerTransformRegistry = rememberContainerTransformRegistry()
-    val windowHeightPx = rememberWindowHeightPx()
     CompositionLocalProvider(
       LocalBackStack provides typedBackstack,
       LocalUpdateViewModel provides updateViewModel,
       LocalNavigationBarHeight provides totalNavigationBarHeight,
       LocalBottomBarPresent provides (isMainScreen && !hideNavigationBar),
-      LocalContainerTransformRegistry provides containerTransformRegistry,
-      LocalWindowHeight provides windowHeightPx,
     ) {
       Box(modifier = Modifier.fillMaxSize()) {
         NavDisplay(
           backStack = typedBackstack,
           onBack = { typedBackstack.navigateBack() },
           entryProvider = { route ->
-            // contentKey carries the tapped card's id so the transition below can find its
-            // bounds. See docs/ui-design/ANIMATION_STAGES.md.
-            // NavEntry's contentKey is non-null; "root" marks "no transform source".
-            NavEntry(route, contentKey = route.transformSourceId ?: "root") { route.Content() }
+            NavEntry(route) { route.Content() }
           },
+          // The screen further up the stack owns the edge, so push and pop always mirror each
+          // other and each edge has exactly one style. Pop reads the screen being left; push
+          // reads the screen arriving.
           popTransitionSpec = {
-            RexMotion.screenTransition(
-              context = context,
-              forward = false,
-              style = motionStyleOf(initialState),
-              source = containerTransformRegistry.find(sourceIdOf(initialState)),
-            ).let { (enter, exit) -> enter togetherWith exit }
+            val screen = screenOf(initialState)
+            RexMotion.screenTransition(context, forward = false, style = screen.motion)
+              .let { (enter, exit) -> enter togetherWith exit }
           },
           transitionSpec = {
-            RexMotion.screenTransition(
-              context = context,
-              forward = true,
-              style = motionStyleOf(targetState),
-              source = containerTransformRegistry.find(sourceIdOf(targetState)),
-            ).let { (enter, exit) -> enter togetherWith exit }
+            val screen = screenOf(targetState)
+            RexMotion.screenTransition(context, forward = true, style = screen.motion)
+              .let { (enter, exit) -> enter togetherWith exit }
           },
           predictivePopTransitionSpec = { _ ->
             // Navigation 3 drives the gesture itself; this only decides the shape the departing
-            // screen collapses into. See RexMotion.predictiveBackTransition.
-            // A screen that fades or slides has no collapse shape, so the gesture previews its
-            // own transition; only the container transform collapses toward its source card.
-            when (motionStyleOf(initialState)) {
-              MotionStyle.Slide ->
-                RexMotion.slideTransition(context, forward = false)
-              MotionStyle.Fade ->
-                RexMotion.fadeTransition(context)
-              MotionStyle.ContainerTransform ->
-                RexMotion.predictiveBackTransition(
-                  context,
-                  source = containerTransformRegistry.find(sourceIdOf(initialState)),
-                )
-            }.let { (enter, exit) -> enter togetherWith exit }
+            // screen leaves with, so the preview and the committed pop agree.
+            val screen = screenOf(initialState)
+            RexMotion.predictiveBackTransition(context, style = screen.motion)
+              .let { (enter, exit) -> enter togetherWith exit }
           },
         )
 

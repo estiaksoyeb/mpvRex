@@ -154,13 +154,6 @@ data class VideoListScreen(
   private val bucketId: String,
   private val folderName: String,
 ) : Screen {
-  override val transformSourceId: String
-    get() = "$FOLDER_TRANSFORM_PREFIX:$bucketId"
-
-  companion object {
-    /** Must match `UnifiedExplorerContent.transformSourcePrefix` used by the folder list. */
-    const val FOLDER_TRANSFORM_PREFIX = "folder"
-  }
 
   @OptIn(ExperimentalMaterial3ExpressiveApi::class)
   @Composable

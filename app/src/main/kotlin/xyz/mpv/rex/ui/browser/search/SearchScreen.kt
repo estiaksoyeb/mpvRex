@@ -620,8 +620,6 @@ data class SearchScreen(
           videoPlaybackProgress = videoFilesWithPlayback,
           showSections = true,
           useContentSurface = true,
-          // Folder rows expand into FileSystemDirectoryScreen.
-          transformSourcePrefix = FileSystemDirectoryScreen.TRANSFORM_PREFIX,
         )
 
         Box(modifier = Modifier.fillMaxSize()) {

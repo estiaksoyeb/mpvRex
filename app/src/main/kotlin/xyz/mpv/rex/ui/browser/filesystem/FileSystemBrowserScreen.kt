@@ -172,13 +172,6 @@ object FileSystemBrowserRootScreen : xyz.mpv.rex.presentation.Screen {
 data class FileSystemDirectoryScreen(
   val path: String,
 ) : xyz.mpv.rex.presentation.Screen {
-  override val transformSourceId: String
-    get() = "$TRANSFORM_PREFIX:$path"
-
-  companion object {
-    /** Must match the prefix the file-system browser passes to `UnifiedExplorerContent`. */
-    const val TRANSFORM_PREFIX = "fs"
-  }
 
   @OptIn(ExperimentalPermissionsApi::class)
   @Composable
@@ -1433,8 +1426,6 @@ private fun FileSystemBrowserContent(
       showSections = true,
       pinnedPaths = pinnedPaths,
       useContentSurface = true,
-      // Folder rows expand into FileSystemDirectoryScreen.
-      transformSourcePrefix = FileSystemDirectoryScreen.TRANSFORM_PREFIX,
     )
     }
   }

@@ -83,12 +83,9 @@ import xyz.mpv.rex.presentation.MotionStyle
 
 @Serializable
 object AboutScreen : Screen {
-  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  /** Settings keep the app's original full horizontal push. */
   override val motion: MotionStyle
     get() = MotionStyle.Slide
-
-  override val transformSourceId: String
-    get() = "settings:AboutScreen"
 
   @Suppress("DEPRECATION")
   @OptIn(ExperimentalMaterial3Api::class)
@@ -431,12 +428,9 @@ object AboutScreen : Screen {
 @Suppress("DEPRECATION")
 @Serializable
 object LibrariesScreen : Screen {
-  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  /** Settings keep the app's original full horizontal push. */
   override val motion: MotionStyle
     get() = MotionStyle.Slide
-
-  override val transformSourceId: String
-    get() = "settings:LibrariesScreen"
 
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable

@@ -992,8 +992,6 @@ private fun FolderListContent(
       gridColumns = folderGridColumns,
       pinnedPaths = pinnedPaths,
       useContentSurface = true,
-      // Folder rows expand into VideoListScreen; ids match its transformSourceId.
-      transformSourcePrefix = xyz.mpv.rex.ui.browser.videolist.VideoListScreen.FOLDER_TRANSFORM_PREFIX,
     )
   }
 }

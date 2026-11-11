@@ -76,13 +76,6 @@ data class NetworkBrowserScreen(
   val connectionName: String,
   val currentPath: String = "/",
 ) : Screen {
-  override val transformSourceId: String
-    get() = "$TRANSFORM_PREFIX:$connectionId:$currentPath"
-
-  companion object {
-    /** Must match the prefix the network browser passes to `UnifiedExplorerContent`. */
-    const val TRANSFORM_PREFIX = "network"
-  }
 
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
@@ -333,10 +326,6 @@ private fun NetworkBrowserContent(
                       modifier = Modifier,
                       // Connected-list rows take the sheet's inner radius.
                       shape = RoundedCornerShape(2.dp),
-                      // Must match NetworkBrowserScreen.transformSourceId.
-                      transformSourceId = "${
-                        NetworkBrowserScreen.TRANSFORM_PREFIX
-                      }:$connectionId:$currentPath:${folder.path}",
                     )
                   }
                 }

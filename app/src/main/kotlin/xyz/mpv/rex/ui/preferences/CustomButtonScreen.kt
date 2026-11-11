@@ -136,12 +136,9 @@ data class CustomButtonSlots(
 
 @Serializable
 object CustomButtonScreen : Screen {
-  /** Preferences keep the app's original horizontal push rather than the container transform. */
+  /** Settings keep the app's original full horizontal push. */
   override val motion: MotionStyle
     get() = MotionStyle.Slide
-
-  override val transformSourceId: String
-    get() = "settings:CustomButtonScreen"
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable

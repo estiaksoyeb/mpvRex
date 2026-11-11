@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.ui.icons.MaterialSymbolIcon
 import xyz.mpv.rex.ui.icons.Icon as RexIconComposable
-import xyz.mpv.rex.ui.motion.transformSource
 
 data class RexSettingsItem(
     val icon: Any? = null,
@@ -37,11 +36,6 @@ data class RexSettingsItem(
     val enabled: Boolean = true,
     val showChevron: Boolean = false,
     val onClick: (() -> Unit)? = null,
-    /**
-     * Container-transform source id for the screen this row opens (see
-     * `docs/ui-design/ANIMATION_STAGES.md`). The target screen's `transformSourceId` must match.
-     */
-    val transformSourceId: String? = null
 )
 
 @Composable
@@ -90,9 +84,7 @@ fun RexSettingsGroup(
                 }
 
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .transformSource(item.transformSourceId),
+                    modifier = Modifier.fillMaxWidth(),
                     shape = shape,
                     colors = CardDefaults.cardColors(containerColor = containerColor),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)

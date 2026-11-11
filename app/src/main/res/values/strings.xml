@@ -140,13 +140,9 @@
     <string name="pref_appearance_motion_preset_title">Motion Preset</string>
     <string name="pref_appearance_motion_preset_summary">Choose the transition animation between screens</string>
     <string name="motion_preset_expressive_parallax">Expressive Parallax</string>
-    <string name="motion_preset_expressive_parallax_desc">Smooth full-width slide with 3D scale and 25% background parallax</string>
     <string name="motion_preset_shared_z">Shared-Z (Depth Zoom)</string>
-    <string name="motion_preset_shared_z_desc">Material 3 spatial zoom (scale 0.88 → 1.0) without horizontal sliding</string>
     <string name="motion_preset_classic_slide">Classic Slide</string>
-    <string name="motion_preset_classic_slide_desc">Traditional full horizontal push</string>
     <string name="motion_preset_default">Default</string>
-    <string name="motion_preset_default_desc">Follow the global motion preset</string>
 
     <!-- Settings Search -->
     <string name="settings_search_hint">Search settings…</string>

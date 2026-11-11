@@ -14,15 +14,13 @@ import xyz.mpv.rex.R
  */
 enum class MotionStyle(
   @StringRes val titleRes: Int,
-  @StringRes val descriptionRes: Int,
 ) {
   /**
    * Expressive parallax: full-width slide with subtle 3D scale (0.92 -> 1.0) while
-   * outgoing layer recedes with a 25% parallax shift and 0.96 scale.
+   * outgoing layer recedes with a 25% parallax shift and 0.95 scale.
    */
   ExpressiveParallax(
     titleRes = R.string.motion_preset_expressive_parallax,
-    descriptionRes = R.string.motion_preset_expressive_parallax_desc,
   ),
 
   /**
@@ -30,7 +28,6 @@ enum class MotionStyle(
    */
   SharedZ(
     titleRes = R.string.motion_preset_shared_z,
-    descriptionRes = R.string.motion_preset_shared_z_desc,
   ),
 
   /**
@@ -38,7 +35,6 @@ enum class MotionStyle(
    */
   Slide(
     titleRes = R.string.motion_preset_classic_slide,
-    descriptionRes = R.string.motion_preset_classic_slide_desc,
   ),
 
   /**
@@ -46,7 +42,6 @@ enum class MotionStyle(
    */
   Default(
     titleRes = R.string.motion_preset_default,
-    descriptionRes = R.string.motion_preset_default_desc,
   );
 
   companion object {

@@ -15,21 +15,15 @@ import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MotionScheme
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -49,13 +43,6 @@ import xyz.mpv.rex.presentation.MotionStyle
  */
 object RexMotion {
   private val scheme: MotionScheme = MotionScheme.expressive()
-
-  /**
-   * Live-tunable motion parameters.
-   * Can be altered on the fly by the Motion Tuning preferences without rebuilding.
-   */
-  @Volatile
-  var tuning: MotionTuning = MotionTuning()
 
   /** True when the user has not turned system animations off. */
   fun animationsEnabled(context: android.content.Context): Boolean {
@@ -106,7 +93,7 @@ object RexMotion {
 
   /**
    * Expressive parallax: full-width slide with subtle 3D scale (0.92 -> 1.0) while
-   * outgoing layer recedes with a 25% parallax shift and 0.96 scale.
+   * outgoing layer recedes with a 25% parallax shift and 0.95 scale.
    *
    * Inspired by modern fluid navigation: incoming screen glides across while the outgoing
    * screen stays visible behind as an anchor layer rather than sliding all the way off
@@ -119,63 +106,52 @@ object RexMotion {
     if (!animationsEnabled(context)) return fadeTransition(context)
     val enterCurve = EaseOutCubic
     val exitCurve = EaseInCubic
-    val enterDuration = tuning.parallaxEnterDuration
-    val exitDuration = tuning.parallaxExitDuration
-    val fadeDuration = tuning.parallaxFadeDuration
-    val fadeDelay = tuning.parallaxFadeDelay
-    val inScale = tuning.parallaxInitialScale
-    val outScale = tuning.parallaxRecedingScale
-    val divisor = tuning.parallaxDivisor.coerceAtLeast(1)
 
     return if (forward) {
       val enter = slideInHorizontally(
-        animationSpec = tween(enterDuration, easing = enterCurve),
+        animationSpec = tween(PARALLAX_ENTER_MILLIS, easing = enterCurve),
         initialOffsetX = { it },
       ) + scaleIn(
-        animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = inScale,
-      ) + (if (fadeDuration > 0) {
-        fadeIn(animationSpec = tween(enterDuration - fadeDelay, delayMillis = fadeDelay, easing = FastOutSlowInEasing))
-      } else {
-        EnterTransition.None
-      })
+        animationSpec = tween(PARALLAX_ENTER_MILLIS, easing = enterCurve),
+        initialScale = PARALLAX_INITIAL_SCALE,
+      ) + fadeIn(
+        animationSpec = tween(
+          PARALLAX_ENTER_MILLIS - PARALLAX_FADE_DELAY_MILLIS,
+          delayMillis = PARALLAX_FADE_DELAY_MILLIS,
+          easing = FastOutSlowInEasing,
+        ),
+      )
 
       val exit = slideOutHorizontally(
-        animationSpec = tween(exitDuration, easing = exitCurve),
-        targetOffsetX = { -it / divisor },
+        animationSpec = tween(PARALLAX_EXIT_MILLIS, easing = exitCurve),
+        targetOffsetX = { -it / PARALLAX_DIVISOR },
       ) + scaleOut(
-        animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = outScale,
-      ) + (if (fadeDuration > 0) {
-        fadeOut(animationSpec = tween(fadeDuration, easing = FastOutSlowInEasing))
-      } else {
-        ExitTransition.None
-      })
+        animationSpec = tween(PARALLAX_EXIT_MILLIS, easing = exitCurve),
+        targetScale = PARALLAX_RECEDING_SCALE,
+      ) + fadeOut(animationSpec = tween(PARALLAX_FADE_MILLIS, easing = FastOutSlowInEasing))
       enter to exit
     } else {
       val enter = slideInHorizontally(
-        animationSpec = tween(enterDuration, easing = enterCurve),
-        initialOffsetX = { -it / divisor },
+        animationSpec = tween(PARALLAX_ENTER_MILLIS, easing = enterCurve),
+        initialOffsetX = { -it / PARALLAX_DIVISOR },
       ) + scaleIn(
-        animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = outScale,
-      ) + (if (fadeDuration > 0) {
-        fadeIn(animationSpec = tween(enterDuration - fadeDelay, delayMillis = fadeDelay, easing = FastOutSlowInEasing))
-      } else {
-        EnterTransition.None
-      })
+        animationSpec = tween(PARALLAX_ENTER_MILLIS, easing = enterCurve),
+        initialScale = PARALLAX_RECEDING_SCALE,
+      ) + fadeIn(
+        animationSpec = tween(
+          PARALLAX_ENTER_MILLIS - PARALLAX_FADE_DELAY_MILLIS,
+          delayMillis = PARALLAX_FADE_DELAY_MILLIS,
+          easing = FastOutSlowInEasing,
+        ),
+      )
 
       val exit = slideOutHorizontally(
-        animationSpec = tween(exitDuration, easing = exitCurve),
+        animationSpec = tween(PARALLAX_EXIT_MILLIS, easing = exitCurve),
         targetOffsetX = { it },
       ) + scaleOut(
-        animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = inScale,
-      ) + (if (fadeDuration > 0) {
-        fadeOut(animationSpec = tween(fadeDuration, easing = FastOutSlowInEasing))
-      } else {
-        ExitTransition.None
-      })
+        animationSpec = tween(PARALLAX_EXIT_MILLIS, easing = exitCurve),
+        targetScale = PARALLAX_INITIAL_SCALE,
+      ) + fadeOut(animationSpec = tween(PARALLAX_FADE_MILLIS, easing = FastOutSlowInEasing))
       enter to exit
     }
   }
@@ -191,37 +167,33 @@ object RexMotion {
     if (!animationsEnabled(context)) return fadeTransition(context)
     val enterCurve = EaseOutCubic
     val exitCurve = EaseInCubic
-    val enterDuration = tuning.sharedZEnterDuration
-    val exitDuration = tuning.sharedZExitDuration
-    val inScale = tuning.sharedZInitialScale
-    val outScale = tuning.sharedZTargetScale
 
     return if (forward) {
       val enter = scaleIn(
-        animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = inScale,
+        animationSpec = tween(SHARED_Z_ENTER_MILLIS, easing = enterCurve),
+        initialScale = SHARED_Z_INITIAL_SCALE,
       ) + fadeIn(
-        animationSpec = tween(enterDuration, easing = LinearEasing),
+        animationSpec = tween(SHARED_Z_ENTER_MILLIS, easing = FastOutSlowInEasing),
       )
       val exit = scaleOut(
-        animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = outScale,
+        animationSpec = tween(SHARED_Z_EXIT_MILLIS, easing = exitCurve),
+        targetScale = SHARED_Z_TARGET_SCALE,
       ) + fadeOut(
-        animationSpec = tween(exitDuration, easing = LinearEasing),
+        animationSpec = tween(SHARED_Z_EXIT_MILLIS, easing = FastOutSlowInEasing),
       )
       enter to exit
     } else {
       val enter = scaleIn(
-        animationSpec = tween(enterDuration, easing = enterCurve),
-        initialScale = outScale,
+        animationSpec = tween(SHARED_Z_ENTER_MILLIS, easing = enterCurve),
+        initialScale = SHARED_Z_TARGET_SCALE,
       ) + fadeIn(
-        animationSpec = tween(enterDuration, easing = LinearEasing),
+        animationSpec = tween(SHARED_Z_ENTER_MILLIS, easing = FastOutSlowInEasing),
       )
       val exit = scaleOut(
-        animationSpec = tween(exitDuration, easing = exitCurve),
-        targetScale = inScale,
+        animationSpec = tween(SHARED_Z_EXIT_MILLIS, easing = exitCurve),
+        targetScale = SHARED_Z_INITIAL_SCALE,
       ) + fadeOut(
-        animationSpec = tween(exitDuration, easing = LinearEasing),
+        animationSpec = tween(SHARED_Z_EXIT_MILLIS, easing = FastOutSlowInEasing),
       )
       enter to exit
     }
@@ -265,18 +237,32 @@ object RexMotion {
     forward: Boolean,
   ): Pair<EnterTransition, ExitTransition> {
     if (!animationsEnabled(context)) return fadeTransition(context)
-    val duration = tuning.slideDuration
-    val divisor = tuning.slideDivisor.coerceAtLeast(1)
-    val spec = tween<IntOffset>(durationMillis = duration)
-    val effects = tween<Float>(durationMillis = duration)
+    val spec = tween<IntOffset>(durationMillis = SLIDE_MILLIS)
+    val effects = tween<Float>(durationMillis = SLIDE_MILLIS)
     val direction = if (forward) 1 else -1
-    val enter = fadeIn(effects) + slideIn(spec) { size -> IntOffset(direction * size.width / divisor, 0) }
-    val exit = fadeOut(effects) + slideOut(spec) { size -> IntOffset(-direction * size.width / divisor, 0) }
+    val enter = fadeIn(effects) + slideIn(spec) { size -> IntOffset(direction * size.width / SLIDE_DIVISOR, 0) }
+    val exit = fadeOut(effects) + slideOut(spec) { size -> IntOffset(-direction * size.width / SLIDE_DIVISOR, 0) }
     return enter to exit
   }
 
+  // Expressive parallax tuning.
+  private const val PARALLAX_ENTER_MILLIS = 400
+  private const val PARALLAX_EXIT_MILLIS = 350
+  private const val PARALLAX_FADE_MILLIS = 250
+  private const val PARALLAX_FADE_DELAY_MILLIS = 50
+  private const val PARALLAX_INITIAL_SCALE = 0.92f
+  private const val PARALLAX_RECEDING_SCALE = 0.95f
+  private const val PARALLAX_DIVISOR = 4
+
+  // Shared-Z tuning.
+  private const val SHARED_Z_ENTER_MILLIS = 300
+  private const val SHARED_Z_EXIT_MILLIS = 250
+  private const val SHARED_Z_INITIAL_SCALE = 0.88f
+  private const val SHARED_Z_TARGET_SCALE = 1.08f
+
   /** Push duration used by [slideTransition]; matches the animation this replaced. */
   private const val SLIDE_MILLIS = 220
+  private const val SLIDE_DIVISOR = 2
 
   /**
    * Entrance for docked chrome (selection bars, mini player, floating bars).

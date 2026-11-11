@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -53,9 +54,6 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.outlined.Edit
-import xyz.mpv.rex.ui.motion.MotionPresetDialog
-import xyz.mpv.rex.ui.motion.MotionTuningDialog
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -63,6 +61,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.ui.semantics.Role
 import xyz.mpv.rex.utils.locale.LocaleHelper
+import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
@@ -98,8 +97,6 @@ object AppearancePreferencesScreen : Screen {
 
         val context = LocalContext.current
         var showLanguageDialog by remember { mutableStateOf(false) }
-        var showMotionDialog by remember { mutableStateOf(false) }
-        var showTuningDialog by remember { mutableStateOf(false) }
 
         val pageColor = MaterialTheme.colorScheme.surfaceContainer
         val cardColor = MaterialTheme.colorScheme.surface
@@ -259,10 +256,14 @@ object AppearancePreferencesScreen : Screen {
                         GroupedListColumn {
                             GroupedPreferenceCard(
                                 color = cardColor, tonalElevation = 0.dp,
-                                position = GroupPosition.FIRST,
+                                position = GroupPosition.ONLY,
                                 highlightKey = R.string.pref_appearance_motion_preset_title,
                             ) {
-                                Preference(
+                                ListPreference(
+                                    value = motionPreset,
+                                    onValueChange = preferences.navigationMotionStyle::set,
+                                    values = MotionStyle.selectablePresets,
+                                    valueToText = { AnnotatedString(context.getString(it.titleRes)) },
                                     title = { Text(text = stringResource(id = R.string.pref_appearance_motion_preset_title)) },
                                     summary = {
                                         Text(
@@ -277,30 +278,6 @@ object AppearancePreferencesScreen : Screen {
                                             tint = MaterialTheme.colorScheme.primary,
                                         )
                                     },
-                                    onClick = { showMotionDialog = true },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                color = cardColor, tonalElevation = 0.dp,
-                                position = GroupPosition.LAST,
-                            ) {
-                                Preference(
-                                    title = { Text(text = "Motion Lab (Toys)") },
-                                    summary = {
-                                        Text(
-                                            text = "Live tune duration, scale, and parallax intensity",
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    },
-                                    icon = {
-                                        Icon(
-                                            Icons.Outlined.Edit,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
-                                    },
-                                    onClick = { showTuningDialog = true },
                                 )
                             }
                         }
@@ -552,22 +529,6 @@ object AppearancePreferencesScreen : Screen {
                     }
                 },
                 shape = RoundedCornerShape(24.dp),
-            )
-        }
-
-        if (showMotionDialog) {
-            val motionPreset by preferences.navigationMotionStyle.collectAsState()
-            MotionPresetDialog(
-                currentPreset = motionPreset,
-                onSelect = { preferences.navigationMotionStyle.set(it) },
-                onDismiss = { showMotionDialog = false },
-            )
-        }
-
-        if (showTuningDialog) {
-            MotionTuningDialog(
-                preferences = preferences,
-                onDismiss = { showTuningDialog = false },
             )
         }
     }

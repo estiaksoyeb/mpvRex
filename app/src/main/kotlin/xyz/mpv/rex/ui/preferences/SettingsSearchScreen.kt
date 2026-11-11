@@ -66,7 +66,7 @@ import xyz.mpv.rex.presentation.MotionStyle
 object SettingsSearchScreen : Screen {
   /** Settings keep the app's original full horizontal push. */
   override val motion: MotionStyle
-    get() = MotionStyle.Slide
+    get() = MotionStyle.Default
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable

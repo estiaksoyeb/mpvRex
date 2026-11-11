@@ -13,6 +13,13 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.EaseInCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
@@ -84,58 +91,119 @@ object RexMotion {
     forward: Boolean,
     style: MotionStyle,
   ): Pair<EnterTransition, ExitTransition> = when (style) {
-    MotionStyle.SharedX -> sharedXTransition(context, forward = forward)
+    MotionStyle.ExpressiveParallax, MotionStyle.Default -> expressiveParallaxTransition(context, forward = forward)
+    MotionStyle.SharedZ -> sharedZTransition(context, forward = forward)
     MotionStyle.Slide -> slideTransition(context, forward = forward)
   }
 
   /**
-   * Shared axis X: the default navigation motion.
+   * Expressive parallax: full-width slide with subtle 3D scale (0.92 -> 1.0) while
+   * outgoing layer recedes with a 25% parallax shift and 0.96 scale.
    *
-   * The incoming screen travels in from the trailing edge by [SHARED_X_OFFSET_DP] while fading
-   * in; the outgoing travels the same distance towards the leading edge while fading out, and is
-   * gone by [SHARED_X_OUT_MILLIS] so the content change is actually visible. A pure cross-fade
-   * between two same-looking lists reads as no animation at all, which is what this replaces.
-   *
-   * Why X and not Y or Z: a horizontal move matches the predictive-back edge swipe and the
-   * file-manager convention of horizontal depth, whereas a vertical move implies paging and
-   * fights the scrolling list underneath. The offset is deliberately small - this plays on every
-   * tap, so a full-width slide would be tiresome.
-   *
-   * The offset uses a non-bouncy spring. The expressive spatial spring overshoots, and an
-   * overshoot on a full-screen translation reads as the screen wobbling.
+   * Inspired by modern fluid navigation: incoming screen glides across while the outgoing
+   * screen stays visible behind as an anchor layer rather than sliding all the way off
+   * or fading to black.
    */
-  fun sharedXTransition(
+  fun expressiveParallaxTransition(
     context: android.content.Context,
     forward: Boolean,
   ): Pair<EnterTransition, ExitTransition> {
     if (!animationsEnabled(context)) return fadeTransition(context)
-    // Specs are not composable, so density comes from the context rather than LocalDensity.
-    val offsetPx = (SHARED_X_OFFSET_DP * context.resources.displayMetrics.density).toInt()
-    val direction = if (forward) 1 else -1
-    val enter = fadeIn(tween(durationMillis = SHARED_X_IN_MILLIS)) +
-      slideIn(sharedXSpec) { IntOffset(direction * offsetPx, 0) }
-    val exit = fadeOut(tween(durationMillis = SHARED_X_OUT_MILLIS)) +
-      slideOut(sharedXSpec) { IntOffset(-direction * offsetPx, 0) }
-    return enter to exit
+    val enterCurve = EaseOutCubic
+    val exitCurve = EaseInCubic
+    val enterDuration = 380
+    val exitDuration = 320
+    val fadeDuration = 280
+
+    return if (forward) {
+      val enter = slideInHorizontally(
+        animationSpec = tween(enterDuration, easing = enterCurve),
+        initialOffsetX = { it },
+      ) + scaleIn(
+        animationSpec = tween(enterDuration, easing = enterCurve),
+        initialScale = 0.92f,
+      ) + fadeIn(
+        animationSpec = tween(fadeDuration, delayMillis = 40, easing = LinearEasing),
+      )
+
+      val exit = slideOutHorizontally(
+        animationSpec = tween(exitDuration, easing = exitCurve),
+        targetOffsetX = { -it / 4 },
+      ) + scaleOut(
+        animationSpec = tween(exitDuration, easing = exitCurve),
+        targetScale = 0.96f,
+      ) + fadeOut(
+        animationSpec = tween(fadeDuration, easing = LinearEasing),
+      )
+      enter to exit
+    } else {
+      val enter = slideInHorizontally(
+        animationSpec = tween(enterDuration, easing = enterCurve),
+        initialOffsetX = { -it / 4 },
+      ) + scaleIn(
+        animationSpec = tween(enterDuration, easing = enterCurve),
+        initialScale = 0.96f,
+      ) + fadeIn(
+        animationSpec = tween(fadeDuration, delayMillis = 40, easing = LinearEasing),
+      )
+
+      val exit = slideOutHorizontally(
+        animationSpec = tween(exitDuration, easing = exitCurve),
+        targetOffsetX = { it },
+      ) + scaleOut(
+        animationSpec = tween(exitDuration, easing = exitCurve),
+        targetScale = 0.92f,
+      ) + fadeOut(
+        animationSpec = tween(fadeDuration, easing = LinearEasing),
+      )
+      enter to exit
+    }
   }
 
   /**
-   * Non-bouncy spring for screen-sized translations (see [sharedXTransition]).
-   *
-   * Deliberately not read from the MotionScheme: the scheme's default spatial spec is expressive
-   * and overshoots, which is fine on a button but shows up as a wobble on a whole screen.
+   * Material Shared-Z: 3D spatial zoom (scale 0.88 -> 1.0) without horizontal sliding.
+   * Gives a sense of drilling directly into a folder or setting.
    */
-  private val sharedXSpec: FiniteAnimationSpec<IntOffset> =
-    spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+  fun sharedZTransition(
+    context: android.content.Context,
+    forward: Boolean,
+  ): Pair<EnterTransition, ExitTransition> {
+    if (!animationsEnabled(context)) return fadeTransition(context)
+    val enterCurve = EaseOutCubic
+    val exitCurve = EaseInCubic
+    val enterDuration = 300
+    val exitDuration = 250
 
-  /** Horizontal travel of a shared-X screen. Small, because it plays on every tap. */
-  private const val SHARED_X_OFFSET_DP = 30
-
-  /** Outgoing fade, short so the incoming content shows through. */
-  private const val SHARED_X_OUT_MILLIS = 90
-
-  /** Incoming fade. */
-  private const val SHARED_X_IN_MILLIS = 210
+    return if (forward) {
+      val enter = scaleIn(
+        animationSpec = tween(enterDuration, easing = enterCurve),
+        initialScale = 0.88f,
+      ) + fadeIn(
+        animationSpec = tween(enterDuration, easing = LinearEasing),
+      )
+      val exit = scaleOut(
+        animationSpec = tween(exitDuration, easing = exitCurve),
+        targetScale = 1.08f,
+      ) + fadeOut(
+        animationSpec = tween(exitDuration, easing = LinearEasing),
+      )
+      enter to exit
+    } else {
+      val enter = scaleIn(
+        animationSpec = tween(enterDuration, easing = enterCurve),
+        initialScale = 1.08f,
+      ) + fadeIn(
+        animationSpec = tween(enterDuration, easing = LinearEasing),
+      )
+      val exit = scaleOut(
+        animationSpec = tween(exitDuration, easing = exitCurve),
+        targetScale = 0.88f,
+      ) + fadeOut(
+        animationSpec = tween(exitDuration, easing = LinearEasing),
+      )
+      enter to exit
+    }
+  }
 
   /**
    * Predictive-back transition.

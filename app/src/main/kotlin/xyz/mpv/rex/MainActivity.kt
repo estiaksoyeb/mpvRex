@@ -33,6 +33,7 @@ import androidx.navigation3.ui.NavDisplay
 import xyz.mpv.rex.ui.motion.RexMotion
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
+import xyz.mpv.rex.presentation.MotionStyle
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.repository.NetworkRepository
 import xyz.mpv.rex.utils.update.UpdateDialog
@@ -217,6 +218,7 @@ class MainActivity : ComponentActivity() {
     }
     val updateState by (updateViewModel?.updateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
     val miniPlayerState by miniPlayerStateManager.state.collectAsState()
+    val motionPreset by appearancePreferences.navigationMotionStyle.collectAsState()
     val hideNavigationBar by MainScreen.shouldHideNavigationBar.collectAsState()
     val currentRoute = typedBackstack.lastOrNull()
     val isMainScreen = currentRoute == MainScreen
@@ -268,19 +270,22 @@ class MainActivity : ComponentActivity() {
           // reads the screen arriving.
           popTransitionSpec = {
             val screen = screenOf(initialState)
-            RexMotion.screenTransition(context, forward = false, style = screen.motion)
+            val style = if (screen.motion == MotionStyle.Default) motionPreset else screen.motion
+            RexMotion.screenTransition(context, forward = false, style = style)
               .let { (enter, exit) -> enter togetherWith exit }
           },
           transitionSpec = {
             val screen = screenOf(targetState)
-            RexMotion.screenTransition(context, forward = true, style = screen.motion)
+            val style = if (screen.motion == MotionStyle.Default) motionPreset else screen.motion
+            RexMotion.screenTransition(context, forward = true, style = style)
               .let { (enter, exit) -> enter togetherWith exit }
           },
           predictivePopTransitionSpec = { _ ->
             // Navigation 3 drives the gesture itself; this only decides the shape the departing
             // screen leaves with, so the preview and the committed pop agree.
             val screen = screenOf(initialState)
-            RexMotion.predictiveBackTransition(context, style = screen.motion)
+            val style = if (screen.motion == MotionStyle.Default) motionPreset else screen.motion
+            RexMotion.predictiveBackTransition(context, style = style)
               .let { (enter, exit) -> enter togetherWith exit }
           },
         )

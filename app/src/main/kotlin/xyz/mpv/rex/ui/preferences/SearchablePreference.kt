@@ -101,6 +101,14 @@ object SearchablePreferences {
                 targetIndex = 3,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_appearance_motion_preset_title,
+                summaryRes = R.string.pref_appearance_motion_preset_summary,
+                keywords = listOf("motion", "animation", "transition", "slide", "parallax", "shared-z", "zoom", "preset"),
+                category = "Appearance",
+                screen = AppearancePreferencesScreen,
+                targetIndex = 5,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_appearance_tab_home_title,
                 summaryRes = R.string.pref_appearance_tab_home_summary,
                 keywords = listOf("home", "tab", "navigation", "bottom bar"),

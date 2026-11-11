@@ -93,7 +93,7 @@ import xyz.mpv.rex.presentation.MotionStyle
 object YtdlSettingsScreen : Screen {
   /** Settings keep the app's original full horizontal push. */
   override val motion: MotionStyle
-    get() = MotionStyle.Slide
+    get() = MotionStyle.Default
 
     private const val ADDON_GITHUB_RELEASES_URL = "https://github.com/mpvRex/REX-Ytdlp/releases"
 

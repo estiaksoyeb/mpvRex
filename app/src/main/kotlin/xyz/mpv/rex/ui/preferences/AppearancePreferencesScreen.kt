@@ -53,6 +53,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.SwapVert
+import xyz.mpv.rex.ui.motion.MotionPresetDialog
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -73,7 +75,7 @@ import xyz.mpv.rex.presentation.MotionStyle
 object AppearancePreferencesScreen : Screen {
   /** Settings keep the app's original full horizontal push. */
   override val motion: MotionStyle
-    get() = MotionStyle.Slide
+    get() = MotionStyle.Default
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -95,6 +97,7 @@ object AppearancePreferencesScreen : Screen {
 
         val context = LocalContext.current
         var showLanguageDialog by remember { mutableStateOf(false) }
+        var showMotionDialog by remember { mutableStateOf(false) }
 
         val pageColor = MaterialTheme.colorScheme.surfaceContainer
         val cardColor = MaterialTheme.colorScheme.surface
@@ -240,6 +243,39 @@ object AppearancePreferencesScreen : Screen {
                                     onValueChange = { preferences.hidePlayFabShowInHeader.set(it) },
                                     title = { Text(text = stringResource(id = R.string.pref_appearance_hide_play_fab_show_in_header_title)) },
                                     summary = { Text(text = stringResource(id = R.string.pref_appearance_hide_play_fab_show_in_header_summary)) },
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        PreferenceSectionHeader(title = stringResource(id = R.string.pref_appearance_category_motion))
+                    }
+
+                    item {
+                        val motionPreset by preferences.navigationMotionStyle.collectAsState()
+                        GroupedListColumn {
+                            GroupedPreferenceCard(
+                                color = cardColor, tonalElevation = 0.dp,
+                                position = GroupPosition.ONLY,
+                                highlightKey = R.string.pref_appearance_motion_preset_title,
+                            ) {
+                                Preference(
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_motion_preset_title)) },
+                                    summary = {
+                                        Text(
+                                            text = stringResource(id = motionPreset.titleRes),
+                                            color = MaterialTheme.colorScheme.outline,
+                                        )
+                                    },
+                                    icon = {
+                                        Icon(
+                                            Icons.Filled.SwapVert,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    onClick = { showMotionDialog = true },
                                 )
                             }
                         }
@@ -491,6 +527,15 @@ object AppearancePreferencesScreen : Screen {
                     }
                 },
                 shape = RoundedCornerShape(24.dp),
+            )
+        }
+
+        if (showMotionDialog) {
+            val motionPreset by preferences.navigationMotionStyle.collectAsState()
+            MotionPresetDialog(
+                currentPreset = motionPreset,
+                onSelect = { preferences.navigationMotionStyle.set(it) },
+                onDismiss = { showMotionDialog = false },
             )
         }
     }

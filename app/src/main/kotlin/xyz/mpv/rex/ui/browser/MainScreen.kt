@@ -3,14 +3,11 @@ package xyz.mpv.rex.ui.browser
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,6 +78,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 import xyz.mpv.rex.ui.motion.RexMotion
+import xyz.mpv.rex.ui.motion.RexPress
 
 @Serializable
 object MainScreen : Screen {
@@ -405,15 +403,7 @@ object MainScreen : Screen {
                 val isSelected = selectedTab == index
                 val isYouTabWithCustomAvatar = tab.id == "you" && customAvatarBitmap != null
                 val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val pressScale by animateFloatAsState(
-                  targetValue = if (isPressed) 0.90f else 1f,
-                  animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                  ),
-                  label = "navItemPressScale"
-                )
+                val pressScale by RexPress.pressScale(interactionSource)
 
                 NavigationBarItem(
                   modifier = Modifier

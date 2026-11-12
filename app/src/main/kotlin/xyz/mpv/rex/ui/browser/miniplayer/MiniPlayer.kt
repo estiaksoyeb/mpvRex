@@ -55,7 +55,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.WavyProgressIndicatorDefaults
@@ -95,6 +94,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
+import xyz.mpv.rex.ui.controls.TonalIconTone
+import xyz.mpv.rex.ui.controls.tonalIconButtonColors
 import xyz.mpv.rex.ui.player.MediaPlaybackService
 import xyz.mpv.rex.ui.player.RepeatMode
 import xyz.mpv.rex.ui.theme.pillShape
@@ -498,10 +499,7 @@ fun MiniPlayer(
 
                 FilledTonalIconButton(
                   onClick = { stateManager.togglePlayPause() },
-                  colors = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                  ),
+                  colors = tonalIconButtonColors(TonalIconTone.Primary),
                   modifier = Modifier.size(40.dp),
                 ) {
                   AnimatedContent(
@@ -734,10 +732,7 @@ fun MiniPlayer(
             val isShuffle = state.shuffleEnabled
             FilledTonalIconButton(
               onClick = { stateManager.toggleShuffle() },
-              colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = if (isShuffle) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-                contentColor = if (isShuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-              ),
+              colors = tonalIconButtonColors(if (isShuffle) TonalIconTone.Active else TonalIconTone.Muted),
               modifier = Modifier.size(46.dp),
             ) {
               Icon(
@@ -749,10 +744,7 @@ fun MiniPlayer(
 
             FilledTonalIconButton(
               onClick = { stateManager.playPrevious() },
-              colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-                contentColor = MaterialTheme.colorScheme.onSurface,
-              ),
+              colors = tonalIconButtonColors(TonalIconTone.Muted),
               modifier = Modifier.size(48.dp),
             ) {
               Icon(
@@ -793,10 +785,7 @@ fun MiniPlayer(
 
             FilledTonalIconButton(
               onClick = { stateManager.playNext() },
-              colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-                contentColor = MaterialTheme.colorScheme.onSurface,
-              ),
+              colors = tonalIconButtonColors(TonalIconTone.Muted),
               modifier = Modifier.size(48.dp),
             ) {
               Icon(
@@ -815,10 +804,7 @@ fun MiniPlayer(
 
             FilledTonalIconButton(
               onClick = { stateManager.cycleRepeatMode() },
-              colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = if (isRepeatActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-                contentColor = if (isRepeatActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-              ),
+              colors = tonalIconButtonColors(if (isRepeatActive) TonalIconTone.Active else TonalIconTone.Muted),
               modifier = Modifier.size(46.dp),
             ) {
               Icon(

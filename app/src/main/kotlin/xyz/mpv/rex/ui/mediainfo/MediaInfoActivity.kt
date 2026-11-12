@@ -34,7 +34,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -74,6 +73,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import java.io.File
+import xyz.mpv.rex.ui.controls.TonalIconTone
+import xyz.mpv.rex.ui.controls.tonalIconButtonColors
 
 class MediaInfoActivity : ComponentActivity() {
   private val appearancePreferences by inject<AppearancePreferences>()
@@ -212,10 +213,7 @@ class MediaInfoActivity : ComponentActivity() {
                   copyToClipboard(textContent!!, fileName)
                 }
               },
-              colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-              ),
+              colors = tonalIconButtonColors(TonalIconTone.Secondary),
             ) {
               Icon(
                 imageVector = Icons.Filled.ContentCopy,
@@ -231,10 +229,7 @@ class MediaInfoActivity : ComponentActivity() {
                   shareMediaInfo(textContent!!, fileName, fileUri)
                 }
               },
-              colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-              ),
+              colors = tonalIconButtonColors(TonalIconTone.Secondary),
             ) {
               Icon(
                 imageVector = Icons.Filled.Share,

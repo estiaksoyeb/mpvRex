@@ -8,7 +8,6 @@ import android.view.WindowManager
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -20,7 +19,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -134,6 +132,7 @@ import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.ui.player.controls.components.glassSurface
 import xyz.mpv.rex.utils.media.MediaUtils
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import xyz.mpv.rex.ui.motion.RexPress
 import xyz.mpv.rex.ui.player.HeadlessPlaybackController
 import xyz.mpv.rex.ui.player.PlayerActivity
 import kotlinx.coroutines.delay
@@ -1430,12 +1429,7 @@ private fun ActionButton(
     val enableGlass by browserPreferences.enableGlassShortsControls.collectAsState()
 
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "scale"
-    )
+    val scale by RexPress.pressScale(interactionSource, RexPress.SCALE_SMALL_TARGET)
 
     val buttonModifier = if (enableGlass) {
         Modifier.glassSurface(

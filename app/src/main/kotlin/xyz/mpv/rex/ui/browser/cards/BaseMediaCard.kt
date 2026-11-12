@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import xyz.mpv.rex.ui.motion.RexPress
 import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.R
 
@@ -126,8 +127,8 @@ fun BaseMediaCard(
     val isPressed by interactionSource.collectIsPressedAsState()
     val cardScale by animateFloatAsState(
         targetValue = when {
-            isPressed -> if (shape != null) 1f else 0.98f
-            isSelected -> if (shape != null) 1f else 0.96f
+            isPressed -> if (shape != null) 1f else RexPress.SCALE
+            isSelected -> if (shape != null) 1f else RexPress.SCALE
             else -> 1f
         },
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),

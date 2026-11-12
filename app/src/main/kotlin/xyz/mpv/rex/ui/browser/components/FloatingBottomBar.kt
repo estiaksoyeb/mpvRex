@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -46,6 +45,8 @@ import xyz.mpv.rex.R
 import xyz.mpv.rex.ui.browser.MainScreen
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import xyz.mpv.rex.ui.controls.TonalIconTone
+import xyz.mpv.rex.ui.controls.tonalIconButtonColors
 import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.motion.RexMotion
@@ -138,10 +139,7 @@ fun BrowserBottomBar(
           enabled = showCopy,
           modifier = Modifier.size(buttonSize),
           shape = buttonShape,
-          colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-          )
+          colors = tonalIconButtonColors(TonalIconTone.Secondary)
         ) {
           Icon(
             Icons.Filled.ContentCopy,
@@ -158,10 +156,7 @@ fun BrowserBottomBar(
           enabled = showMove,
           modifier = Modifier.size(buttonSize),
           shape = buttonShape,
-          colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-          )
+          colors = tonalIconButtonColors(TonalIconTone.Secondary)
         ) {
           Icon(
             Icons.AutoMirrored.Filled.DriveFileMove,
@@ -178,10 +173,7 @@ fun BrowserBottomBar(
           enabled = showRename,
           modifier = Modifier.size(buttonSize),
           shape = buttonShape,
-          colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-          )
+          colors = tonalIconButtonColors(TonalIconTone.Secondary)
         ) {
           Icon(
             Icons.Filled.DriveFileRenameOutline,
@@ -198,10 +190,7 @@ fun BrowserBottomBar(
           enabled = showAddToPlaylist,
           modifier = Modifier.size(buttonSize),
           shape = buttonShape,
-          colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-          )
+          colors = tonalIconButtonColors(TonalIconTone.Secondary)
         ) {
           Icon(
             Icons.AutoMirrored.Filled.PlaylistAdd,
@@ -218,10 +207,7 @@ fun BrowserBottomBar(
             },
             modifier = Modifier.size(buttonSize),
             shape = buttonShape,
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-              containerColor = MaterialTheme.colorScheme.secondaryContainer,
-              contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            colors = tonalIconButtonColors(TonalIconTone.Secondary)
           ) {
             Icon(
               Icons.Filled.Bookmarks,
@@ -239,10 +225,7 @@ fun BrowserBottomBar(
           enabled = showDelete,
           modifier = Modifier.size(buttonSize),
           shape = buttonShape,
-          colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer
-          )
+          colors = tonalIconButtonColors(TonalIconTone.Error)
         ) {
           Icon(
             Icons.Filled.Delete,

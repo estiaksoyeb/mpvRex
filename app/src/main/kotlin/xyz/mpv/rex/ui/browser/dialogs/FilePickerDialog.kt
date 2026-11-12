@@ -33,7 +33,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +58,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import xyz.mpv.rex.utils.storage.StorageVolumeUtils
 import java.io.File
+import xyz.mpv.rex.ui.controls.TonalIconTone
+import xyz.mpv.rex.ui.controls.tonalIconButtonColors
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -558,10 +559,7 @@ private fun NavigationButtons(
     FilledTonalIconButton(
       onClick = onBack,
       modifier = Modifier.size(buttonSize),
-      colors = IconButtonDefaults.filledTonalIconButtonColors(
-        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-      )
+      colors = tonalIconButtonColors(TonalIconTone.Secondary)
     ) {
       Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", modifier = Modifier.size(iconSize))
     }
@@ -570,10 +568,7 @@ private fun NavigationButtons(
   FilledTonalIconButton(
     onClick = onHome,
     modifier = Modifier.size(buttonSize),
-    colors = IconButtonDefaults.filledTonalIconButtonColors(
-      containerColor = MaterialTheme.colorScheme.secondaryContainer,
-      contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    )
+    colors = tonalIconButtonColors(TonalIconTone.Secondary)
   ) {
     Icon(Icons.Default.Home, "Home", modifier = Modifier.size(iconSize))
   }
@@ -581,10 +576,7 @@ private fun NavigationButtons(
   FilledTonalIconButton(
     onClick = onSystemPicker,
     modifier = Modifier.size(buttonSize),
-    colors = IconButtonDefaults.filledTonalIconButtonColors(
-      containerColor = MaterialTheme.colorScheme.secondaryContainer,
-      contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    )
+    colors = tonalIconButtonColors(TonalIconTone.Secondary)
   ) {
     Icon(Icons.Default.DriveFolderUpload, "System Picker", modifier = Modifier.size(iconSize))
   }

@@ -2,12 +2,8 @@ package xyz.mpv.rex.presentation.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.ui.icons.MaterialSymbolIcon
 import xyz.mpv.rex.ui.icons.Icon as RexIconComposable
+import xyz.mpv.rex.ui.motion.RexPress
 
 data class RexSettingsItem(
     val icon: Any? = null,
@@ -103,13 +100,7 @@ fun RexSettingsRow(
     badgeShape: Shape = RoundedCornerShape(12.dp)
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "rex_settings_row_scale"
-    )
+    val pressScale by RexPress.pressScale(interactionSource)
 
     // Palettes carry light and dark variants; resolve once so the pill follows
     // the active theme instead of staying on the light pastel in dark mode.
@@ -126,7 +117,7 @@ fun RexSettingsRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .clickable(
                 enabled = item.enabled && item.onClick != null,
                 interactionSource = interactionSource,

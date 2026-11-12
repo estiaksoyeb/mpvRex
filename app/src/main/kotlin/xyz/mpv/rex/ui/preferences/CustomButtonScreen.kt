@@ -110,6 +110,8 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.util.UUID
 import xyz.mpv.rex.presentation.MotionStyle
+import xyz.mpv.rex.ui.controls.TonalIconTone
+import xyz.mpv.rex.ui.controls.tonalIconButtonColors
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data models
@@ -506,10 +508,7 @@ fun ButtonSlotCard(
                     FilledTonalIconButton(
                         onClick = onDelete,
                         modifier = Modifier.size(36.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor   = MaterialTheme.colorScheme.onErrorContainer,
-                        ),
+                        colors = tonalIconButtonColors(TonalIconTone.Error),
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.delete), modifier = Modifier.size(18.dp))
                     }

@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.database.entities.PlaylistEntity
 import xyz.mpv.rex.database.repository.PlaylistRepository
 import xyz.mpv.rex.domain.media.model.Video
+import xyz.mpv.rex.ui.browser.states.EmptyState
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
@@ -189,8 +190,19 @@ fun AddToPlaylistDialog(
             }
           }
         } else {
-          // Empty state
-          EmptyPlaylistsMessage()
+          // Empty state. EmptyState fills its parent and leaves 64.dp for the bottom navigation
+          // bar, so it needs a bounded box here: the sheet's content column is unconstrained.
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(220.dp),
+          ) {
+            EmptyState(
+              icon = Icons.AutoMirrored.Outlined.PlaylistAdd,
+              title = stringResource(R.string.no_playlists_yet),
+              message = stringResource(R.string.create_first_playlist_above),
+            )
+          }
         }
       }
 
@@ -284,43 +296,6 @@ private fun PlaylistItemCard(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
-    }
-  }
-}
-
-@Composable
-private fun EmptyPlaylistsMessage() {
-  Card(
-    modifier = Modifier.fillMaxWidth(),
-    shape = MaterialTheme.shapes.large,
-    colors = CardDefaults.cardColors(
-      containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-    ),
-  ) {
-    Column(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(24.dp),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-      Icon(
-        imageVector = Icons.AutoMirrored.Outlined.PlaylistAdd,
-        contentDescription = null,
-        modifier = Modifier.size(48.dp),
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-      Text(
-        text = stringResource(R.string.no_playlists_yet),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-      Text(
-        text = stringResource(R.string.create_first_playlist_above),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
     }
   }
 }

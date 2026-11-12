@@ -4,12 +4,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconButtonShapes
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Shape
-import xyz.mpv.rex.ui.motion.expressiveIconButtonShapes
 
 /**
  * The tonal families an expressive icon button can take.
@@ -75,14 +71,18 @@ fun tonalIconButtonColors(tone: TonalIconTone): IconButtonColors {
 }
 
 /**
- * Shape pair for an icon button that morphs toward a rounder silhouette while pressed.
+ * Shape pair for an icon button that morphs toward its pressed silhouette while held.
  *
- * Defaults to the expressive cookie -> circle family; pass explicit shapes when a screen has
- * already committed to a different silhouette (e.g. `roundedPressShapes`).
+ * This is [IconButtonDefaults.shapes] unchanged: `CircleShape` resting, pressed shape from
+ * `MaterialTheme.shapes.small`.
+ *
+ * **Size caveat.** The pressed shape is a fixed corner radius (10.dp in this app's `AppShapes`),
+ * so the morph reads as "round" at the stock 40dp icon-button size but as a *square* on larger
+ * buttons — the mini player's 46/48dp controls did exactly that. Those use press **scale**
+ * instead (see `MiniPlayerIconButton`). Keep the morph for ~40dp controls only.
+ *
+ * Callers still need `@OptIn(ExperimentalMaterial3ExpressiveApi::class)`.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun iconButtonShapes(
-  resting: Shape = MaterialShapes.Cookie9Sided.toShape(),
-  pressed: Shape = MaterialShapes.Circle.toShape(),
-): IconButtonShapes = expressiveIconButtonShapes(resting, pressed)
+fun iconButtonShapes(): IconButtonShapes = IconButtonDefaults.shapes()

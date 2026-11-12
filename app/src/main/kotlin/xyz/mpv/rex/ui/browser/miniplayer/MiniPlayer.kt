@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package xyz.mpv.rex.ui.browser.miniplayer
 
 import android.content.Intent
@@ -55,6 +57,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.WavyProgressIndicatorDefaults
@@ -102,6 +105,7 @@ import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.utils.media.MediaFormatter
 import kotlin.math.roundToInt
 import xyz.mpv.rex.ui.motion.RexMotion
+import xyz.mpv.rex.ui.motion.RexPress
 
 object MiniPlayerDefaults {
   val CompactHeight = 80.dp
@@ -256,6 +260,7 @@ fun MiniPlayer(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
           ) {
+            val collapseInteraction = remember { MutableInteractionSource() }
             IconButton(
               onClick = {
                 coroutineScope.launch {
@@ -263,6 +268,10 @@ fun MiniPlayer(
                   stateManager.setExpanded(false)
                 }
               },
+              interactionSource = collapseInteraction,
+              modifier = Modifier.then(
+                RexPress.pressScaleModifier(collapseInteraction)
+              ),
             ) {
               Icon(
                 imageVector = Icons.Filled.KeyboardArrowDown,
@@ -280,10 +289,15 @@ fun MiniPlayer(
               color = MaterialTheme.colorScheme.primary,
             )
 
+            val closeInteraction = remember { MutableInteractionSource() }
             IconButton(
               onClick = {
                 stateManager.closeMiniPlayer(context)
               },
+              interactionSource = closeInteraction,
+              modifier = Modifier.then(
+                RexPress.pressScaleModifier(closeInteraction)
+              ),
             ) {
               Icon(
                 imageVector = Icons.Filled.Close,
@@ -497,7 +511,7 @@ fun MiniPlayer(
                   )
                 }
 
-                FilledTonalIconButton(
+                MiniPlayerIconButton(
                   onClick = { stateManager.togglePlayPause() },
                   colors = tonalIconButtonColors(TonalIconTone.Primary),
                   modifier = Modifier.size(40.dp),
@@ -520,10 +534,15 @@ fun MiniPlayer(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
+                val compactCloseInteraction = remember { MutableInteractionSource() }
                 IconButton(
                   onClick = {
                     stateManager.closeMiniPlayer(context)
                   },
+                  interactionSource = compactCloseInteraction,
+                  modifier = Modifier.then(
+                    RexPress.pressScaleModifier(compactCloseInteraction)
+                  ),
                 ) {
                   Icon(
                     imageVector = Icons.Filled.Close,
@@ -730,7 +749,7 @@ fun MiniPlayer(
             verticalAlignment = Alignment.CenterVertically,
           ) {
             val isShuffle = state.shuffleEnabled
-            FilledTonalIconButton(
+            MiniPlayerIconButton(
               onClick = { stateManager.toggleShuffle() },
               colors = tonalIconButtonColors(if (isShuffle) TonalIconTone.Active else TonalIconTone.Muted),
               modifier = Modifier.size(46.dp),
@@ -742,7 +761,7 @@ fun MiniPlayer(
               )
             }
 
-            FilledTonalIconButton(
+            MiniPlayerIconButton(
               onClick = { stateManager.playPrevious() },
               colors = tonalIconButtonColors(TonalIconTone.Muted),
               modifier = Modifier.size(48.dp),
@@ -783,7 +802,7 @@ fun MiniPlayer(
               }
             }
 
-            FilledTonalIconButton(
+            MiniPlayerIconButton(
               onClick = { stateManager.playNext() },
               colors = tonalIconButtonColors(TonalIconTone.Muted),
               modifier = Modifier.size(48.dp),
@@ -802,7 +821,7 @@ fun MiniPlayer(
             }
             val isRepeatActive = state.repeatMode != RepeatMode.OFF
 
-            FilledTonalIconButton(
+            MiniPlayerIconButton(
               onClick = { stateManager.cycleRepeatMode() },
               colors = tonalIconButtonColors(if (isRepeatActive) TonalIconTone.Active else TonalIconTone.Muted),
               modifier = Modifier.size(46.dp),
@@ -818,4 +837,28 @@ fun MiniPlayer(
       }
     }
   }
+}
+
+/**
+ * A filled tonal icon button that gives press feedback by scaling, not by changing shape.
+ *
+ * `IconButtonDefaults.shapes()` morphs a circle to `MaterialTheme.shapes.small`, which in this
+ * app is a near-square 10.dp radius on a 46-48dp button — so the mini player controls appeared to
+ * turn square when held. They stay round and compress instead.
+ */
+@Composable
+private fun MiniPlayerIconButton(
+  onClick: () -> Unit,
+  colors: IconButtonColors,
+  modifier: Modifier = Modifier,
+  content: @Composable () -> Unit,
+) {
+  val interactionSource = remember { MutableInteractionSource() }
+  FilledTonalIconButton(
+    onClick = onClick,
+    colors = colors,
+    modifier = modifier.then(RexPress.pressScaleModifier(interactionSource)),
+    interactionSource = interactionSource,
+    content = content,
+  )
 }

@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
+import xyz.mpv.rex.ui.controls.iconButtonShapes
 import xyz.mpv.rex.ui.theme.DarkMode
 import xyz.mpv.rex.ui.theme.LocalThemeTransitionState
 import xyz.mpv.rex.ui.theme.pillShape
@@ -355,6 +356,7 @@ private fun NormalTopBar(
           onPlayClick()
         },
         modifier = Modifier.padding(horizontal = 2.dp),
+        shapes = iconButtonShapes(),
       ) {
         Icon(
           Icons.Filled.PlayArrow,
@@ -371,6 +373,7 @@ private fun NormalTopBar(
           onSearchClick()
         },
         modifier = Modifier.padding(horizontal = 2.dp),
+        shapes = iconButtonShapes(),
       ) {
         Icon(
           Icons.Filled.Search,
@@ -387,6 +390,7 @@ private fun NormalTopBar(
           onSortClick()
         },
         modifier = Modifier.padding(horizontal = 2.dp),
+        shapes = iconButtonShapes(),
       ) {
         Icon(
           Icons.Default.ViewComfy,
@@ -403,6 +407,7 @@ private fun NormalTopBar(
           onSettingsClick()
         },
         modifier = Modifier.padding(horizontal = 2.dp),
+        shapes = iconButtonShapes(),
       ) {
         Icon(
           Icons.Filled.Settings,
@@ -421,6 +426,7 @@ private fun NormalTopBar(
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             showNormalOverflowMenu = true
           },
+          shapes = iconButtonShapes(),
         ) {
           Icon(
             Icons.Filled.MoreVert,
@@ -590,6 +596,7 @@ private fun SelectionTopBar(
           onCancel()
         },
         modifier = Modifier.padding(horizontal = 2.dp),
+        shapes = iconButtonShapes(),
       ) {
         Icon(
           Icons.Filled.Close,
@@ -608,6 +615,7 @@ private fun SelectionTopBar(
             onPlay()
           },
           modifier = Modifier.padding(horizontal = 2.dp),
+          shapes = iconButtonShapes(),
         ) {
           Icon(
             Icons.Filled.PlayArrow,
@@ -627,6 +635,7 @@ private fun SelectionTopBar(
           },
           enabled = isSingleSelection,
           modifier = Modifier.padding(horizontal = 2.dp),
+          shapes = iconButtonShapes(),
         ) {
           Icon(
             Icons.Filled.DriveFileRenameOutline,
@@ -650,6 +659,7 @@ private fun SelectionTopBar(
             onDelete()
           },
           modifier = Modifier.padding(horizontal = 2.dp),
+          shapes = iconButtonShapes(),
         ) {
           Icon(
             imageVector = if (useRemoveIcon) Icons.Filled.RemoveCircle else Icons.Filled.Delete,
@@ -668,6 +678,7 @@ private fun SelectionTopBar(
             onInfo()
           },
           modifier = Modifier.padding(horizontal = 2.dp),
+          shapes = iconButtonShapes(),
         ) {
           Icon(
             Icons.Filled.Info,
@@ -686,6 +697,7 @@ private fun SelectionTopBar(
             onDelete()
           },
           modifier = Modifier.padding(horizontal = 2.dp),
+          shapes = iconButtonShapes(),
         ) {
           Icon(
             imageVector = Icons.Filled.Delete,
@@ -705,6 +717,7 @@ private fun SelectionTopBar(
               haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
               showOverflowMenu = true
             },
+            shapes = iconButtonShapes(),
           ) {
             Icon(
               Icons.Filled.MoreVert,

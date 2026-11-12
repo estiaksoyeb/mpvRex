@@ -6,12 +6,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.IconButtonShapes
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,7 +25,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 
 /**
  * One source of truth for expressive press feedback.
@@ -135,12 +130,12 @@ object RexPress {
    * Reads the scale only in the draw phase, so a press never recomposes the subtree.
    */
   @Composable
-  fun Modifier.pressScaleEffect(
+  fun pressScaleModifier(
     interactionSource: InteractionSource,
     pressedScale: Float = SCALE,
   ): Modifier {
     val scale by pressScale(interactionSource, pressedScale)
-    return graphicsLayer {
+    return Modifier.graphicsLayer {
       scaleX = scale
       scaleY = scale
     }
@@ -215,29 +210,3 @@ private fun lerpCorner(from: CornerRadius, to: CornerRadius, progress: Float): C
 
 private fun lerpFloat(from: Float, to: Float, progress: Float): Float =
   from + (to - from) * progress
-
-/**
- * Expressive shape pair for icon buttons: a resting shape that morphs toward a rounder shape
- * on press. Pass the result to `IconButton(shapes = ...)` or `FilledTonalIconButton(shapes = ...)`.
- *
- * The polygons are built from [MaterialShapes] so the silhouette follows the M3 expressive
- * family instead of a hand-picked radius.
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun expressiveIconButtonShapes(
-  restingShape: Shape = MaterialShapes.Cookie9Sided.toShape(),
-  pressedShape: Shape = MaterialShapes.Circle.toShape(),
-): IconButtonShapes = IconButtonShapes(shape = restingShape, pressedShape = pressedShape)
-
-/**
- * Resting/pressed pair for the common "rounded square button that rounds off when pressed"
- * silhouette, built from corner radii so it interpolates without a polygon match.
- */
-fun roundedPressShapes(
-  restingRadius: Int = 14,
-  pressedRadius: Int = 20,
-): Pair<Shape, Shape> = Pair(
-  RoundedCornerShape(restingRadius.dp),
-  RoundedCornerShape(pressedRadius.dp),
-)

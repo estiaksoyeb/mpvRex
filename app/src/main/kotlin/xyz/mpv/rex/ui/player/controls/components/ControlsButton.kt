@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.ui.player.controls.LocalPlayerButtonsClickEvent
+import xyz.mpv.rex.ui.motion.RexPress
 import xyz.mpv.rex.ui.theme.controlColor
 import xyz.mpv.rex.ui.theme.spacing
 import org.koin.compose.koinInject
@@ -162,7 +163,8 @@ fun ControlsButton(
           onLongClick = onLongClick,
           interactionSource = interactionSource,
           indication = ripple(),
-        ),
+        )
+        .then(RexPress.pressScaleModifier(interactionSource, RexPress.SCALE_SMALL_TARGET)),
     shape = buttonShape,
     color = surfaceColor,
     contentColor = contentColor,

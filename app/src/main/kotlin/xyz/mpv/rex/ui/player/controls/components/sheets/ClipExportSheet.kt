@@ -156,7 +156,7 @@ private fun ExportOptionCard(
       .fillMaxWidth()
       .clip(RoundedCornerShape(16.dp))
       .clickable(onClick = onClick),
-    shape = RoundedCornerShape(16.dp),
+    shape = MaterialTheme.shapes.extraLarge,
     colors = CardDefaults.cardColors(
       containerColor = if (isPrimary) {
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)

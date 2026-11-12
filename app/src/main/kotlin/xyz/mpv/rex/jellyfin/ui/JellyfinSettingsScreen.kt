@@ -101,6 +101,7 @@ object JellyfinSettingsScreen : Screen {
         Card(
           modifier = Modifier.fillMaxWidth(),
           colors = CardDefaults.cardColors(containerColor = cardColor),
+          shape = MaterialTheme.shapes.extraLarge,
         ) {
           Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Jellyfin Server", style = MaterialTheme.typography.titleMedium)
@@ -190,6 +191,7 @@ object JellyfinSettingsScreen : Screen {
         Card(
           modifier = Modifier.fillMaxWidth(),
           colors = CardDefaults.cardColors(containerColor = cardColor),
+          shape = MaterialTheme.shapes.extraLarge,
         ) {
           Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(

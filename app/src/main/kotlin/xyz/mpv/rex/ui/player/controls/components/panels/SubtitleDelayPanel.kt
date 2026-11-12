@@ -352,7 +352,7 @@ private fun SubtitleDelayContent(
 
     // Subtitle Sync Calibration Card
     OutlinedCard(
-      shape = RoundedCornerShape(16.dp),
+      shape = MaterialTheme.shapes.extraLarge,
       colors = androidx.compose.material3.CardDefaults.outlinedCardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f),
       ),

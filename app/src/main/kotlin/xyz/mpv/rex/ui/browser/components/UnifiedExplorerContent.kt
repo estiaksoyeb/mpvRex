@@ -73,6 +73,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 val LocalLastPlayedVideoPathsInFolder = compositionLocalOf<Set<String>> { emptySet() }
 val LocalRecentlyPlayedFilePaths = compositionLocalOf<Set<String>> { emptySet() }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> UnifiedExplorerContent(
   items: List<T>,
@@ -232,7 +233,9 @@ fun <T> UnifiedExplorerContent(
               .padding(bottom = 64.dp),
             contentAlignment = Alignment.Center,
           ) {
-            CircularProgressIndicator(
+            // Expressive loading indicator: morphs between organic MaterialShapes
+            // (SoftBurst, Cookie9Sided, Pentagon, Pill, ...) instead of spinning one arc.
+            LoadingIndicator(
               modifier = Modifier.size(48.dp),
               color = MaterialTheme.colorScheme.primary,
             )

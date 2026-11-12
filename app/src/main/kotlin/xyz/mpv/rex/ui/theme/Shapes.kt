@@ -29,7 +29,21 @@ object ExpressiveShapeTokens {
 
 /**
  * Material 3 Expressive Flower / Clover shape for FABs and badges.
+ *
+ * Superseded by `MaterialShapes` (`Flower`, `Clover4Leaf`, `Cookie9Sided`, …) from
+ * `material3`, which is a proper `RoundedPolygon` with morphing support. Prefer that over this
+ * sine-wave approximation:
+ *
+ * ```kotlin
+ * shape = MaterialShapes.Cookie9Sided.toShape()
+ * ```
+ *
+ * See `ui/browser/states/StateIconSurface.kt` for a live use.
  */
+@Deprecated(
+    message = "Use MaterialShapes (e.g. MaterialShapes.Cookie9Sided.toShape()) instead.",
+    level = DeprecationLevel.WARNING,
+)
 class FlowerShape(
     val petals: Int = 4,
     val depth: Float = 0.12f,
@@ -59,8 +73,6 @@ class FlowerShape(
         return Outline.Generic(path)
     }
 }
-
-val flowerFabShape = FlowerShape(petals = 4, depth = 0.12f)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 val AppShapes =

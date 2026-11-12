@@ -28,10 +28,10 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarDefaults
+import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.ShortNavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -375,25 +375,27 @@ object MainScreen : Screen {
             enter = RexMotion.dockEnter(LocalContext.current),
             exit = RexMotion.dockExit(LocalContext.current)
           ) {
-            val navBarBottomInset = NavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
-            NavigationBar(
+            val navBarBottomInset = ShortNavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
+            // The expressive navigation bar animates a pill behind the selected item and swaps the
+            // icon for its filled variant, instead of cross-fading a fixed rounded rectangle.
+            ShortNavigationBar(
               modifier = Modifier.height(64.dp + navBarBottomInset),
               containerColor = if (isShortsTabActive) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
               contentColor = if (isShortsTabActive) Color.White else MaterialTheme.colorScheme.onSurface,
             ) {
               val itemColors = if (isShortsTabActive) {
-                NavigationBarItemDefaults.colors(
+                ShortNavigationBarItemDefaults.colors(
                   selectedIconColor = Color.White,
                   selectedTextColor = Color.White,
                   unselectedIconColor = Color.White.copy(alpha = 0.7f),
                   unselectedTextColor = Color.White.copy(alpha = 0.7f),
-                  indicatorColor = Color.White.copy(alpha = 0.2f),
+                  selectedIndicatorColor = Color.White.copy(alpha = 0.2f),
                 )
               } else {
-                NavigationBarItemDefaults.colors(
+                ShortNavigationBarItemDefaults.colors(
                   selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                   selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                  indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                  selectedIndicatorColor = MaterialTheme.colorScheme.secondaryContainer,
                   unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                   unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -405,7 +407,7 @@ object MainScreen : Screen {
                 val interactionSource = remember { MutableInteractionSource() }
                 val pressScale by RexPress.pressScale(interactionSource)
 
-                NavigationBarItem(
+                ShortNavigationBarItem(
                   modifier = Modifier
                     .offset(y = 2.dp)
                     .graphicsLayer {
@@ -476,7 +478,7 @@ object MainScreen : Screen {
           val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
           val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
           val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
-          val navBarBottomInset = NavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
+          val navBarBottomInset = ShortNavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
           val navBarHeight = if (isNavBarVisible) 64.dp + navBarBottomInset else 0.dp
           val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
           val totalBottomPadding = navBarHeight + miniPlayerHeight

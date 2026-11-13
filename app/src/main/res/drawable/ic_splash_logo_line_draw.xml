@@ -43,13 +43,13 @@
                 <set android:ordering="sequentially">
                     <objectAnimator
                         android:propertyName="fillColor"
-                        android:valueFrom="#F9F9FF"
-                        android:valueTo="#F9F9FF"
+                        android:valueFrom="@color/splash_screen_background"
+                        android:valueTo="@color/splash_screen_background"
                         android:valueType="colorType"
                         android:duration="650" />
                     <objectAnimator
                         android:propertyName="fillColor"
-                        android:valueFrom="#F9F9FF"
+                        android:valueFrom="@color/splash_screen_background"
                         android:valueTo="#F4C542"
                         android:valueType="colorType"
                         android:duration="150" />
